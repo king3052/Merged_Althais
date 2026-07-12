@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book a Demo — Althais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Space+Mono:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'], jos: ['"Josefin Sans"', 'sans-serif'] },
+      colors: {
+        med: { 700: '#0a47b0', 600: '#0d5bd7', 100: '#e6efff' },
+        ok:  { 600: '#0c8a4f', 100: '#d8f5e3' },
+        risk: { 600: '#c83838', 100: '#ffe1e1' }
+      }
+    } } };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Josefin Sans', sans-serif; -webkit-font-smoothing: antialiased;
+      background: rgba(4,8,16,0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: rgba(255,255,255,0.88); min-height: 100vh;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #0d5bd7; box-shadow: 0 0 0 3px rgba(13,91,215,0.16); }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { opacity: 0; animation: fadeInUp 0.8s cubic-bezier(0.16,1,0.3,1) forwards; }
+    .fade-in-1 { animation-delay: 0.05s; }
+    .fade-in-2 { animation-delay: 0.18s; }
+    .fade-in-3 { animation-delay: 0.3s; }
+
+    #demo-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 26px 56px; border-bottom: 1px solid rgba(255,255,255,0.14);
+      font-family: 'Inter', sans-serif;
+    }
+    #demo-nav .nav-login { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.72); transition: color 0.2s ease; }
+    #demo-nav .nav-login:hover { color: #ffffff; }
+
+    .demo-eyebrow { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: #5b9dff; margin-bottom: 16px; }
+    .demo-headline {
+      font-family: 'Space Mono', monospace; font-weight: 700; text-transform: uppercase;
+      color: #fff; letter-spacing: 0.01em; line-height: 1.22;
+      font-size: clamp(1.4rem, 2.6vw, 2rem); margin-bottom: 18px;
+    }
+    .demo-copy { font-family: 'Inter', sans-serif; font-size: 14px; color: rgba(255,255,255,0.62); line-height: 1.75; margin-bottom: 32px; }
+    .demo-feature { font-family: 'Inter', sans-serif; font-size: 13.5px; color: rgba(255,255,255,0.8); }
+    .demo-feature-icon { width: 20px; height: 20px; background: rgba(13,91,215,0.22); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+
+    .demo-form-card { background: #fff; border-radius: 4px; padding: 40px 36px; box-shadow: 0 30px 80px rgba(0,0,0,0.45); }
+    .demo-submit-btn {
+      width: 100%; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: #fff; background: #0a0a0a; border: none; border-radius: 2px; padding: 16px; cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .demo-submit-btn:hover:not(:disabled) { background: #0d5bd7; transform: translateY(-1px); }
+    .demo-submit-btn:disabled { opacity: 0.6; cursor: default; }
+
+    #demo-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 56px; border-top: 1px solid rgba(255,255,255,0.14);
+      font-family: 'Inter', sans-serif;
+    }
+    #demo-footer p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: rgba(255,255,255,0.4); }
+    #demo-footer a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.4); transition: color 0.2s ease; }
+    #demo-footer a:hover { color: #fff; }
+
+    @media (max-width: 640px) {
+      #demo-nav, #demo-footer { padding: 18px 20px; }
+      #demo-footer { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Nav -->
+  <header id="demo-nav">
+    <a href="/" class="flex items-center" style="gap:12px">
+      <svg width="24" height="24" viewBox="0 0 80 80" fill="none">
+        <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+        <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8" stroke-linecap="butt"/>
+      </svg>
+      <span style="font-size:15px;font-weight:600;letter-spacing:0.35em;color:#fff;text-transform:uppercase;padding-left:0.35em">ALTHAIS</span>
+    </a>
+    <a href="/login" class="nav-login">Log in</a>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center px-6 py-16">
+    <div class="w-full max-w-[960px] grid md:grid-cols-2 gap-16 items-start">
+
+      <!-- Left: value prop -->
+      <div class="pt-2 fade-in fade-in-1">
+        <p class="demo-eyebrow">Book a demo</p>
+        <h1 class="demo-headline">See Althais<br />in action</h1>
+        <p class="demo-copy">
+          Schedule a personalized walkthrough with our team. We'll show you how Althais handles ICD-10 / CPT coding, claim validation, and EDI transmission — and answer any questions about your practice's workflow.
+        </p>
+
+        <div class="space-y-4">
+          <div class="flex items-start gap-3">
+            <div class="demo-feature-icon">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#5b9dff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <p class="demo-feature">AI-assisted ICD-10 and CPT coding from clinical notes</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="demo-feature-icon">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#5b9dff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <p class="demo-feature">Real-time claim validation and compliance checks</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="demo-feature-icon">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#5b9dff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <p class="demo-feature">EDI 837P clearinghouse transmission</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="demo-feature-icon">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#5b9dff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <p class="demo-feature">AI-generated denial appeal letters</p>
+          </div>
+        </div>
+
+        <div style="margin-top:40px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.14)">
+          <p style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:12px">Response time</p>
+          <p style="font-family:'Inter',sans-serif;font-size:13px;color:rgba(255,255,255,0.62)">We typically respond within <strong style="color:#fff">1 business day</strong> to schedule your demo.</p>
+        </div>
+      </div>
+
+      <!-- Right: form -->
+      <div class="demo-form-card fade-in fade-in-2">
+
+        <!-- Success state -->
+        <div id="success" class="hidden text-center py-6">
+          <div style="width:56px;height:56px;background:#d8f5e3;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#0c8a4f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3 class="jos" style="font-size:18px;font-weight:600;color:#0f1116;margin-bottom:8px">Request received</h3>
+          <p style="font-size:13.5px;color:#6b7280;line-height:1.6">Thanks! We'll be in touch within 1 business day to schedule your demo.</p>
+          <a href="/" style="display:inline-block;margin-top:24px;font-size:13px;color:#0d5bd7;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">← Back to home</a>
+        </div>
+
+        <!-- Form -->
+        <div id="form-wrap">
+          <h2 class="jos" style="font-size:18px;font-weight:600;color:#0f1116;margin-bottom:4px">Request a demo</h2>
+          <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Fill in your details and we'll be in touch.</p>
+
+          <div id="msg" class="hidden mb-4 text-[12.5px] rounded-sm px-3 py-2 bg-risk-100 text-risk-600"></div>
+
+          <form id="demo-form" class="space-y-4" novalidate>
+            <div>
+              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Full name</label>
+              <input id="full_name" type="text" autocomplete="name" required
+                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
+                style="color:#0f1116;border-color:#e4e6eb"
+                placeholder="Dr. Jane Smith" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Work email</label>
+              <input id="email" type="email" autocomplete="email" required
+                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
+                style="color:#0f1116;border-color:#e4e6eb"
+                placeholder="jane@practice.com" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Practice name</label>
+              <input id="practice_name" type="text" required
+                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
+                style="color:#0f1116;border-color:#e4e6eb"
+                placeholder="Mercy Cardiology" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Phone number</label>
+              <input id="phone" type="tel" autocomplete="tel"
+                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
+                style="color:#0f1116;border-color:#e4e6eb"
+                placeholder="+1 (555) 000-0000" />
+            </div>
+            <button id="btn" type="submit" class="demo-submit-btn">
+              Request demo →
+            </button>
+            <p style="font-size:11px;color:#aaa;text-align:center">No commitment required. We'll reach out to schedule.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer id="demo-footer">
+    <p>© 2026 Althais Health, Inc.</p>
+    <div class="flex" style="gap:24px">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+  </footer>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    function showMsg(text) {
+      const el = $('msg');
+      el.textContent = text;
+      el.classList.remove('hidden');
+    }
+    $('demo-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = $('full_name').value.trim();
+      const email = $('email').value.trim();
+      const practice = $('practice_name').value.trim();
+      if (!name || !email || !practice) { showMsg('Please fill in all required fields.'); return; }
+      if (!email.includes('@')) { showMsg('Enter a valid email address.'); return; }
+      $('btn').disabled = true; $('btn').textContent = 'Sending…';
+      const body = new URLSearchParams();
+      body.set('full_name', name);
+      body.set('email', email);
+      body.set('practice_name', practice);
+      body.set('phone', $('phone').value.trim());
+      try {
+        const res = await fetch('/request-demo', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body.toString() });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          $('form-wrap').classList.add('hidden');
+          $('success').classList.remove('hidden');
+        } else {
+          showMsg(data.error || 'Something went wrong. Please try again.');
+          $('btn').disabled = false; $('btn').textContent = 'Request demo →';
+        }
+      } catch {
+        showMsg('Network error. Please try again.');
+        $('btn').disabled = false; $('btn').textContent = 'Request demo →';
+      }
+    });
+  </script>
+</body>
+</html>

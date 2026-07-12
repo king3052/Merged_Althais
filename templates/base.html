@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Althais — AI Revenue Cycle Automation for Modern Healthcare{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Althais turns clinical documentation into validated medical claims with AI — ICD-10 and CPT coding, denial prevention, and payer intelligence in one platform.{% endblock %}" />
+  <link rel="canonical" href="{% block canonical %}https://althais.com{% endblock %}" />
+  <meta property="og:site_name" content="Althais" />
+  <meta property="og:title" content="{% block og_title %}Althais — AI Revenue Cycle Automation{% endblock %}" />
+  <meta property="og:description" content="{% block og_description %}Turn clinical documentation into validated medical claims with AI.{% endblock %}" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#061020" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      fontFamily: { jos: ['"Josefin Sans"', 'sans-serif'], inter: ['Inter', 'sans-serif'], mono: ['"Space Mono"', 'monospace'] }
+    } } };
+  </script>
+  <link rel="stylesheet" href="/static/css/design-system.css" />
+  <style>
+    /* Segment / category tab scroller — used on Solutions, Resources, and
+       anywhere else a horizontally-scrollable row of .seg-tab buttons appears.
+       Hides the native scrollbar and replaces it with a bottom track, a right
+       edge fade to hint at overflow, and an animated active-tab underline. */
+    .seg-tab-scroller {
+      position: relative;
+      margin: 44px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+    .seg-tab-track {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 2px;
+    }
+    .seg-tab-track::-webkit-scrollbar { display: none; }
+    .seg-tab-scroller::after {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; bottom: 1px;
+      width: 56px;
+      background: linear-gradient(to right, transparent, rgba(6,10,18,0.55));
+      pointer-events: none;
+    }
+    .seg-tab {
+      position: relative;
+      flex-shrink: 0;
+      white-space: nowrap;
+      padding: 10px 4px;
+      background: transparent;
+      border: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+    .seg-tab + .seg-tab { margin-left: 22px; }
+    .seg-tab::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      height: 2px;
+      background: var(--accent, #5b9dff);
+      transform: scaleX(0);
+      transition: transform 0.2s ease;
+    }
+    .seg-tab:hover { color: rgba(255,255,255,0.85); }
+    .seg-tab.active { color: #fff; }
+    .seg-tab.active::after { transform: scaleX(1); }
+  </style>
+  {% block extra_head %}{% endblock %}
+  <style>* { box-sizing: border-box; } html { scroll-behavior: smooth; } body.app-body { font-family: 'Josefin Sans', sans-serif; }</style>
+</head>
+<body class="app-body">
+  <a href="#main-content" class="skip-link">Skip to content</a>
+
+  <!-- Nav -->
+  <header id="site-nav" {% if solid_nav %}data-solid-immediately="true"{% endif %}>
+    <div id="nav-inner">
+      <a href="/" class="flex items-center" style="gap:12px" aria-label="Althais home">
+        <svg class="nav-logo-mark" width="22" height="22" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+          <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+          <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8" stroke-linecap="butt"/>
+        </svg>
+        <span class="nav-logo-text" style="font-size:14px;font-weight:600;letter-spacing:0.32em;color:#fff;text-transform:uppercase;padding-left:0.32em;transition:color 0.35s ease">ALTHAIS</span>
+      </a>
+
+      <nav class="nav-links flex items-center" style="gap:34px" aria-label="Primary">
+        <a href="/product" class="nav-link {% if active_page == 'product' %}active{% endif %}">Product</a>
+        <a href="/solutions" class="nav-link {% if active_page == 'solutions' %}active{% endif %}">Solutions</a>
+        <a href="/how-it-works" class="nav-link {% if active_page == 'how-it-works' %}active{% endif %}">How It Works</a>
+        <a href="/pricing" class="nav-link {% if active_page == 'pricing' %}active{% endif %}">Pricing</a>
+        <a href="/resources" class="nav-link {% if active_page == 'resources' %}active{% endif %}">Resources</a>
+        <a href="/about" class="nav-link {% if active_page == 'about' %}active{% endif %}">About</a>
+      </nav>
+
+      <div class="flex items-center" style="gap:22px">
+        {% if user %}
+          <a href="/overview" class="nav-login">Dashboard</a>
+        {% else %}
+          <a href="/login" class="nav-login">Log in</a>
+        {% endif %}
+        <div id="hamburger" onclick="toggleMobileMenu()" role="button" aria-label="Toggle menu" tabindex="0">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu">
+    <a href="/product" class="{% if active_page == 'product' %}active{% endif %}">Product</a>
+    <a href="/solutions" class="{% if active_page == 'solutions' %}active{% endif %}">Solutions</a>
+    <a href="/how-it-works" class="{% if active_page == 'how-it-works' %}active{% endif %}">How It Works</a>
+    <a href="/pricing" class="{% if active_page == 'pricing' %}active{% endif %}">Pricing</a>
+    <a href="/resources" class="{% if active_page == 'resources' %}active{% endif %}">Resources</a>
+    <a href="/about" class="{% if active_page == 'about' %}active{% endif %}">About</a>
+    {% if user %}<a href="/overview">Dashboard</a>{% else %}<a href="/login">Log in</a>{% endif %}
+  </div>
+
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer id="site-footer">
+    <div class="footer-inner">
+      <div class="grid gap-10" style="grid-template-columns: 1.4fr repeat(5, 1fr);">
+        <div>
+          <a href="/" class="flex items-center" style="gap:10px;margin-bottom:16px">
+            <svg width="20" height="20" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+              <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" fill="none"/>
+              <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8"/>
+            </svg>
+            <span style="font-size:13px;font-weight:600;letter-spacing:0.3em;color:#fff;text-transform:uppercase">ALTHAIS</span>
+          </a>
+          <p style="font-size:13px;line-height:1.7;max-width:260px;color:rgba(255,255,255,0.5)">AI revenue cycle automation for modern healthcare — from clinical note to paid claim.</p>
+          <a href="https://www.linkedin.com" target="_blank" rel="noopener" aria-label="Althais on LinkedIn" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.08);margin-top:20px;transition:background 0.2s ease" onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(255,255,255,0.75)"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>
+          </a>
+        </div>
+        <div>
+          <h4>Product</h4>
+          <a href="/product" class="footer-link">Overview</a>
+          <a href="/how-it-works" class="footer-link">How It Works</a>
+          <a href="/pricing" class="footer-link">Pricing</a>
+          <a href="/demo" class="footer-link">Live Demo</a>
+        </div>
+        <div>
+          <h4>Solutions</h4>
+          <a href="/solutions#hospital-systems" class="footer-link">Hospital Systems</a>
+          <a href="/solutions#private-practices" class="footer-link">Private Practices</a>
+          <a href="/solutions#revenue-cycle-teams" class="footer-link">Revenue Cycle Teams</a>
+          <a href="/solutions" class="footer-link">All Solutions</a>
+        </div>
+        <div>
+          <h4>Resources</h4>
+          <a href="/resources" class="footer-link">Blog</a>
+          <a href="/resources#case-studies" class="footer-link">Case Studies</a>
+          <a href="/resources#documentation" class="footer-link">Documentation</a>
+          <a href="/resources#api" class="footer-link">Developer API</a>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <a href="/about" class="footer-link">About Us</a>
+          <a href="/company/careers" class="footer-link">Careers</a>
+          <a href="/legal/privacy" class="footer-link">Privacy</a>
+          <a href="/legal/terms" class="footer-link">Terms</a>
+          <a href="mailto:hello@althais.com" class="footer-link">Contact</a>
+        </div>
+        <div>
+          <h4>Trust</h4>
+          <a href="/security" class="footer-link">Security</a>
+          <a href="/security#hipaa" class="footer-link">HIPAA</a>
+          <a href="#" data-open-demo-modal class="footer-link">Schedule Demo</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Althais Health, Inc. All rights reserved.</p>
+        <p style="color:rgba(255,255,255,0.35)">Built for HIPAA-eligible healthcare data workflows.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Book Demo modal (shared across every page: "Schedule a Demo" / "Contact Sales" / "Enterprise Quote") -->
+  <div id="book-demo-modal" style="position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:rgba(6,10,18,0.72);backdrop-filter:blur(8px);padding:24px">
+    <div style="position:relative;width:100%;max-width:440px">
+      <button onclick="closeBookDemoModal()" aria-label="Close" style="position:absolute;top:-44px;right:0;color:#fff;font-size:14px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif">Close ✕</button>
+      <div class="glass-panel" style="background:#0d1730;border:1px solid rgba(255,255,255,0.14);padding:36px 32px;font-family:'Inter',sans-serif;max-height:86vh;overflow-y:auto">
+
+        <div id="book-demo-success" style="display:none;text-align:center;padding:24px 0">
+          <div style="width:56px;height:56px;background:rgba(31,157,99,0.18);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#5ed99a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3 style="font-size:18px;font-weight:600;color:#fff;margin-bottom:8px">Request received</h3>
+          <p style="font-size:13.5px;color:rgba(255,255,255,0.62);line-height:1.6">Thanks! We'll be in touch within 1 business day.</p>
+        </div>
+
+        <div id="book-demo-form-wrap">
+          <p style="font-size:11px;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:#5b9dff;margin-bottom:10px">Talk to Althais</p>
+          <h2 id="book-demo-title" style="font-size:20px;font-weight:600;color:#fff;margin-bottom:6px">See Althais in Action</h2>
+          <p id="book-demo-sub" style="font-size:13px;color:rgba(255,255,255,0.62);margin-bottom:22px">Fill in your details and we'll be in touch.</p>
+
+          <div id="book-demo-msg" style="display:none;margin-bottom:14px;font-size:12.5px;border-radius:8px;padding:8px 12px;background:rgba(200,56,56,0.18);color:#ff8080"></div>
+
+          <form id="book-demo-form" novalidate>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Full Name</label>
+              <input id="bd_full_name" type="text" autocomplete="name" required
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 12px;color:#fff"
+                placeholder="Dr. Jane Smith" />
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Work Email</label>
+              <input id="bd_email" type="email" autocomplete="email" required
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 12px;color:#fff"
+                placeholder="jane@practice.com" />
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Practice / Organization</label>
+              <input id="bd_practice_name" type="text" required
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 12px;color:#fff"
+                placeholder="Mercy Cardiology" />
+            </div>
+            <div style="margin-bottom:20px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Phone Number</label>
+              <input id="bd_phone" type="tel" autocomplete="tel"
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 12px;color:#fff"
+                placeholder="+1 (555) 000-0000" />
+            </div>
+            <button id="bd_btn" type="submit"
+              style="width:100%;font-size:13px;font-weight:600;letter-spacing:0.05em;color:#0a0a0a;background:#fff;border:none;border-radius:999px;padding:14px;cursor:pointer;transition:background 0.2s"
+              onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">
+              Request Demo →
+            </button>
+            <p style="font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-top:12px">No commitment required. We'll reach out to schedule.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block extra_body %}{% endblock %}
+  <script src="/static/js/site.js" defer></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

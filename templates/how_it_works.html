@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}How It Works — From Clinical Note to Paid Claim | Althais{% endblock %}
+{% block meta_description %}Follow a single encounter through Althais: the doctor writes a note, AI extracts and codes it, the provider reviews, and the claim is assembled, checked, submitted, tracked, and paid.{% endblock %}
+{% block canonical %}https://althais.com/how-it-works{% endblock %}
+
+{% block extra_head %}
+<style>
+  .hiw-story { position: relative; }
+  .hiw-grid { position: relative; z-index: 2; max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; width: 100%; }
+  @media (max-width: 900px) { .hiw-grid { grid-template-columns: 1fr; gap: 36px; } }
+  .hiw-eyebrow { font-family:'Space Mono',monospace; font-size:12.5px; color:#5b9dff; letter-spacing:0.12em; }
+  .hiw-title { font-family:'Josefin Sans',sans-serif; font-weight:600; color:#fff; font-size:clamp(1.7rem,3vw,2.4rem); line-height:1.15; margin-top:12px; }
+  .hiw-desc { color:rgba(255,255,255,0.68); font-size:15px; line-height:1.65; margin-top:16px; max-width:440px; }
+  .hiw-visual { background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:22px; padding:26px; backdrop-filter: blur(20px); box-shadow: 0 30px 70px rgba(0,0,0,0.35); }
+
+  .soap-line { opacity:0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; font-size:13px; line-height:1.9; color:rgba(255,255,255,0.55); font-family:'Inter',monospace; }
+  .hiw-step.in-view .soap-line { opacity:1; transform:none; }
+  .soap-line:nth-child(1){transition-delay:.05s} .soap-line:nth-child(2){transition-delay:.15s}
+  .soap-line:nth-child(3){transition-delay:.25s} .soap-line:nth-child(4){transition-delay:.35s}
+  .soap-line:nth-child(5){transition-delay:.45s} .soap-line:nth-child(6){transition-delay:.55s}
+  .hl-dx { background: rgba(91,157,255,0.22); color:#bcd8ff; border-radius:4px; padding:1px 4px; }
+  .hl-proc { background: rgba(63,217,145,0.22); color:#a9f2cc; border-radius:4px; padding:1px 4px; }
+  .hl-mod { background: rgba(184,134,44,0.28); color:#f0cf8e; border-radius:4px; padding:1px 4px; }
+
+  .code-row { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); margin-bottom:10px; }
+  .conf-bar-track { width:64px; height:5px; border-radius:3px; background:rgba(255,255,255,0.12); overflow:hidden; }
+  .conf-bar-fill { height:100%; width:0%; background:#3fd991; border-radius:3px; transition: width 1s cubic-bezier(.16,1,.3,1) 0.3s; }
+  .hiw-step.in-view .conf-bar-fill { width: var(--fill, 90%); }
+
+  .action-btn { padding:9px 18px; border-radius:999px; font-size:12.5px; font-weight:700; letter-spacing:0.04em; border:1px solid rgba(255,255,255,0.18); color:#fff; background:rgba(255,255,255,0.05); }
+  .action-btn.accept { background:#3fd991; color:#062; border-color:transparent; }
+
+  .chip { opacity:0; transform: translateY(14px); transition: opacity .5s ease, transform .5s ease; }
+  .hiw-step.in-view .chip { opacity:1; transform:none; }
+  .chip:nth-child(1){transition-delay:.05s}.chip:nth-child(2){transition-delay:.15s}.chip:nth-child(3){transition-delay:.25s}.chip:nth-child(4){transition-delay:.35s}
+
+  .rule-check { display:flex; align-items:center; gap:10px; padding:9px 0; opacity:0; transform:translateX(-8px); transition:opacity .4s ease, transform .4s ease; }
+  .hiw-step.in-view .rule-check { opacity:1; transform:none; }
+  .rule-check:nth-child(1){transition-delay:.1s}.rule-check:nth-child(2){transition-delay:.3s}.rule-check:nth-child(3){transition-delay:.5s}.rule-check:nth-child(4){transition-delay:.7s}
+
+  .track-fill { height:100%; width:0%; background:linear-gradient(90deg,#5b9dff,#3fd991); border-radius:999px; transition: width 1.6s cubic-bezier(.16,1,.3,1) 0.2s; }
+  .hiw-step.in-view .track-fill { width: 100%; }
+
+  .plane-path { stroke-dasharray: 240; stroke-dashoffset: 240; transition: stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1) 0.2s; }
+  .hiw-step.in-view .plane-path { stroke-dashoffset: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% include "_cinematic_bg.html" %}
+
+<div class="cinematic-page">
+
+<section class="page-hero" style="padding-bottom:70px">
+  <div class="page-hero-inner">
+    <span class="eyebrow fade-in fade-in-1">How It Works</span>
+    <h1 class="hero-mono fade-in fade-in-2" style="margin-top:18px">One Encounter,<br />Start to Finish</h1>
+    <p class="hero-sub fade-in fade-in-3">Scroll through exactly what happens between a doctor finishing a note and Althais posting the payment.</p>
+  </div>
+</section>
+
+<div class="hiw-story">
+  <div class="hiw-progress-rail" aria-hidden="true">
+    {% for i in range(9) %}<div class="hiw-progress-dot {% if loop.first %}active{% endif %}"></div>{% endfor %}
+  </div>
+
+  <!-- Step 1 -->
+  <section class="hiw-step" data-step-index="0">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 01 / 09</div>
+        <div class="hiw-eyebrow">Documentation</div>
+        <h2 class="hiw-title">The doctor writes a note. That's it.</h2>
+        <p class="hiw-desc">No coding cheat sheets, no structured templates to fight. Althais works with documentation exactly as it's written.</p>
+      </div>
+      <div class="hiw-visual">
+        <div class="soap-line" style="color:#5b9dff;font-weight:700">S — Subjective</div>
+        <div class="soap-line">58F presents with substernal chest pressure x2 hrs, radiating to left arm. Diaphoretic, mild SOB.</div>
+        <div class="soap-line" style="color:#5b9dff;font-weight:700;margin-top:8px">O — Objective</div>
+        <div class="soap-line">BP 152/94, HR 108, EKG shows ST elevation in leads II, III, aVF. Troponin elevated at 2.4.</div>
+        <div class="soap-line" style="color:#5b9dff;font-weight:700;margin-top:8px">A / P — Assessment / Plan</div>
+        <div class="soap-line">Acute inferior STEMI. Emergent cardiology consult, cath lab activated. High-complexity ED visit.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="hiw-step" data-step-index="1">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 02 / 09</div>
+        <div class="hiw-eyebrow">AI Analysis</div>
+        <h2 class="hiw-title">AI reads the note like a coder would</h2>
+        <p class="hiw-desc">Diagnoses, procedures, and modifiers are identified directly from clinical language — not keyword matching.</p>
+        <div style="display:flex;gap:14px;margin-top:20px;flex-wrap:wrap">
+          <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.6)"><span class="hl-dx" style="padding:2px 8px">&nbsp;</span> Diagnosis</span>
+          <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.6)"><span class="hl-proc" style="padding:2px 8px">&nbsp;</span> Procedure</span>
+          <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.6)"><span class="hl-mod" style="padding:2px 8px">&nbsp;</span> Modifier</span>
+        </div>
+      </div>
+      <div class="hiw-visual">
+        <div class="soap-line">BP 152/94, HR 108, EKG shows <span class="hl-dx">ST elevation in leads II, III, aVF</span>. Troponin elevated at 2.4.</div>
+        <div class="soap-line" style="margin-top:10px"><span class="hl-dx">Acute inferior STEMI</span>. Emergent <span class="hl-proc">cardiology consult</span>, <span class="hl-proc">cath lab activated</span>.</div>
+        <div class="soap-line" style="margin-top:10px"><span class="hl-mod">High-complexity</span> ED visit, <span class="hl-mod">critical care time</span> 45 minutes documented separately.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="hiw-step" data-step-index="2">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 03 / 09</div>
+        <div class="hiw-eyebrow">Code Generation</div>
+        <h2 class="hiw-title">Validated ICD-10 and CPT codes, with confidence</h2>
+        <p class="hiw-desc">Every code ships with a confidence score, so the provider knows exactly where to focus their review.</p>
+      </div>
+      <div class="hiw-visual">
+        <div class="code-row"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">I21.19</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">STEMI involving other coronary artery of inferior wall</div></div><div style="display:flex;align-items:center;gap:8px"><div class="conf-bar-track"><div class="conf-bar-fill" style="--fill:97%"></div></div><span style="font-size:11.5px;color:#3fd991;font-weight:700">97%</span></div></div>
+        <div class="code-row"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">99285-25</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">High-complexity ED visit, significant separate service</div></div><div style="display:flex;align-items:center;gap:8px"><div class="conf-bar-track"><div class="conf-bar-fill" style="--fill:91%"></div></div><span style="font-size:11.5px;color:#3fd991;font-weight:700">91%</span></div></div>
+        <div class="code-row"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">99291</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">Critical care, first 30–74 minutes</div></div><div style="display:flex;align-items:center;gap:8px"><div class="conf-bar-track"><div class="conf-bar-fill" style="--fill:84%"></div></div><span style="font-size:11.5px;color:#f0cf8e;font-weight:700">84%</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 4 -->
+  <section class="hiw-step" data-step-index="3">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 04 / 09</div>
+        <div class="hiw-eyebrow">Provider Review</div>
+        <h2 class="hiw-title">The provider stays the final word</h2>
+        <p class="hiw-desc">Accept in one click, edit a code inline, or reject it entirely. Nothing bills without a human decision.</p>
+      </div>
+      <div class="hiw-visual">
+        <div class="code-row" style="margin-bottom:18px"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">99291</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">Critical care, first 30–74 minutes</div></div><span class="confidence-badge" style="background:rgba(184,134,44,0.18);color:#f0cf8e;border-color:rgba(240,207,142,0.3)">84%</span></div>
+        <div style="display:flex;gap:10px">
+          <span class="action-btn accept">✓ Accept</span>
+          <span class="action-btn">Edit</span>
+          <span class="action-btn">Reject</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 5 -->
+  <section class="hiw-step" data-step-index="4">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 05 / 09</div>
+        <div class="hiw-eyebrow">Claim Assembly</div>
+        <h2 class="hiw-title">The claim assembles itself</h2>
+        <p class="hiw-desc">Approved codes, patient data, and encounter details merge into one payer-ready claim automatically.</p>
+      </div>
+      <div class="hiw-visual" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start">
+        <span class="chip" style="background:rgba(91,157,255,0.15);color:#bcd8ff;padding:8px 14px;border-radius:10px;font-size:12.5px;font-family:monospace">I21.19</span>
+        <span class="chip" style="background:rgba(63,217,145,0.15);color:#a9f2cc;padding:8px 14px;border-radius:10px;font-size:12.5px;font-family:monospace">99285-25</span>
+        <span class="chip" style="background:rgba(184,134,44,0.15);color:#f0cf8e;padding:8px 14px;border-radius:10px;font-size:12.5px;font-family:monospace">99291</span>
+        <span class="chip" style="background:rgba(255,255,255,0.1);color:#fff;padding:8px 14px;border-radius:10px;font-size:12.5px">Anthem BCBS · Claim #A-88214</span>
+        <div class="chip" style="width:100%;margin-top:12px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;font-size:13px;color:#fff"><span>Status</span><span style="color:#3fd991;font-weight:700">Ready to submit</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 6 -->
+  <section class="hiw-step" data-step-index="5">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 06 / 09</div>
+        <div class="hiw-eyebrow">Payer Intelligence</div>
+        <h2 class="hiw-title">Payer rules checked before submission</h2>
+        <p class="hiw-desc">The claim runs against Anthem BCBS's own edit history — bundling, medical necessity, modifier logic — before it ever leaves.</p>
+      </div>
+      <div class="hiw-visual">
+        {% for label in ["NCCI bundling edits", "Medical necessity (LCD/NCD)", "Modifier appropriateness", "Prior authorization requirement"] %}
+        <div class="rule-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3fd991" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg><span style="font-size:13.5px;color:rgba(255,255,255,0.8)">{{ label }} — clear</span></div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 7 -->
+  <section class="hiw-step" data-step-index="6">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 07 / 09</div>
+        <div class="hiw-eyebrow">Submission</div>
+        <h2 class="hiw-title">Submitted through your clearinghouse</h2>
+        <p class="hiw-desc">No new vendor, no new login. The clean claim goes out through the rails you already use.</p>
+      </div>
+      <div class="hiw-visual" style="text-align:center;padding:44px 26px">
+        <svg width="220" height="70" viewBox="0 0 220 70" fill="none">
+          <path class="plane-path" d="M10 55 Q 90 10 210 15" stroke="#5b9dff" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <circle cx="210" cy="15" r="4" fill="#3fd991"/>
+        </svg>
+        <div style="margin-top:14px;font-size:13.5px;color:rgba(255,255,255,0.7)">Claim #A-88214 transmitted to <strong style="color:#fff">Anthem BCBS</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 8 -->
+  <section class="hiw-step" data-step-index="7">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 08 / 09</div>
+        <div class="hiw-eyebrow">Claim Tracking</div>
+        <h2 class="hiw-title">Real-time payment tracking</h2>
+        <p class="hiw-desc">Status flows back automatically — no logging into a payer portal to find out what happened.</p>
+      </div>
+      <div class="hiw-visual">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px"><span>Submitted</span><span>Accepted</span><span>Adjudicated</span><span>Paid</span></div>
+        <div style="height:6px;border-radius:999px;background:rgba(255,255,255,0.1);overflow:hidden"><div class="track-fill"></div></div>
+        <div style="margin-top:18px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:rgba(255,255,255,0.7)">Paid amount</span><span style="font-family:monospace;font-weight:700;color:#3fd991;font-size:16px">$1,842.00</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 9 -->
+  <section class="hiw-step" data-step-index="8">
+    <div class="hiw-grid">
+      <div>
+        <div class="hiw-step-num">STEP 09 / 09</div>
+        <div class="hiw-eyebrow">Analytics</div>
+        <h2 class="hiw-title">Every encounter feeds the bigger picture</h2>
+        <p class="hiw-desc">Clean claim rate, denial rate, and days in A/R update the moment this claim posts.</p>
+        <a href="#" class="btn-primary" style="margin-top:24px" data-open-demo-modal data-modal-title="See Althais in Action" data-modal-sub="Fill in your details and we'll be in touch.">Schedule a Demo</a>
+      </div>
+      <div class="hiw-visual">
+        <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:20px">
+          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="97.4" data-countup-decimals="1" data-countup-suffix="%">0%</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Clean claim rate</div></div>
+          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="4.1" data-countup-decimals="1" data-countup-suffix="%">0%</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Denial rate</div></div>
+          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="18">0</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Days in A/R</div></div>
+          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="2481" data-countup-prefix="$">0</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Avg. revenue / provider / day</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+</div>
+
+{% endblock %}

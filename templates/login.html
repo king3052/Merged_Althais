@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Althais — Sign in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Space+Mono:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased;
+      color: rgba(255,255,255,0.88); min-height: 100vh;
+      position: relative; overflow-x: hidden;
+    }
+    #bg-video-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; }
+    #bg-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    #bg-overlay { position: fixed; inset: 0; z-index: 1; background: rgba(0,0,0,0.55); }
+    #login-card input::placeholder { color: rgba(255,255,255,0.35); }
+    #login-card input:focus {
+      outline: none; border-color: rgba(255,255,255,0.6); box-shadow: 0 0 0 3px rgba(255,255,255,0.16);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-6 py-16">
+
+  <div id="bg-video-wrap">
+    <video id="bg-video" autoplay muted loop playsinline preload="auto">
+      <source src="/videos/city.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <div id="bg-overlay"></div>
+
+  <div id="login-card" style="position:relative;z-index:2;width:100%;max-width:400px;background:rgba(4,8,16,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.14);border-radius:0;padding:40px 36px">
+
+    <a href="/" class="flex items-center" style="gap:12px;margin-bottom:32px">
+      <svg width="24" height="24" viewBox="0 0 80 80" fill="none">
+        <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+        <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8" stroke-linecap="butt"/>
+      </svg>
+      <span style="font-family:'Josefin Sans',sans-serif;font-size:15px;font-weight:600;letter-spacing:0.35em;color:#fff;text-transform:uppercase;padding-left:0.35em">ALTHAIS</span>
+    </a>
+
+    <h2 id="form-title" style="font-size:20px;font-weight:600;color:#fff">Sign In</h2>
+    <p id="form-sub" style="font-size:13px;color:rgba(255,255,255,0.62);margin-top:4px">Welcome. Enter Your Details to Continue.</p>
+
+    <!-- error / message -->
+    <div id="auth-msg" style="display:none;margin-top:14px;font-size:12.5px;border-radius:0;padding:8px 12px;background:rgba(200,56,56,0.18);color:#ff8080"></div>
+
+    <form id="auth-form" style="margin-top:24px" novalidate>
+      <!-- register-only fields -->
+      <div id="reg-fields" style="display:none">
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Full Name</label>
+          <input id="f-name" type="text" autocomplete="name"
+            style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+            placeholder="Dr. Jane Smith" />
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Practice / Organization</label>
+          <input id="f-org" type="text" autocomplete="organization"
+            style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+            placeholder="Mercy Cardiology" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Work Email</label>
+        <input id="f-email" type="email" autocomplete="email" required
+          style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+          placeholder="you@practice.com" />
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Password</label>
+        <input id="f-password" type="password" autocomplete="current-password" required
+          style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+          placeholder="••••••••" />
+        <p id="pw-hint" style="display:none;font-size:11px;color:rgba(255,255,255,0.4);margin-top:6px">At least 8 characters.</p>
+      </div>
+
+      <button id="submit-btn" type="submit"
+        style="width:100%;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#0a0a0a;background:#fff;border:none;border-radius:0;padding:13px;cursor:pointer;transition:background 0.2s"
+        onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">
+        Sign In
+      </button>
+    </form>
+
+    <p style="font-size:12.5px;color:rgba(255,255,255,0.62);margin-top:24px;text-align:center">
+      <span id="toggle-prompt">New to Althais?</span>
+      <button id="toggle-mode" type="button" style="background:none;border:none;color:#fff;font-weight:600;cursor:pointer;margin-left:4px;font-size:12.5px;text-decoration:underline">Create an Account</button>
+    </p>
+  </div>
+
+  <script>
+    let mode = 'login'; // 'login' | 'register'
+    const $ = id => document.getElementById(id);
+    const msg = $('auth-msg');
+
+    function showMsg(text, kind) {
+      msg.textContent = text;
+      msg.style.background = kind === 'ok' ? 'rgba(255,255,255,0.14)' : 'rgba(200,56,56,0.18)';
+      msg.style.color = kind === 'ok' ? '#fff' : '#ff8080';
+      msg.style.display = 'block';
+    }
+    function clearMsg() { msg.style.display = 'none'; }
+
+    function setMode(m) {
+      mode = m;
+      const reg = m === 'register';
+      $('reg-fields').style.display = reg ? 'block' : 'none';
+      $('pw-hint').style.display = reg ? 'block' : 'none';
+      $('form-title').textContent = reg ? 'Create Your Account' : 'Sign In';
+      $('form-sub').textContent = reg ? 'Set Up Access for Your Practice.' : 'Welcome. Enter Your Details to Continue.';
+      $('submit-btn').textContent = reg ? 'Create Account' : 'Sign In';
+      $('toggle-prompt').textContent = reg ? 'Already have an account?' : 'New to Althais?';
+      $('toggle-mode').textContent = reg ? 'Sign In' : 'Create an Account';
+      $('f-password').setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
+      clearMsg();
+    }
+
+    $('toggle-mode').addEventListener('click', () => setMode(mode === 'login' ? 'register' : 'login'));
+
+    // If the user came from the logout page via "Create an account", switch to register mode
+    if (sessionStorage.getItem('althais_mode') === 'register') {
+      sessionStorage.removeItem('althais_mode');
+      setMode('register');
+    }
+
+    $('auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearMsg();
+      const email = $('f-email').value.trim();
+      const password = $('f-password').value;
+      if (!email || !password) { showMsg('Enter your email and password.'); return; }
+      if (mode === 'register' && password.length < 8) { showMsg('Password must be at least 8 characters.'); return; }
+
+      const btn = $('submit-btn');
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = mode === 'register' ? 'Creating account…' : 'Signing in…';
+
+      // The backend uses form fields, so send URL-encoded data.
+      const body = new URLSearchParams();
+      body.set('email', email);
+      body.set('password', password);
+      if (mode === 'register') {
+        body.set('full_name', $('f-name').value.trim());
+        body.set('organization', $('f-org').value.trim());
+      }
+
+      try {
+        const res = await fetch('/' + (mode === 'register' ? 'register' : 'login'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString(),
+          credentials: 'same-origin'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          window.location.href = data.redirect || '/overview';
+          return;
+        }
+        showMsg(data.error || 'Something went wrong. Please try again.');
+      } catch (err) {
+        showMsg('Network error — please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+      }
+    });
+  </script>
+</body>
+</html>

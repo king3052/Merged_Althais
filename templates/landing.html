@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Althais — AI-Powered Medical Coding & Billing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Space+Mono:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      fontFamily: { jos: ['"Josefin Sans"', 'sans-serif'] }
+    } } };
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; height: 100%; background: #061020; }
+    body { font-family: 'Josefin Sans', sans-serif; -webkit-font-smoothing: antialiased; background: #061020; color: #1a1d24; min-height: 100%; }
+    a { text-decoration: none; }
+
+    /* ── Fade-in on load ─────────────────────────────────────────────── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { opacity: 0; animation: fadeInUp 0.9s cubic-bezier(0.16,1,0.3,1) forwards; }
+    .fade-in-1 { animation-delay: 0.05s; }
+    .fade-in-2 { animation-delay: 0.2s; }
+    .fade-in-3 { animation-delay: 0.35s; }
+    .fade-in-4 { animation-delay: 0.5s; }
+    .fade-in-5 { animation-delay: 0.65s; }
+    .fade-in-6 { animation-delay: 0.8s; }
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in { animation: none; opacity: 1; transform: none; }
+    }
+
+    /* ── Nav (transparent over hero, solid on scroll) ───────────────────── */
+    #site-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      padding: 26px 56px;
+      background: transparent;
+      border-bottom: 1px solid transparent;
+      transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, padding 0.35s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    #nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1600px; margin: 0 auto;
+    }
+    #site-nav .nav-link { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); transition: color 0.2s ease; display: inline-flex; align-items: center; gap: 4px; }
+    #site-nav .nav-link:hover { color: #ffffff; }
+    #site-nav .nav-login { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); transition: color 0.2s ease; }
+    #site-nav .nav-login:hover { color: #ffffff; }
+    #site-nav.scrolled {
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid #eee;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+      padding: 18px 56px;
+    }
+    #site-nav.scrolled .nav-link { color: #444; }
+    #site-nav.scrolled .nav-link:hover { color: #0d5bd7; }
+    #site-nav.scrolled .nav-login { color: #444; }
+    #site-nav.scrolled .nav-login:hover { color: #0d5bd7; }
+    #site-nav.scrolled .nav-logo-text { color: #0d5bd7 !important; }
+    #site-nav.scrolled .nav-logo-mark path,
+    #site-nav.scrolled .nav-logo-mark line { stroke: #0d5bd7 !important; }
+    #site-nav.scrolled #hamburger span { background: #333 !important; }
+
+    /* Mobile nav */
+    #hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; z-index: 60; }
+    #hamburger span { width: 22px; height: 2px; background: #fff; transition: transform 0.25s ease, opacity 0.25s ease, background 0.25s ease; }
+    #hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    #hamburger.open span:nth-child(2) { opacity: 0; }
+    #hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    #mobile-menu {
+      position: fixed; inset: 0; z-index: 45;
+      background: rgba(8,12,20,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+      opacity: 0; visibility: hidden; transform: translateY(-12px);
+      transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    }
+    #mobile-menu.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    #mobile-menu a { font-size: 15px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #fff; }
+
+    /* ── Hero / video background ─────────────────────────────────────── */
+    #hero {
+      position: relative; height: 100svh; min-height: 560px; width: 100%;
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #060a12 0%, #0a1b3d 55%, #061020 100%);
+    }
+    #hero-video-wrap { position: absolute; inset: 0; overflow: hidden; will-change: transform; transform: scale(1.15); }
+    #hero-video {
+      position: absolute; inset: 0; height: 100%; width: 100%;
+      object-fit: cover;
+      animation: heroZoom 25s ease-out forwards;
+      transform-origin: center center;
+    }
+    @keyframes heroZoom {
+      from { transform: scale(1); }
+      to { transform: scale(1.12); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #hero-video { animation: none; }
+    }
+    #hero-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.55);
+    }
+    #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 900px; margin: 0 auto; }
+    .hero-headline {
+      font-family: 'Space Mono', monospace; font-weight: 700; color: #fff; letter-spacing: 0.01em; line-height: 1.18;
+      text-transform: uppercase;
+      font-size: clamp(1.5rem, 3.6vw, 3rem);
+      text-shadow: 0 4px 40px rgba(0,0,0,0.4);
+    }
+    .hero-sub {
+      margin: 20px auto 0; max-width: 480px; color: rgba(255,255,255,0.82);
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.8rem, 1vw, 0.875rem); font-weight: 400; line-height: 1.6;
+      letter-spacing: 0;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin-top: 36px; font-family: 'Inter', sans-serif; }
+    .btn-primary-hero {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: #fff; color: #0a0a0a;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 18px 34px; border-radius: 2px;
+      transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-primary-hero:hover { background: #eee; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+    .btn-secondary-hero {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: transparent; color: #fff;
+      border: 1px solid rgba(255,255,255,0.6);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 17px 34px; border-radius: 2px;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    .btn-secondary-hero:hover { background: rgba(255,255,255,0.12); border-color: #fff; transform: translateY(-2px); }
+
+    #hero-bottom-bar { position: absolute; left: 0; right: 0; bottom: 68px; z-index: 2; font-family: 'Inter', sans-serif; }
+    #hero-footer-bar {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 56px; border-top: 1px solid rgba(255,255,255,0.14);
+      font-family: 'Inter', sans-serif;
+    }
+    #hero-footer-bar p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: rgba(255,255,255,0.45); }
+    #hero-footer-bar .footer-links { display: flex; gap: 24px; }
+    #hero-footer-bar a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); transition: color 0.2s ease; }
+    #hero-footer-bar a:hover { color: #ffffff; }
+    .trust-marquee { width: 100%; overflow: hidden; }
+    .trust-marquee-track {
+      display: flex; align-items: center; width: max-content;
+      animation: marquee-scroll 28s linear infinite;
+    }
+    @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .trust-marquee-track span {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.45);
+      white-space: nowrap; padding: 0 28px;
+    }
+
+    @media (max-width: 900px) {
+      #site-nav .nav-links, #site-nav .nav-login { display: none; }
+      #hamburger { display: flex; }
+      #site-nav { padding: 18px 20px; }
+      #site-nav.scrolled { padding: 14px 20px; }
+    }
+    #book-demo-modal input::placeholder { color: rgba(255,255,255,0.35); }
+    #book-demo-modal input:focus { outline: none; border-color: #5b9dff; box-shadow: 0 0 0 3px rgba(91,157,255,0.16); }
+
+    @media (max-width: 480px) {
+      .hero-actions { flex-direction: column; width: 100%; }
+      .btn-primary-hero, .btn-secondary-hero { width: 100%; justify-content: center; }
+      #hero-bottom-bar { bottom: 90px; }
+      #hero-footer-bar { flex-direction: column; gap: 8px; padding: 14px 20px; text-align: center; }
+      #hero-footer-bar .footer-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body class="flex flex-col">
+
+  <!-- Nav -->
+  <header id="site-nav">
+    <div id="nav-inner">
+      <a href="/" class="flex items-center" style="gap:12px">
+        <svg class="nav-logo-mark" width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+          <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+          <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8" stroke-linecap="butt"/>
+        </svg>
+        <span class="nav-logo-text" style="font-size:15px;font-weight:600;letter-spacing:0.35em;color:#fff;text-transform:uppercase;padding-left:0.35em;transition:color 0.35s ease">ALTHAIS</span>
+      </a>
+
+      <nav class="nav-links flex items-center" style="gap:36px">
+        <a href="/product" class="nav-link">Product</a>
+        <a href="/solutions" class="nav-link">Solutions</a>
+        <a href="/how-it-works" class="nav-link">How It Works</a>
+        <a href="/pricing" class="nav-link">Pricing</a>
+        <a href="/resources" class="nav-link">Resources</a>
+        <a href="/about" class="nav-link">About</a>
+      </nav>
+
+      <div class="flex items-center" style="gap:32px">
+        <a href="/login" class="nav-login" id="nav-login-desktop">Log in</a>
+        <div id="hamburger" onclick="toggleMobileMenu()">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu">
+    <a href="/product" onclick="toggleMobileMenu()">Product</a>
+    <a href="/solutions" onclick="toggleMobileMenu()">Solutions</a>
+    <a href="/how-it-works" onclick="toggleMobileMenu()">How It Works</a>
+    <a href="/pricing" onclick="toggleMobileMenu()">Pricing</a>
+    <a href="/resources" onclick="toggleMobileMenu()">Resources</a>
+    <a href="/about" onclick="toggleMobileMenu()">About</a>
+    <a href="/login" onclick="toggleMobileMenu()">Log in</a>
+  </div>
+
+  <!-- Hero -->
+  <section id="hero">
+    <div id="hero-video-wrap">
+      <video
+        id="hero-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        class="absolute inset-0 h-full w-full object-cover"
+      >
+        <source src="/videos/city.mp4" type="video/mp4" />
+      </video>
+    </div>
+    <div id="hero-overlay"></div>
+
+    <div id="hero-content">
+      <h1 class="hero-headline fade-in fade-in-1">
+        TURN CLINICAL NOTES<br />INTO PAID CLAIMS.
+      </h1>
+      <p class="hero-sub fade-in fade-in-2">
+        One platform for medical coding, claims, and payer insights powered by AIthais, built to stop denials before they happen.
+      </p>
+      <div class="hero-actions fade-in fade-in-3">
+        <a href="#" class="btn-primary-hero" id="book-demo-btn">Book a Demo</a>
+        <a href="#" class="btn-secondary-hero" id="watch-demo-btn">Watch Demo</a>
+      </div>
+    </div>
+
+    <div id="hero-bottom-bar" class="fade-in fade-in-4">
+      <div class="trust-marquee">
+        <div class="trust-marquee-track" id="trust-marquee-track">
+          <span>Trusted by providers building the future of healthcare revenue cycle automation.</span>
+          <span>Trusted by providers building the future of healthcare revenue cycle automation.</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="hero-footer-bar" class="fade-in fade-in-6">
+      <p>© 2026 Althais Health, Inc.</p>
+      <div class="footer-links">
+        <a href="/legal/privacy">Privacy</a>
+        <a href="/legal/terms">Terms</a>
+        <a href="mailto:hello@althais.com">Contact</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Watch Demo modal -->
+  <div id="demo-modal" style="position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(4,8,16,0.85);backdrop-filter:blur(8px);padding:24px">
+    <div style="position:relative;width:100%;max-width:960px">
+      <button onclick="closeDemoModal()" aria-label="Close" style="position:absolute;top:-44px;right:0;color:#fff;font-size:14px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;background:none;border:none;cursor:pointer">Close ✕</button>
+      <div style="position:relative;padding-top:56.25%;background:#000;border-radius:16px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.5)">
+        <video id="demo-video" controls playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+          <source src="/static/videos/product-demo.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </div>
+  </div>
+
+  <!-- Book Demo modal -->
+  <div id="book-demo-modal" style="position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(4,8,16,0.85);backdrop-filter:blur(8px);padding:24px">
+    <div style="position:relative;width:100%;max-width:440px">
+      <button onclick="closeBookDemoModal()" aria-label="Close" style="position:absolute;top:-44px;right:0;color:#fff;font-size:14px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif">Close ✕</button>
+      <div style="background:transparent;border:1px solid rgba(255,255,255,0.14);border-radius:0;padding:36px 32px;font-family:'Inter',sans-serif;max-height:86vh;overflow-y:auto">
+
+        <!-- Success state -->
+        <div id="book-demo-success" style="display:none;text-align:center;padding:24px 0">
+          <div style="width:56px;height:56px;background:rgba(12,138,79,0.18);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#5ed99a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3 style="font-size:18px;font-weight:600;color:#fff;margin-bottom:8px">Request received</h3>
+          <p style="font-size:13.5px;color:rgba(255,255,255,0.62);line-height:1.6">Thanks! We'll be in touch within 1 business day to schedule your demo.</p>
+        </div>
+
+        <!-- Form -->
+        <div id="book-demo-form-wrap">
+          <p style="font-size:11px;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:#fff;margin-bottom:10px">Book a demo</p>
+          <h2 style="font-size:20px;font-weight:600;color:#fff;margin-bottom:6px">See Althais in Action</h2>
+          <p style="font-size:13px;color:rgba(255,255,255,0.62);margin-bottom:22px">Fill in Your Details and We'll Be in Touch.</p>
+
+          <div id="book-demo-msg" style="display:none;margin-bottom:14px;font-size:12.5px;border-radius:0;padding:8px 12px;background:rgba(200,56,56,0.18);color:#ff8080"></div>
+
+          <form id="book-demo-form" novalidate>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Full Name</label>
+              <input id="bd_full_name" type="text" autocomplete="name" required
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+                placeholder="Dr. Jane Smith" />
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Work Email</label>
+              <input id="bd_email" type="email" autocomplete="email" required
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+                placeholder="jane@practice.com" />
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Practice Name</label>
+              <input id="bd_practice_name" type="text" required
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+                placeholder="Mercy Cardiology" />
+            </div>
+            <div style="margin-bottom:20px">
+              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Phone Number</label>
+              <input id="bd_phone" type="tel" autocomplete="tel"
+                style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff"
+                placeholder="+1 (555) 000-0000" />
+            </div>
+            <button id="bd_btn" type="submit"
+              style="width:100%;font-size:13px;font-weight:600;letter-spacing:0.08em;color:#0a0a0a;background:#fff;border:none;border-radius:0;padding:13px;cursor:pointer;transition:background 0.2s"
+              onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">
+              Request Demo →
+            </button>
+            <p style="font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-top:12px">No Commitment Required. We'll Reach Out to Schedule.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Ensure the trust-line marquee always has enough duplicated content to
+    // fill wide/fullscreen viewports without a gap before the loop resets.
+    var trustTrack = document.getElementById('trust-marquee-track');
+    var trustGuard = 0;
+    while (trustTrack.scrollWidth < window.innerWidth * 2 && trustGuard < 6) {
+      trustTrack.insertAdjacentHTML('beforeend', trustTrack.innerHTML);
+      trustGuard++;
+    }
+
+    // Nav solid-on-scroll
+    var nav = document.getElementById('site-nav');
+    var hero = document.getElementById('hero');
+    function onScroll() {
+      if (window.scrollY > (hero.offsetHeight - 90)) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      document.getElementById('hamburger').classList.toggle('open');
+      document.getElementById('mobile-menu').classList.toggle('open');
+    }
+
+    // Watch Demo modal
+    var demoModal = document.getElementById('demo-modal');
+    var demoVideo = document.getElementById('demo-video');
+    document.getElementById('watch-demo-btn').addEventListener('click', function (e) {
+      e.preventDefault();
+      demoModal.style.display = 'flex';
+      demoVideo.play().catch(function () {});
+    });
+    function closeDemoModal() {
+      demoModal.style.display = 'none';
+      demoVideo.pause();
+    }
+    demoModal.addEventListener('click', function (e) {
+      if (e.target === demoModal) closeDemoModal();
+    });
+
+    // Book Demo modal
+    var bookModal = document.getElementById('book-demo-modal');
+    document.getElementById('book-demo-btn').addEventListener('click', function (e) {
+      e.preventDefault();
+      bookModal.style.display = 'flex';
+    });
+    function closeBookDemoModal() {
+      bookModal.style.display = 'none';
+    }
+    bookModal.addEventListener('click', function (e) {
+      if (e.target === bookModal) closeBookDemoModal();
+    });
+
+    var bdMsg = document.getElementById('book-demo-msg');
+    function showBookDemoMsg(text) {
+      bdMsg.textContent = text;
+      bdMsg.style.display = 'block';
+    }
+    document.getElementById('book-demo-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var name = document.getElementById('bd_full_name').value.trim();
+      var email = document.getElementById('bd_email').value.trim();
+      var practice = document.getElementById('bd_practice_name').value.trim();
+      if (!name || !email || !practice) { showBookDemoMsg('Please fill in all required fields.'); return; }
+      if (!email.includes('@')) { showBookDemoMsg('Enter a valid email address.'); return; }
+      var btn = document.getElementById('bd_btn');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      var body = new URLSearchParams();
+      body.set('full_name', name);
+      body.set('email', email);
+      body.set('practice_name', practice);
+      body.set('phone', document.getElementById('bd_phone').value.trim());
+      try {
+        var res = await fetch('/request-demo', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body.toString() });
+        var data = await res.json().catch(function () { return {}; });
+        if (res.ok && data.ok) {
+          document.getElementById('book-demo-form-wrap').style.display = 'none';
+          document.getElementById('book-demo-success').style.display = 'block';
+        } else {
+          showBookDemoMsg(data.error || 'Something went wrong. Please try again.');
+          btn.disabled = false; btn.textContent = 'Request Demo →';
+        }
+      } catch (err) {
+        showBookDemoMsg('Network error. Please try again.');
+        btn.disabled = false; btn.textContent = 'Request Demo →';
+      }
+    });
+
+    // Subtle parallax on hero video while scrolling
+    var videoWrap = document.getElementById('hero-video-wrap');
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion) {
+      var ticking = false;
+      window.addEventListener('scroll', function () {
+        if (!ticking) {
+          window.requestAnimationFrame(function () {
+            var offset = window.scrollY;
+            if (offset < hero.offsetHeight * 1.2) {
+              videoWrap.style.transform = 'scale(1.15) translateY(' + (offset * 0.24) + 'px)';
+            }
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }, { passive: true });
+    }
+  </script>
+
+</body>
+</html>

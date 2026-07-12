@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}About — Althais{% endblock %}
+{% block meta_description %}Meet the team behind Althais — building AI-powered revenue cycle automation for modern healthcare.{% endblock %}
+{% block canonical %}https://althais.com/about{% endblock %}
+
+{% block content %}
+
+{% include "_cinematic_bg.html" %}
+
+<div class="cinematic-page">
+
+<section class="page-hero" style="position:relative;padding:190px 24px 90px">
+  <div style="position:relative;z-index:2;max-width:900px;margin:0 auto;text-align:center">
+    <span class="eyebrow fade-in fade-in-1">About Us</span>
+    <h1 class="hero-mono fade-in fade-in-2" style="margin-top:18px">{# TODO: headline #}Who we are and mission statement</h1>
+    <p class="hero-sub fade-in fade-in-3">{# TODO: 1-2 sentence mission statement #}Placeholder mission statement goes here.</p>
+  </div>
+</section>
+
+<!-- Who We Are / Mission -->
+<section style="padding:20px 24px 100px">
+  <div style="max-width:760px;margin:0 auto;text-align:center">
+    <span class="eyebrow reveal">Who We Are</span>
+    <h2 class="section-heading reveal" style="font-size:clamp(1.7rem,3vw,2.3rem);margin-top:16px">{# TODO: section headline #}A two-person team building the billing layer we wished existed</h2>
+    <p class="section-lede reveal" style="margin-top:16px;font-size:16px">
+      {# TODO: 2-3 sentence "who we are" description — what kind of company/team you are, how you work #}
+      Placeholder — who we are as a team and how we operate.
+    </p>
+  </div>
+
+  <div class="glass-panel reveal" style="max-width:760px;margin:36px auto 0;padding:36px;text-align:center">
+    <span style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:12px">{# TODO: label, e.g. "Our Mission" #}Our Mission</span>
+    <p style="font-family:'Josefin Sans',sans-serif;font-weight:500;font-size:clamp(1.1rem,1.8vw,1.4rem);color:var(--heading);line-height:1.5">
+      {# TODO: mission statement — one or two sentences, the "why" behind Althais #}
+      Placeholder mission statement — the single sentence that explains why Althais exists.
+    </p>
+  </div>
+</section>
+
+<!-- Founders -->
+<section style="padding:20px 24px 100px">
+  <div style="max-width:1000px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:56px">
+      <span class="eyebrow reveal">The Founders</span>
+      <h2 class="section-heading reveal" style="font-size:clamp(1.8rem,3.2vw,2.4rem);margin-top:16px">Built by two people who got tired of watching claims get denied</h2>
+      {# TODO: replace section intro copy above #}
+    </div>
+
+    <div class="grid reveal" style="grid-template-columns:1fr 1fr;gap:24px">
+
+      <!-- Founder 1 — Kevin Qu, Co-founder & CEO -->
+      <div class="glass-card" style="padding:32px;display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div style="width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-family:'Space Mono',monospace;font-size:13px;color:rgba(255,255,255,0.4)">
+          {# TODO: replace with headshot <img src="/static/img/team/kevin.jpg" alt="Kevin Qu" style="width:100%;height:100%;border-radius:50%;object-fit:cover" /> #}
+          Photo
+        </div>
+        <h3 style="font-family:'Josefin Sans',sans-serif;font-weight:600;font-size:19px;color:var(--heading)">Kevin Qu</h3>
+        <div style="font-size:12.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);margin-top:4px">Co-founder &amp; CEO</div>
+        <p style="font-size:13.5px;color:var(--charcoal-soft);line-height:1.65;margin-top:16px;max-width:340px">
+          {# TODO: bio — background, why this problem, what he owns at Althais #}
+          Bio coming soon.
+        </p>
+        <div style="display:flex;gap:12px;margin-top:18px">
+          {# TODO: social/contact links #}
+          <a href="#" class="footer-link" aria-label="Kevin on LinkedIn">LinkedIn</a>
+          <a href="#" class="footer-link" aria-label="Kevin on X">X</a>
+        </div>
+      </div>
+
+      <!-- Founder 2 — Kanishk Yankarla, Co-founder & CTO -->
+      <div class="glass-card" style="padding:32px;display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div style="width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-family:'Space Mono',monospace;font-size:13px;color:rgba(255,255,255,0.4)">
+          {# TODO: replace with headshot <img src="/static/img/team/kanishk.jpg" alt="Kanishk Yankarla" style="width:100%;height:100%;border-radius:50%;object-fit:cover" /> #}
+          Photo
+        </div>
+        <h3 style="font-family:'Josefin Sans',sans-serif;font-weight:600;font-size:19px;color:var(--heading)">Kanishk Yankarla</h3>
+        <div style="font-size:12.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);margin-top:4px">Co-founder &amp; CTO</div>
+        <p style="font-size:13.5px;color:var(--charcoal-soft);line-height:1.65;margin-top:16px;max-width:340px">
+          {# TODO: bio — background, why this problem, what he owns at Althais #}
+          Bio coming soon.
+        </p>
+        <div style="display:flex;gap:12px;margin-top:18px">
+          {# TODO: social/contact links #}
+          <a href="#" class="footer-link" aria-label="Kanishk on LinkedIn">LinkedIn</a>
+          <a href="#" class="footer-link" aria-label="Kanishk on X">X</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Origin story -->
+<section style="padding:20px 24px 100px">
+  <div style="max-width:760px;margin:0 auto">
+    <div class="glass-card reveal" style="padding:40px">
+      <span class="eyebrow" style="margin-bottom:14px;display:block">Our Story</span>
+      {# TODO: replace with real founding story — 2-4 short paragraphs #}
+      <p style="font-size:14.5px;color:var(--charcoal-soft);line-height:1.75">
+        Placeholder — how Althais started, the problem you both saw, and why you decided to build this together.
+      </p>
+      <p style="font-size:14.5px;color:var(--charcoal-soft);line-height:1.75;margin-top:14px">
+        Placeholder — second paragraph.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Values (optional — remove if not needed) -->
+<section style="padding:20px 24px 100px">
+  <div style="max-width:1080px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:44px">
+      <span class="eyebrow reveal">What We Believe</span>
+      <h2 class="section-heading reveal" style="font-size:clamp(1.7rem,3vw,2.3rem);margin-top:16px">{# TODO: section headline #}Our values</h2>
+    </div>
+    <div class="grid reveal" style="grid-template-columns:repeat(3,1fr);gap:20px">
+      {% for title, desc in [
+        ("TODO: Value 1", "TODO: one or two sentence description."),
+        ("TODO: Value 2", "TODO: one or two sentence description."),
+        ("TODO: Value 3", "TODO: one or two sentence description."),
+      ] %}
+      <div class="glass-card" style="padding:26px">
+        <h3 style="font-size:15.5px;font-weight:700;color:var(--heading);margin-bottom:10px">{{ title }}</h3>
+        <p style="font-size:13.5px;color:var(--charcoal-soft);line-height:1.6">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section style="padding:70px 24px 130px;text-align:center">
+  <div class="reveal" style="max-width:640px;margin:0 auto">
+    <h2 class="section-heading" style="font-size:clamp(1.9rem,3.6vw,2.8rem)">{# TODO: closing CTA headline #}Want to talk to us directly?</h2>
+    <p class="section-lede" style="margin-top:16px;font-size:16px">{# TODO: closing CTA subtext #}We're a two-person team and read every message.</p>
+    <a href="mailto:hello@althais.com" class="btn-primary" style="background:#fff;color:#0a0a0a;margin-top:32px">{# TODO: confirm contact email #}Contact Us</a>
+  </div>
+</section>
+
+</div>
+
+{% endblock %}

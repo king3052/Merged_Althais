@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Resources — Insights, Guides & Documentation | Althais{% endblock %}
+{% block meta_description %}Medical coding updates, CMS and ICD-10/CPT changes, AI in healthcare, revenue cycle guides, case studies, white papers, and developer documentation from Althais.{% endblock %}
+{% block canonical %}https://althais.com/resources{% endblock %}
+
+{% block content %}
+
+{% include "_cinematic_bg.html" %}
+
+<div class="cinematic-page">
+
+<section class="page-hero" style="padding-bottom:56px">
+  <div class="page-hero-inner">
+    <span class="eyebrow fade-in fade-in-1">Resources</span>
+    <h1 class="hero-mono fade-in fade-in-2" style="margin-top:18px">Everything We Know<br />About Getting Claims Paid</h1>
+    <p class="hero-sub fade-in fade-in-3">Coding updates, revenue cycle guides, case studies, and documentation — written by the team that builds the product.</p>
+  </div>
+</section>
+
+<!-- Search + filters -->
+<section class="section-cream" style="padding:0 24px 40px">
+  <div style="max-width:1180px;margin:-30px auto 0;position:relative;z-index:5">
+    <div class="glass-panel reveal" style="padding:20px 24px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--charcoal-soft)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="resource-search" type="text" placeholder="Search articles, guides, and documentation…" aria-label="Search resources"
+        style="flex:1;min-width:200px;border:none;background:transparent;font-size:14px;outline:none;color:var(--charcoal)" />
+    </div>
+    <div class="seg-tab-scroller" style="margin-top:22px">
+      <div class="seg-tab-track" role="tablist" aria-label="Resource categories">
+        {% for slug, label in categories %}
+        <button type="button" class="seg-tab {% if loop.first %}active{% endif %}" data-resource-category="{{ slug }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured -->
+<section class="section-cream" style="padding:20px 24px 60px">
+  <div style="max-width:1180px;margin:0 auto">
+    <div class="glass-card reveal" style="padding:0;overflow:hidden;display:grid;grid-template-columns:1fr 1.2fr">
+      <div style="background:linear-gradient(160deg,#060a12,#0a1b3d 60%,#061020);padding:44px;display:flex;flex-direction:column;justify-content:center">
+        <span class="tag-pill" style="background:rgba(91,157,255,0.14);color:#5b9dff;border-color:rgba(91,157,255,0.3);align-self:flex-start">Featured</span>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:16px">{{ featured.meta }}</div>
+      </div>
+      <div style="padding:44px">
+        <h2 style="font-family:'Josefin Sans',sans-serif;font-weight:600;font-size:clamp(1.3rem,2.2vw,1.7rem);color:var(--heading);line-height:1.25">{{ featured.title }}</h2>
+        <p style="font-size:14.5px;color:var(--charcoal-soft);line-height:1.65;margin-top:14px">{{ featured.excerpt }}</p>
+        <a href="#" class="btn-ghost" style="margin-top:20px" data-open-demo-modal data-modal-title="Read the Full Case Study" data-modal-sub="Leave your email and we'll send the full write-up over.">Read the full story →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Article grid -->
+<section id="case-studies" class="section-white" style="padding:20px 24px 100px">
+  <div style="max-width:1180px;margin:0 auto">
+    <div id="resource-grid" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+      {% for a in articles %}
+      <div class="glass-card article-card reveal" data-article data-category="{{ a.category }}" data-search="{{ (a.title ~ ' ' ~ a.excerpt ~ ' ' ~ a.category_label) | lower }}" style="transition-delay:{{ (loop.index0 % 6) * 0.04 }}s">
+        <span class="article-cat">{{ a.category_label }}</span>
+        <h3>{{ a.title }}</h3>
+        <p>{{ a.excerpt }}</p>
+        <div class="article-meta">
+          <span>{{ a.meta }}</span>
+          {% if a.gated %}<span style="margin-left:auto;color:var(--accent);font-weight:600">Guide</span>{% endif %}
+        </div>
+        {% if a.gated %}
+        <a href="#" class="btn-ghost" style="margin-top:14px" data-open-demo-modal data-modal-title="Get the Guide" data-modal-sub="Leave your email and we'll send &quot;{{ a.title }}&quot; straight over.">Get the guide →</a>
+        {% else %}
+        <a href="#" class="btn-ghost" style="margin-top:14px" data-open-demo-modal data-modal-title="{{ a.title }}" data-modal-sub="Leave your email and we'll send the full article over.">Read more →</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <p id="resource-empty" style="display:none;text-align:center;color:var(--charcoal-soft);padding:60px 0;font-size:14px">No resources match your search. Try a different term or category.</p>
+  </div>
+</section>
+
+<!-- Documentation & API -->
+<section id="documentation" class="section-dark" style="padding:100px 24px">
+  <div id="api" style="max-width:1000px;margin:0 auto">
+    <div class="grid reveal" style="grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+      <div>
+        <span class="eyebrow">Documentation & API</span>
+        <h2 class="section-heading" style="font-size:clamp(1.7rem,3vw,2.3rem);margin-top:14px">Build on top of Althais</h2>
+        <p class="section-lede" style="margin-top:14px">Enterprise plans include API access to coding suggestions, claim status, and analytics as structured data — so Althais fits into a broader system rather than replacing it.</p>
+        <ul style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+          <li style="font-size:13.5px;color:rgba(255,255,255,0.7);display:flex;gap:8px"><span style="color:#3fd991">✓</span> REST API with structured JSON responses</li>
+          <li style="font-size:13.5px;color:rgba(255,255,255,0.7);display:flex;gap:8px"><span style="color:#3fd991">✓</span> Per-organization credentials & rate limits</li>
+          <li style="font-size:13.5px;color:rgba(255,255,255,0.7);display:flex;gap:8px"><span style="color:#3fd991">✓</span> Webhooks for claim status changes</li>
+        </ul>
+        <a href="#" class="btn-secondary" style="margin-top:24px" data-open-demo-modal data-modal-title="Ask About API Access" data-modal-sub="Tell us what you're building and we'll scope API access together.">Ask About API Access</a>
+      </div>
+      <div class="mock-window">
+        <div class="mock-titlebar"><span class="mock-dot" style="background:#ff5f57"></span><span class="mock-dot" style="background:#febc2e"></span><span class="mock-dot" style="background:#28c840"></span><span style="margin-left:8px;font-size:11px;color:rgba(255,255,255,0.4)">POST /v1/coding-suggestions</span></div>
+        <div class="mock-body" style="background:#0f1524;color:#c9d4e8;font-family:'Space Mono',monospace;font-size:12px;line-height:1.7;padding:22px">
+<pre style="white-space:pre-wrap;margin:0">{
+  "note": "58F presents with substernal
+    chest pressure...",
+  "specialty": "cardiology"
+}
+
+→ 200 OK
+{
+  "codes": [
+    { "code": "I21.19", "type": "ICD-10",
+      "confidence": 97 },
+    { "code": "99285-25", "type": "CPT",
+      "confidence": 91 }
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Resources FAQ -->
+<section class="section-cream" style="padding:100px 24px">
+  <div style="max-width:720px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:36px">
+      <span class="eyebrow reveal">FAQ</span>
+      <h2 class="section-heading reveal" style="font-size:clamp(1.6rem,2.8vw,2.1rem);margin-top:14px">About these resources</h2>
+    </div>
+    <div class="reveal">
+      {% for q, a in [
+        ("How often is coding content updated?", "Coding and CMS update articles are published as soon as new rules are finalized — typically within days of an official release."),
+        ("Can our team republish or share these guides internally?", "Yes — white papers and guides are free to share within your organization. Reach out if you'd like a co-branded version for a broader audience."),
+        ("Can I request a specific topic?", "Yes. Use the contact link in the footer and let us know what would be useful — most of our guides start as a customer question."),
+      ] %}
+      <div class="faq-item" data-accordion-exclusive>
+        <button class="faq-question" aria-expanded="false">{{ q }}<svg class="faq-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <div class="faq-answer"><div class="faq-answer-inner">{{ a }}</div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Newsletter -->
+<section class="section-dark" style="padding:100px 24px;text-align:center">
+  <div class="reveal" style="max-width:520px;margin:0 auto">
+    <span class="eyebrow">Stay Current</span>
+    <h2 class="section-heading" style="font-size:clamp(1.7rem,3vw,2.3rem);margin-top:14px">Coding and CMS updates, straight to your inbox</h2>
+    <p class="section-lede" style="margin-top:14px;font-size:15px">One email when something actually changes. No spam, unsubscribe anytime.</p>
+    <form data-newsletter-form style="margin-top:28px">
+      <div class="newsletter-fields" style="display:flex;gap:10px;max-width:400px;margin:0 auto;flex-wrap:wrap">
+        <input type="email" required placeholder="you@practice.com" style="flex:1;min-width:200px;padding:13px 16px;border-radius:2px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#fff;font-size:13.5px" />
+        <button type="submit" class="btn-primary" style="background:#fff;color:#0a0a0a">Subscribe</button>
+      </div>
+      <p data-newsletter-msg style="display:none;font-size:12.5px;margin-top:12px;color:rgba(255,255,255,0.7)"></p>
+    </form>
+  </div>
+</section>
+
+</div>
+
+{% endblock %}

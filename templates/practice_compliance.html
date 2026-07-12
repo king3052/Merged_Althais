@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Compliance</title>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line">
+      <h1 class="text-[18px] font-semibold text-ink-900">Compliance</h1>
+      <p class="text-[12px] text-ink-500 mt-0.5">Clinic-wide credential and training compliance status.</p>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-3.5">
+          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">Fully compliant</div>
+          <div class="text-[20px] font-semibold text-ok-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-3.5">
+          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">Missing requirements</div>
+          <div class="text-[20px] font-semibold text-warn-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-3.5">
+          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">Expiring soon</div>
+          <div class="text-[20px] font-semibold text-warn-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-3.5">
+          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">Expired</div>
+          <div class="text-[20px] font-semibold text-risk-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-3.5">
+          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">Overdue training</div>
+          <div class="text-[20px] font-semibold text-risk-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-3.5">
+          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">Pending verification</div>
+          <div class="text-[20px] font-semibold text-med-600 num mt-1">0</div>
+        </div>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+          <h3 class="text-[13px] font-semibold text-ink-900">Compliance detail</h3>
+          <span class="text-[11px] text-ink-500">0 items</span>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Team Member</th>
+                <th class="td text-left">Requirement</th>
+                <th class="td text-left">Status</th>
+                <th class="td text-left">Expiration Date</th>
+                <th class="td text-right">Days Remaining</th>
+                <th class="td text-left">Action Needed</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="px-4 py-10 text-center text-[12px] text-ink-500">
+            No compliance items to show yet. Once staff complete onboarding in <a href="/staff/onboarding" class="font-semibold text-med-600">Staff → Onboarding</a>, their credentials and training will be tracked here — expired and urgent items are highlighted automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

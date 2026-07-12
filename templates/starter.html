@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Althais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Josefin Sans', sans-serif;
+      background: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Nav ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 28px 48px;
+    }
+    header a {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    header a:hover { color: #0d5bd7; }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Logo ── */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+    .logo-wordmark {
+      font-size: 42px;
+      font-weight: 300;
+      letter-spacing: 0.32em;
+      color: #0d5bd7;
+      -webkit-text-stroke: 0.7px #0d5bd7;
+      text-transform: uppercase;
+      line-height: 42px;
+      padding-left: 0.32em;
+      position: relative;
+      top: 4px;
+    }
+
+    /* ── Subtitle ── */
+    .subtitle {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      font-weight: 300;
+      letter-spacing: 0;
+      color: #8a8a8a;
+      line-height: 1.3;
+      margin-bottom: 52px;
+    }
+
+    /* ── CTA button ── */
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0d5bd7;
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 18px 52px;
+      border-radius: 999px;
+      transition: background 0.15s, transform 0.1s;
+      margin-bottom: 56px;
+    }
+    .cta:hover { background: #0b4ec2; transform: translateY(-1px); }
+
+    /* ── Divider ── */
+    .divider {
+      width: 48px;
+      height: 1px;
+      background: #e5e7eb;
+      margin: 0 auto 56px;
+    }
+
+    /* ── Founders ── */
+    .founders {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 36px;
+    }
+    .founder-name {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+    .founder-title {
+      font-size: 12px;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9ca3af;
+    }
+
+    /* ── Footer ── */
+    footer {
+      padding: 32px 0 28px;
+      text-align: center;
+    }
+    footer p {
+      font-size: 11px;
+      font-weight: 300;
+      letter-spacing: 0.14em;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="/login">Login</a>
+  </header>
+
+  <main>
+
+    <!-- Logo -->
+    <div class="logo">
+      <svg width="52" height="52" viewBox="0 5 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block;flex-shrink:0;">
+        <path d="M5,74 L40,16 L75,74" stroke="#0d5bd7" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+        <line x1="21" y1="49" x2="59" y2="49" stroke="#0d5bd7" stroke-width="8" stroke-linecap="butt"/>
+      </svg>
+      <span class="logo-wordmark">ALTHAIS</span>
+    </div>
+
+    <!-- Subtitle -->
+    <p class="subtitle">AI-Powered Medical Coding &amp; Billing</p>
+
+    <!-- CTA -->
+    <a href="/login" class="cta">Book A Demo &rarr;</a>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Founders -->
+    <div class="founders">
+      <div>
+        <p class="founder-name">Kevin Qu</p>
+        <p class="founder-title">Co-Founder &amp; CEO</p>
+      </div>
+      <div>
+        <p class="founder-name">Kanishk Yankarla</p>
+        <p class="founder-title">Co-Founder &amp; CTO</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>&copy; <script>document.write(new Date().getFullYear())</script> Althais Health, Inc.</p>
+  </footer>
+
+</body>
+</html>

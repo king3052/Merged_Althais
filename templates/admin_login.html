@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Althais Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] },
+      colors: {
+        shell: '#f4f5f7', panel: '#ffffff', line: '#e4e6eb',
+        ink: { 900: '#0f1116', 700: '#2c313b', 500: '#6b7280' },
+        med: { 700: '#0a47b0', 600: '#0d5bd7' },
+        risk: { 600: '#c83838', 100: '#ffe1e1' }
+      }
+    } } };
+  </script>
+  <style>body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }</style>
+</head>
+<body class="bg-shell min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-[360px]">
+    <div class="text-center mb-8">
+      <div class="text-[11px] font-bold tracking-widest text-med-600 uppercase">ALTHAIS</div>
+      <div class="text-[13px] font-semibold text-ink-900 mt-1">Admin Portal</div>
+    </div>
+    <div class="bg-panel border border-line rounded-lg shadow-sm p-6">
+      <div id="msg" class="hidden mb-4 text-[12.5px] rounded-sm px-3 py-2 bg-risk-100 text-risk-600"></div>
+      <form id="form" class="space-y-4" novalidate>
+        <div>
+          <label class="block text-[11px] font-semibold text-ink-700 mb-1.5">Username</label>
+          <input id="username" type="text" autocomplete="username" class="w-full text-[13px] border border-line rounded-md px-3 py-2 bg-white text-ink-900" placeholder="admin" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-ink-700 mb-1.5">Password</label>
+          <input id="password" type="password" autocomplete="current-password" class="w-full text-[13px] border border-line rounded-md px-3 py-2 bg-white text-ink-900" placeholder="••••••••" />
+        </div>
+        <button type="submit" id="btn" class="w-full text-[13px] font-semibold bg-med-600 text-white rounded-md py-2.5 hover:bg-med-700 transition">Sign in to Admin</button>
+      </form>
+    </div>
+    <p class="text-center text-[11px] text-ink-500 mt-4">
+      <a href="/login" class="hover:underline">← Back to app login</a>
+    </p>
+  </div>
+  <script>
+    const $ = id => document.getElementById(id);
+    $('form').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('msg').classList.add('hidden');
+      $('btn').disabled = true; $('btn').textContent = 'Signing in…';
+      const body = new URLSearchParams();
+      body.set('username', $('username').value.trim());
+      body.set('password', $('password').value);
+      try {
+        const res = await fetch('/admin/login', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body.toString(), credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) { window.location.href = data.redirect || '/admin'; return; }
+        $('msg').textContent = data.error || 'Invalid credentials.';
+        $('msg').classList.remove('hidden');
+      } catch { $('msg').textContent = 'Network error.'; $('msg').classList.remove('hidden'); }
+      finally { $('btn').disabled = false; $('btn').textContent = 'Sign in to Admin'; }
+    });
+  </script>
+</body>
+</html>

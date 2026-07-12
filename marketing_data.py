@@ -1,0 +1,460 @@
+"""Static content for the Solutions page — one entry per customer segment.
+
+Kept out of main.py because it's page copy, not routing logic.
+"""
+
+SOLUTION_SEGMENTS = [
+    {
+        "id": "hospital-systems",
+        "label": "Hospital Systems",
+        "headline": "Standardize coding and claims across every facility, department, and EHR.",
+        "problems": [
+            "Denials compound across dozens of departments and quietly cost millions a year.",
+            "Coding backlogs delay billing while certified coders are stretched across specialties.",
+            "Disparate EHRs across facilities produce inconsistent documentation quality.",
+        ],
+        "workflow": [
+            "Coders manually review each encounter, specialty by specialty, facility by facility.",
+            "Claims queue for days waiting on coding capacity before they ever reach a payer.",
+            "Reconciliation across systems happens by hand, department by department.",
+        ],
+        "solution": [
+            "Specialty-tuned AI coding deploys system-wide, not department by department.",
+            "One claims pipeline standardizes assembly and submission across every facility.",
+            "Payer intelligence is shared system-wide — a denial pattern learned in one facility protects every other.",
+        ],
+        "roi": [
+            {"value": 4.2, "decimals": 1, "prefix": "$", "suffix": "M+", "label": "Denial revenue recovered / yr"},
+            {"value": 63, "suffix": "%", "label": "Faster days in A/R"},
+            {"value": 31, "suffix": "%", "label": "Reduction in coding FTE hours"},
+        ],
+        "case_study": {
+            "org": "A 6-hospital regional health system",
+            "quote": "We stopped finding out about denial patterns in a monthly report and started catching them before the claim left the building.",
+            "role": "VP of Revenue Cycle",
+        },
+        "before_after": [
+            ("Days in A/R", "52 days", "19 days"),
+            ("Denial rate", "11.4%", "3.8%"),
+            ("Coding turnaround", "3.2 days", "4 hours"),
+            ("Clean claim rate", "81%", "97%"),
+        ],
+    },
+    {
+        "id": "multi-specialty-groups",
+        "label": "Large Multi-Specialty Groups",
+        "headline": "Give every specialty its own coding logic — without fifteen different workflows.",
+        "problems": [
+            "Each specialty codes differently, and cross-specialty claims get denied for medical necessity mismatches.",
+            "A central billing office tries to apply one process to fifteen very different specialties.",
+            "The billing team is stretched thin trying to stay current on every specialty's rules.",
+        ],
+        "workflow": [
+            "Notes route to specialty-specific coders who each apply their own mental checklist.",
+            "Specialty rule-checking is manual, inconsistent, and easy to miss under volume.",
+            "Denials trigger frequent, slow resubmission cycles.",
+        ],
+        "solution": [
+            "Specialty-aware AI models are trained per department, not applied generically.",
+            "One unified claims builder replaces fifteen inconsistent manual processes.",
+            "A cross-specialty payer rule engine catches conflicts before submission.",
+        ],
+        "roi": [
+            {"value": 1.8, "decimals": 1, "prefix": "$", "suffix": "M", "label": "Annual denial recovery"},
+            {"value": 41, "suffix": "%", "label": "Fewer resubmissions"},
+            {"value": 22, "suffix": " hrs/wk", "label": "Coder time returned"},
+        ],
+        "case_study": {
+            "org": "A 40-provider multi-specialty group",
+            "quote": "Our cardiology and ortho claims used to get denied for completely different reasons. Now both teams work off the same intelligence.",
+            "role": "Director of Billing Operations",
+        },
+        "before_after": [
+            ("Denial rate", "9.8%", "3.1%"),
+            ("Clean claim rate", "84%", "96%"),
+            ("Avg. coder caseload", "38/day", "61/day"),
+            ("Cross-specialty rework", "High", "Rare"),
+        ],
+    },
+    {
+        "id": "private-practices",
+        "label": "Private Practices",
+        "headline": "Get a full coding and billing team's output without hiring one.",
+        "problems": [
+            "There's no dedicated coding staff — the provider or office manager handles it after hours.",
+            "Denials often get written off entirely because there's no bandwidth to appeal.",
+            "Billing knowledge lives in one person's head, which is a single point of failure.",
+        ],
+        "workflow": [
+            "The provider or office manager manually codes notes at the end of a long day.",
+            "Claims go out in batches whenever there's time to submit them.",
+            "Denials pile up in a folder that rarely gets revisited.",
+        ],
+        "solution": [
+            "AI does first-pass coding the moment the note is finished — no after-hours catch-up.",
+            "Appeal letters draft themselves from the denial reason and clinical note.",
+            "A simple review queue fits into five minutes between patients, not an evening.",
+        ],
+        "roi": [
+            {"value": 11, "suffix": " hrs/wk", "label": "Saved on billing admin"},
+            {"value": 27, "suffix": "%", "label": "More denials successfully appealed"},
+            {"value": 86, "prefix": "$", "suffix": "K", "label": "Avg. annual revenue recovered"},
+        ],
+        "case_study": {
+            "org": "A 3-provider cardiology practice",
+            "quote": "I used to do billing on Sunday nights. Now review takes ten minutes between patients and I actually appeal denials instead of eating them.",
+            "role": "Practice Owner",
+        },
+        "before_after": [
+            ("Time to code a note", "14 min", "90 sec"),
+            ("Denials appealed", "12%", "68%"),
+            ("Revenue per claim", "Baseline", "+9.4%"),
+            ("After-hours billing work", "3-4 hrs/wk", "Under 1 hr/wk"),
+        ],
+    },
+    {
+        "id": "urgent-care",
+        "label": "Urgent Care",
+        "headline": "Code at the speed patients move through the door.",
+        "problems": [
+            "High patient volume leaves no time for careful E/M level selection.",
+            "Seasonal volume spikes overwhelm billing staff without warning.",
+            "Under- and over-coding both happen when speed is prioritized over precision.",
+        ],
+        "workflow": [
+            "Coders batch-process notes at the end of the day, long after the visit.",
+            "E/M leveling is done manually against a guideline sheet, encounter by encounter.",
+            "High staff turnover means consistency resets every few months.",
+        ],
+        "solution": [
+            "E/M levels are suggested in real time with documentation-based justification.",
+            "The system scales instantly with volume — a flu-season spike doesn't slow it down.",
+            "Coding logic stays consistent regardless of who's staffing the front desk.",
+        ],
+        "roi": [
+            {"value": 19, "suffix": "%", "label": "Increase in correctly leveled E/M codes"},
+            {"value": 3, "suffix": "x", "label": "Volume handled at same-day submission speed"},
+            {"value": 310, "prefix": "$", "suffix": "K", "label": "Avg. recovered under-coding revenue / yr"},
+        ],
+        "case_study": {
+            "org": "A 14-location urgent care network",
+            "quote": "Flu season used to mean a two-week claims backlog. Now Tuesday's visits are submitted by Tuesday night.",
+            "role": "Regional Billing Manager",
+        },
+        "before_after": [
+            ("Same-day submission rate", "54%", "98%"),
+            ("E/M under-coding", "21%", "4%"),
+            ("Denial rate", "8.9%", "3.4%"),
+            ("Seasonal backlog", "2+ weeks", "None"),
+        ],
+    },
+    {
+        "id": "fqhc",
+        "label": "FQHCs",
+        "headline": "Bill the way FQHCs actually get paid — PPS, wraparound, and all.",
+        "problems": [
+            "Sliding-fee and wraparound billing rules are complex and payer-specific.",
+            "A small billing team serves a very high patient volume with thin margins.",
+            "Strict compliance requirements turn every audit into a multi-week scramble.",
+        ],
+        "workflow": [
+            "A small team manually tracks FQHC-specific billing rules payer by payer.",
+            "Compliance audit prep means pulling documentation by hand across months of claims.",
+            "Every denial is disproportionately costly given already-thin reimbursement.",
+        ],
+        "solution": [
+            "FQHC PPS and wraparound billing logic is built in, not bolted on.",
+            "Every AI decision is logged, timestamped, and audit-ready by default.",
+            "Denial prevention is tuned specifically to Medicaid managed care plan behavior.",
+        ],
+        "roi": [
+            {"value": 540, "prefix": "$", "suffix": "K", "label": "Additional annual reimbursement captured"},
+            {"value": 89, "suffix": "%", "label": "Less compliance audit prep time"},
+            {"value": 44, "suffix": "%", "label": "Fewer Medicaid managed care denials"},
+        ],
+        "case_study": {
+            "org": "An FQHC serving 22,000 patients a year",
+            "quote": "Audit prep went from three weeks of pulling files to two days of exporting a report that was already correct.",
+            "role": "Compliance & Billing Director",
+        },
+        "before_after": [
+            ("Medicaid denial rate", "14.2%", "6.1%"),
+            ("Audit prep time", "3 weeks", "2 days"),
+            ("Reimbursement captured", "Baseline", "+12%"),
+            ("Wraparound billing errors", "Frequent", "Rare"),
+        ],
+    },
+    {
+        "id": "specialty-clinics",
+        "label": "Specialty Clinics",
+        "headline": "Get coding logic built for your specialty's edge cases, not general medicine.",
+        "problems": [
+            "Highly specific coding requirements don't fit generic billing software.",
+            "Modifier errors are common and directly cause denials.",
+            "Payer medical necessity policy varies procedure by procedure.",
+        ],
+        "workflow": [
+            "Coders lean on specialty cheat sheets that go stale as payer policy changes.",
+            "Modifier application is manual and inconsistent across coders.",
+            "Medical necessity documentation gaps are only caught after a denial arrives.",
+        ],
+        "solution": [
+            "Specialty-trained models understand procedure-specific modifier logic natively.",
+            "Medical necessity is cross-checked against current LCD policy automatically.",
+            "Prior auth documentation drafts itself from the clinical note.",
+        ],
+        "roi": [
+            {"value": 37, "suffix": "%", "label": "Reduction in modifier-related denials"},
+            {"value": 620, "prefix": "$", "suffix": "K", "label": "Recovered annual revenue"},
+            {"value": 3.8, "decimals": 1, "suffix": "x", "label": "Faster prior auth documentation"},
+        ],
+        "case_study": {
+            "org": "A 9-provider orthopedic and sports medicine group",
+            "quote": "Our modifier denial rate was the thing we could never fix. It's now the metric we stopped worrying about.",
+            "role": "Billing Operations Lead",
+        },
+        "before_after": [
+            ("Modifier denial rate", "16%", "5%"),
+            ("Prior auth prep time", "45 min", "12 min"),
+            ("Clean claim rate", "79%", "95%"),
+            ("LCD policy misses", "Common", "Rare"),
+        ],
+    },
+    {
+        "id": "revenue-cycle-teams",
+        "label": "Revenue Cycle Teams",
+        "headline": "Replace six disconnected tools with one system spanning coding to payment.",
+        "problems": [
+            "Manual coding review is the bottleneck that throttles everything downstream.",
+            "Denial root causes are usually discovered a month late, in a report.",
+            "Coding, billing, and analytics live in separate, disconnected tools.",
+        ],
+        "workflow": [
+            "Coders and billers work in separate systems that don't talk to each other.",
+            "Denial trends surface only when someone builds a monthly report.",
+            "Leadership makes decisions without real-time visibility into KPIs.",
+        ],
+        "solution": [
+            "One system spans coding, claims, submission, tracking, and payment.",
+            "Denial root causes surface live, not thirty days later.",
+            "Team-wide productivity and quality dashboards update in real time.",
+        ],
+        "roi": [
+            {"value": 2.4, "decimals": 1, "suffix": "x", "label": "Coder throughput"},
+            {"value": 58, "suffix": "%", "label": "Faster denial root-cause identification"},
+            {"value": 100, "suffix": "%", "label": "Real-time KPI visibility across the team"},
+        ],
+        "case_study": {
+            "org": "A centralized RCM team supporting 180 providers",
+            "quote": "We used to find out what went wrong a month later. Now we see it the day it happens.",
+            "role": "Director of Revenue Cycle Operations",
+        },
+        "before_after": [
+            ("Reporting cadence", "Monthly", "Real-time"),
+            ("Coder throughput", "45/day", "108/day"),
+            ("Denial root cause ID", "9 days", "36 hours"),
+            ("Tools in daily use", "6", "1"),
+        ],
+    },
+    {
+        "id": "medical-billers",
+        "label": "Medical Billers",
+        "headline": "Stop re-typing what the coder already decided.",
+        "problems": [
+            "Repetitive manual entry between coding systems and claim software wastes hours.",
+            "Chasing denial documentation across payer portals eats the rest of the day.",
+            "Appeal letters get written from scratch, every single time.",
+        ],
+        "workflow": [
+            "Approved codes get re-keyed by hand into the claim software.",
+            "Appeal letters are drafted manually, often reusing an old one as a template.",
+            "Claim status is tracked by logging into six different payer portals.",
+        ],
+        "solution": [
+            "Approved codes flow directly into claims — zero re-entry, zero transcription errors.",
+            "AI drafts a complete, payer-ready appeal letter in seconds.",
+            "One dashboard tracks status across every payer, not six separate logins.",
+        ],
+        "roi": [
+            {"value": 6.5, "decimals": 1, "suffix": " hrs/wk", "label": "Saved per biller"},
+            {"value": 3, "suffix": "x", "label": "Faster appeal letter drafting"},
+            {"value": 1, "suffix": " dashboard", "label": "Instead of 6 payer portals"},
+        ],
+        "case_study": {
+            "org": "An independent billing service managing 40 client practices",
+            "quote": "Appeal letters used to be the task everyone put off. Now it's a two-minute review, not a twenty-five minute write.",
+            "role": "Billing Team Lead",
+        },
+        "before_after": [
+            ("Appeal letter drafting", "25 min", "4 min"),
+            ("Claims processed / day / biller", "32", "74"),
+            ("Payer portals checked daily", "6", "1"),
+            ("Re-keying errors", "Occasional", "Eliminated"),
+        ],
+    },
+]
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Resources page content
+# ─────────────────────────────────────────────────────────────────────────
+RESOURCE_CATEGORIES = [
+    ("all", "All"),
+    ("coding-updates", "Coding & CMS Updates"),
+    ("ai-healthcare", "AI in Healthcare"),
+    ("rcm-guides", "Revenue Cycle Guides"),
+    ("case-studies", "Case Studies"),
+    ("white-papers", "White Papers"),
+    ("product-updates", "Product & Webinars"),
+    ("docs", "Documentation & API"),
+]
+
+RESOURCE_ARTICLES = [
+    {
+        "id": "hospital-system-case-study",
+        "category": "case-studies",
+        "category_label": "Case Study",
+        "title": "How a 6-Hospital System Cut Denials 66% in Four Months",
+        "excerpt": "A regional health system was losing an estimated $4M a year to preventable denials across departments. Here's the rollout that turned that around.",
+        "meta": "8 min read · Case Study",
+        "featured": True,
+    },
+    {
+        "id": "cms-2026-fee-schedule",
+        "category": "coding-updates",
+        "category_label": "CMS Update",
+        "title": "CMS Finalizes 2026 Physician Fee Schedule: What Changes for E/M Coding",
+        "excerpt": "A breakdown of the E/M and conversion factor changes billing teams need to account for starting this year, and where the biggest reimbursement shifts land.",
+        "meta": "6 min read · CMS Updates",
+    },
+    {
+        "id": "icd10-fy2026-updates",
+        "category": "coding-updates",
+        "category_label": "ICD-10 News",
+        "title": "ICD-10-CM FY2026 Updates: The New Codes You Need to Know",
+        "excerpt": "This year's ICD-10-CM update adds new codes and revises several existing categories. Here's what actually affects day-to-day coding.",
+        "meta": "5 min read · ICD-10 News",
+    },
+    {
+        "id": "cpt-2026-remote-monitoring",
+        "category": "coding-updates",
+        "category_label": "CPT Changes",
+        "title": "CPT 2026 Category I Changes: New Codes for Remote Physiologic Monitoring",
+        "excerpt": "Remote monitoring billing gets several new Category I codes this cycle. A practical look at documentation requirements for each.",
+        "meta": "5 min read · CPT Changes",
+    },
+    {
+        "id": "modifier-errors-cardiology",
+        "category": "coding-updates",
+        "category_label": "Medical Coding",
+        "title": "The Five Most Common Modifier Errors We See in Cardiology Claims",
+        "excerpt": "Modifier 25, 59, and 26 account for a disproportionate share of cardiology denials. Here's how each one actually gets misapplied.",
+        "meta": "7 min read · Medical Coding",
+    },
+    {
+        "id": "ai-where-it-helps",
+        "category": "ai-healthcare",
+        "category_label": "AI in Healthcare",
+        "title": "Where AI Actually Helps in Medical Coding — and Where It Doesn't",
+        "excerpt": "AI coding tools are good at pattern recognition across huge volumes of documentation. They're not good at judgment calls with clinical ambiguity. Knowing the difference matters.",
+        "meta": "9 min read · AI in Healthcare",
+    },
+    {
+        "id": "confidence-scores-matter",
+        "category": "ai-healthcare",
+        "category_label": "AI in Healthcare",
+        "title": "Why Confidence Scores Matter More Than Accuracy Claims",
+        "excerpt": "A vendor claiming '95% accuracy' tells you nothing about which 5% is wrong. A confidence score tells a coder exactly where to look.",
+        "meta": "6 min read · AI in Healthcare",
+    },
+    {
+        "id": "human-in-the-loop",
+        "category": "ai-healthcare",
+        "category_label": "AI in Healthcare",
+        "title": "The Case for Keeping a Human in the Loop on Every Claim",
+        "excerpt": "Full automation sounds appealing until you're the one explaining a claim to a payer auditor. Why provider review isn't a bottleneck — it's the safeguard.",
+        "meta": "6 min read · AI in Healthcare",
+    },
+    {
+        "id": "denial-rate-guide",
+        "category": "rcm-guides",
+        "category_label": "Revenue Cycle Guide",
+        "title": "A Practical Guide to Reducing Denial Rate Below 5%",
+        "excerpt": "Most practices plateau around 8-10% denial rate. The path below 5% isn't one big fix — it's five specific, compounding changes.",
+        "meta": "10 min read · RCM Guide",
+    },
+    {
+        "id": "prior-auth-field-guide",
+        "category": "rcm-guides",
+        "category_label": "Revenue Cycle Guide",
+        "title": "Prior Authorization: A Field Guide for Billing Teams",
+        "excerpt": "Which procedures actually need prior auth, how to build the documentation payers want the first time, and how to track requests that go quiet.",
+        "meta": "8 min read · RCM Guide",
+    },
+    {
+        "id": "days-in-ar-benchmarks",
+        "category": "rcm-guides",
+        "category_label": "Industry Insight",
+        "title": "Days in A/R: Benchmarks by Practice Size",
+        "excerpt": "What's actually normal for a 3-provider practice versus a 40-provider group — and the point at which slow A/R starts signaling a deeper process problem.",
+        "meta": "6 min read · Industry Insight",
+    },
+    {
+        "id": "private-practice-case-study",
+        "category": "case-studies",
+        "category_label": "Case Study",
+        "title": "A 3-Provider Practice Eliminated Sunday Night Billing",
+        "excerpt": "The owner of a small cardiology practice used to do billing after hours every week. Here's what changed when review dropped to ten minutes a day.",
+        "meta": "5 min read · Case Study",
+    },
+    {
+        "id": "denial-cost-white-paper",
+        "category": "white-papers",
+        "category_label": "White Paper",
+        "title": "The True Cost of Claim Denials in Multi-Specialty Groups",
+        "excerpt": "A deep-dive analysis of direct and hidden denial costs — rework hours, delayed revenue, and write-off decisions — across a 40-provider group.",
+        "meta": "18 page report · White Paper",
+        "gated": True,
+    },
+    {
+        "id": "fqhc-compliance-white-paper",
+        "category": "white-papers",
+        "category_label": "White Paper",
+        "title": "FQHC Billing Compliance: A Complete Reference",
+        "excerpt": "PPS billing, wraparound payments, and Medicaid managed care rules in one reference built specifically for FQHC billing teams.",
+        "meta": "24 page report · White Paper",
+        "gated": True,
+    },
+    {
+        "id": "payer-intelligence-update",
+        "category": "product-updates",
+        "category_label": "Product Update",
+        "title": "Product Update: Payer Intelligence Now Covers 40+ Regional Plans",
+        "excerpt": "This release extends payer-specific edit modeling to 40 additional regional Medicaid managed care and commercial plans.",
+        "meta": "3 min read · Product Update",
+    },
+    {
+        "id": "denial-prevention-webinar",
+        "category": "product-updates",
+        "category_label": "Webinar",
+        "title": "Webinar Recording: Denial Prevention Office Hours",
+        "excerpt": "Our revenue cycle team answers live questions on denial patterns, appeal strategy, and where AI review fits into an existing billing workflow.",
+        "meta": "42 min · Webinar",
+    },
+    {
+        "id": "api-getting-started",
+        "category": "docs",
+        "category_label": "Documentation",
+        "title": "Getting Started with the Althais API",
+        "excerpt": "An overview of how Enterprise integrations connect to Althais — coding suggestions, claim status, and analytics as structured data.",
+        "meta": "Documentation",
+    },
+    {
+        "id": "api-auth-rate-limits",
+        "category": "docs",
+        "category_label": "Developer API",
+        "title": "Authentication & Rate Limits",
+        "excerpt": "How API credentials are issued for Enterprise accounts, and the request limits that apply per organization.",
+        "meta": "Developer API",
+    },
+]

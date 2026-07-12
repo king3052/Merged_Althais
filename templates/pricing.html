@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Pricing — Althais for Health Systems, Groups & Practices{% endblock %}
+{% block meta_description %}Althais pricing scales from small practices to full health systems. Starter, Professional, and Enterprise tiers — talk to sales for a quote built around your claim volume.{% endblock %}
+{% block canonical %}https://althais.com/pricing{% endblock %}
+
+{% block content %}
+
+{% include "_cinematic_bg.html" %}
+
+<div class="cinematic-page">
+
+<section class="page-hero" style="padding-bottom:64px">
+  <div class="page-hero-inner">
+    <span class="eyebrow fade-in fade-in-1">Pricing</span>
+    <h1 class="hero-mono fade-in fade-in-2" style="margin-top:18px">Priced Around Your<br />Claim Volume</h1>
+    <p class="hero-sub fade-in fade-in-3">Every tier includes implementation and support. Talk to us for a quote scoped to your organization.</p>
+  </div>
+</section>
+
+<!-- Pricing cards -->
+<section class="section-cream" style="padding:0 24px 100px">
+  <div style="max-width:1180px;margin:-40px auto 0;position:relative;z-index:5">
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:24px">
+
+      <!-- Starter -->
+      <div class="glass-card pricing-card reveal">
+        <div class="tag-pill" style="margin-bottom:18px">Small Practices</div>
+        <h3 style="font-size:22px;font-weight:700;color:var(--heading);font-family:'Josefin Sans',sans-serif">Starter</h3>
+        <p style="font-size:13.5px;color:var(--charcoal-soft);margin-top:8px;line-height:1.55">For independent practices getting AI coding and claims in place for the first time.</p>
+        <a href="#" class="btn-secondary" style="width:100%;margin-top:24px" data-open-demo-modal data-modal-title="Talk to Sales — Starter" data-modal-sub="Tell us about your practice and we'll follow up with pricing.">Contact Sales</a>
+        <div style="height:1px;background:var(--cream-line);margin:26px 0"></div>
+        <div class="pricing-feature">{% include "_check.html" %} AI medical coding (ICD-10 + CPT)</div>
+        <div class="pricing-feature">{% include "_check.html" %} Claims builder</div>
+        <div class="pricing-feature">{% include "_check.html" %} Core revenue analytics</div>
+        <div class="pricing-feature">{% include "_check.html" %} Email + chat support</div>
+      </div>
+
+      <!-- Professional -->
+      <div class="glass-card pricing-card popular reveal" style="transition-delay:.08s">
+        <div class="pricing-badge">Most Popular</div>
+        <div class="tag-pill" style="margin-bottom:18px">Growing Organizations</div>
+        <h3 style="font-size:22px;font-weight:700;color:var(--heading);font-family:'Josefin Sans',sans-serif">Professional</h3>
+        <p style="font-size:13.5px;color:var(--charcoal-soft);margin-top:8px;line-height:1.55">For multi-provider groups that need payer intelligence and prior auth support built in.</p>
+        <a href="#" class="btn-primary" style="width:100%;margin-top:24px" data-open-demo-modal data-modal-title="Schedule a Demo — Professional" data-modal-sub="See Professional-tier features live before you talk pricing.">Schedule Demo</a>
+        <div style="height:1px;background:var(--cream-line);margin:26px 0"></div>
+        <div class="pricing-feature" style="font-weight:600;color:var(--heading)">Everything in Starter, plus:</div>
+        <div class="pricing-feature">{% include "_check.html" %} Payer intelligence engine</div>
+        <div class="pricing-feature">{% include "_check.html" %} Prior authorization support</div>
+        <div class="pricing-feature">{% include "_check.html" %} Advanced analytics & benchmarking</div>
+        <div class="pricing-feature">{% include "_check.html" %} Multi-provider role management</div>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="glass-card pricing-card reveal" style="transition-delay:.16s">
+        <div class="tag-pill" style="margin-bottom:18px">Health Systems</div>
+        <h3 style="font-size:22px;font-weight:700;color:var(--heading);font-family:'Josefin Sans',sans-serif">Enterprise</h3>
+        <p style="font-size:13.5px;color:var(--charcoal-soft);margin-top:8px;line-height:1.55">For hospital systems and large groups that need unlimited scale and dedicated support.</p>
+        <a href="#" class="btn-secondary" style="width:100%;margin-top:24px" data-open-demo-modal data-modal-title="Request an Enterprise Quote" data-modal-sub="Tell us about your organization and we'll scope a custom quote.">Enterprise Quote</a>
+        <div style="height:1px;background:var(--cream-line);margin:26px 0"></div>
+        <div class="pricing-feature" style="font-weight:600;color:var(--heading)">Everything in Professional, plus:</div>
+        <div class="pricing-feature">{% include "_check.html" %} Unlimited providers</div>
+        <div class="pricing-feature">{% include "_check.html" %} Custom EHR & clearinghouse integrations</div>
+        <div class="pricing-feature">{% include "_check.html" %} Dedicated customer success manager</div>
+        <div class="pricing-feature">{% include "_check.html" %} SSO & API access</div>
+        <div class="pricing-feature">{% include "_check.html" %} HIPAA-eligible infrastructure & BAA</div>
+        <div class="pricing-feature">{% include "_check.html" %} Custom-tuned AI models for your specialty mix</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROI / savings estimator -->
+<section class="section-cream-2" style="padding:100px 24px">
+  <div style="max-width:900px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:44px">
+      <span class="eyebrow reveal">ROI Calculator</span>
+      <h2 class="section-heading reveal" style="font-size:clamp(1.8rem,3.2vw,2.4rem);margin-top:16px">What are denials currently costing you?</h2>
+      <p class="section-lede reveal" style="margin-top:14px">A rough monthly snapshot — the demo builds the precise version for your payer mix.</p>
+    </div>
+    <div class="glass-panel reveal" style="padding:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px">
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <div>
+          <label style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--heading);margin-bottom:8px"><span>Claims submitted / month</span><span id="p-calc-volume-val">2,600</span></label>
+          <input id="p-calc-volume" type="range" min="100" max="20000" step="100" value="2600" style="width:100%;accent-color:var(--accent)" />
+        </div>
+        <div>
+          <label style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--heading);margin-bottom:8px"><span>Avg. claim value</span><span id="p-calc-value-val">$185</span></label>
+          <input id="p-calc-value" type="range" min="50" max="1500" step="5" value="185" style="width:100%;accent-color:var(--accent)" />
+        </div>
+        <div>
+          <label style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--heading);margin-bottom:8px"><span>Current denial rate</span><span id="p-calc-denial-val">9%</span></label>
+          <input id="p-calc-denial" type="range" min="1" max="30" value="9" style="width:100%;accent-color:var(--accent)" />
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);padding:32px;display:flex;flex-direction:column;justify-content:center;color:#fff">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent-light);margin-bottom:10px">Revenue At Risk / Month</div>
+        <div id="p-calc-atrisk" style="font-family:'Space Mono',monospace;font-weight:700;font-size:2.2rem">$0</div>
+        <div style="border-top:1px solid rgba(255,255,255,0.15);margin:18px 0;padding-top:18px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#3fd991;margin-bottom:10px">Est. Recovered With Althais</div>
+          <div id="p-calc-recovered" style="font-family:'Space Mono',monospace;font-weight:700;font-size:2.2rem">$0</div>
+        </div>
+        <a href="#" class="btn-primary" style="background:#fff;color:#0a0a0a;margin-top:8px" data-open-demo-modal data-modal-title="Get Your Custom Quote" data-modal-sub="We'll turn this estimate into a real number for your payer mix.">Get a Custom Quote</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section-white" style="padding:100px 24px">
+  <div style="max-width:760px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:40px">
+      <span class="eyebrow reveal">FAQ</span>
+      <h2 class="section-heading reveal" style="font-size:clamp(1.8rem,3.2vw,2.4rem);margin-top:16px">Frequently asked questions</h2>
+    </div>
+    <div class="reveal">
+      {% for q, a in [
+        ("How is pricing structured?", "Pricing is based on claim volume and provider count, not a flat per-seat fee. Every tier includes implementation, training, and support — talk to sales for a quote scoped to your organization."),
+        ("How long does implementation take?", "Most organizations are live within 30–60 days: EHR and clearinghouse integration in week one, specialty model tuning over the following two to three weeks, then a provider pilot before full rollout."),
+        ("Does Althais integrate with our EHR and clearinghouse?", "Yes. Althais connects to the clearinghouse you already use — no new vendor relationship — and integrates with major EHRs. Enterprise plans include custom integration work for less common systems."),
+        ("Who's liable if the AI suggests the wrong code?", "The rendering provider approves every code before it ever reaches a claim — Althais surfaces suggestions with confidence scores and source justification, but nothing bills without an explicit human decision."),
+        ("Is our data secure and HIPAA-compliant?", "Yes — see the Security section below for details on encryption, infrastructure, and compliance posture."),
+        ("Can we start with a pilot before rolling out organization-wide?", "Yes. Every implementation includes a provider pilot phase before full rollout, so your team can validate accuracy on real documentation first."),
+      ] %}
+      <div class="faq-item" data-accordion-exclusive>
+        <button class="faq-question" aria-expanded="false">{{ q }}<svg class="faq-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <div class="faq-answer"><div class="faq-answer-inner">{{ a }}</div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Security -->
+<section id="security" class="section-dark" style="padding:100px 24px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:56px">
+      <span class="eyebrow reveal">Security & Compliance</span>
+      <h2 class="section-heading reveal" style="font-size:clamp(1.8rem,3.2vw,2.4rem);margin-top:16px">Built for healthcare data from day one</h2>
+    </div>
+    <div class="grid reveal" style="grid-template-columns:repeat(4,1fr);gap:20px">
+      {% for title, desc, icon in [
+        ("HIPAA", "Infrastructure and workflows built around HIPAA-eligible handling of PHI, with BAAs available on Enterprise plans.", "M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"),
+        ("SOC 2 Ready", "Access controls, change management, and monitoring built to SOC 2 Trust Services criteria as we complete formal audit.", "M9 12l2 2 4-4M21 12a9 9 0 1 1-9-9"),
+        ("Encryption", "Data encrypted in transit (TLS 1.2+) and at rest, with strict role-based access controls throughout the platform.", "M4 10h16v10H4zM8 10V7a4 4 0 0 1 8 0v3"),
+        ("Compliance", "Every AI suggestion and provider decision is logged in an immutable audit trail, ready for compliance review at any time.", "M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5zM14 3v5h5"),
+      ] %}
+      <div class="glass-card-dark" style="padding:26px">
+        <div style="width:44px;height:44px;border-radius:14px;background:rgba(91,157,255,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b9dff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="{{ icon }}"/></svg>
+        </div>
+        <h3 style="font-size:15px;font-weight:700;color:#fff;margin-bottom:8px">{{ title }}</h3>
+        <p style="font-size:13px;color:rgba(255,255,255,0.62);line-height:1.55">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section-cream" style="padding:100px 24px;text-align:center">
+  <div class="reveal" style="max-width:600px;margin:0 auto">
+    <h2 class="section-heading" style="font-size:clamp(1.8rem,3.4vw,2.6rem)">Let's scope a quote for your organization</h2>
+    <p class="section-lede" style="margin-top:16px;font-size:16px">Tell us your claim volume and specialty mix — we'll do the rest.</p>
+    <a href="#" class="btn-primary" style="margin-top:32px" data-open-demo-modal data-modal-title="Talk to Sales" data-modal-sub="Fill in your details and we'll be in touch.">Contact Sales</a>
+  </div>
+</section>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  var vol = document.getElementById('p-calc-volume');
+  var val = document.getElementById('p-calc-value');
+  var den = document.getElementById('p-calc-denial');
+  function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+  function recalc() {
+    document.getElementById('p-calc-volume-val').textContent = Number(vol.value).toLocaleString();
+    document.getElementById('p-calc-value-val').textContent = '$' + val.value;
+    document.getElementById('p-calc-denial-val').textContent = den.value + '%';
+    var atRisk = Number(vol.value) * Number(val.value) * (Number(den.value) / 100);
+    var recovered = atRisk * 0.65;
+    document.getElementById('p-calc-atrisk').textContent = fmt(atRisk);
+    document.getElementById('p-calc-recovered').textContent = fmt(recovered);
+  }
+  [vol, val, den].forEach(function (el) { el.addEventListener('input', recalc); });
+  recalc();
+}());
+</script>
+{% endblock %}
