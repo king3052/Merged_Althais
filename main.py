@@ -199,6 +199,40 @@ def _render_emr(user) -> HTMLResponse:
 
     # Inject right after <head> so it runs before everything else
     html = html.replace("<head>", "<head>" + ns_patch, 1)
+
+    # Stack Althais's top-level workspace switcher (Overview/EMR/Revenue/Staff)
+    # above the EMR's own header, so a provider deep in a patient chart can
+    # still jump straight to another workspace without backing out first.
+    workspace_bar = """
+<div class="bg-med-700 text-white" style="border-bottom:1px solid rgba(255,255,255,0.15);">
+  <div class="flex items-center h-10 px-3">
+    <span class="text-[13px] font-semibold tracking-[0.18em] mr-6 opacity-90 select-none">ALTHAIS</span>
+    <nav class="flex items-center h-full overflow-x-auto">
+      <a href="/overview" class="althais-ptab">Overview</a>
+      <a href="/emr" class="althais-ptab althais-ptab-active">EMR</a>
+      <a href="/revenue/claims" class="althais-ptab">Revenue</a>
+      <a href="/staff/team" class="althais-ptab">Staff</a>
+    </nav>
+  </div>
+</div>
+<style>
+  .althais-ptab { padding:0 12px; height:40px; display:flex; align-items:center; color:rgba(255,255,255,0.68); font-weight:500; font-size:13px; border-bottom:2px solid transparent; text-decoration:none; white-space:nowrap; }
+  .althais-ptab:hover { color:#fff; }
+  .althais-ptab-active { color:#fff; font-weight:700; border-bottom-color:#fff; }
+</style>
+<script>
+  // The EMR's own 3-column layout is height-locked to calc(100vh - 92px) to
+  // fit exactly under its own header + tab bar. Adding the 40px workspace
+  // bar above it needs that budget subtracted too, or the layout overflows
+  // the viewport by 40px.
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('div[style*="calc(100vh - 92px)"]').forEach(function (el) {
+      el.style.height = 'calc(100vh - 132px)';
+    });
+  });
+</script>"""
+    html = html.replace('<body class="bg-shell text-ink-800">', '<body class="bg-shell text-ink-800">' + workspace_bar, 1)
+
     return HTMLResponse(content=html)
 
 
