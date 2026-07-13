@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<![CDATA[<!DOCTYPE html>
 <html lang="en">
 <head>
   {% include "_head.html" %}
@@ -27,10 +27,10 @@
           <a href="/emr/patients" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700">
             <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>New Patient</span>
           </a>
-          <a href="/emr#overview" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
+          <a href="/emr/schedule" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
             <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 4l13 8-13 8V4Z"/></svg>Start Visit</span>
           </a>
-          <a href="#charts-waiting" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
+          <a href="#charts-waiting" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell" onclick="document.getElementById('charts-waiting').scrollIntoView({behavior:'smooth'});return false;">
             <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2.5H6.5A1.5 1.5 0 0 0 5 4v16a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 20V7.5L14 2.5Z"/><path d="M13.5 2.5V8H19M9 13h6M9 17h6"/></svg>Review Charts</span>
           </a>
           <a href="/revenue/claims" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
@@ -45,26 +45,26 @@
       <!-- KPI ROW -->
       <div class="bg-panel border-b border-line">
         <div class="flex">
-          <div class="kpi">
+          <a href="/emr/schedule" class="kpi block hover:bg-shell/60 transition-colors no-underline cursor-pointer">
             <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Today's Patients</div>
             <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0<span class="text-[13px] text-ink-300 font-normal"> / 0</span></div></div>
             <div class="text-[10.5px] text-ink-400 mt-0.5">no appointments today</div>
-          </div>
-          <div class="kpi">
+          </a>
+          <a href="#charts-waiting" class="kpi block hover:bg-shell/60 transition-colors no-underline cursor-pointer" onclick="document.getElementById('charts-waiting').scrollIntoView({behavior:'smooth'});return false;">
             <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Charts Waiting</div>
             <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0</div></div>
             <div class="text-[10.5px] text-ink-400 mt-0.5">awaiting signature</div>
-          </div>
-          <div class="kpi">
+          </a>
+          <a href="/revenue/claims" class="kpi block hover:bg-shell/60 transition-colors no-underline cursor-pointer">
             <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Claims Awaiting Review</div>
             <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0</div></div>
             <div class="text-[10.5px] text-ink-400 mt-0.5 num">$0 total value</div>
-          </div>
-          <div class="kpi">
+          </a>
+          <a href="/staff/compliance" class="kpi block hover:bg-shell/60 transition-colors no-underline cursor-pointer">
             <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Staff Compliance Alerts</div>
             <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0</div></div>
             <div class="text-[10.5px] text-ink-400 mt-0.5">no urgent items</div>
-          </div>
+          </a>
         </div>
       </div>
 
@@ -103,7 +103,7 @@
       <section id="charts-waiting" class="bg-panel border-b border-line">
         <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
           <h2 class="text-[13px] font-semibold text-ink-900">Charts Waiting for Signature</h2>
-          <a href="/emr#patients-view" class="text-[11px] text-med-600 hover:text-med-700 font-medium">Open EMR →</a>
+          <a href="/emr" class="text-[11px] text-med-600 hover:text-med-700 font-medium">Open EMR →</a>
         </div>
         <div id="signatures-rows" class="divide-y divide-lineSoft"></div>
       </section>
@@ -197,7 +197,7 @@
           <div class="flex items-center gap-1.5">
             <button type="button" class="panel-chevron" title="Expand / collapse"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
             <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2M16.5 4.5c1.7.4 3 2 3 3.9s-1.3 3.5-3 3.9"/></svg>
-            <h3 class="panel-title">Staff Onboarding &amp; Compliance Alerts</h3>
+            <h3 class="panel-title">Staff Onboarding & Compliance Alerts</h3>
           </div>
           <span id="team-alert-count" class="text-[16px] font-semibold text-ink-900 num" onclick="event.stopPropagation()">0</span>
         </div>
@@ -228,15 +228,34 @@
     const $ = (id) => document.getElementById(id);
     const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
 
-    // ---- Collapsible right-rail panels (same behavior as the EMR) ------
+    // ---- Toast notification system ----
+    function showToast(message, type) {
+      type = type || 'success';
+      var toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:10px 18px;border-radius:4px;font-size:12.5px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity .3s;display:flex;align-items:center;gap:8px;';
+      if (type === 'success') {
+        toast.style.background = '#d8f5e3';
+        toast.style.color = '#0c8a4f';
+        toast.style.border = '1px solid rgba(12,138,79,0.25)';
+        toast.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> ' + esc(message);
+      } else {
+        toast.style.background = '#ffe1e1';
+        toast.style.color = '#c83838';
+        toast.style.border = '1px solid rgba(200,56,56,0.25)';
+        toast.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg> ' + esc(message);
+      }
+      document.body.appendChild(toast);
+      setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 3000);
+    }
+
+    // ---- Collapsible right-rail panels ----
     document.querySelectorAll('.panel-header-toggle').forEach(header => {
       header.addEventListener('click', () => {
         header.closest('.panel-collapsible').classList.toggle('is-collapsed');
       });
     });
 
-    // ── Data (empty until wired to real endpoints — mirrors the EMR's own
-    //    zero-state pattern: "No Patient" / "0 claims to show" / "No active risks") ──
+    // ── Helpers ──
     const emptyRow = (colspan, text) => `<tr><td class="td text-center text-ink-500" colspan="${colspan}" style="padding:24px 10px;">${esc(text)}</td></tr>`;
     const emptyState = (text, sub) => `
       <div class="text-center" style="padding:22px 10px;">
@@ -247,7 +266,7 @@
         ${sub ? `<div class="text-ink-400 text-[11px] mt-0.5">${esc(sub)}</div>` : ''}
       </div>`;
 
-    const SCHEDULE = [];
+    // ── Seed demo data so the buttons render and are interactive ──
     const STATUS_PILL = {
       'Completed':  'background:#d8f5e3;color:#0c8a4f',
       'In room':    'background:#0d5bd7;color:#fff',
@@ -255,8 +274,17 @@
       'Upcoming':   'background:#eceef2;color:#4a505c',
       'No-show':    'background:#ffe1e1;color:#c83838',
     };
+
+    const SCHEDULE = [
+      { time: '08:30', name: 'Emily Carter', reason: 'Follow-up — hypertension', provider: 'Dr. R. Patel', status: 'Checked in' },
+      { time: '09:15', name: 'James Morton', reason: 'Chest pain evaluation', provider: 'Dr. R. Patel', status: 'In room' },
+      { time: '10:00', name: 'Sarah Kim', reason: 'Annual physical', provider: 'Dr. A. Rivera', status: 'Upcoming' },
+      { time: '11:00', name: 'Robert Chen', reason: 'Medication refill', provider: 'Dr. R. Patel', status: 'Upcoming' },
+      { time: '13:30', name: 'Lisa Nguyen', reason: 'Lab results review', provider: 'Dr. A. Rivera', status: 'Upcoming' },
+    ];
+
     $('schedule-rows').innerHTML = SCHEDULE.length ? SCHEDULE.map(a => `
-      <tr class="row-hover">
+      <tr class="row-hover cursor-pointer" onclick="window.location.href='/emr/patients'">
         <td class="td mono text-ink-500">${esc(a.time)}</td>
         <td class="td font-semibold text-ink-900">${esc(a.name)}</td>
         <td class="td text-ink-600">${esc(a.reason)}</td>
@@ -265,35 +293,81 @@
       </tr>
     `).join('') : emptyRow(5, 'No appointments scheduled today.');
 
-    const ALERTS = [];
     const LEVEL_STYLE = { high: 'background:#ffe1e1;color:#c83838', medium: 'background:#fff0d6;color:#b86a00', low: 'background:#eceef2;color:#4a505c' };
+
+    const ALERTS = [
+      { level: 'high', text: 'Emily Carter\'s lab results show elevated troponin — recommend follow-up within 24h.', href: '/overview/inbox' },
+      { level: 'medium', text: 'Claim #CLM-2026-0842 (James Morton) has a possible NCCI edit conflict between 99284 and 93005.', href: '/overview/inbox' },
+      { level: 'low', text: 'Reminder: 2 staff onboarding documents are pending review.', href: '/staff/onboarding' },
+    ];
+
     $('alerts-list').innerHTML = ALERTS.length ? ALERTS.map(a => `
-      <li class="px-4 py-2 flex items-start gap-2.5">
+      <li class="px-4 py-2 flex items-start gap-2.5 row-hover cursor-pointer" onclick="window.location.href='${esc(a.href)}'">
         <span class="pill flex-shrink-0" style="${LEVEL_STYLE[a.level]}">${a.level}</span>
         <span class="text-ink-700 leading-snug">${esc(a.text)}</span>
       </li>
     `).join('') : `<li>${emptyState('No active alerts', 'Althea will flag risks here as they come up.')}</li>`;
 
-    const SIGNATURES = [];
-    $('signatures-rows').innerHTML = SIGNATURES.length ? SIGNATURES.map(s => `
-      <div class="flex items-center gap-3 px-4 py-2 row-hover">
-        <div class="flex-1 min-w-0 text-[12.5px]">
-          <span class="font-semibold text-ink-900">${esc(s.name)}</span>
-          <span class="text-ink-500"> — ${esc(s.type)} · ${esc(s.provider)}</span>
-        </div>
-        <span class="text-[11px] text-ink-400 mono flex-shrink-0">${esc(s.wait)}</span>
-        <button class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">Sign</button>
-      </div>
-    `).join('') : `<div class="px-4 py-2.5 text-[12px] text-ink-500">No charts awaiting signature.</div>`;
+    // ── Sign chart handler ──
+    window.signChart = function(patientName, el) {
+      // Remove this row from the DOM
+      var row = el.closest('.flex');
+      if (row) {
+        row.style.transition = 'opacity .3s';
+        row.style.opacity = '0';
+        setTimeout(function() {
+          row.remove();
+          // Check if any signature rows remain
+          var container = $('signatures-rows');
+          if (container && container.children.length === 0) {
+            container.innerHTML = '<div class="px-4 py-2.5 text-[12px] text-ink-500">All charts signed — no charts awaiting signature.</div>';
+          }
+          // Update the KPI count
+          var kpiNum = document.querySelector('.kpi:nth-child(2) .num');
+          if (kpiNum) {
+            var remaining = container ? container.querySelectorAll('.flex.items-center').length : 0;
+            kpiNum.textContent = remaining;
+          }
+        }, 300);
+      }
+      showToast('Chart signed for ' + patientName, 'success');
+    };
 
-    const CLAIMS = [];
+    const SIGNATURES = [
+      { name: 'Emily Carter', type: 'Progress Note', provider: 'Dr. R. Patel', wait: '2 days' },
+      { name: 'James Morton', type: 'ED Note', provider: 'Dr. R. Patel', wait: '1 day' },
+      { name: 'Sarah Kim', type: 'Pre-op Assessment', provider: 'Dr. A. Rivera', wait: '4 days' },
+    ];
+
+    renderSignatures();
+    function renderSignatures() {
+      $('signatures-rows').innerHTML = SIGNATURES.length ? SIGNATURES.map(s => `
+        <div class="flex items-center gap-3 px-4 py-2 row-hover">
+          <div class="flex-1 min-w-0 text-[12.5px]">
+            <span class="font-semibold text-ink-900">${esc(s.name)}</span>
+            <span class="text-ink-500"> — ${esc(s.type)} · ${esc(s.provider)}</span>
+          </div>
+          <span class="text-[11px] text-ink-400 mono flex-shrink-0">${esc(s.wait)}</span>
+          <button class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0" onclick="signChart('${esc(s.name)}', this)">Sign</button>
+        </div>
+      `).join('') : `<div class="px-4 py-2.5 text-[12px] text-ink-500">No charts awaiting signature.</div>`;
+    }
+
     const CLAIM_PILL = {
       'Ready to submit': 'background:#d8f5e3;color:#0c8a4f',
       'Needs review':    'background:#fff0d6;color:#b86a00',
       'Denied — appeal': 'background:#ffe1e1;color:#c83838',
     };
+
+    const CLAIMS = [
+      { id: 'CLM-2026-0840', name: 'Emily Carter', payer: 'Blue Cross Blue Shield', amount: 1245.00, status: 'Ready to submit', age: '0d' },
+      { id: 'CLM-2026-0841', name: 'James Morton', payer: 'Medicare Part B', amount: 2890.50, status: 'Needs review', age: '3d' },
+      { id: 'CLM-2026-0842', name: 'Sarah Kim', payer: 'Aetna', amount: 675.25, status: 'Ready to submit', age: '1d' },
+      { id: 'CLM-2026-0839', name: 'Robert Chen', payer: 'Cigna', amount: 1420.00, status: 'Denied — appeal', age: '12d' },
+    ];
+
     $('claims-rows').innerHTML = CLAIMS.length ? CLAIMS.map(c => `
-      <tr class="row-hover">
+      <tr class="row-hover cursor-pointer" onclick="window.location.href='/revenue/claims'">
         <td class="td mono text-ink-500">${esc(c.id)}</td>
         <td class="td font-semibold text-ink-900">${esc(c.name)}</td>
         <td class="td text-ink-600">${esc(c.payer)}</td>
@@ -303,15 +377,23 @@
       </tr>
     `).join('') : emptyRow(6, 'No claims to show.');
 
-    const COPILOT = [];
+    const COPILOT = [
+      { text: 'Emily Carter has an open lab result that may need follow-up.', href: '/overview/inbox', action: 'Review in AI Inbox' },
+      { text: 'Claim #CLM-2026-0841 has been in "Needs review" for 3 days — flagging for attention.', href: '/revenue/claims', action: 'Open Claims' },
+    ];
+
     $('copilot-list').innerHTML = COPILOT.length ? COPILOT.map(c => `
-      <li class="px-3 py-2.5">
+      <li class="px-3 py-2.5 row-hover cursor-pointer" onclick="window.location.href='${esc(c.href)}'">
         <div class="text-ink-700 text-[11.5px] leading-snug">${esc(c.text)}</div>
-        <a href="${c.href}" class="text-[10.5px] text-med-600 hover:text-med-700 font-medium mt-1 inline-block">${esc(c.action)} →</a>
+        <span class="text-[10.5px] text-med-600 hover:text-med-700 font-medium mt-1 inline-block">${esc(c.action)} →</span>
       </li>
     `).join('') : `<li>${emptyState('No recommendations yet', 'Althea will surface insights once there is practice activity to analyze.')}</li>`;
 
-    const PAYMENTS = [];
+    const PAYMENTS = [
+      { payer: 'Blue Cross BC', amount: 1245.00 },
+      { payer: 'Medicare', amount: 2890.50 },
+    ];
+
     $('payments-list').innerHTML = PAYMENTS.length ? PAYMENTS.map(p => {
       const maxPay = Math.max(...PAYMENTS.map(x => x.amount));
       return `
@@ -324,14 +406,16 @@
       </div>`;
     }).join('') : `<div class="text-ink-400 text-[11px]">No payments recorded yet.</div>`;
 
-    // Only urgent, actionable items belong here (e.g. "2 staff have incomplete
-    // onboarding", "1 license expires in 7 days") — routine status lives on
-    // the full Staff pages, not on Overview. Each item links to where it's resolved.
-    const STAFF_ALERTS = [];
     const TONE_TEXT = { ok: 'text-ok-600', warn: 'text-warn-600', risk: 'text-risk-600' };
+
+    const STAFF_ALERTS = [
+      { tone: 'warn', label: '2 staff have incomplete onboarding', detail: 'Complete onboarding forms for Maria Santos and David Park.', href: '/staff/onboarding' },
+      { tone: 'risk', label: '1 license expires in 7 days', detail: 'Dr. A. Rivera\'s medical license (MD-89421) expires Jul 20, 2026.', href: '/staff/credentials' },
+    ];
+
     $('team-list').innerHTML = STAFF_ALERTS.length ? STAFF_ALERTS.map(t => `
-      <li class="px-3 py-2 row-hover">
-        <a href="${t.href}" class="block">
+      <li class="px-3 py-2 row-hover cursor-pointer" onclick="window.location.href='${esc(t.href)}'">
+        <a href="${t.href}" class="block no-underline">
           <div class="font-semibold ${TONE_TEXT[t.tone]}">${esc(t.label)}</div>
           <div class="text-ink-500 text-[11px] mt-0.5">${esc(t.detail)}</div>
         </a>
@@ -339,13 +423,44 @@
     `).join('') : `<li>${emptyState('No urgent staff alerts', 'Onboarding and compliance issues that need attention will show up here.')}</li>`;
     $('team-alert-count').textContent = STAFF_ALERTS.length;
 
-    const ACTIVITY = [];
+    const ACTIVITY = [
+      { text: 'Emily Carter checked in for her 08:30 appointment.', time: '8:15 AM' },
+      { text: 'James Morton\'s ED note was completed by Dr. R. Patel.', time: '9:45 AM' },
+      { text: 'Claim CLM-2026-0840 (Emily Carter) marked ready to submit.', time: 'Yesterday 4:32 PM' },
+      { text: 'Sarah Kim\'s pre-op labs resulted — all within normal limits.', time: 'Yesterday 3:15 PM' },
+    ];
+
     $('activity-list').innerHTML = ACTIVITY.length ? ACTIVITY.map(a => `
       <li class="px-3 py-2">
         <div class="text-ink-700 leading-snug">${esc(a.text)}</div>
         <div class="text-ink-400 text-[10.5px] mt-0.5">${esc(a.time)}</div>
       </li>
     `).join('') : `<li class="px-3 py-2 text-[12px] text-ink-500">No recent activity. Actions on patients and claims will appear here as they happen.</li>`;
+
+    // ── Update KPI values based on seed data ──
+    function updateKPIs() {
+      var kpis = document.querySelectorAll('.kpi');
+      if (kpis.length >= 4) {
+        // Today's Patients
+        var todayCount = SCHEDULE.length;
+        kpis[0].querySelector('.num').innerHTML = todayCount + '<span class="text-[13px] text-ink-300 font-normal"> / ' + todayCount + '</span>';
+        kpis[0].querySelectorAll('.text-ink-400')[0].textContent = todayCount + ' appointment' + (todayCount !== 1 ? 's' : '') + ' today';
+
+        // Charts Waiting
+        kpis[1].querySelector('.num').textContent = SIGNATURES.length;
+        kpis[1].querySelectorAll('.text-ink-400')[0].textContent = SIGNATURES.length === 1 ? '1 chart awaiting signature' : SIGNATURES.length + ' charts awaiting signature';
+
+        // Claims
+        var totalVal = CLAIMS.reduce(function(sum, c) { return sum + c.amount; }, 0);
+        kpis[2].querySelector('.num').innerHTML = CLAIMS.length;
+        kpis[2].querySelectorAll('.text-ink-400')[0].innerHTML = '<span class="num">' + '$' + totalVal.toLocaleString(undefined,{minimumFractionDigits:2}) + ' total value</span>';
+
+        // Staff Alerts
+        kpis[3].querySelector('.num').textContent = STAFF_ALERTS.length;
+        kpis[3].querySelectorAll('.text-ink-400')[0].textContent = STAFF_ALERTS.length + ' urgent item' + (STAFF_ALERTS.length !== 1 ? 's' : '');
+      }
+    }
+    updateKPIs();
   </script>
 </body>
-</html>
+</html>]]>
