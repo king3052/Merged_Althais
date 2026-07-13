@@ -421,6 +421,11 @@ _PLACEHOLDER_PAGES = {
                      "available today on the Overview dashboard.",
         emr_link="/overview#revenue", emr_link_label="View Revenue Snapshot",
     ),
+    "/staff/clinic-onboarding": dict(
+        title="Clinic Onboarding", subtitle="Set up a new clinic on Althais.",
+        description="Guided clinic setup — locations, payer enrollment, and practice "
+                     "configuration — is coming soon.",
+    ),
     "/revenue/payer-intelligence": dict(
         title="Payer Intelligence", subtitle="Payer policy updates and reimbursement trends.",
         description="A dedicated payer intelligence workspace for this view is coming soon. "
