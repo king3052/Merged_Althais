@@ -3,6 +3,17 @@
 <head>
   {% include "_head.html" %}
   <title>Althais — Overview</title>
+  <!-- Overview reads from the same localStorage keys as the EMR so CSV-imported
+       data (patients, claims, appointments, activity) shows up here automatically. -->
+  <script>
+    // Derive the org namespace from the server-injected user data
+    var __ALTHAIS_USER__ = {{ user_json|safe }};
+    var __ALTHAIS_NS__ = (function(){
+      var base = (__ALTHAIS_USER__.organization || __ALTHAIS_USER__.email || 'unknown').trim().toLowerCase();
+      var safe = base.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      return 'org_' + safe;
+    })();
+  </script>
 </head>
 <body class="bg-shell">
 
@@ -47,8 +58,8 @@
         <div class="flex">
           <a href="/emr/schedule" class="kpi block hover:bg-shell/60 transition-colors no-underline cursor-pointer">
             <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Today's Patients</div>
-            <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0<span class="text-[13px] text-ink-300 font-normal"> / 0</span></div></div>
-            <div class="text-[10.5px] text-ink-400 mt-0.5">no appointments today</div>
+            <div class="flex items-end gap-2 mt-0.5"><div id="kpi-todays-patients" class="text-[20px] font-semibold text-ink-900 num">0<span class="text-[13px] text-ink-300 font-normal"> / 0</span></div></div>
+            <div id="kpi-todays-label" class="text-[10.5px] text-ink-400 mt-0.5">no appointments today</div>
           </a>
           <a href="#charts-waiting" class="kpi block hover:bg-shell/60 transition-colors no-underline cursor-pointer" onclick="document.getElementById('charts-waiting').scrollIntoView({behavior:'smooth'});return false;">
             <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Charts Waiting</div>
@@ -225,8 +236,29 @@
   </div>
 
   <script>
+    // ── Namespace — same derivation as the EMR workspace ──
+    // localStorage keys must match exactly what dashboard.html uses.
+    const _NS = __ALTHAIS_NS__ + '::';
+    const STORAGE_PATIENTS = _NS + 'althais.patients.v1';
+    const STORAGE_CLAIMS   = _NS + 'althais.claims.v1';
+    const STORAGE_APPTS    = _NS + 'althais.appointments.v1';
+    const STORAGE_ACTIVITY = _NS + 'althais.activity.v1';
+
     const $ = (id) => document.getElementById(id);
     const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+
+    // ---- Helpers (same pattern as dashboard.html) ----
+    function loadJSON(key, fallback) {
+      try { const raw = localStorage.getItem(key); if (!raw) return fallback; const v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; }
+    }
+
+    function todayIso() { return new Date().toISOString().slice(0, 10); }
+
+    // ── Read real data from the EMR's localStorage keys ──
+    const PATIENTS       = loadJSON(STORAGE_PATIENTS, []);
+    const SAVED_CLAIMS   = loadJSON(STORAGE_CLAIMS, []);
+    const APPTS          = loadJSON(STORAGE_APPTS, []);
+    const ACTIVITY_LOG   = loadJSON(STORAGE_ACTIVITY, []);
 
     // ---- Toast notification system ----
     function showToast(message, type) {
@@ -266,198 +298,304 @@
         ${sub ? `<div class="text-ink-400 text-[11px] mt-0.5">${esc(sub)}</div>` : ''}
       </div>`;
 
-    // ── Seed demo data so the buttons render and are interactive ──
+    // ── Today's Schedule ──
     const STATUS_PILL = {
       'Completed':  'background:#d8f5e3;color:#0c8a4f',
       'In room':    'background:#0d5bd7;color:#fff',
       'Checked in': 'background:#fff0d6;color:#b86a00',
       'Upcoming':   'background:#eceef2;color:#4a505c',
       'No-show':    'background:#ffe1e1;color:#c83838',
+      'Cancelled':  'background:#eceef2;color:#4a505c',
     };
 
-    const SCHEDULE = [
-      { time: '08:30', name: 'Emily Carter', reason: 'Follow-up — hypertension', provider: 'Dr. R. Patel', status: 'Checked in' },
-      { time: '09:15', name: 'James Morton', reason: 'Chest pain evaluation', provider: 'Dr. R. Patel', status: 'In room' },
-      { time: '10:00', name: 'Sarah Kim', reason: 'Annual physical', provider: 'Dr. A. Rivera', status: 'Upcoming' },
-      { time: '11:00', name: 'Robert Chen', reason: 'Medication refill', provider: 'Dr. R. Patel', status: 'Upcoming' },
-      { time: '13:30', name: 'Lisa Nguyen', reason: 'Lab results review', provider: 'Dr. A. Rivera', status: 'Upcoming' },
-    ];
+    var today = todayIso();
+    var todayAppts = APPTS.filter(function(a) { return a.date === today; }).sort(function(a, b) { return a.time.localeCompare(b.time); });
 
-    $('schedule-rows').innerHTML = SCHEDULE.length ? SCHEDULE.map(a => `
-      <tr class="row-hover cursor-pointer" onclick="window.location.href='/emr/patients'">
-        <td class="td mono text-ink-500">${esc(a.time)}</td>
-        <td class="td font-semibold text-ink-900">${esc(a.name)}</td>
-        <td class="td text-ink-600">${esc(a.reason)}</td>
-        <td class="td text-ink-600">${esc(a.provider)}</td>
-        <td class="td"><span class="pill" style="${STATUS_PILL[a.status]}">${esc(a.status)}</span></td>
-      </tr>
-    `).join('') : emptyRow(5, 'No appointments scheduled today.');
+    $('schedule-rows').innerHTML = todayAppts.length ? todayAppts.map(function(a) {
+      return '<tr class="row-hover cursor-pointer" onclick="window.location.href=\'/emr/patients\'">' +
+        '<td class="td mono text-ink-500">' + esc(a.time) + '</td>' +
+        '<td class="td font-semibold text-ink-900">' + esc(a.patient || a.name || '—') + '</td>' +
+        '<td class="td text-ink-600">' + esc(a.reason || '—') + '</td>' +
+        '<td class="td text-ink-600">' + esc(a.provider || '—') + '</td>' +
+        '<td class="td"><span class="pill" style="' + (STATUS_PILL[a.status] || STATUS_PILL['Upcoming']) + '">' + esc(a.status || 'Upcoming') + '</span></td>' +
+      '</tr>';
+    }).join('') : emptyRow(5, 'No appointments scheduled today.');
+
+    // ── AI Inbox Alerts ──
+    // Derive alerts from actual data: notes without completed claims, patients needing attention, etc.
+    var ALERTS = [];
+    // Check for patients with no claims
+    var todayPatients = todayAppts.map(function(a) { return a.mrn; });
+    todayPatients.forEach(function(mrn) {
+      if (!mrn) return;
+      var p = PATIENTS.find(function(x) { return x.mrn === mrn; });
+      if (p && p.name) {
+        var claimCount = SAVED_CLAIMS.filter(function(c) { return c.mrn === mrn && !c.isPlaceholder; }).length;
+        if (claimCount === 0) {
+          ALERTS.push({ level: 'medium', text: esc(p.name) + ' has an appointment today but no claim started yet.', href: '/emr' });
+        }
+      }
+    });
+    // Flag claims needing review
+    SAVED_CLAIMS.filter(function(c) { return c.status === 'Needs review' || (c.status || '').toLowerCase().indexOf('review') !== -1; }).forEach(function(c) {
+      ALERTS.push({ level: 'medium', text: 'Claim ' + esc(c.claimId || '') + ' (' + esc(c.patient || c.mrn || '') + ') needs review.', href: '/revenue/claims' });
+    });
+    // Flag denied claims
+    SAVED_CLAIMS.filter(function(c) { return (c.status || '').toLowerCase().indexOf('denied') !== -1; }).forEach(function(c) {
+      ALERTS.push({ level: 'high', text: 'Claim ' + esc(c.claimId || '') + ' (' + esc(c.patient || c.mrn || '') + ') was denied.', href: '/revenue/claims' });
+    });
+    // Cap at 5
+    ALERTS = ALERTS.slice(0, 5);
 
     const LEVEL_STYLE = { high: 'background:#ffe1e1;color:#c83838', medium: 'background:#fff0d6;color:#b86a00', low: 'background:#eceef2;color:#4a505c' };
 
-    const ALERTS = [
-      { level: 'high', text: 'Emily Carter\'s lab results show elevated troponin — recommend follow-up within 24h.', href: '/overview/inbox' },
-      { level: 'medium', text: 'Claim #CLM-2026-0842 (James Morton) has a possible NCCI edit conflict between 99284 and 93005.', href: '/overview/inbox' },
-      { level: 'low', text: 'Reminder: 2 staff onboarding documents are pending review.', href: '/staff/onboarding' },
-    ];
+    $('alerts-list').innerHTML = ALERTS.length ? ALERTS.map(function(a) {
+      return '<li class="px-4 py-2 flex items-start gap-2.5 row-hover cursor-pointer" onclick="window.location.href=\'' + esc(a.href) + '\'">' +
+        '<span class="pill flex-shrink-0" style="' + (LEVEL_STYLE[a.level] || LEVEL_STYLE.low) + '">' + a.level + '</span>' +
+        '<span class="text-ink-700 leading-snug">' + (a.text) + '</span>' +
+      '</li>';
+    }).join('') : '<li>' + emptyState('No active alerts', 'Althea will flag risks here as they come up.') + '</li>';
 
-    $('alerts-list').innerHTML = ALERTS.length ? ALERTS.map(a => `
-      <li class="px-4 py-2 flex items-start gap-2.5 row-hover cursor-pointer" onclick="window.location.href='${esc(a.href)}'">
-        <span class="pill flex-shrink-0" style="${LEVEL_STYLE[a.level]}">${a.level}</span>
-        <span class="text-ink-700 leading-snug">${esc(a.text)}</span>
-      </li>
-    `).join('') : `<li>${emptyState('No active alerts', 'Althea will flag risks here as they come up.')}</li>`;
+    // ── Charts Waiting for Signature ──
+    // Show claims with a status suggesting they need signature (Draft, needs review)
+    var signatureNeeded = SAVED_CLAIMS.filter(function(c) {
+      var s = (c.status || '').toLowerCase();
+      return (s.indexOf('draft') !== -1 || s.indexOf('review') !== -1 || s === 'coding') && !c.isPlaceholder;
+    }).slice(0, 10);
 
     // ── Sign chart handler ──
-    window.signChart = function(patientName, el) {
-      // Remove this row from the DOM
+    window.signChart = function(claimId, el) {
       var row = el.closest('.flex');
       if (row) {
         row.style.transition = 'opacity .3s';
         row.style.opacity = '0';
         setTimeout(function() {
           row.remove();
-          // Check if any signature rows remain
           var container = $('signatures-rows');
           if (container && container.children.length === 0) {
-            container.innerHTML = '<div class="px-4 py-2.5 text-[12px] text-ink-500">All charts signed — no charts awaiting signature.</div>';
-          }
-          // Update the KPI count
-          var kpiNum = document.querySelector('.kpi:nth-child(2) .num');
-          if (kpiNum) {
-            var remaining = container ? container.querySelectorAll('.flex.items-center').length : 0;
-            kpiNum.textContent = remaining;
+            container.innerHTML = '<div class="px-4 py-2.5 text-[12px] text-ink-500">No charts awaiting signature.</div>';
           }
         }, 300);
       }
-      showToast('Chart signed for ' + patientName, 'success');
+      showToast('Chart signed — claim ' + claimId, 'success');
     };
 
-    const SIGNATURES = [
-      { name: 'Emily Carter', type: 'Progress Note', provider: 'Dr. R. Patel', wait: '2 days' },
-      { name: 'James Morton', type: 'ED Note', provider: 'Dr. R. Patel', wait: '1 day' },
-      { name: 'Sarah Kim', type: 'Pre-op Assessment', provider: 'Dr. A. Rivera', wait: '4 days' },
-    ];
+    $('signatures-rows').innerHTML = signatureNeeded.length ? signatureNeeded.map(function(c) {
+      var p = PATIENTS.find(function(x) { return x.mrn === c.mrn; });
+      var patientName = p ? p.name : (c.patient || c.mrn || 'Unknown');
+      // Compute wait time from timestamp
+      var wait = '';
+      if (c.ts) {
+        var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
+        wait = days + (days === 1 ? ' day' : ' days');
+      } else {
+        wait = '—';
+      }
+      return '<div class="flex items-center gap-3 px-4 py-2 row-hover">' +
+        '<div class="flex-1 min-w-0 text-[12.5px]">' +
+          '<span class="font-semibold text-ink-900">' + esc(patientName) + '</span>' +
+          '<span class="text-ink-500"> — ' + esc(c.cpt || 'Note') + ' · ' + esc(c.provider || '—') + '</span>' +
+        '</div>' +
+        '<span class="text-[11px] text-ink-400 mono flex-shrink-0">' + wait + '</span>' +
+        '<button class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0" onclick="signChart(\'' + esc(c.claimId || '') + '\', this)">Sign</button>' +
+      '</div>';
+    }).join('') : '<div class="px-4 py-2.5 text-[12px] text-ink-500">No charts awaiting signature.</div>';
 
-    renderSignatures();
-    function renderSignatures() {
-      $('signatures-rows').innerHTML = SIGNATURES.length ? SIGNATURES.map(s => `
-        <div class="flex items-center gap-3 px-4 py-2 row-hover">
-          <div class="flex-1 min-w-0 text-[12.5px]">
-            <span class="font-semibold text-ink-900">${esc(s.name)}</span>
-            <span class="text-ink-500"> — ${esc(s.type)} · ${esc(s.provider)}</span>
-          </div>
-          <span class="text-[11px] text-ink-400 mono flex-shrink-0">${esc(s.wait)}</span>
-          <button class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0" onclick="signChart('${esc(s.name)}', this)">Sign</button>
-        </div>
-      `).join('') : `<div class="px-4 py-2.5 text-[12px] text-ink-500">No charts awaiting signature.</div>`;
-    }
-
+    // ── Claims Ready for Submission ──
     const CLAIM_PILL = {
       'Ready to submit': 'background:#d8f5e3;color:#0c8a4f',
       'Needs review':    'background:#fff0d6;color:#b86a00',
       'Denied — appeal': 'background:#ffe1e1;color:#c83838',
     };
 
-    const CLAIMS = [
-      { id: 'CLM-2026-0840', name: 'Emily Carter', payer: 'Blue Cross Blue Shield', amount: 1245.00, status: 'Ready to submit', age: '0d' },
-      { id: 'CLM-2026-0841', name: 'James Morton', payer: 'Medicare Part B', amount: 2890.50, status: 'Needs review', age: '3d' },
-      { id: 'CLM-2026-0842', name: 'Sarah Kim', payer: 'Aetna', amount: 675.25, status: 'Ready to submit', age: '1d' },
-      { id: 'CLM-2026-0839', name: 'Robert Chen', payer: 'Cigna', amount: 1420.00, status: 'Denied — appeal', age: '12d' },
-    ];
+    // Show non-draft, non-placeholder claims in reverse chronological order
+    var activeClaims = SAVED_CLAIMS.filter(function(c) {
+      return !c.isPlaceholder && (c.status || '').toLowerCase() !== 'draft';
+    }).sort(function(a, b) {
+      return (b.ts || '').localeCompare(a.ts || '');
+    }).slice(0, 20);
 
-    $('claims-rows').innerHTML = CLAIMS.length ? CLAIMS.map(c => `
-      <tr class="row-hover cursor-pointer" onclick="window.location.href='/revenue/claims'">
-        <td class="td mono text-ink-500">${esc(c.id)}</td>
-        <td class="td font-semibold text-ink-900">${esc(c.name)}</td>
-        <td class="td text-ink-600">${esc(c.payer)}</td>
-        <td class="td td-num text-right text-ink-900">$${c.amount.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-        <td class="td"><span class="pill" style="${CLAIM_PILL[c.status]}">${esc(c.status)}</span></td>
-        <td class="td td-num text-right text-ink-400">${esc(c.age)}</td>
-      </tr>
-    `).join('') : emptyRow(6, 'No claims to show.');
+    function ageOfClaim(c) {
+      if (!c.ts) return '—';
+      var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
+      return days + 'd';
+    }
 
-    const COPILOT = [
-      { text: 'Emily Carter has an open lab result that may need follow-up.', href: '/overview/inbox', action: 'Review in AI Inbox' },
-      { text: 'Claim #CLM-2026-0841 has been in "Needs review" for 3 days — flagging for attention.', href: '/revenue/claims', action: 'Open Claims' },
-    ];
+    $('claims-rows').innerHTML = activeClaims.length ? activeClaims.map(function(c) {
+      return '<tr class="row-hover cursor-pointer" onclick="window.location.href=\'/revenue/claims\'">' +
+        '<td class="td mono text-ink-500">' + esc(c.claimId || 'CLM-???') + '</td>' +
+        '<td class="td font-semibold text-ink-900">' + esc(c.patient || c.mrn || '—') + '</td>' +
+        '<td class="td text-ink-600">' + esc(c.payer || '—') + '</td>' +
+        '<td class="td td-num text-right text-ink-900">$' + ((c.amount || 0).toLocaleString(undefined, {minimumFractionDigits:2})) + '</td>' +
+        '<td class="td"><span class="pill" style="' + (CLAIM_PILL[c.status] || 'background:#eceef2;color:#4a505c') + '">' + esc(c.status || '—') + '</span></td>' +
+        '<td class="td td-num text-right text-ink-400">' + ageOfClaim(c) + '</td>' +
+      '</tr>';
+    }).join('') : emptyRow(6, 'No claims to show.');
 
-    $('copilot-list').innerHTML = COPILOT.length ? COPILOT.map(c => `
-      <li class="px-3 py-2.5 row-hover cursor-pointer" onclick="window.location.href='${esc(c.href)}'">
-        <div class="text-ink-700 text-[11.5px] leading-snug">${esc(c.text)}</div>
-        <span class="text-[10.5px] text-med-600 hover:text-med-700 font-medium mt-1 inline-block">${esc(c.action)} →</span>
-      </li>
-    `).join('') : `<li>${emptyState('No recommendations yet', 'Althea will surface insights once there is practice activity to analyze.')}</li>`;
+    // ── AI Practice Copilot ──
+    var COPILOT = [];
 
-    const PAYMENTS = [
-      { payer: 'Blue Cross BC', amount: 1245.00 },
-      { payer: 'Medicare', amount: 2890.50 },
-    ];
+    // Suggest follow-up for denied claims
+    var deniedClaims = SAVED_CLAIMS.filter(function(c) { return (c.status || '').toLowerCase().indexOf('denied') !== -1; });
+    if (deniedClaims.length > 0) {
+      COPILOT.push({ text: deniedClaims.length + ' claim' + (deniedClaims.length > 1 ? 's' : '') + ' denied — review and file appeal.', href: '/revenue/claims', action: 'Open Claims' });
+    }
 
-    $('payments-list').innerHTML = PAYMENTS.length ? PAYMENTS.map(p => {
-      const maxPay = Math.max(...PAYMENTS.map(x => x.amount));
-      return `
-      <div class="flex items-center justify-between">
-        <span class="text-ink-700">${esc(p.payer)}</span>
-        <div class="flex items-center gap-2 num">
-          <div class="w-16 h-1.5 bg-shell rounded-sm overflow-hidden"><div class="h-full bg-med-600" style="width:${Math.round((p.amount/maxPay)*100)}%"></div></div>
-          <span class="text-right text-ink-900 font-semibold">$${p.amount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-        </div>
-      </div>`;
-    }).join('') : `<div class="text-ink-400 text-[11px]">No payments recorded yet.</div>`;
+    // Suggest review for needs-review claims
+    var needsReview = SAVED_CLAIMS.filter(function(c) { return (c.status || '').toLowerCase() === 'needs review'; });
+    if (needsReview.length > 0) {
+      COPILOT.push({ text: needsReview.length + ' claim' + (needsReview.length > 1 ? 's' : '') + ' waiting for review.', href: '/revenue/claims', action: 'Review Claims' });
+    }
+
+    // Suggest patients without coverage
+    var noCoverage = PATIENTS.filter(function(p) { return !p.insPrimary || p.insPrimary === '—'; });
+    if (noCoverage.length > 0) {
+      COPILOT.push({ text: noCoverage.length + ' patient' + (noCoverage.length > 1 ? 's' : '') + ' missing insurance information.', href: '/emr', action: 'Open EMR' });
+    }
+
+    // Check for urgent lab results (flagged labs)
+    var flaggedLabs = 0;
+    PATIENTS.forEach(function(p) {
+      if (p.labs && Array.isArray(p.labs)) {
+        p.labs.forEach(function(l) {
+          if (l.status === 'Abnormal' || l.flagged) flaggedLabs++;
+        });
+      }
+    });
+    if (flaggedLabs > 0) {
+      COPILOT.push({ text: flaggedLabs + ' flagged lab result' + (flaggedLabs > 1 ? 's' : '') + ' that may need follow-up.', href: '/emr', action: 'Open EMR' });
+    }
+
+    // Cap to 4
+    COPILOT = COPILOT.slice(0, 4);
+
+    $('copilot-list').innerHTML = COPILOT.length ? COPILOT.map(function(c) {
+      return '<li class="px-3 py-2.5 row-hover cursor-pointer" onclick="window.location.href=\'' + esc(c.href) + '\'">' +
+        '<div class="text-ink-700 text-[11.5px] leading-snug">' + esc(c.text) + '</div>' +
+        '<span class="text-[10.5px] text-med-600 hover:text-med-700 font-medium mt-1 inline-block">' + esc(c.action) + ' →</span>' +
+      '</li>';
+    }).join('') : '<li>' + emptyState('No recommendations yet', 'Althea will surface insights once there is practice activity to analyze.') + '</li>';
+
+    // ── Revenue Snapshot: Payments ──
+    // Derive "payments" from claims that have been collected (status = Completed/Paid)
+    var completedClaims = SAVED_CLAIMS.filter(function(c) {
+      var s = (c.status || '').toLowerCase();
+      return s.indexOf('paid') !== -1 || s.indexOf('completed') !== -1 || s.indexOf('complete') !== -1;
+    });
+
+    var totalCollected = 0;
+    completedClaims.forEach(function(c) { totalCollected += (c.amount || 0); });
+
+    var pendingTotal = 0;
+    SAVED_CLAIMS.filter(function(c) {
+      var s = (c.status || '').toLowerCase();
+      return s.indexOf('paid') === -1 && s.indexOf('completed') === -1 && !c.isPlaceholder && s !== 'draft';
+    }).forEach(function(c) { pendingTotal += (c.amount || 0); });
+
+    // Update revenue snapshot numbers
+    var revPending = document.querySelector('#revenue .num');
+    if (revPending) revPending.textContent = '$' + pendingTotal.toLocaleString(undefined, {minimumFractionDigits: 0});
+
+    // Recent payments
+    $('payments-list').innerHTML = completedClaims.length ? completedClaims.slice(0, 5).map(function(c) {
+      var payerShort = (c.payer || 'Unknown').split(' ').slice(0, 2).join(' ');
+      return '<div class="flex items-center justify-between">' +
+        '<span class="text-ink-700">' + esc(payerShort) + '</span>' +
+        '<div class="flex items-center gap-2 num">' +
+          '<span class="text-right text-ink-900 font-semibold">$' + (c.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('') : '<div class="text-ink-400 text-[11px]">No payments recorded yet.</div>';
+
+    // Update collected amount
+    var collectedEls = document.querySelectorAll('#revenue .num');
+    if (collectedEls.length >= 2) {
+      collectedEls[1].textContent = '$' + totalCollected.toLocaleString(undefined, {minimumFractionDigits: 0});
+    }
+
+    // ── Staff Onboarding & Compliance Alerts ──
+    // Derived from the data: flag patients with missing insurance, claims needing attention
+    var STAFF_ALERTS = [];
+
+    var noCoverageCount = PATIENTS.filter(function(p) { return !p.insPrimary || p.insPrimary === '—'; }).length;
+    if (noCoverageCount > 0) {
+      STAFF_ALERTS.push({ tone: 'warn', label: noCoverageCount + ' patient' + (noCoverageCount > 1 ? 's' : '') + ' missing insurance info', detail: 'Update insurance details in the EMR patient record.', href: '/emr' });
+    }
+
+    var needsReviewCount = SAVED_CLAIMS.filter(function(c) { return (c.status || '').toLowerCase() === 'needs review'; }).length;
+    if (needsReviewCount > 0) {
+      STAFF_ALERTS.push({ tone: 'warn', label: needsReviewCount + ' claim' + (needsReviewCount > 1 ? 's' : '') + ' need' + (needsReviewCount === 1 ? 's' : '') + ' review', detail: 'Review and update claim status in Revenue workspace.', href: '/revenue/claims' });
+    }
+
+    var deniedCount = deniedClaims.length;
+    if (deniedCount > 0) {
+      STAFF_ALERTS.push({ tone: 'risk', label: deniedCount + ' claim' + (deniedCount > 1 ? 's' : '') + ' denied', detail: 'Denied claims need appeal or resubmission.', href: '/revenue/claims' });
+    }
+
+    STAFF_ALERTS = STAFF_ALERTS.slice(0, 4);
 
     const TONE_TEXT = { ok: 'text-ok-600', warn: 'text-warn-600', risk: 'text-risk-600' };
 
-    const STAFF_ALERTS = [
-      { tone: 'warn', label: '2 staff have incomplete onboarding', detail: 'Complete onboarding forms for Maria Santos and David Park.', href: '/staff/onboarding' },
-      { tone: 'risk', label: '1 license expires in 7 days', detail: 'Dr. A. Rivera\'s medical license (MD-89421) expires Jul 20, 2026.', href: '/staff/credentials' },
-    ];
-
-    $('team-list').innerHTML = STAFF_ALERTS.length ? STAFF_ALERTS.map(t => `
-      <li class="px-3 py-2 row-hover cursor-pointer" onclick="window.location.href='${esc(t.href)}'">
-        <a href="${t.href}" class="block no-underline">
-          <div class="font-semibold ${TONE_TEXT[t.tone]}">${esc(t.label)}</div>
-          <div class="text-ink-500 text-[11px] mt-0.5">${esc(t.detail)}</div>
-        </a>
-      </li>
-    `).join('') : `<li>${emptyState('No urgent staff alerts', 'Onboarding and compliance issues that need attention will show up here.')}</li>`;
+    $('team-list').innerHTML = STAFF_ALERTS.length ? STAFF_ALERTS.map(function(t) {
+      return '<li class="px-3 py-2 row-hover cursor-pointer" onclick="window.location.href=\'' + esc(t.href) + '\'">' +
+        '<a href="' + esc(t.href) + '" class="block no-underline">' +
+          '<div class="font-semibold ' + (TONE_TEXT[t.tone] || '') + '">' + esc(t.label) + '</div>' +
+          '<div class="text-ink-500 text-[11px] mt-0.5">' + esc(t.detail) + '</div>' +
+        '</a>' +
+      '</li>';
+    }).join('') : '<li>' + emptyState('No urgent staff alerts', 'Onboarding and compliance issues that need attention will show up here.') + '</li>';
     $('team-alert-count').textContent = STAFF_ALERTS.length;
 
-    const ACTIVITY = [
-      { text: 'Emily Carter checked in for her 08:30 appointment.', time: '8:15 AM' },
-      { text: 'James Morton\'s ED note was completed by Dr. R. Patel.', time: '9:45 AM' },
-      { text: 'Claim CLM-2026-0840 (Emily Carter) marked ready to submit.', time: 'Yesterday 4:32 PM' },
-      { text: 'Sarah Kim\'s pre-op labs resulted — all within normal limits.', time: 'Yesterday 3:15 PM' },
-    ];
+    // ── Recent Activity ──
+    var recentActivity = ACTIVITY_LOG.slice(0, 10);
 
-    $('activity-list').innerHTML = ACTIVITY.length ? ACTIVITY.map(a => `
-      <li class="px-3 py-2">
-        <div class="text-ink-700 leading-snug">${esc(a.text)}</div>
-        <div class="text-ink-400 text-[10.5px] mt-0.5">${esc(a.time)}</div>
-      </li>
-    `).join('') : `<li class="px-3 py-2 text-[12px] text-ink-500">No recent activity. Actions on patients and claims will appear here as they happen.</li>`;
+    $('activity-list').innerHTML = recentActivity.length ? recentActivity.map(function(a) {
+      return '<li class="px-3 py-2">' +
+        '<div class="text-ink-700 leading-snug">' + esc(a.text || a.action || '—') + '</div>' +
+        '<div class="text-ink-400 text-[10.5px] mt-0.5">' + esc(a.time || a.ts || '—') + '</div>' +
+      '</li>';
+    }).join('') : '<li class="px-3 py-2 text-[12px] text-ink-500">No recent activity. Actions on patients and claims will appear here as they happen.</li>';
 
-    // ── Update KPI values based on seed data ──
+    // ── Update KPI values ──
     function updateKPIs() {
-      var kpis = document.querySelectorAll('.kpi');
-      if (kpis.length >= 4) {
-        // Today's Patients
-        var todayCount = SCHEDULE.length;
-        kpis[0].querySelector('.num').innerHTML = todayCount + '<span class="text-[13px] text-ink-300 font-normal"> / ' + todayCount + '</span>';
-        kpis[0].querySelectorAll('.text-ink-400')[0].textContent = todayCount + ' appointment' + (todayCount !== 1 ? 's' : '') + ' today';
+      // Today's Patients
+      var el = $('kpi-todays-patients');
+      if (el) {
+        var totalPatients = PATIENTS.length;
+        el.innerHTML = todayAppts.length + '<span class="text-[13px] text-ink-300 font-normal"> / ' + totalPatients + '</span>';
+      }
+      var label = $('kpi-todays-label');
+      if (label) {
+        label.textContent = todayAppts.length + ' appointment' + (todayAppts.length !== 1 ? 's' : '') + ' today · ' + PATIENTS.length + ' total patient' + (PATIENTS.length !== 1 ? 's' : '');
+      }
 
-        // Charts Waiting
-        kpis[1].querySelector('.num').textContent = SIGNATURES.length;
-        kpis[1].querySelectorAll('.text-ink-400')[0].textContent = SIGNATURES.length === 1 ? '1 chart awaiting signature' : SIGNATURES.length + ' charts awaiting signature';
+      // Charts Waiting KPI
+      var chartsKpi = document.querySelectorAll('.kpi');
+      if (chartsKpi.length >= 2) {
+        chartsKpi[1].querySelector('.num').textContent = signatureNeeded.length;
+        var awaitingLabel = chartsKpi[1].querySelectorAll('.text-ink-400');
+        if (awaitingLabel.length) {
+          awaitingLabel[0].textContent = signatureNeeded.length + ' claim' + (signatureNeeded.length !== 1 ? 's' : '') + ' awaiting signature';
+        }
+      }
 
-        // Claims
-        var totalVal = CLAIMS.reduce(function(sum, c) { return sum + c.amount; }, 0);
-        kpis[2].querySelector('.num').innerHTML = CLAIMS.length;
-        kpis[2].querySelectorAll('.text-ink-400')[0].innerHTML = '<span class="num">' + '$' + totalVal.toLocaleString(undefined,{minimumFractionDigits:2}) + ' total value</span>';
+      // Claims KPI
+      if (chartsKpi.length >= 3) {
+        chartsKpi[2].querySelector('.num').innerHTML = activeClaims.length;
+        var claimVal = activeClaims.reduce(function(sum, c) { return sum + (c.amount || 0); }, 0);
+        var claimLabel = chartsKpi[2].querySelectorAll('.text-ink-400');
+        if (claimLabel.length) {
+          claimLabel[0].innerHTML = '<span class="num">$' + claimVal.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' total value</span>';
+        }
+      }
 
-        // Staff Alerts
-        kpis[3].querySelector('.num').textContent = STAFF_ALERTS.length;
-        kpis[3].querySelectorAll('.text-ink-400')[0].textContent = STAFF_ALERTS.length + ' urgent item' + (STAFF_ALERTS.length !== 1 ? 's' : '');
+      // Staff/Compliance KPI
+      if (chartsKpi.length >= 4) {
+        chartsKpi[3].querySelector('.num').textContent = STAFF_ALERTS.length;
+        var staffLabel = chartsKpi[3].querySelectorAll('.text-ink-400');
+        if (staffLabel.length) {
+          staffLabel[0].textContent = STAFF_ALERTS.length + ' alert' + (STAFF_ALERTS.length !== 1 ? 's' : '');
+        }
       }
     }
     updateKPIs();
