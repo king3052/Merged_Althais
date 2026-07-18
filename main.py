@@ -20,7 +20,15 @@ app.mount("/videos", StaticFiles(directory="public/videos"), name="videos")
 
 templates = Jinja2Templates(directory="templates")
 
-from auth import router as auth_router, current_user, require_user, COOKIE_NAME, current_admin, require_biller, require_admin_role
+from auth import (
+    router as auth_router, current_user, require_user, COOKIE_NAME,
+    current_admin, require_biller, require_admin_role,
+    get_db, Base, engine, _org_namespace, OrgPatient, OrgClaim,
+)
+from sqlalchemy.orm import Session
+from sqlalchemy import select as sa_select
+import datetime as dt
+from datetime import timezone
 from marketing_data import SOLUTION_SEGMENTS, RESOURCE_CATEGORIES, RESOURCE_ARTICLES
 from coding_rules import resolve_time_based_codes, is_governed_code
 from code_validation import validate_codes
@@ -481,6 +489,126 @@ def _legacy_redirect(target: str):
 
 for _old_path, _new_path in _LEGACY_REDIRECTS.items():
     app.add_api_route(_old_path, _legacy_redirect(_new_path), methods=["GET"])
+
+
+def _patient_dict(p: OrgPatient) -> dict:
+    return {
+        "name": p.name, "mrn": p.mrn, "dob": p.dob,
+        "sex": p.sex, "payer": p.payer, "provider": p.provider,
+    }
+
+
+def _claim_dict(c: OrgClaim) -> dict:
+    return {
+        "id": c.claim_id, "patientName": c.patient_name, "mrn": c.mrn,
+        "payer": c.payer, "codes": json.loads(c.codes or "[]"),
+        "note": c.note, "amount": float(c.amount or 0),
+        "status": c.status, "score": c.score,
+        "flags": json.loads(c.flags or "[]"),
+        "appealLetter": c.appeal_letter,
+        "createdAt": c.created_at.isoformat() if c.created_at else "",
+    }
+
+
+# ── Patient CRUD ──────────────────────────────────────────────────────────────
+
+@app.get("/api/patients")
+def api_list_patients(user=Depends(require_user), db: Session = Depends(get_db)):
+    org = _org_namespace(user)
+    rows = db.scalars(sa_select(OrgPatient).where(OrgPatient.org_key == org).order_by(OrgPatient.name)).all()
+    return [_patient_dict(r) for r in rows]
+
+
+@app.post("/api/patients")
+async def api_save_patient(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    body = await request.json()
+    org = _org_namespace(user)
+    mrn = (body.get("mrn") or "").strip()
+    if not mrn:
+        return JSONResponse({"error": "MRN is required"}, status_code=400)
+    row = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == org, OrgPatient.mrn == mrn))
+    if row:
+        row.name     = body.get("name", row.name)
+        row.dob      = body.get("dob", row.dob)
+        row.sex      = body.get("sex", row.sex)
+        row.payer    = body.get("payer", row.payer)
+        row.provider = body.get("provider", row.provider)
+    else:
+        db.add(OrgPatient(
+            org_key=org, mrn=mrn,
+            name=body.get("name", ""), dob=body.get("dob", ""),
+            sex=body.get("sex", ""), payer=body.get("payer", ""),
+            provider=body.get("provider", ""),
+        ))
+    db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/patients/{mrn}")
+def api_delete_patient(mrn: str, user=Depends(require_biller), db: Session = Depends(get_db)):
+    org = _org_namespace(user)
+    row = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == org, OrgPatient.mrn == mrn))
+    if row:
+        db.delete(row)
+        db.commit()
+    return {"ok": True}
+
+
+# ── Claim CRUD ────────────────────────────────────────────────────────────────
+
+@app.get("/api/claims")
+def api_list_claims(user=Depends(require_user), db: Session = Depends(get_db)):
+    org = _org_namespace(user)
+    rows = db.scalars(sa_select(OrgClaim).where(OrgClaim.org_key == org).order_by(OrgClaim.created_at.desc())).all()
+    return [_claim_dict(r) for r in rows]
+
+
+@app.post("/api/claims")
+async def api_save_claim(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    body = await request.json()
+    org = _org_namespace(user)
+    cid = (body.get("id") or body.get("claim_id") or "").strip()
+    if not cid:
+        return JSONResponse({"error": "claim id required"}, status_code=400)
+    row = db.scalar(sa_select(OrgClaim).where(OrgClaim.org_key == org, OrgClaim.claim_id == cid))
+    if row:
+        row.patient_name  = body.get("patientName", row.patient_name)
+        row.mrn           = body.get("mrn", row.mrn)
+        row.payer         = body.get("payer", row.payer)
+        row.codes         = json.dumps(body.get("codes", json.loads(row.codes or "[]")))
+        row.note          = body.get("note", row.note)
+        row.amount        = body.get("amount", row.amount)
+        row.status        = body.get("status", row.status)
+        row.score         = body.get("score", row.score)
+        row.flags         = json.dumps(body.get("flags", json.loads(row.flags or "[]")))
+        row.appeal_letter = body.get("appealLetter", row.appeal_letter)
+    else:
+        created_str = body.get("createdAt", "")
+        try:
+            created = dt.datetime.fromisoformat(created_str.replace("Z", "+00:00")) if created_str else dt.datetime.now(timezone.utc)
+        except Exception:
+            created = dt.datetime.now(timezone.utc)
+        db.add(OrgClaim(
+            org_key=org, claim_id=cid,
+            patient_name=body.get("patientName", ""), mrn=body.get("mrn", ""),
+            payer=body.get("payer", ""), codes=json.dumps(body.get("codes", [])),
+            note=body.get("note", ""), amount=body.get("amount", 0),
+            status=body.get("status", "Draft"), score=body.get("score"),
+            flags=json.dumps(body.get("flags", [])),
+            appeal_letter=body.get("appealLetter", ""), created_at=created,
+        ))
+    db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/claims/{claim_id}")
+def api_delete_claim(claim_id: str, user=Depends(require_biller), db: Session = Depends(get_db)):
+    org = _org_namespace(user)
+    row = db.scalar(sa_select(OrgClaim).where(OrgClaim.org_key == org, OrgClaim.claim_id == claim_id))
+    if row:
+        db.delete(row)
+        db.commit()
+    return {"ok": True}
 
 
 @app.post("/api/code-note")
