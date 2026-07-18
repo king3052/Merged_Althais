@@ -105,6 +105,43 @@ class EmailVerificationToken(Base):
     )
 
 
+class OrgPatient(Base):
+    """Server-side patient records scoped to an org — shared by web + desktop clients."""
+    __tablename__ = "org_patients"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    org_key: Mapped[str] = mapped_column(String(255), index=True)
+    mrn: Mapped[str] = mapped_column(String(64), default="")
+    name: Mapped[str] = mapped_column(String(255), default="")
+    dob: Mapped[str] = mapped_column(String(20), default="")
+    sex: Mapped[str] = mapped_column(String(4), default="")
+    payer: Mapped[str] = mapped_column(String(128), default="")
+    provider: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime, default=lambda: dt.datetime.now(timezone.utc)
+    )
+
+
+class OrgClaim(Base):
+    """Server-side claims scoped to an org — shared by web + desktop clients."""
+    __tablename__ = "org_claims"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    org_key: Mapped[str] = mapped_column(String(255), index=True)
+    claim_id: Mapped[str] = mapped_column(String(64), default="")
+    patient_name: Mapped[str] = mapped_column(String(255), default="")
+    mrn: Mapped[str] = mapped_column(String(64), default="")
+    payer: Mapped[str] = mapped_column(String(128), default="")
+    codes: Mapped[str] = mapped_column(String(8192), default="[]")
+    note: Mapped[str] = mapped_column(String(32768), default="")
+    amount: Mapped[float] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(32), default="Draft")
+    score: Mapped[int] = mapped_column(Integer, nullable=True)
+    flags: Mapped[str] = mapped_column(String(4096), default="[]")
+    appeal_letter: Mapped[str] = mapped_column(String(32768), default="")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime, default=lambda: dt.datetime.now(timezone.utc)
+    )
+
+
 Base.metadata.create_all(engine)
 
 # create_all() only creates tables that don't exist yet — it does NOT add
