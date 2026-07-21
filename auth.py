@@ -105,6 +105,12 @@ class EmailVerificationToken(Base):
     )
 
 
+def _org_namespace(user) -> str:
+    """Return a stable, filesystem-safe org key for scoping DB rows to an org."""
+    safe = re.sub(r'[^a-z0-9]+', '_', (user.organization or 'default').lower()).strip('_')
+    return f"org_{safe or 'default'}"
+
+
 class OrgPatient(Base):
     """Server-side patient records scoped to an org — shared by web + desktop clients."""
     __tablename__ = "org_patients"
