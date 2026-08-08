@@ -2671,7 +2671,44 @@
             <button id="claim-detail-mark-submitted" type="button" class="hidden px-3 py-1.5 rounded-sm bg-ok-600 text-white text-[12px] font-semibold hover:bg-ok-700">Mark as Submitted</button>
             <button id="claim-detail-resume" type="button" class="hidden px-3 py-1.5 rounded-sm border border-med-600 bg-white text-med-600 text-[12px] font-semibold hover:bg-med-50">Continue editing</button>
             <button id="claim-detail-view-cms" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">View CMS-1500</button>
+            <button id="claim-detail-submit" type="button" class="hidden px-3 py-1.5 rounded-sm bg-ok-600 text-white text-[12px] font-semibold hover:bg-ok-700 flex items-center gap-1.5">
+              <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+              Submit Claim
+            </button>
             <button id="claim-detail-open-patient" type="button" class="px-3 py-1.5 rounded-sm bg-med-600 text-white text-[12px] font-semibold hover:bg-med-700">Open patient record</button>
+          </div>
+        </div>
+
+        <!-- EDI transmission animation — lives here rather than inside the
+             SOAP modal so it persists after SOAP closes. Same staged steps
+             as the SOAP overlay, new IDs so there's no conflict. -->
+        <div id="claim-detail-edi-overlay" class="hidden absolute inset-0 z-20 flex items-center justify-center bg-[rgba(15,17,22,0.82)] backdrop-blur-[2px] px-4">
+          <div class="w-full max-w-[400px] bg-white rounded-lg shadow-2xl border border-line overflow-hidden">
+            <div id="claim-detail-edi-loading" class="px-8 py-10 text-center">
+              <div class="flex justify-center mb-6"><div class="edi-spinner" aria-hidden="true"></div></div>
+              <div class="min-h-[72px]">
+                <h4 id="claim-detail-edi-title" class="text-[17px] font-semibold text-ink-900 tracking-tight">Preparing EDI Transaction</h4>
+                <p id="claim-detail-edi-subtitle" class="text-[12.5px] text-ink-500 mt-2 leading-relaxed">Generating ANSI X12 837P format...</p>
+              </div>
+              <div class="mt-8"><div class="h-1.5 bg-shell rounded-full overflow-hidden"><div id="claim-detail-edi-progress" class="h-full bg-ok-600 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+            </div>
+            <div id="claim-detail-edi-success" class="hidden px-8 py-10 text-center">
+              <div class="flex justify-center mb-5">
+                <svg class="h-[72px] w-[72px]" viewBox="0 0 52 52">
+                  <circle class="edi-check-circle" cx="26" cy="26" r="24" fill="none" stroke="#0c8a4f" stroke-width="2.5"/>
+                  <path class="edi-check-path" fill="none" stroke="#0c8a4f" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M14.5 27.5l7.5 7.5 16-17"/>
+                </svg>
+              </div>
+              <h4 class="text-[20px] font-bold text-ink-900 tracking-tight">Claim Transmitted</h4>
+              <p id="claim-detail-edi-claim-id" class="mono text-[15px] font-semibold text-ok-600 mt-2">#CHC-2026-837P-00000</p>
+              <div class="mt-6 text-left bg-shell border border-line rounded-sm px-4 py-3 text-[12px] space-y-2.5">
+                <div class="flex justify-between gap-3"><span class="text-ink-500 shrink-0">Transmitted to</span><span id="claim-detail-edi-payer" class="text-ink-900 font-medium text-right">—</span></div>
+                <div class="flex justify-between gap-3"><span class="text-ink-500 shrink-0">EDI Transaction</span><span class="text-ink-900 font-medium">ANSI X12 837P</span></div>
+                <div class="flex justify-between gap-3"><span class="text-ink-500 shrink-0">Acknowledgment</span><span class="text-ink-900 font-medium">999 Functional ACK Pending</span></div>
+                <div class="flex justify-between gap-3 border-t border-line pt-2.5"><span class="text-ink-500 shrink-0">Status</span><span class="text-ok-700 font-semibold">Submitted — Awaiting Adjudication</span></div>
+              </div>
+              <button id="claim-detail-edi-done" type="button" class="mt-6 w-full px-3 py-2.5 rounded-sm bg-ok-600 text-white text-[12px] font-semibold hover:bg-ok-700">Done</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2690,7 +2727,7 @@
   <div id="cms1500-backdrop" class="hidden fixed inset-0 bg-ink-900/40 z-50"></div>
   <div id="cms1500-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6">
     <div class="relative w-full max-w-[1080px] max-h-[88vh] bg-panel border border-line rounded-sm shadow-xl flex flex-col overflow-hidden">
-      <div id="claim-preview" class="flex flex-col bg-[#f7f4ec]">
+      <div id="claim-preview" class="flex flex-col bg-[#f7f4ec] h-full overflow-hidden">
           <div class="flex items-center justify-between border-b border-line bg-panel px-5 py-3">
             <div class="flex items-center gap-2.5">
               <span class="flex h-7 w-7 items-center justify-center rounded-sm bg-ok-100 text-ok-600">
@@ -6248,12 +6285,18 @@
           claimDetailResume.classList.toggle('hidden', !canResume);
         }
         if (claimDetailMarkSubmitted) {
-          // "Ready to Submit" used to be a dead end — nothing ever acted on
-          // it. Any claim already stuck in that state (from before this fix)
-          // can be resolved here instead of sitting there forever.
           const stuck = String(c.status || '').toLowerCase() === 'ready to submit';
           claimDetailMarkSubmitted.classList.toggle('hidden', !stuck);
         }
+        // Submit button — only visible on Draft claims that haven't been sent yet
+        const submitBtn3 = document.getElementById('claim-detail-submit');
+        if (submitBtn3) {
+          const isDraft = String(c.status || '').toLowerCase() === 'draft';
+          submitBtn3.classList.toggle('hidden', !isDraft);
+        }
+        // Reset EDI overlay state whenever detail opens
+        const ediOv = document.getElementById('claim-detail-edi-overlay');
+        if (ediOv) ediOv.classList.add('hidden');
         claimDetailModal.classList.remove('hidden');
       }
 
@@ -6267,6 +6310,70 @@
       document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && claimDetailModal && !claimDetailModal.classList.contains('hidden')) closeClaimDetail();
       });
+
+      // Submit Claim — plays the EDI animation inside the claim detail
+      // modal, then finalises the claim (Submitted status, activity log).
+      (function wireClaimDetailSubmit() {
+        const submitBtn = document.getElementById('claim-detail-submit');
+        const ediOverlay = document.getElementById('claim-detail-edi-overlay');
+        const ediLoading = document.getElementById('claim-detail-edi-loading');
+        const ediSuccess = document.getElementById('claim-detail-edi-success');
+        const ediTitle = document.getElementById('claim-detail-edi-title');
+        const ediSub = document.getElementById('claim-detail-edi-subtitle');
+        const ediProgress = document.getElementById('claim-detail-edi-progress');
+        const ediClaimId = document.getElementById('claim-detail-edi-claim-id');
+        const ediPayer = document.getElementById('claim-detail-edi-payer');
+        const ediDone = document.getElementById('claim-detail-edi-done');
+        if (!submitBtn) return;
+
+        function setStep(title, sub, pct) {
+          if (ediTitle) ediTitle.textContent = title;
+          if (ediSub) ediSub.textContent = sub;
+          if (ediProgress) ediProgress.style.width = pct + '%';
+        }
+
+        submitBtn.addEventListener('click', () => {
+          const claim = _detailClaim;
+          if (!claim) return;
+          submitBtn.classList.add('hidden');
+          if (ediOverlay) ediOverlay.classList.remove('hidden');
+          if (ediLoading) ediLoading.classList.remove('hidden');
+          if (ediSuccess) ediSuccess.classList.add('hidden');
+          if (ediProgress) ediProgress.style.width = '0%';
+          const payer = (claim.payer || claim.snap?.payer || 'Payer') + ' via Change Healthcare';
+          const steps = [
+            { title:'Preparing EDI Transaction', sub:'Generating ANSI X12 837P format...', pct:25, delay:100 },
+            { title:'Connecting to Clearinghouse', sub:'Establishing secure connection to Change Healthcare...', pct:50, delay:1600 },
+            { title:'Routing to Payer Gateway', sub:'Transmitting — encrypting with TLS 1.3...', pct:75, delay:3100 },
+            { title:'Awaiting Acknowledgment', sub:'Waiting for 999 functional ACK from clearinghouse...', pct:100, delay:4600 }
+          ];
+          const timers = steps.map(s => setTimeout(() => setStep(s.title, s.sub, s.pct), s.delay));
+          setTimeout(() => {
+            timers.forEach(clearTimeout);
+            if (ediLoading) ediLoading.classList.add('hidden');
+            if (ediSuccess) ediSuccess.classList.remove('hidden');
+            const fakeClaimId = 'CHC-2026-837P-' + String(Math.floor(10000 + Math.random() * 90000));
+            if (ediClaimId) ediClaimId.textContent = '#' + fakeClaimId;
+            if (ediPayer) ediPayer.textContent = payer;
+            // Finalise the claim record
+            claim.status = 'Submitted';
+            claim.claimId = claim.claimId || fakeClaimId;
+            if (typeof SAVED_CLAIMS !== 'undefined') {
+              const stored = SAVED_CLAIMS.find(c => c.mrn === claim.mrn && c.claimId === claim.claimId);
+              if (stored) stored.status = 'Submitted';
+              if (typeof saveClaims === 'function') saveClaims();
+            }
+            if (typeof wireClaimsRows === 'function') wireClaimsRows();
+            if (typeof recomputeKPIs === 'function') recomputeKPIs();
+            if (typeof logActivity === 'function') logActivity('ok', 'Claim transmitted · <span class="mono">' + fakeClaimId + '</span>', claim.patient || '');
+          }, 6200);
+        });
+
+        if (ediDone) ediDone.addEventListener('click', () => {
+          if (ediOverlay) ediOverlay.classList.add('hidden');
+          closeClaimDetail();
+        });
+      })();
       if (claimDetailOpenPatient) claimDetailOpenPatient.addEventListener('click', () => {
         const mrn = _detailClaim && _detailClaim.mrn;
         closeClaimDetail();
@@ -11376,17 +11483,55 @@
             structured: soapCollectStructured()
           };
 
-          if (typeof openSoapCmsPreview === 'function') {
-            openSoapCmsPreview(snap, { patient: p, noteFields });
-          } else {
-            // This used to silently skip straight to the transmission
-            // animation if the preview function wasn't available for any
-            // reason — which is exactly the kind of thing that could cause
-            // "why did it skip the preview and go straight to animating"
-            // with zero trace to debug it. Now it fails loudly instead.
-            console.error('openSoapCmsPreview is not defined — cannot show the CMS-1500 preview before submission.');
-            alert('Something went wrong loading the claim preview. Please refresh the page and try again — do not proceed without seeing the claim preview first.');
+          // New flow: skip CMS-1500 preview entirely, save as draft,
+          // close SOAP, open claim detail where Submit triggers the animation.
+          const claimId = 'CL-' + Date.now().toString().slice(-7);
+          const cpt0 = cptAccepted[0], icd0 = icdAccepted[0];
+          snap.claimId = claimId;
+
+          if (typeof NOTES !== 'undefined') {
+            NOTES.unshift({
+              id: 'n' + Date.now(), mrn: p.mrn, date: snap.svcDate, provider,
+              type: noteFields.visitType || 'Office Visit',
+              desc: noteFields.cc || (snap.note || '').slice(0, 200),
+              cpt: cpt0 ? cpt0.code : '', status: 'Signed',
+              structured: noteFields.structured
+            });
+            if (typeof saveNotes === 'function') saveNotes();
           }
+          const claimRecord = {
+            patient: p.name, mrn: p.mrn, claimId,
+            provider, payer: p.insPrimary,
+            cpt: cpt0 ? cpt0.code : '',
+            icd: icd0 ? icd0.code : '',
+            amount: snap.totalAmt, conf: snap.conf,
+            status: 'Draft', ts: new Date().toISOString(),
+            snap: JSON.parse(JSON.stringify(snap))
+          };
+          if (typeof SAVED_CLAIMS !== 'undefined') {
+            SAVED_CLAIMS.unshift(claimRecord);
+            if (typeof saveClaims === 'function') saveClaims();
+          }
+          closeSoap();
+          if (typeof wireClaimsRows === 'function') wireClaimsRows();
+          if (typeof recomputeKPIs === 'function') recomputeKPIs();
+          if (typeof renderNotes === 'function') renderNotes();
+          if (typeof renderPrSummary === 'function') renderPrSummary();
+          setTimeout(() => {
+            const stubTr = document.createElement('tr');
+            stubTr.dataset.mrn = p.mrn;
+            const td0 = document.createElement('td');
+            const td1 = document.createElement('td');
+            const mono = document.createElement('span');
+            mono.className = 'mono';
+            mono.textContent = p.mrn + ' · ' + claimId;
+            td1.appendChild(mono);
+            stubTr.appendChild(td0);
+            stubTr.appendChild(td1);
+            if (typeof openClaimDetail === 'function') openClaimDetail(stubTr);
+            const submitBtn2 = document.getElementById('claim-detail-submit');
+            if (submitBtn2) submitBtn2.classList.remove('hidden');
+          }, 80);
         });
 
         const soapEdiReturnDashboard = document.getElementById('soap-edi-return-dashboard');
