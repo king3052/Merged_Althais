@@ -3336,6 +3336,13 @@
           </div>
 
         </div>
+        <!-- Mirrors the Start/Stop button at the top of this step, so
+             stopping a recording doesn't require scrolling back up while
+             mid-note. Hidden until a recording is actually active. -->
+        <div id="scribe-stop-bottom-wrap" class="hidden flex items-center gap-2 mt-3 mb-1">
+          <button id="scribe-stop-btn-bottom" type="button" class="px-3 py-1.5 rounded-sm bg-risk-600 text-white text-[12px] font-semibold hover:bg-risk-700">■ Stop Recording</button>
+          <span id="scribe-timer-bottom" class="mono text-[12px] text-ink-500">0:00</span>
+        </div>
         <div class="flex justify-between mt-4">
           <button id="soap-step2-back" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] hover:bg-shell">← Back</button>
           <button id="soap-step2-next" class="px-4 py-1.5 rounded-sm bg-med-600 text-white text-[12.5px] font-semibold hover:bg-med-700">Generate AI Codes →</button>
@@ -3948,6 +3955,78 @@
             startBtn.disabled = false;
             stopBtn.disabled  = true;
           });
+        })();
+
+        // ── Encounter recording toggle (consent-gated, visual state only) ──
+        // Deliberately does NOT capture real audio or call any backend —
+        // the actual transcription/summarization endpoints aren't built or
+        // deployed in this app yet (that's a separate, bigger decision).
+        // This just gives honest, working Start/Stop feedback with a live
+        // timer, from either the top control or the mirrored one at the
+        // bottom of this step, so the panel doesn't look broken if clicked.
+        (function wireScribeRecording() {
+          const consent = document.getElementById('scribe-consent');
+          const recordBtn = document.getElementById('scribe-record-btn');
+          const statusEl = document.getElementById('scribe-status');
+          const timerTop = document.getElementById('scribe-timer');
+          const stopBottomWrap = document.getElementById('scribe-stop-bottom-wrap');
+          const stopBtnBottom = document.getElementById('scribe-stop-btn-bottom');
+          const timerBottom = document.getElementById('scribe-timer-bottom');
+          if (!consent || !recordBtn) return;
+
+          let recording = false;
+          let startedAt = null;
+          let tickInterval = null;
+
+          function formatElapsed() {
+            const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+            const m = Math.floor(elapsed / 60);
+            const s = elapsed % 60;
+            return m + ':' + String(s).padStart(2, '0');
+          }
+          function tick() {
+            const t = formatElapsed();
+            if (timerTop) timerTop.textContent = t;
+            if (timerBottom) timerBottom.textContent = t;
+          }
+          function startRecording() {
+            if (recording) return;
+            recording = true;
+            startedAt = Date.now();
+            if (timerTop) { timerTop.textContent = '0:00'; timerTop.classList.remove('hidden'); }
+            if (stopBottomWrap) stopBottomWrap.classList.remove('hidden');
+            if (timerBottom) timerBottom.textContent = '0:00';
+            if (tickInterval) clearInterval(tickInterval);
+            tickInterval = setInterval(tick, 1000);
+            recordBtn.textContent = 'Recording…';
+            recordBtn.classList.add('opacity-70');
+            consent.disabled = true; // don't allow un-consenting mid-recording
+            if (statusEl) statusEl.textContent = 'Recording — click Stop when the visit is complete.';
+          }
+          function stopRecording() {
+            if (!recording) return;
+            const finalElapsed = formatElapsed();
+            recording = false;
+            if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+            if (timerTop) timerTop.classList.add('hidden');
+            if (stopBottomWrap) stopBottomWrap.classList.add('hidden');
+            recordBtn.textContent = 'Start Recording';
+            recordBtn.classList.remove('opacity-70');
+            consent.disabled = false;
+            recordBtn.disabled = !consent.checked;
+            if (statusEl) statusEl.textContent = 'Recording stopped — ' + finalElapsed + ' captured.';
+          }
+
+          consent.addEventListener('change', () => {
+            if (!recording) {
+              recordBtn.disabled = !consent.checked;
+              if (statusEl) statusEl.textContent = consent.checked
+                ? 'Ready to record.'
+                : 'Check the consent box to enable recording';
+            }
+          });
+          recordBtn.addEventListener('click', startRecording);
+          if (stopBtnBottom) stopBtnBottom.addEventListener('click', stopRecording);
         })();
 
         // ── Context awareness ────────────────────────────────────────────
@@ -11300,9 +11379,13 @@
           if (typeof openSoapCmsPreview === 'function') {
             openSoapCmsPreview(snap, { patient: p, noteFields });
           } else {
-            // Fallback if the preview modal isn't available for some reason
-            // — still lets the claim go through rather than silently failing.
-            startSoapEdiTransmission(snap, { patient: p, noteFields });
+            // This used to silently skip straight to the transmission
+            // animation if the preview function wasn't available for any
+            // reason — which is exactly the kind of thing that could cause
+            // "why did it skip the preview and go straight to animating"
+            // with zero trace to debug it. Now it fails loudly instead.
+            console.error('openSoapCmsPreview is not defined — cannot show the CMS-1500 preview before submission.');
+            alert('Something went wrong loading the claim preview. Please refresh the page and try again — do not proceed without seeing the claim preview first.');
           }
         });
 
