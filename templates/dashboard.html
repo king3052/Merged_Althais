@@ -3203,6 +3203,11 @@
               <input id="soap-duration" type="number" min="0" step="1" placeholder="—" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[12.5px] outline-none focus:border-med-600" />
               <span class="text-ink-500 text-[11.5px] whitespace-nowrap">min</span>
             </div>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <button id="soap-timer-start" type="button" class="px-2 py-1 rounded-sm bg-med-600 text-white text-[11px] font-semibold hover:bg-med-700">▶ Start</button>
+              <button id="soap-timer-stop" type="button" disabled class="px-2 py-1 rounded-sm border border-line bg-shell text-ink-700 text-[11px] font-semibold hover:bg-line disabled:opacity-40 disabled:cursor-not-allowed">■ Stop</button>
+              <span id="soap-timer-display" class="mono text-[11.5px] text-med-600 hidden">0:00</span>
+            </div>
           </div>
           <div class="col-span-4 flex items-end gap-4 pb-2">
             <label class="flex items-center gap-1.5 text-[12px] text-ink-700 cursor-pointer select-none">
@@ -3904,6 +3909,45 @@
         (function wireAltheaStop() {
           const btn = document.getElementById('althea-stop-btn');
           if (btn) btn.addEventListener('click', altheaStop);
+        })();
+
+        // ── Visit-timer buttons on SOAP step 1 ──────────────────────────
+        // Delegates to altheaStartTimer/altheaStopTimer so the same elapsed
+        // time is shared with Althea voice commands ("start/stop the timer").
+        (function wireSoapTimer() {
+          let soapTimerInterval = null;
+          function soapUpdateDisplay() {
+            if (!altheaTimerStart) return;
+            const elapsed = Math.floor((Date.now() - altheaTimerStart) / 1000);
+            const m = Math.floor(elapsed / 60);
+            const s = elapsed % 60;
+            const disp = document.getElementById('soap-timer-display');
+            if (disp) disp.textContent = m + ':' + String(s).padStart(2, '0');
+          }
+          const startBtn = document.getElementById('soap-timer-start');
+          const stopBtn  = document.getElementById('soap-timer-stop');
+          if (!startBtn || !stopBtn) return;
+          startBtn.addEventListener('click', function () {
+            altheaStartTimer();
+            const disp = document.getElementById('soap-timer-display');
+            if (disp) { disp.textContent = '0:00'; disp.classList.remove('hidden'); }
+            if (soapTimerInterval) clearInterval(soapTimerInterval);
+            soapTimerInterval = setInterval(soapUpdateDisplay, 1000);
+            startBtn.disabled = true;
+            stopBtn.disabled  = false;
+          });
+          stopBtn.addEventListener('click', function () {
+            const minutes = altheaStopTimer();
+            if (soapTimerInterval) { clearInterval(soapTimerInterval); soapTimerInterval = null; }
+            const disp = document.getElementById('soap-timer-display');
+            if (disp) disp.classList.add('hidden');
+            if (minutes !== null) {
+              const durEl = document.getElementById('soap-duration');
+              if (durEl) durEl.value = minutes;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled  = true;
+          });
         })();
 
         // ── Context awareness ────────────────────────────────────────────
