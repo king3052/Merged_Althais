@@ -3379,6 +3379,16 @@
           <button id="scribe-stop-btn-bottom" type="button" class="px-3 py-1.5 rounded-sm bg-risk-600 text-white text-[12px] font-semibold hover:bg-risk-700">■ Stop Recording</button>
           <span id="scribe-timer-bottom" class="mono text-[12px] text-ink-500">0:00</span>
         </div>
+        <!-- Visit timer stop — mirrors the Start/Stop on step 1 so the
+             doctor doesn't have to scroll back up after filling in the note.
+             Hidden until a timer is actually running. When clicked it fires
+             the exact same stop logic as the step 1 button, which computes
+             elapsed minutes and fills the duration field automatically. -->
+        <div id="soap-timer-stop-bottom-wrap" class="hidden flex items-center gap-2 mt-3 mb-1 p-2 bg-med-50 border border-med-200 rounded-sm">
+          <span class="text-[11.5px] text-med-700 font-semibold">Visit timer running</span>
+          <span id="soap-timer-display-bottom" class="mono text-[12px] text-med-600 font-bold">0:00</span>
+          <button id="soap-timer-stop-bottom" type="button" class="ml-auto px-3 py-1 rounded-sm bg-med-600 text-white text-[11.5px] font-semibold hover:bg-med-700">■ Stop Timer</button>
+        </div>
         <div class="flex justify-between mt-4">
           <button id="soap-step2-back" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] hover:bg-shell">← Back</button>
           <button id="soap-step2-next" class="px-4 py-1.5 rounded-sm bg-med-600 text-white text-[12.5px] font-semibold hover:bg-med-700">Generate AI Codes →</button>
@@ -3964,33 +3974,51 @@
             const elapsed = Math.floor((Date.now() - altheaTimerStart) / 1000);
             const m = Math.floor(elapsed / 60);
             const s = elapsed % 60;
+            const t = m + ':' + String(s).padStart(2, '0');
             const disp = document.getElementById('soap-timer-display');
-            if (disp) disp.textContent = m + ':' + String(s).padStart(2, '0');
+            if (disp) disp.textContent = t;
+            // Keep the bottom display in sync
+            const dispBottom = document.getElementById('soap-timer-display-bottom');
+            if (dispBottom) dispBottom.textContent = t;
           }
           const startBtn = document.getElementById('soap-timer-start');
           const stopBtn  = document.getElementById('soap-timer-stop');
+          const stopBtnBottom = document.getElementById('soap-timer-stop-bottom');
+          const stopBottomWrap = document.getElementById('soap-timer-stop-bottom-wrap');
           if (!startBtn || !stopBtn) return;
-          startBtn.addEventListener('click', function () {
-            altheaStartTimer();
-            const disp = document.getElementById('soap-timer-display');
-            if (disp) { disp.textContent = '0:00'; disp.classList.remove('hidden'); }
-            if (soapTimerInterval) clearInterval(soapTimerInterval);
-            soapTimerInterval = setInterval(soapUpdateDisplay, 1000);
-            startBtn.disabled = true;
-            stopBtn.disabled  = false;
-          });
-          stopBtn.addEventListener('click', function () {
+
+          function doStop() {
             const minutes = altheaStopTimer();
             if (soapTimerInterval) { clearInterval(soapTimerInterval); soapTimerInterval = null; }
             const disp = document.getElementById('soap-timer-display');
             if (disp) disp.classList.add('hidden');
+            if (stopBottomWrap) stopBottomWrap.classList.add('hidden');
             if (minutes !== null) {
               const durEl = document.getElementById('soap-duration');
               if (durEl) durEl.value = minutes;
             }
             startBtn.disabled = false;
             stopBtn.disabled  = true;
+          }
+
+          startBtn.addEventListener('click', function () {
+            altheaStartTimer();
+            const disp = document.getElementById('soap-timer-display');
+            if (disp) { disp.textContent = '0:00'; disp.classList.remove('hidden'); }
+            // Show the bottom stop wrap so it's visible when scrolled down
+            if (stopBottomWrap) {
+              stopBottomWrap.classList.remove('hidden');
+              const dispBottom = document.getElementById('soap-timer-display-bottom');
+              if (dispBottom) dispBottom.textContent = '0:00';
+            }
+            if (soapTimerInterval) clearInterval(soapTimerInterval);
+            soapTimerInterval = setInterval(soapUpdateDisplay, 1000);
+            startBtn.disabled = true;
+            stopBtn.disabled  = false;
           });
+
+          stopBtn.addEventListener('click', doStop);
+          if (stopBtnBottom) stopBtnBottom.addEventListener('click', doStop);
         })();
 
         // ── Encounter recording toggle (consent-gated, visual state only) ──

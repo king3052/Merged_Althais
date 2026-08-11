@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Welcome</title>
+  <style>
+    body { background: #eceef2; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .card { background: #fff; border: 1px solid #dde0e6; border-radius: 6px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 440px; padding: 40px 40px 36px; }
+    .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #0f1116; margin-bottom: 28px; }
+    h1 { font-size: 22px; font-weight: 700; color: #0f1116; margin: 0 0 6px; }
+    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; line-height: 1.5; }
+    label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #2c313b; margin-bottom: 5px; margin-top: 16px; }
+    label:first-of-type { margin-top: 0; }
+    input[type=text] { width: 100%; box-sizing: border-box; border: 1px solid #dde0e6; border-radius: 5px; padding: 9px 12px; font-size: 13px; color: #0f1116; outline: none; transition: border-color .15s; }
+    input[type=text]:focus { border-color: #0d5bd7; }
+    .hint { font-size: 11.5px; color: #9aa0ac; margin-top: 4px; line-height: 1.45; }
+    .role-badge { display: inline-block; background: #e6efff; color: #0a47b0; font-size: 11px; font-weight: 600; border-radius: 4px; padding: 2px 8px; margin-bottom: 18px; }
+    .btn { display: block; width: 100%; margin-top: 24px; padding: 11px; background: #0d5bd7; color: #fff; font-size: 13.5px; font-weight: 700; border: none; border-radius: 5px; cursor: pointer; transition: background .15s; }
+    .btn:hover { background: #0a47b0; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .skip { text-align: center; margin-top: 14px; font-size: 12px; color: #9aa0ac; }
+    .skip a { color: #6b7280; text-decoration: underline; cursor: pointer; }
+    #msg { display: none; margin-top: 14px; padding: 10px 12px; border-radius: 5px; font-size: 12.5px; }
+    #msg.ok { background: #d8f5e3; color: #0c6e40; }
+    #msg.err { background: #ffe1e1; color: #c83838; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Althais</div>
+    <h1>Welcome, {{ user.full_name or "there" }} 👋</h1>
+    <p class="sub">Just a few quick details before you get started — this takes about 30 seconds.</p>
+
+    <div class="role-badge">{{ (user.role or "provider") | capitalize }}</div>
+
+    <div id="msg"></div>
+
+    <label for="full-name">Your full name</label>
+    <input type="text" id="full-name" autocomplete="name" placeholder="Dr. Jane Smith"
+      value="{{ user.full_name or '' }}" />
+
+    <label for="provider-name">Your provider name <span style="color:#9aa0ac;font-weight:400;text-transform:none;font-size:10.5px;">(as it appears on appointments &amp; claims)</span></label>
+    <input type="text" id="provider-name" autocomplete="off" placeholder="Dr. J. Smith" />
+    <div class="hint">This links your login to your schedule and claims so you see only your own data. Leave blank if you're not a billing provider (e.g. admin or office staff).</div>
+
+    <button class="btn" id="save-btn" type="button">Get started →</button>
+    <div class="skip">
+      <a id="skip-link">Skip for now</a>
+    </div>
+  </div>
+
+  <script>
+    const saveBtn = document.getElementById('save-btn');
+    const skipLink = document.getElementById('skip-link');
+    const msg = document.getElementById('msg');
+
+    function showMsg(text, ok) {
+      msg.textContent = text;
+      msg.className = ok ? 'ok' : 'err';
+      msg.style.display = '';
+    }
+
+    async function submit(skip) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+      const body = new URLSearchParams();
+      body.set('full_name', skip ? '' : (document.getElementById('full-name').value || ''));
+      body.set('provider_name', skip ? '' : (document.getElementById('provider-name').value || ''));
+      try {
+        const res = await fetch('/api/me/complete-onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString(),
+          credentials: 'same-origin'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          window.location.href = data.redirect || '/overview';
+        } else {
+          showMsg(data.detail || data.error || 'Something went wrong — please try again.', false);
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Get started →';
+        }
+      } catch (e) {
+        showMsg('Network error — please check your connection and try again.', false);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Get started →';
+      }
+    }
+
+    saveBtn.addEventListener('click', () => submit(false));
+    skipLink.addEventListener('click', () => submit(true));
+  </script>
+</body>
+</html>
