@@ -246,10 +246,32 @@
     #left-sidebar.is-collapsed > *:not(#left-sidebar-toggle) { display: none; }
     #left-sidebar.is-collapsed #left-sidebar-toggle svg { transform: rotate(180deg); }
 
-    #right-sidebar { width: var(--right-sidebar-w, 320px); }
-    #right-sidebar.is-collapsed { width: 40px !important; overflow: hidden; }
+    #right-sidebar { width: var(--right-sidebar-w, 320px); transition: width 0.2s ease; }
+    #right-sidebar.is-collapsed { width: 32px !important; overflow: visible; }
     #right-sidebar.is-collapsed > *:not(#right-sidebar-toggle) { display: none; }
+    #right-sidebar.is-collapsed #right-sidebar-toggle {
+      left: 0; top: 0; width: 32px; height: 100%;
+      border-radius: 0; border-left: 1px solid var(--line, #dde0e6);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 8px; background: var(--shell, #eceef2);
+    }
     #right-sidebar.is-collapsed #right-sidebar-toggle svg { transform: rotate(180deg); }
+    #right-sidebar.is-collapsed #right-sidebar-toggle .sidebar-collapsed-label {
+      display: block;
+    }
+    #right-sidebar-toggle .sidebar-collapsed-label {
+      display: none;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--ink-500, #6b7280);
+      text-transform: uppercase;
+      white-space: nowrap;
+      user-select: none;
+    }
 
     /* Drag-to-resize handle on the right sidebar's left edge */
     .sidebar-resize-handle {
@@ -2003,6 +2025,7 @@
       <div id="right-sidebar-resize-handle" class="sidebar-resize-handle" title="Drag to resize"></div>
       <button id="right-sidebar-toggle" type="button" title="Collapse panel" class="sidebar-toggle-btn" style="left:-16px;">
         <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        <span class="sidebar-collapsed-label">Risk &amp; Payer</span>
       </button>
 
       <!-- Risk Panel (dynamic — driven by computeRisks() for the active patient) -->
