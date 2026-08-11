@@ -72,6 +72,10 @@ class User(Base):
     # Blank for accounts that aren't a specific provider (admins, office
     # managers) — Althea falls back to unfiltered results when this is empty.
     provider_name: Mapped[str] = mapped_column(String(255), default="")
+    # Set to 1 after the user completes the first-login onboarding screen
+    # (sets their display name and provider identity). Used to redirect
+    # invited users through setup before they land in the main app.
+    onboarding_complete: Mapped[int] = mapped_column(Integer, default=0)
     login_count: Mapped[int] = mapped_column(Integer, default=0)
     claims_submitted: Mapped[int] = mapped_column(Integer, default=0)
     last_login: Mapped[dt.datetime] = mapped_column(DateTime, nullable=True, default=None)
@@ -161,6 +165,17 @@ try:
         _conn.commit()
 except Exception:
     pass  # column already exists — this is expected on every run after the first
+
+try:
+    with engine.connect() as _conn:
+        _conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_complete INTEGER DEFAULT 0"))
+        # Existing users who already have a session are considered complete —
+        # only newly invited users (created after this migration) should see
+        # the onboarding screen. Mark everyone currently in the DB as done.
+        _conn.execute(text("UPDATE users SET onboarding_complete = 1"))
+        _conn.commit()
+except Exception:
+    pass  # column already exists
 
 
 def get_db():
@@ -433,6 +448,26 @@ def set_provider_name(
     user.provider_name = (provider_name or "").strip()
     db.commit()
     return JSONResponse({"ok": True, "provider_name": user.provider_name})
+
+
+@router.post("/api/me/complete-onboarding")
+def complete_onboarding(
+    full_name: str = Form(""),
+    provider_name: str = Form(""),
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Called from the first-login onboarding screen. Saves the user's display
+    name and provider identity, then marks onboarding as complete so they
+    land in the main app on all subsequent logins.
+    """
+    if full_name.strip():
+        user.full_name = full_name.strip()
+    user.provider_name = provider_name.strip()
+    user.onboarding_complete = 1
+    db.commit()
+    return JSONResponse({"ok": True, "redirect": "/overview"})
 
 
 @router.post("/api/change-password")

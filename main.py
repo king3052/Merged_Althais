@@ -309,6 +309,16 @@ def _app_user_json(user) -> str:
     })
 
 
+@app.get("/onboarding")
+async def onboarding(request: Request, user=Depends(current_user)):
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    # Already done — skip straight to the app
+    if getattr(user, "onboarding_complete", 1):
+        return RedirectResponse(url="/overview", status_code=302)
+    return templates.TemplateResponse(request, "onboarding.html", {"user": user})
+
+
 @app.get("/emr")
 async def emr(request: Request, user=Depends(current_user)):
     """The full clinical EMR workspace (patient chart SPA) — unchanged, reached from
@@ -345,6 +355,11 @@ def _workspace_route(template_name: str):
             verified = request.query_params.get("verified")
             login_url = "/login" + (f"?verified={verified}" if verified else "")
             return RedirectResponse(url=login_url, status_code=302)
+        # First-login check — invited users who haven't completed onboarding
+        # yet get redirected to the setup screen regardless of which page
+        # they try to reach. Covers all workspace pages in one place.
+        if not getattr(user, "onboarding_complete", 1):
+            return RedirectResponse(url="/onboarding", status_code=302)
         ctx = {
             "user": user,
             "verified": request.query_params.get("verified"),
