@@ -849,12 +849,29 @@ Clinical note: {data.get('note', '')}"""
         if match:
             text = match.group(0)
         result = json.loads(text)
+
+        # Real NCCI PTP edit check — deterministic lookup against the
+        # CMS edit table, replacing any AI-guessed bundling flags with
+        # actual authoritative answers for the pairs we have on file.
+        cpt_codes = [
+            c.get("code", "") for c in data.get("codes", [])
+            if str(c.get("type", "")).upper().strip().startswith("CPT")
+        ]
+        ncci_flags = check_claim_ncci_flags(cpt_codes)
+        if ncci_flags:
+            existing_flags = result.get("flags", [])
+            existing_flags = [
+                f for f in existing_flags
+                if "ncci" not in f.lower() and "bundl" not in f.lower()
+            ]
+            result["flags"] = existing_flags + ncci_flags
+            hard_conflicts = sum(1 for f in ncci_flags if "no modifier" in f.lower())
+            if hard_conflicts:
+                result["score"] = max(0, result.get("score", 80) - (hard_conflicts * 15))
+
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
-
-
-@app.post("/api/appeal-letter")
 async def appeal_letter(request: Request, user=Depends(require_biller)):
     try:
         data = await request.json()
