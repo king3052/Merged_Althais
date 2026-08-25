@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from groq import Groq
 import json
+from ncci_checker import check_claim_ncci_flags
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
