@@ -872,6 +872,9 @@ Clinical note: {data.get('note', '')}"""
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/appeal-letter")
 async def appeal_letter(request: Request, user=Depends(require_biller)):
     try:
         data = await request.json()
