@@ -2202,7 +2202,7 @@
     // Namespaced to the same org prefix used for patient/claim data so panel
     // collapse state doesn't leak between clinics sharing a browser.
     (function () {
-      const ns = (window.__ALTHAIS_NS__ && window.__ALTHAIS_NS__ !== '{{ORG_NS}}')
+      const ns = window.__ALTHAIS_NS__
         ? window.__ALTHAIS_NS__ + '::'
         : 'local::';
 
@@ -5438,7 +5438,7 @@
       // Every localStorage key is prefixed with the logged-in org's namespace so
       // different clinics/users on the same browser never share data.
       // The server injects window.__ALTHAIS_NS__ on every dashboard page load.
-      const _NS = (window.__ALTHAIS_NS__ && window.__ALTHAIS_NS__ !== '{{ORG_NS}}')
+      const _NS = window.__ALTHAIS_NS__
         ? window.__ALTHAIS_NS__ + '::'
         : 'local::';   // fallback for local dev without auth
 

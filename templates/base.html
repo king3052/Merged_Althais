@@ -21,7 +21,7 @@
       fontFamily: { jos: ['"Josefin Sans"', 'sans-serif'], inter: ['Inter', 'sans-serif'], mono: ['"Space Mono"', 'monospace'] }
     } } };
   </script>
-  <link rel="stylesheet" href="/static/css/design-system.css" />
+  <link rel="stylesheet" href="/static/css/design-system.css?v=2" />
   <style>
     /* Segment / category tab scroller — used on Solutions, Resources, and
        anywhere else a horizontally-scrollable row of .seg-tab buttons appears.
@@ -68,7 +68,7 @@
       position: absolute;
       left: 0; right: 0; bottom: -1px;
       height: 2px;
-      background: var(--accent, #5b9dff);
+      background: var(--accent, #ffffff);
       transform: scaleX(0);
       transition: transform 0.2s ease;
     }
@@ -93,15 +93,6 @@
         <span class="nav-logo-text" style="font-size:14px;font-weight:600;letter-spacing:0.32em;color:#fff;text-transform:uppercase;padding-left:0.32em;transition:color 0.35s ease">ALTHAIS</span>
       </a>
 
-      <nav class="nav-links flex items-center" style="gap:34px" aria-label="Primary">
-        <a href="/product" class="nav-link {% if active_page == 'product' %}active{% endif %}">Product</a>
-        <a href="/solutions" class="nav-link {% if active_page == 'solutions' %}active{% endif %}">Solutions</a>
-        <a href="/how-it-works" class="nav-link {% if active_page == 'how-it-works' %}active{% endif %}">How It Works</a>
-        <a href="/pricing" class="nav-link {% if active_page == 'pricing' %}active{% endif %}">Pricing</a>
-        <a href="/resources" class="nav-link {% if active_page == 'resources' %}active{% endif %}">Resources</a>
-        <a href="/about" class="nav-link {% if active_page == 'about' %}active{% endif %}">About</a>
-      </nav>
-
       <div class="flex items-center" style="gap:22px">
         {% if user %}
           <a href="/overview" class="nav-login">Dashboard</a>
@@ -117,12 +108,6 @@
 
   <!-- Mobile menu -->
   <div id="mobile-menu">
-    <a href="/product" class="{% if active_page == 'product' %}active{% endif %}">Product</a>
-    <a href="/solutions" class="{% if active_page == 'solutions' %}active{% endif %}">Solutions</a>
-    <a href="/how-it-works" class="{% if active_page == 'how-it-works' %}active{% endif %}">How It Works</a>
-    <a href="/pricing" class="{% if active_page == 'pricing' %}active{% endif %}">Pricing</a>
-    <a href="/resources" class="{% if active_page == 'resources' %}active{% endif %}">Resources</a>
-    <a href="/about" class="{% if active_page == 'about' %}active{% endif %}">About</a>
     {% if user %}<a href="/overview">Dashboard</a>{% else %}<a href="/login">Log in</a>{% endif %}
   </div>
 
@@ -133,7 +118,7 @@
   <!-- Footer -->
   <footer id="site-footer">
     <div class="footer-inner">
-      <div class="grid gap-10" style="grid-template-columns: 1.4fr repeat(5, 1fr);">
+      <div class="grid gap-10" style="grid-template-columns: 1.4fr repeat(4, 1fr);">
         <div>
           <a href="/" class="flex items-center" style="gap:10px;margin-bottom:16px">
             <svg width="20" height="20" viewBox="0 0 80 80" fill="none" aria-hidden="true">
@@ -149,7 +134,6 @@
         </div>
         <div>
           <h4>Product</h4>
-          <a href="/product" class="footer-link">Overview</a>
           <a href="/how-it-works" class="footer-link">How It Works</a>
           <a href="/pricing" class="footer-link">Pricing</a>
           <a href="/demo" class="footer-link">Live Demo</a>
@@ -160,13 +144,6 @@
           <a href="/solutions#private-practices" class="footer-link">Private Practices</a>
           <a href="/solutions#revenue-cycle-teams" class="footer-link">Revenue Cycle Teams</a>
           <a href="/solutions" class="footer-link">All Solutions</a>
-        </div>
-        <div>
-          <h4>Resources</h4>
-          <a href="/resources" class="footer-link">Blog</a>
-          <a href="/resources#case-studies" class="footer-link">Case Studies</a>
-          <a href="/resources#documentation" class="footer-link">Documentation</a>
-          <a href="/resources#api" class="footer-link">Developer API</a>
         </div>
         <div>
           <h4>Company</h4>
@@ -205,7 +182,7 @@
         </div>
 
         <div id="book-demo-form-wrap">
-          <p style="font-size:11px;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:#5b9dff;margin-bottom:10px">Talk to Althais</p>
+          <p style="font-size:11px;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Talk to Althais</p>
           <h2 id="book-demo-title" style="font-size:20px;font-weight:600;color:#fff;margin-bottom:6px">See Althais in Action</h2>
           <p id="book-demo-sub" style="font-size:13px;color:rgba(255,255,255,0.62);margin-bottom:22px">Fill in your details and we'll be in touch.</p>
 

@@ -42,8 +42,9 @@ def _marketing_ctx(user, active_page: str) -> dict:
 
 
 @app.get("/product")
-async def product_page(request: Request, user=Depends(current_user)):
-    return templates.TemplateResponse(request, "product.html", _marketing_ctx(user, "product"))
+async def product_page():
+    # Product's content moved into How It Works — redirect old links/bookmarks.
+    return RedirectResponse(url="/how-it-works", status_code=302)
 
 
 @app.get("/solutions")

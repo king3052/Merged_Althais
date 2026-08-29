@@ -5,238 +5,244 @@
 
 {% block extra_head %}
 <style>
-  .hiw-story { position: relative; }
-  .hiw-grid { position: relative; z-index: 2; max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; width: 100%; }
-  @media (max-width: 900px) { .hiw-grid { grid-template-columns: 1fr; gap: 36px; } }
-  .hiw-eyebrow { font-family:'Space Mono',monospace; font-size:12.5px; color:#5b9dff; letter-spacing:0.12em; }
-  .hiw-title { font-family:'Josefin Sans',sans-serif; font-weight:600; color:#fff; font-size:clamp(1.7rem,3vw,2.4rem); line-height:1.15; margin-top:12px; }
-  .hiw-desc { color:rgba(255,255,255,0.68); font-size:15px; line-height:1.65; margin-top:16px; max-width:440px; }
-  .hiw-visual { background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:22px; padding:26px; backdrop-filter: blur(20px); box-shadow: 0 30px 70px rgba(0,0,0,0.35); }
-
-  .soap-line { opacity:0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; font-size:13px; line-height:1.9; color:rgba(255,255,255,0.55); font-family:'Inter',monospace; }
-  .hiw-step.in-view .soap-line { opacity:1; transform:none; }
-  .soap-line:nth-child(1){transition-delay:.05s} .soap-line:nth-child(2){transition-delay:.15s}
-  .soap-line:nth-child(3){transition-delay:.25s} .soap-line:nth-child(4){transition-delay:.35s}
-  .soap-line:nth-child(5){transition-delay:.45s} .soap-line:nth-child(6){transition-delay:.55s}
-  .hl-dx { background: rgba(91,157,255,0.22); color:#bcd8ff; border-radius:4px; padding:1px 4px; }
-  .hl-proc { background: rgba(63,217,145,0.22); color:#a9f2cc; border-radius:4px; padding:1px 4px; }
-  .hl-mod { background: rgba(184,134,44,0.28); color:#f0cf8e; border-radius:4px; padding:1px 4px; }
-
-  .code-row { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); margin-bottom:10px; }
-  .conf-bar-track { width:64px; height:5px; border-radius:3px; background:rgba(255,255,255,0.12); overflow:hidden; }
-  .conf-bar-fill { height:100%; width:0%; background:#3fd991; border-radius:3px; transition: width 1s cubic-bezier(.16,1,.3,1) 0.3s; }
-  .hiw-step.in-view .conf-bar-fill { width: var(--fill, 90%); }
-
-  .action-btn { padding:9px 18px; border-radius:999px; font-size:12.5px; font-weight:700; letter-spacing:0.04em; border:1px solid rgba(255,255,255,0.18); color:#fff; background:rgba(255,255,255,0.05); }
-  .action-btn.accept { background:#3fd991; color:#062; border-color:transparent; }
-
-  .chip { opacity:0; transform: translateY(14px); transition: opacity .5s ease, transform .5s ease; }
-  .hiw-step.in-view .chip { opacity:1; transform:none; }
-  .chip:nth-child(1){transition-delay:.05s}.chip:nth-child(2){transition-delay:.15s}.chip:nth-child(3){transition-delay:.25s}.chip:nth-child(4){transition-delay:.35s}
-
-  .rule-check { display:flex; align-items:center; gap:10px; padding:9px 0; opacity:0; transform:translateX(-8px); transition:opacity .4s ease, transform .4s ease; }
-  .hiw-step.in-view .rule-check { opacity:1; transform:none; }
-  .rule-check:nth-child(1){transition-delay:.1s}.rule-check:nth-child(2){transition-delay:.3s}.rule-check:nth-child(3){transition-delay:.5s}.rule-check:nth-child(4){transition-delay:.7s}
-
-  .track-fill { height:100%; width:0%; background:linear-gradient(90deg,#5b9dff,#3fd991); border-radius:999px; transition: width 1.6s cubic-bezier(.16,1,.3,1) 0.2s; }
-  .hiw-step.in-view .track-fill { width: 100%; }
-
-  .plane-path { stroke-dasharray: 240; stroke-dashoffset: 240; transition: stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1) 0.2s; }
-  .hiw-step.in-view .plane-path { stroke-dashoffset: 0; }
+  /* Page-scoped: match clinicalhours.org's black/white/gray palette here
+     without touching the shared navy design system used on other pages. */
+  body.app-body { background: #000 !important; }
+  #site-nav.scrolled { background: rgba(0,0,0,0.9) !important; }
+  #site-footer { background: #000 !important; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-{% include "_cinematic_bg.html" %}
+<div class="cinematic-page" style="background:#000">
 
-<div class="cinematic-page">
+<!-- Real-product workflow slideshow (moved here from the homepage) -->
+<section id="workflow" style="padding:100px 24px">
+  <div style="max-width:1440px;margin:0 auto" id="wf-carousel">
+    <div id="wf-stage">
+      <button type="button" id="wf-prev" class="wf-arrow wf-arrow-outer" aria-label="Previous step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
 
-<section class="page-hero" style="padding-bottom:70px">
-  <div class="page-hero-inner">
-    <span class="eyebrow fade-in fade-in-1">How It Works</span>
-    <h1 class="hero-mono fade-in fade-in-2" style="margin-top:18px">One Encounter,<br />Start to Finish</h1>
-    <p class="hero-sub fade-in fade-in-3">Scroll through exactly what happens between a doctor finishing a note and Althais posting the payment.</p>
+      <div class="wf-browser wf-side wf-side-left" id="wf-window-prev" aria-hidden="true">
+        <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+        <div class="wf-img-frame"><img id="wf-img-prev" src="" alt="" /></div>
+      </div>
+
+      <div class="wf-browser wf-center" id="wf-window-center" title="Click to see what happens in this step">
+        <div class="wf-flip-inner" id="wf-flip-inner">
+          <div class="wf-face wf-face-front">
+            <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+            <div class="wf-img-frame"><img id="wf-img" src="" alt="" /></div>
+            <div class="wf-flip-hint">Click to see what this step does</div>
+          </div>
+          <div class="wf-face wf-face-back">
+            <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+            <div class="wf-back-content">
+              <svg id="wf-icon-back" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path id="wf-icon-back-path" d=""/></svg>
+              <div id="wf-back-num" style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.2em;color:rgba(255,255,255,0.5);margin-top:18px"></div>
+              <h3 id="wf-back-title" style="font-family:'Inter',sans-serif;font-weight:600;color:#fff;font-size:clamp(1.4rem,2.6vw,2rem);margin-top:10px"></h3>
+              <p id="wf-back-sub" style="font-family:'Inter',sans-serif;color:rgba(255,255,255,0.68);font-size:16px;line-height:1.65;max-width:480px;margin:18px auto 0"></p>
+              <div class="wf-flip-hint">Click to see the screenshot</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-browser wf-side wf-side-right" id="wf-window-next" aria-hidden="true">
+        <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+        <div class="wf-img-frame"><img id="wf-img-next" src="" alt="" /></div>
+      </div>
+
+      <button type="button" id="wf-next" class="wf-arrow wf-arrow-outer" aria-label="Next step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <div id="wf-dots" style="display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:28px"></div>
+  </div>
+
+  {% set steps = [
+    ("01", "Provider Note", "Clinical documentation is captured as-is — SOAP notes, dictation, or EHR text.", "M4 3h10l4 4v14H4V3z M14 3v4h4 M8 11h8 M8 15h8", "provider-note", "The Virtual SOAP note entry screen in Althais, showing chief complaint, HPI, vitals, and assessment/plan fields"),
+    ("02", "AI Generates the Codes", "Diagnoses and procedures are extracted directly from the note, producing ICD-10 and CPT codes with full specificity, correct modifiers, and a confidence score per code.", "M12 2a7 7 0 0 1 7 7c0 3-2 4.5-2 7h-10c0-2.5-2-4-2-7a7 7 0 0 1 7-7z M9 20h6", "ai-coding", "AI-suggested ICD-10 and CPT codes generated from the clinical note, with confidence scores"),
+    ("03", "Provider Review", "The rendering provider accepts, edits, or rejects each suggested code.", "M9 12l2 2 4-4 M21 12a9 9 0 1 1-9-9", "provider-review", "Provider accepting AI-suggested codes in Althais, shown with a green accepted state"),
+    ("04", "Claim Assembly", "Approved codes, modifiers, and encounter data are assembled into a claim.", "M4 7h16M4 12h16M4 17h10", "claim-assembly", "A CMS-1500 health insurance claim form assembled automatically from the approved codes"),
+    ("05", "Payer Intelligence", "The claim is checked against payer-specific rules before it ever leaves the building.", "M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z", "payer-intelligence", "Payer Intelligence dashboard showing tracked payers, approval rates, and payer-specific billing rules"),
+    ("06", "Submission", "The clean claim is transmitted through your clearinghouse of choice.", "M22 2 11 13 M22 2l-7 20-4-9-9-4 20-7z", "submission", "Claim transmission confirmation showing the EDI transaction details and submission status"),
+    ("07", "Claim Tracking", "Status updates flow back in real time — accepted, pending, denied.", "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5", "claim-tracking", "Claims Overview table showing multiple claims with live status — paid, submitted, denied, pending review"),
+    ("08", "Payment", "Remittance is reconciled and posted, closing the loop back to analytics.", "M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6", "payment", "Claims filtered to Paid status, showing posted payment amounts per claim"),
+  ] %}
+  <div id="wf-steps-data" hidden>
+    {% for num, title, sub, path, img, alt in steps %}
+    <div class="wf-step-data" data-num="{{ num }}" data-title="{{ title }}" data-sub="{{ sub }}" data-icon="{{ path }}" data-img="/static/screenshots/{{ img }}.png" data-alt="{{ alt }}"></div>
+    {% endfor %}
   </div>
 </section>
 
-<div class="hiw-story">
-  <div class="hiw-progress-rail" aria-hidden="true">
-    {% for i in range(9) %}<div class="hiw-progress-dot {% if loop.first %}active{% endif %}"></div>{% endfor %}
-  </div>
+<style>
+  .wf-arrow {
+    flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .wf-arrow:hover { background: rgba(255,255,255,0.18); }
+  .wf-arrow:active { transform: scale(0.92); }
+  .wf-dot {
+    min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.55); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .wf-dot:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+  .wf-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
 
-  <!-- Step 1 -->
-  <section class="hiw-step" data-step-index="0">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 01 / 09</div>
-        <div class="hiw-eyebrow">Documentation</div>
-        <h2 class="hiw-title">The doctor writes a note. That's it.</h2>
-        <p class="hiw-desc">No coding cheat sheets, no structured templates to fight. Althais works with documentation exactly as it's written.</p>
-      </div>
-      <div class="hiw-visual">
-        <div class="soap-line" style="color:#5b9dff;font-weight:700">S — Subjective</div>
-        <div class="soap-line">58F presents with substernal chest pressure x2 hrs, radiating to left arm. Diaphoretic, mild SOB.</div>
-        <div class="soap-line" style="color:#5b9dff;font-weight:700;margin-top:8px">O — Objective</div>
-        <div class="soap-line">BP 152/94, HR 108, EKG shows ST elevation in leads II, III, aVF. Troponin elevated at 2.4.</div>
-        <div class="soap-line" style="color:#5b9dff;font-weight:700;margin-top:8px">A / P — Assessment / Plan</div>
-        <div class="soap-line">Acute inferior STEMI. Emergent cardiology consult, cath lab activated. High-complexity ED visit.</div>
-      </div>
-    </div>
-  </section>
+  /* ── Coverflow browser-window stage ─────────────────────────────── */
+  #wf-stage { position: relative; height: 800px; display: flex; align-items: center; justify-content: center; }
+  .wf-arrow-outer { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; }
+  .wf-arrow-outer#wf-prev { left: 0; }
+  .wf-arrow-outer#wf-next { right: 0; }
 
-  <!-- Step 2 -->
-  <section class="hiw-step" data-step-index="1">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 02 / 09</div>
-        <div class="hiw-eyebrow">AI Analysis</div>
-        <h2 class="hiw-title">AI reads the note like a coder would</h2>
-        <p class="hiw-desc">Diagnoses, procedures, and modifiers are identified directly from clinical language — not keyword matching.</p>
-        <div style="display:flex;gap:14px;margin-top:20px;flex-wrap:wrap">
-          <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.6)"><span class="hl-dx" style="padding:2px 8px">&nbsp;</span> Diagnosis</span>
-          <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.6)"><span class="hl-proc" style="padding:2px 8px">&nbsp;</span> Procedure</span>
-          <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.6)"><span class="hl-mod" style="padding:2px 8px">&nbsp;</span> Modifier</span>
-        </div>
-      </div>
-      <div class="hiw-visual">
-        <div class="soap-line">BP 152/94, HR 108, EKG shows <span class="hl-dx">ST elevation in leads II, III, aVF</span>. Troponin elevated at 2.4.</div>
-        <div class="soap-line" style="margin-top:10px"><span class="hl-dx">Acute inferior STEMI</span>. Emergent <span class="hl-proc">cardiology consult</span>, <span class="hl-proc">cath lab activated</span>.</div>
-        <div class="soap-line" style="margin-top:10px"><span class="hl-mod">High-complexity</span> ED visit, <span class="hl-mod">critical care time</span> 45 minutes documented separately.</div>
-      </div>
-    </div>
-  </section>
+  .wf-browser {
+    position: absolute; top: 50%; left: 50%; width: min(90vw, 1180px);
+    background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.5); overflow: hidden;
+    transition: transform 0.45s cubic-bezier(.16,1,.3,1), opacity 0.45s ease, filter 0.45s ease;
+  }
+  .wf-center { transform: translate(-50%,-50%) scale(1); z-index: 3; opacity: 1; cursor: pointer; perspective: 1600px; }
+  .wf-side { z-index: 1; opacity: 0.4; filter: blur(0.5px) brightness(0.65); cursor: pointer; }
+  .wf-side:hover { opacity: 0.65; filter: blur(0px) brightness(0.8); }
+  .wf-side-left { transform: translate(-95%,-50%) scale(0.82); }
+  .wf-side-right { transform: translate(-5%,-50%) scale(0.82); }
 
-  <!-- Step 3 -->
-  <section class="hiw-step" data-step-index="2">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 03 / 09</div>
-        <div class="hiw-eyebrow">Code Generation</div>
-        <h2 class="hiw-title">Validated ICD-10 and CPT codes, with confidence</h2>
-        <p class="hiw-desc">Every code ships with a confidence score, so the provider knows exactly where to focus their review.</p>
-      </div>
-      <div class="hiw-visual">
-        <div class="code-row"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">I21.19</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">STEMI involving other coronary artery of inferior wall</div></div><div style="display:flex;align-items:center;gap:8px"><div class="conf-bar-track"><div class="conf-bar-fill" style="--fill:97%"></div></div><span style="font-size:11.5px;color:#3fd991;font-weight:700">97%</span></div></div>
-        <div class="code-row"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">99285-25</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">High-complexity ED visit, significant separate service</div></div><div style="display:flex;align-items:center;gap:8px"><div class="conf-bar-track"><div class="conf-bar-fill" style="--fill:91%"></div></div><span style="font-size:11.5px;color:#3fd991;font-weight:700">91%</span></div></div>
-        <div class="code-row"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">99291</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">Critical care, first 30–74 minutes</div></div><div style="display:flex;align-items:center;gap:8px"><div class="conf-bar-track"><div class="conf-bar-fill" style="--fill:84%"></div></div><span style="font-size:11.5px;color:#f0cf8e;font-weight:700">84%</span></div></div>
-      </div>
-    </div>
-  </section>
+  /* ── Flash-card flip (center window only) ──────────────────────── */
+  .wf-flip-inner { position: relative; width: 100%; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(.16,1,.3,1); }
+  .wf-center.flipped .wf-flip-inner { transform: rotateY(180deg); }
+  .wf-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; width: 100%; }
+  .wf-face-front { position: relative; }
+  .wf-face-back {
+    position: absolute; inset: 0; transform: rotateY(180deg);
+    background: #0a0a0a; display: flex; flex-direction: column;
+  }
+  .wf-back-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; text-align: center; }
+  .wf-flip-hint {
+    font-family: 'Inter', sans-serif; font-size: 11px; color: rgba(255,255,255,0.65);
+    letter-spacing: 0.04em;
+  }
+  .wf-face-front .wf-flip-hint {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.55); padding: 6px 14px; border-radius: 999px; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s ease; color: rgba(255,255,255,0.85);
+  }
+  .wf-center:hover .wf-face-front .wf-flip-hint { opacity: 1; }
+  .wf-face-back .wf-flip-hint { margin-top: 24px; }
 
-  <!-- Step 4 -->
-  <section class="hiw-step" data-step-index="3">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 04 / 09</div>
-        <div class="hiw-eyebrow">Provider Review</div>
-        <h2 class="hiw-title">The provider stays the final word</h2>
-        <p class="hiw-desc">Accept in one click, edit a code inline, or reject it entirely. Nothing bills without a human decision.</p>
-      </div>
-      <div class="hiw-visual">
-        <div class="code-row" style="margin-bottom:18px"><div><div style="font-family:monospace;font-weight:700;font-size:13px;color:#fff">99291</div><div style="font-size:11.5px;color:rgba(255,255,255,0.5)">Critical care, first 30–74 minutes</div></div><span class="confidence-badge" style="background:rgba(184,134,44,0.18);color:#f0cf8e;border-color:rgba(240,207,142,0.3)">84%</span></div>
-        <div style="display:flex;gap:10px">
-          <span class="action-btn accept">✓ Accept</span>
-          <span class="action-btn">Edit</span>
-          <span class="action-btn">Reject</span>
-        </div>
-      </div>
-    </div>
-  </section>
+  .wf-chrome {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    padding: 10px 14px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08); gap: 6px;
+  }
+  .wf-chrome-dot { width: 10px; height: 10px; border-radius: 50%; justify-self: start; }
+  .wf-chrome-dot + .wf-chrome-dot { margin-left: 6px; }
+  .wf-url {
+    grid-column: 2; font-family: 'Inter', sans-serif; font-size: 11.5px; color: rgba(255,255,255,0.55);
+    background: rgba(255,255,255,0.06); border-radius: 999px; padding: 4px 16px; white-space: nowrap;
+  }
+  /* Fixed image area (same size on every step) so the window never resizes
+     or re-centers when a taller/shorter screenshot swaps in — cover + top
+     crops like a real browser viewport instead of letterboxing white bars. */
+  .wf-img-frame { height: 700px; background: #fff; overflow: hidden; }
+  .wf-browser img { width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
 
-  <!-- Step 5 -->
-  <section class="hiw-step" data-step-index="4">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 05 / 09</div>
-        <div class="hiw-eyebrow">Claim Assembly</div>
-        <h2 class="hiw-title">The claim assembles itself</h2>
-        <p class="hiw-desc">Approved codes, patient data, and encounter details merge into one payer-ready claim automatically.</p>
-      </div>
-      <div class="hiw-visual" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start">
-        <span class="chip" style="background:rgba(91,157,255,0.15);color:#bcd8ff;padding:8px 14px;border-radius:10px;font-size:12.5px;font-family:monospace">I21.19</span>
-        <span class="chip" style="background:rgba(63,217,145,0.15);color:#a9f2cc;padding:8px 14px;border-radius:10px;font-size:12.5px;font-family:monospace">99285-25</span>
-        <span class="chip" style="background:rgba(184,134,44,0.15);color:#f0cf8e;padding:8px 14px;border-radius:10px;font-size:12.5px;font-family:monospace">99291</span>
-        <span class="chip" style="background:rgba(255,255,255,0.1);color:#fff;padding:8px 14px;border-radius:10px;font-size:12.5px">Anthem BCBS · Claim #A-88214</span>
-        <div class="chip" style="width:100%;margin-top:12px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;font-size:13px;color:#fff"><span>Status</span><span style="color:#3fd991;font-weight:700">Ready to submit</span></div>
-      </div>
-    </div>
-  </section>
+  @media (max-width: 860px) {
+    #wf-stage { height: auto; }
+    .wf-side { display: none; }
+    .wf-browser { position: static; transform: none !important; width: 100%; opacity: 1; filter: none; }
+    .wf-img-frame { height: 380px; }
+    .wf-arrow-outer { position: absolute; top: 50%; }
+  }
+</style>
 
-  <!-- Step 6 -->
-  <section class="hiw-step" data-step-index="5">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 06 / 09</div>
-        <div class="hiw-eyebrow">Payer Intelligence</div>
-        <h2 class="hiw-title">Payer rules checked before submission</h2>
-        <p class="hiw-desc">The claim runs against Anthem BCBS's own edit history — bundling, medical necessity, modifier logic — before it ever leaves.</p>
-      </div>
-      <div class="hiw-visual">
-        {% for label in ["NCCI bundling edits", "Medical necessity (LCD/NCD)", "Modifier appropriateness", "Prior authorization requirement"] %}
-        <div class="rule-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3fd991" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg><span style="font-size:13.5px;color:rgba(255,255,255,0.8)">{{ label }} — clear</span></div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
+<script>
+(function () {
+  var steps = Array.prototype.map.call(document.querySelectorAll('#wf-steps-data .wf-step-data'), function (el) {
+    return {
+      num: el.getAttribute('data-num'),
+      title: el.getAttribute('data-title'),
+      sub: el.getAttribute('data-sub'),
+      icon: el.getAttribute('data-icon'),
+      img: el.getAttribute('data-img'),
+      alt: el.getAttribute('data-alt'),
+    };
+  });
+  if (!steps.length) return;
 
-  <!-- Step 7 -->
-  <section class="hiw-step" data-step-index="6">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 07 / 09</div>
-        <div class="hiw-eyebrow">Submission</div>
-        <h2 class="hiw-title">Submitted through your clearinghouse</h2>
-        <p class="hiw-desc">No new vendor, no new login. The clean claim goes out through the rails you already use.</p>
-      </div>
-      <div class="hiw-visual" style="text-align:center;padding:44px 26px">
-        <svg width="220" height="70" viewBox="0 0 220 70" fill="none">
-          <path class="plane-path" d="M10 55 Q 90 10 210 15" stroke="#5b9dff" stroke-width="2" stroke-linecap="round" fill="none"/>
-          <circle cx="210" cy="15" r="4" fill="#3fd991"/>
-        </svg>
-        <div style="margin-top:14px;font-size:13.5px;color:rgba(255,255,255,0.7)">Claim #A-88214 transmitted to <strong style="color:#fff">Anthem BCBS</strong></div>
-      </div>
-    </div>
-  </section>
+  var imgEl = document.getElementById('wf-img');
+  var imgPrevEl = document.getElementById('wf-img-prev');
+  var imgNextEl = document.getElementById('wf-img-next');
+  var windowCenterEl = document.getElementById('wf-window-center');
+  var windowPrevEl = document.getElementById('wf-window-prev');
+  var windowNextEl = document.getElementById('wf-window-next');
+  var backNumEl = document.getElementById('wf-back-num');
+  var backTitleEl = document.getElementById('wf-back-title');
+  var backSubEl = document.getElementById('wf-back-sub');
+  var backIconEl = document.getElementById('wf-icon-back-path');
+  var dotsEl = document.getElementById('wf-dots');
+  var prevBtn = document.getElementById('wf-prev');
+  var nextBtn = document.getElementById('wf-next');
 
-  <!-- Step 8 -->
-  <section class="hiw-step" data-step-index="7">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 08 / 09</div>
-        <div class="hiw-eyebrow">Claim Tracking</div>
-        <h2 class="hiw-title">Real-time payment tracking</h2>
-        <p class="hiw-desc">Status flows back automatically — no logging into a payer portal to find out what happened.</p>
-      </div>
-      <div class="hiw-visual">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px"><span>Submitted</span><span>Accepted</span><span>Adjudicated</span><span>Paid</span></div>
-        <div style="height:6px;border-radius:999px;background:rgba(255,255,255,0.1);overflow:hidden"><div class="track-fill"></div></div>
-        <div style="margin-top:18px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:rgba(255,255,255,0.7)">Paid amount</span><span style="font-family:monospace;font-weight:700;color:#3fd991;font-size:16px">$1,842.00</span></div>
-      </div>
-    </div>
-  </section>
+  dotsEl.innerHTML = steps.map(function (s, i) {
+    return '<button type="button" class="wf-dot" data-index="' + i + '">' + s.num + '</button>';
+  }).join('');
+  var dots = dotsEl.querySelectorAll('.wf-dot');
 
-  <!-- Step 9 -->
-  <section class="hiw-step" data-step-index="8">
-    <div class="hiw-grid">
-      <div>
-        <div class="hiw-step-num">STEP 09 / 09</div>
-        <div class="hiw-eyebrow">Analytics</div>
-        <h2 class="hiw-title">Every encounter feeds the bigger picture</h2>
-        <p class="hiw-desc">Clean claim rate, denial rate, and days in A/R update the moment this claim posts.</p>
-        <a href="#" class="btn-primary" style="margin-top:24px" data-open-demo-modal data-modal-title="See Althais in Action" data-modal-sub="Fill in your details and we'll be in touch.">Schedule a Demo</a>
-      </div>
-      <div class="hiw-visual">
-        <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:20px">
-          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="97.4" data-countup-decimals="1" data-countup-suffix="%">0%</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Clean claim rate</div></div>
-          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="4.1" data-countup-decimals="1" data-countup-suffix="%">0%</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Denial rate</div></div>
-          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="18">0</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Days in A/R</div></div>
-          <div><div class="stat-number" style="color:#fff;font-size:1.8rem" data-countup="2481" data-countup-prefix="$">0</div><div class="stat-label" style="color:rgba(255,255,255,0.55)">Avg. revenue / provider / day</div></div>
-        </div>
-      </div>
-    </div>
-  </section>
-</div>
+  var current = 0;
+  function render(index, opts) {
+    opts = opts || {};
+    current = (index + steps.length) % steps.length;
+    var s = steps[current];
+    var prevStep = steps[(current - 1 + steps.length) % steps.length];
+    var nextStep = steps[(current + 1) % steps.length];
+
+    dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
+
+    // Navigating to a different step always shows its screenshot first.
+    windowCenterEl.classList.remove('flipped');
+    backNumEl.textContent = 'STEP ' + s.num + ' / ' + steps.length;
+    backTitleEl.textContent = s.title;
+    backSubEl.textContent = s.sub;
+    backIconEl.setAttribute('d', s.icon);
+
+    imgPrevEl.src = prevStep.img;
+    imgPrevEl.alt = prevStep.alt;
+    imgNextEl.src = nextStep.img;
+    imgNextEl.alt = nextStep.alt;
+
+    if (opts.instant) {
+      imgEl.src = s.img;
+      imgEl.alt = s.alt;
+    } else {
+      imgEl.style.opacity = '0';
+      setTimeout(function () {
+        imgEl.src = s.img;
+        imgEl.alt = s.alt;
+        imgEl.style.opacity = '1';
+      }, 140);
+    }
+  }
+
+  prevBtn.addEventListener('click', function () { render(current - 1); });
+  nextBtn.addEventListener('click', function () { render(current + 1); });
+  windowPrevEl.addEventListener('click', function () { render(current - 1); });
+  windowNextEl.addEventListener('click', function () { render(current + 1); });
+  windowCenterEl.addEventListener('click', function () { windowCenterEl.classList.toggle('flipped'); });
+  dots.forEach(function (d) {
+    d.addEventListener('click', function () { render(parseInt(d.getAttribute('data-index'), 10)); });
+  });
+
+  render(0, { instant: true });
+})();
+</script>
 
 </div>
 

@@ -271,20 +271,4 @@
     });
   }
 
-  /* ── How-It-Works scroll story: active step + progress rail ──────── */
-  var hiwSteps = document.querySelectorAll('.hiw-step');
-  if (hiwSteps.length) {
-    var dots = document.querySelectorAll('.hiw-progress-dot');
-    var hiwIo = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        var idx = parseInt(entry.target.getAttribute('data-step-index'), 10);
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in-view');
-          dots.forEach(function (d, i) { d.classList.toggle('active', i === idx); });
-        }
-      });
-    }, { threshold: 0.45 });
-    hiwSteps.forEach(function (s) { hiwIo.observe(s); });
-  }
-
 }());
