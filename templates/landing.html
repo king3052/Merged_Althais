@@ -196,16 +196,9 @@
     #showcase {
       position: sticky; top: 0; z-index: 1; min-height: 100svh; padding: 90px 24px 40px; overflow: hidden;
       display: flex; align-items: center; justify-content: center;
+      transform: translateZ(0); will-change: transform;
     }
     .showcase-inner { position: relative; z-index: 2; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
-    .showcase-nav { position: absolute; top: -74px; right: 24px; display: flex; gap: 10px; z-index: 5; }
-    .ps-arrow {
-      width: 42px; height: 42px; border-radius: 8px;
-      background: transparent; border: 1px solid rgba(255,255,255,0.28);
-      color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: background 0.2s ease, border-color 0.2s ease;
-    }
-    .ps-arrow:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
 
     .showcase-text { max-width: 640px; margin: 0 auto 28px; text-align: center; }
     .ps-progress { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
@@ -266,70 +259,85 @@
     .ps-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
 
     /* ══════════════════════════════════════════════════════════════
-       How It Works — vertical zigzag timeline (next sticky slide)
+       About Us — next sticky slide
        ══════════════════════════════════════════════════════════════ */
-    #hiw-timeline {
-      position: sticky; top: 0; z-index: 2; padding: 130px 56px;
+    #about-us {
+      position: sticky; top: 0; z-index: 2; min-height: 100svh; padding: 130px 24px; text-align: center;
+      display: flex; flex-direction: column; justify-content: center;
       background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
+      transform: translateZ(0); will-change: transform;
     }
-    #hiw-timeline::before {
+    #about-us::before {
       content: ''; position: absolute; inset: 0; z-index: 0;
       background: rgba(0,0,0,0.68); pointer-events: none;
     }
-    #hiw-timeline > * { position: relative; z-index: 1; }
-    .tl-header { max-width: 640px; margin: 0 auto 90px; text-align: center; }
-    .tl-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-    .tl-heading {
-      font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
-      text-transform: uppercase; line-height: 1.12; font-size: clamp(2rem, 3.6vw, 3rem); margin-top: 18px;
+    #about-us > * { position: relative; z-index: 1; }
+    .au-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+    .au-heading {
+      font-family: 'Inter', sans-serif; font-weight: 200; color: #fff; letter-spacing: -0.01em;
+      font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.28; margin: 18px auto 0; max-width: 720px;
     }
-
-    .tl-rail { position: relative; max-width: 900px; margin: 0 auto; }
-    .tl-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.14); transform: translateX(-50%); }
-    .tl-node { position: relative; display: grid; grid-template-columns: 1fr 60px 1fr; align-items: center; margin-bottom: 60px; }
-    .tl-node:last-child { margin-bottom: 0; }
-    .tl-dot {
-      grid-column: 2; justify-self: center; width: 52px; height: 52px; border-radius: 50%;
-      background: #000000; border: 1px solid rgba(255,255,255,0.3);
-      display: flex; align-items: center; justify-content: center; z-index: 2;
+    .au-founders { display: flex; justify-content: center; gap: 64px; margin-top: 56px; flex-wrap: wrap; }
+    .au-founder { text-align: center; }
+    .au-avatar {
+      width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; color: rgba(255,255,255,0.65);
     }
-    .tl-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 26px 28px; max-width: 360px; }
-    .tl-card h3 { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; font-size: 20px; }
-    .tl-card p { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.65; margin-top: 10px; }
-    .tl-node-left { grid-column: 1; grid-row: auto; }
-    .tl-node-right .tl-card { grid-column: 3; justify-self: end; }
-    .tl-node-left .tl-card { grid-column: 1; justify-self: end; }
-    .tl-node-right .tl-card { justify-self: start; }
-
-    @media (max-width: 760px) {
-      .tl-line { left: 26px; }
-      .tl-node { grid-template-columns: 52px 1fr; }
-      .tl-dot { grid-column: 1; justify-self: start; }
-      .tl-node-left .tl-card, .tl-node-right .tl-card { grid-column: 2; justify-self: start; max-width: none; }
+    .au-name { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; font-size: 16px; }
+    .au-role {
+      font-family: 'Inter', sans-serif; font-weight: 500; color: rgba(255,255,255,0.5);
+      font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
     }
+    .au-link {
+      display: inline-block; margin-top: 52px;
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #fff; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 4px; transition: border-color 0.2s ease;
+    }
+    .au-link:hover { border-color: #fff; }
 
     /* ══════════════════════════════════════════════════════════════
-       Closing CTA — final sticky slide (Contact Us / Ready to start)
+       Closing CTA — final sticky slide (the Contact Us page, in place)
        ══════════════════════════════════════════════════════════════ */
     #closing-cta {
-      position: sticky; top: 0; z-index: 3; padding: 170px 24px; text-align: center;
+      position: sticky; top: 0; z-index: 3; min-height: 100svh; padding: 90px 24px; text-align: center;
+      display: flex; align-items: center; justify-content: center;
       background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
+      transform: translateZ(0); will-change: transform;
     }
     #closing-cta::before {
       content: ''; position: absolute; inset: 0; z-index: 0;
       background: rgba(0,0,0,0.68); pointer-events: none;
     }
     #closing-cta > * { position: relative; z-index: 1; }
+    .cc-inner { max-width: 640px; margin: 0 auto; }
+    .cc-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
     .cc-heading {
       font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: 0.02em;
-      font-size: clamp(2.4rem, 6vw, 4.2rem); text-transform: uppercase;
+      font-size: clamp(2.4rem, 6vw, 4.2rem); text-transform: uppercase; margin-top: 16px;
     }
+    .cc-sub { margin: 18px auto 0; max-width: 480px; color: rgba(255,255,255,0.72); font-size: 15px; line-height: 1.65; }
+    .cc-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin-top: 36px; }
     .cc-btn {
-      display: inline-flex; align-items: center; gap: 10px; margin-top: 40px;
+      display: inline-flex; align-items: center; gap: 10px;
       background: #fff; color: #0a0a0a; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
       padding: 18px 40px; border-radius: 2px; transition: background 0.2s ease, transform 0.2s ease;
     }
     .cc-btn:hover { background: #eee; transform: translateY(-2px); }
+    .cc-btn-secondary {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.6);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 17px 40px; border-radius: 2px; transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    .cc-btn-secondary:hover { background: rgba(255,255,255,0.12); border-color: #fff; transform: translateY(-2px); }
+    .cc-email-card {
+      margin: 44px auto 0; max-width: 420px; padding: 26px 30px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+    }
+    .cc-email-card a { font-size: 17px; font-weight: 600; color: #fff; }
+    .cc-email-card p { font-size: 12.5px; color: rgba(255,255,255,0.55); line-height: 1.6; margin-top: 8px; }
   </style>
 </head>
 <body class="flex flex-col">
@@ -401,15 +409,6 @@
   <!-- Product Showcase — slide sequence with next-slide thumbnail peek -->
   <section id="showcase">
     <div class="showcase-inner">
-      <div class="showcase-nav">
-        <button type="button" id="ps-prev" class="ps-arrow" aria-label="Previous slide">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <button type="button" id="ps-next" class="ps-arrow" aria-label="Next slide">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-      </div>
-
       <div class="showcase-text">
         <div class="ps-progress"><span id="ps-num">01</span> / <span id="ps-total">03</span></div>
         <h2 id="ps-title" class="ps-heading"></h2>
@@ -437,61 +436,40 @@
     </div>
   </section>
 
-  <!-- How It Works — vertical zigzag timeline (next sticky slide) -->
-  <section id="hiw-timeline">
-    <div class="tl-header">
-      <span class="tl-eyebrow">How It Works</span>
-      <h2 class="tl-heading">Four stages, fully automated.</h2>
-    </div>
-    <div class="tl-rail">
-      <div class="tl-line"></div>
-
-      <div class="tl-node tl-node-left">
-        <div class="tl-dot">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h10l4 4v14H4V3z M14 3v4h4 M8 11h8 M8 15h8"/></svg>
-        </div>
-        <div class="tl-card">
-          <h3>Capture</h3>
-          <p>The provider writes the note. No templates to fight, no coding cheat sheets — Althais reads it exactly as written.</p>
-        </div>
+  <!-- About Us — next sticky slide -->
+  <section id="about-us">
+    <span class="au-eyebrow">About Us</span>
+    <h2 class="au-heading">Built by two people who got tired of watching claims get denied.</h2>
+    <div class="au-founders">
+      <div class="au-founder">
+        <div class="au-avatar">KQ</div>
+        <div class="au-name">Kevin Qu</div>
+        <div class="au-role">Co-founder &amp; CEO</div>
       </div>
-
-      <div class="tl-node tl-node-right">
-        <div class="tl-dot">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4 M21 12a9 9 0 1 1-9-9"/></svg>
-        </div>
-        <div class="tl-card">
-          <h3>Code &amp; Review</h3>
-          <p>AI generates ICD-10 and CPT codes with a confidence score per code. The provider accepts, edits, or rejects each one.</p>
-        </div>
-      </div>
-
-      <div class="tl-node tl-node-left">
-        <div class="tl-dot">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13 M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-        </div>
-        <div class="tl-card">
-          <h3>Submit &amp; Check</h3>
-          <p>The claim is assembled, checked against payer-specific rules, and transmitted through your existing clearinghouse.</p>
-        </div>
-      </div>
-
-      <div class="tl-node tl-node-right">
-        <div class="tl-dot">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        </div>
-        <div class="tl-card">
-          <h3>Get Paid</h3>
-          <p>Status flows back in real time — submitted, accepted, paid — and remittance posts straight to your dashboard.</p>
-        </div>
+      <div class="au-founder">
+        <div class="au-avatar">KY</div>
+        <div class="au-name">Kanishk Yankarla</div>
+        <div class="au-role">Co-founder &amp; CTO</div>
       </div>
     </div>
+    <a href="/about" class="au-link">Learn More →</a>
   </section>
 
-  <!-- Closing CTA — final sticky slide (Contact Us / Ready to start) -->
+  <!-- Closing CTA — final sticky slide, the Contact Us page in place -->
   <section id="closing-cta">
-    <h2 class="cc-heading">Ready to start?</h2>
-    <a href="/contact" class="cc-btn">Contact Us</a>
+    <div class="cc-inner">
+      <span class="cc-eyebrow">Contact Us</span>
+      <h2 class="cc-heading">Ready to start?</h2>
+      <p class="cc-sub">Tell us about your practice and we'll be in touch — no commitment required.</p>
+      <div class="cc-actions">
+        <a href="#" class="cc-btn book-demo-trigger">Contact Us</a>
+        <a href="mailto:hello@althais.com" class="cc-btn-secondary">Email Us Directly</a>
+      </div>
+      <div class="cc-email-card">
+        <a href="mailto:hello@althais.com">hello@althais.com</a>
+        <p>We're a small team and read every message — expect a reply within one business day.</p>
+      </div>
+    </div>
   </section>
 
   <!-- Site footer -->
@@ -585,31 +563,6 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
-    // Scrolling past the final "Ready to start" slide continues the
-    // journey onto the dedicated Contact page rather than just showing
-    // the footer beneath it.
-    (function () {
-      var navigated = false;
-      var ticking = false;
-      function checkEndOfPage() {
-        if (navigated) return;
-        var scrolledToBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
-        if (scrolledToBottom) {
-          navigated = true;
-          window.location.href = '/contact';
-        }
-      }
-      window.addEventListener('scroll', function () {
-        if (!ticking) {
-          window.requestAnimationFrame(function () {
-            checkEndOfPage();
-            ticking = false;
-          });
-          ticking = true;
-        }
-      }, { passive: true });
-    })();
-
     // Mobile menu toggle
     function toggleMobileMenu() {
       document.getElementById('hamburger').classList.toggle('open');
@@ -699,8 +652,6 @@
       var windowPrevEl = document.getElementById('ps-window-prev');
       var windowNextEl = document.getElementById('ps-window-next');
       var dotsEl = document.getElementById('ps-dots');
-      var prevBtn = document.getElementById('ps-prev');
-      var nextBtn = document.getElementById('ps-next');
 
       totalEl.textContent = String(slides.length).padStart(2, '0');
       dotsEl.innerHTML = slides.map(function (s, i) {
@@ -728,8 +679,6 @@
         dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
       }
 
-      prevBtn.addEventListener('click', function () { render(current - 1); });
-      nextBtn.addEventListener('click', function () { render(current + 1); });
       windowPrevEl.addEventListener('click', function () { render(current - 1); });
       windowNextEl.addEventListener('click', function () { render(current + 1); });
       dots.forEach(function (d) {
