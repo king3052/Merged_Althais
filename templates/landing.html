@@ -259,43 +259,55 @@
     .ps-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
 
     /* ══════════════════════════════════════════════════════════════
-       About Us — next sticky slide
+       Search — next sticky slide (search bar + live-filtered results,
+       modeled on a location-finder pattern: input + Clear + result list)
        ══════════════════════════════════════════════════════════════ */
-    #about-us {
+    #site-search {
       position: sticky; top: 0; z-index: 2; min-height: 100svh; padding: 130px 24px; text-align: center;
       display: flex; flex-direction: column; justify-content: center;
       background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
       transform: translateZ(0); will-change: transform;
     }
-    #about-us::before {
+    #site-search::before {
       content: ''; position: absolute; inset: 0; z-index: 0;
       background: rgba(0,0,0,0.68); pointer-events: none;
     }
-    #about-us > * { position: relative; z-index: 1; }
-    .au-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-    .au-heading {
-      font-family: 'Inter', sans-serif; font-weight: 200; color: #fff; letter-spacing: -0.01em;
-      font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.28; margin: 18px auto 0; max-width: 720px;
+    #site-search > * { position: relative; z-index: 1; }
+    .ss-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+    .ss-heading {
+      font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+      text-transform: uppercase; line-height: 1.12; font-size: clamp(1.8rem, 3.2vw, 2.6rem); margin: 16px auto 0;
     }
-    .au-founders { display: flex; justify-content: center; gap: 64px; margin-top: 56px; flex-wrap: wrap; }
-    .au-founder { text-align: center; }
-    .au-avatar {
-      width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; color: rgba(255,255,255,0.65);
+    .ss-bar {
+      display: flex; align-items: center; gap: 10px; max-width: 620px; margin: 40px auto 0;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+      padding: 14px 18px; text-align: left;
     }
-    .au-name { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; font-size: 16px; }
-    .au-role {
-      font-family: 'Inter', sans-serif; font-weight: 500; color: rgba(255,255,255,0.5);
-      font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
+    .ss-bar svg { flex-shrink: 0; color: rgba(255,255,255,0.5); }
+    .ss-bar input {
+      flex: 1; background: none; border: none; outline: none; color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 14px;
     }
-    .au-link {
-      display: inline-block; margin-top: 52px;
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
-      color: #fff; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 4px; transition: border-color 0.2s ease;
+    .ss-bar input::placeholder { color: rgba(255,255,255,0.35); }
+    .ss-clear {
+      flex-shrink: 0; background: none; border: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(255,255,255,0.45); transition: color 0.2s ease;
     }
-    .au-link:hover { border-color: #fff; }
+    .ss-clear:hover { color: #fff; }
+    .ss-results {
+      max-width: 620px; margin: 28px auto 0; max-height: 340px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 10px; text-align: left;
+    }
+    .ss-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+      padding: 16px 20px; transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .ss-card:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+    .ss-card h3 { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; font-size: 14.5px; }
+    .ss-card p { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.55); font-size: 12.5px; line-height: 1.55; margin-top: 5px; }
+    .ss-card .ss-meta { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 8px; }
+    .ss-empty { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.45); font-size: 13px; padding: 20px 0; text-align: center; }
 
     /* ══════════════════════════════════════════════════════════════
        Closing CTA — final sticky slide (the Contact Us page, in place)
@@ -436,23 +448,16 @@
     </div>
   </section>
 
-  <!-- About Us — next sticky slide -->
-  <section id="about-us">
-    <span class="au-eyebrow">About Us</span>
-    <h2 class="au-heading">Built by two people who got tired of watching claims get denied.</h2>
-    <div class="au-founders">
-      <div class="au-founder">
-        <div class="au-avatar">KQ</div>
-        <div class="au-name">Kevin Qu</div>
-        <div class="au-role">Co-founder &amp; CEO</div>
-      </div>
-      <div class="au-founder">
-        <div class="au-avatar">KY</div>
-        <div class="au-name">Kanishk Yankarla</div>
-        <div class="au-role">Co-founder &amp; CTO</div>
-      </div>
+  <!-- Search — next sticky slide -->
+  <section id="site-search">
+    <span class="ss-eyebrow">Search</span>
+    <h2 class="ss-heading">Find What You Need</h2>
+    <div class="ss-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="ss-input" placeholder="Search resources, coding updates, guides…" autocomplete="off" />
+      <button type="button" id="ss-clear" class="ss-clear">Clear</button>
     </div>
-    <a href="/about" class="au-link">Learn More →</a>
+    <div class="ss-results" id="ss-results"></div>
   </section>
 
   <!-- Closing CTA — final sticky slide, the Contact Us page in place -->
@@ -562,6 +567,51 @@
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
+
+    // Search slide — live-filtered list of real resource articles
+    (function () {
+      var articles = [
+        { title: 'How a 6-Hospital System Cut Denials 66% in Four Months', excerpt: 'A regional health system was losing an estimated $4M a year to preventable denials across departments. Here’s the rollout that turned that around.', meta: '8 min read · Case Study' },
+        { title: 'CMS Finalizes 2026 Physician Fee Schedule: What Changes for E/M Coding', excerpt: 'A breakdown of the E/M and conversion factor changes billing teams need to account for starting this year.', meta: '6 min read · CMS Updates' },
+        { title: 'ICD-10-CM FY2026 Updates: The New Codes You Need to Know', excerpt: 'This year’s ICD-10-CM update adds new codes and revises several existing categories.', meta: '5 min read · ICD-10 News' },
+        { title: 'The Five Most Common Modifier Errors We See in Cardiology Claims', excerpt: 'Modifier 25, 59, and 26 account for a disproportionate share of cardiology denials.', meta: '7 min read · Medical Coding' },
+        { title: 'Where AI Actually Helps in Medical Coding — and Where It Doesn’t', excerpt: 'AI coding tools are good at pattern recognition across huge volumes of documentation. They’re not good at judgment calls with clinical ambiguity.', meta: '9 min read · AI in Healthcare' },
+        { title: 'Why Confidence Scores Matter More Than Accuracy Claims', excerpt: 'A vendor claiming ‘95% accuracy’ tells you nothing about which 5% is wrong. A confidence score tells a coder exactly where to look.', meta: '6 min read · AI in Healthcare' },
+        { title: 'A Practical Guide to Reducing Denial Rate Below 5%', excerpt: 'Most practices plateau around 8-10% denial rate. The path below 5% isn’t one big fix — it’s five specific, compounding changes.', meta: '10 min read · RCM Guide' },
+        { title: 'Prior Authorization: A Field Guide for Billing Teams', excerpt: 'Which procedures actually need prior auth, how to build the documentation payers want the first time.', meta: '8 min read · RCM Guide' }
+      ];
+
+      var input = document.getElementById('ss-input');
+      var clearBtn = document.getElementById('ss-clear');
+      var resultsEl = document.getElementById('ss-results');
+
+      function render(list) {
+        if (!list.length) {
+          resultsEl.innerHTML = '<div class="ss-empty">No results — try a different search term.</div>';
+          return;
+        }
+        resultsEl.innerHTML = list.map(function (a) {
+          return '<div class="ss-card"><h3>' + a.title + '</h3><p>' + a.excerpt + '</p><div class="ss-meta">' + a.meta + '</div></div>';
+        }).join('');
+      }
+
+      function filter() {
+        var q = input.value.trim().toLowerCase();
+        if (!q) { render(articles); return; }
+        render(articles.filter(function (a) {
+          return a.title.toLowerCase().indexOf(q) !== -1 || a.excerpt.toLowerCase().indexOf(q) !== -1;
+        }));
+      }
+
+      input.addEventListener('input', filter);
+      clearBtn.addEventListener('click', function () {
+        input.value = '';
+        input.focus();
+        render(articles);
+      });
+
+      render(articles);
+    })();
 
     // Mobile menu toggle
     function toggleMobileMenu() {
