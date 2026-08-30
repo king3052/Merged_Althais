@@ -17,9 +17,8 @@
     }
     a { text-decoration: none; }
 
-    /* One continuous background image spanning every section from the
-       Showcase down through the footer — sized to cover the whole wrapped
-       height in a single unbroken image, not per-section or viewport-fixed. */
+    /* Background for the Showcase section, which sticks in place under the
+       hero (see #hero, #showcase) then hands off to the normal-flow footer. */
     #lower-bg {
       position: relative; z-index: 2;
       background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
@@ -195,7 +194,7 @@
        prev/next), same interaction as the How It Works carousel.
        ══════════════════════════════════════════════════════════════ */
     #showcase {
-      position: relative; min-height: 100svh; padding: 90px 24px 40px; overflow: hidden;
+      position: sticky; top: 0; z-index: 1; min-height: 100svh; padding: 90px 24px 40px; overflow: hidden;
       display: flex; align-items: center; justify-content: center;
     }
     .showcase-inner { position: relative; z-index: 2; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
@@ -267,12 +266,23 @@
     .ps-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
 
     /* ══════════════════════════════════════════════════════════════
-       How It Works — vertical zigzag timeline
+       How It Works — vertical zigzag timeline (next sticky slide)
        ══════════════════════════════════════════════════════════════ */
-    #hiw-timeline { padding: 130px 56px; }
+    #hiw-timeline {
+      position: sticky; top: 0; z-index: 2; padding: 130px 56px;
+      background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
+    }
+    #hiw-timeline::before {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      background: rgba(0,0,0,0.68); pointer-events: none;
+    }
+    #hiw-timeline > * { position: relative; z-index: 1; }
     .tl-header { max-width: 640px; margin: 0 auto 90px; text-align: center; }
     .tl-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-    .tl-heading { font-family: 'Inter', sans-serif; font-weight: 200; color: #fff; font-size: clamp(2.4rem, 5vw, 3.6rem); margin-top: 18px; letter-spacing: -0.01em; }
+    .tl-heading {
+      font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+      text-transform: uppercase; line-height: 1.12; font-size: clamp(2rem, 3.6vw, 3rem); margin-top: 18px;
+    }
 
     .tl-rail { position: relative; max-width: 900px; margin: 0 auto; }
     .tl-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.14); transform: translateX(-50%); }
@@ -299,38 +309,17 @@
     }
 
     /* ══════════════════════════════════════════════════════════════
-       About Us
+       Closing CTA — final sticky slide (Contact Us / Ready to start)
        ══════════════════════════════════════════════════════════════ */
-    #about-us { padding: 130px 24px; text-align: center; }
-    .au-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-    .au-heading {
-      font-family: 'Inter', sans-serif; font-weight: 200; color: #fff; letter-spacing: -0.01em;
-      font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.28; margin: 18px auto 0; max-width: 720px;
+    #closing-cta {
+      position: sticky; top: 0; z-index: 3; padding: 170px 24px; text-align: center;
+      background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
     }
-    .au-founders { display: flex; justify-content: center; gap: 64px; margin-top: 56px; flex-wrap: wrap; }
-    .au-founder { text-align: center; }
-    .au-avatar {
-      width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; color: rgba(255,255,255,0.65);
+    #closing-cta::before {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      background: rgba(0,0,0,0.68); pointer-events: none;
     }
-    .au-name { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; font-size: 16px; }
-    .au-role {
-      font-family: 'Inter', sans-serif; font-weight: 500; color: rgba(255,255,255,0.5);
-      font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
-    }
-    .au-link {
-      display: inline-block; margin-top: 52px;
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
-      color: #fff; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 4px; transition: border-color 0.2s ease;
-    }
-    .au-link:hover { border-color: #fff; }
-
-    /* ══════════════════════════════════════════════════════════════
-       Closing CTA — stark black
-       ══════════════════════════════════════════════════════════════ */
-    #closing-cta { padding: 170px 24px; text-align: center; }
+    #closing-cta > * { position: relative; z-index: 1; }
     .cc-heading {
       font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: 0.02em;
       font-size: clamp(2.4rem, 6vw, 4.2rem); text-transform: uppercase;
@@ -393,7 +382,7 @@
       </h1>
       <div class="hero-actions fade-in fade-in-3">
         <a href="#" class="btn-primary-hero book-demo-trigger" id="book-demo-btn">Book a Demo</a>
-        <a href="mailto:hello@althais.com" class="btn-secondary-hero">Contact Us</a>
+        <a href="/contact" class="btn-secondary-hero">Contact Us</a>
       </div>
     </div>
 
@@ -448,7 +437,7 @@
     </div>
   </section>
 
-  <!-- How It Works — vertical zigzag timeline -->
+  <!-- How It Works — vertical zigzag timeline (next sticky slide) -->
   <section id="hiw-timeline">
     <div class="tl-header">
       <span class="tl-eyebrow">How It Works</span>
@@ -499,10 +488,10 @@
     </div>
   </section>
 
-  <!-- Closing CTA -->
+  <!-- Closing CTA — final sticky slide (Contact Us / Ready to start) -->
   <section id="closing-cta">
     <h2 class="cc-heading">Ready to start?</h2>
-    <a href="mailto:hello@althais.com" class="cc-btn">Contact Us</a>
+    <a href="/contact" class="cc-btn">Contact Us</a>
   </section>
 
   <!-- Site footer -->
@@ -511,7 +500,7 @@
     <div class="footer-links">
       <a href="/legal/privacy">Privacy</a>
       <a href="/legal/terms">Terms</a>
-      <a href="mailto:hello@althais.com">Contact</a>
+      <a href="/contact">Contact</a>
     </div>
   </footer>
   </div><!-- /#lower-bg -->
@@ -596,6 +585,31 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
+    // Scrolling past the final "Ready to start" slide continues the
+    // journey onto the dedicated Contact page rather than just showing
+    // the footer beneath it.
+    (function () {
+      var navigated = false;
+      var ticking = false;
+      function checkEndOfPage() {
+        if (navigated) return;
+        var scrolledToBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
+        if (scrolledToBottom) {
+          navigated = true;
+          window.location.href = '/contact';
+        }
+      }
+      window.addEventListener('scroll', function () {
+        if (!ticking) {
+          window.requestAnimationFrame(function () {
+            checkEndOfPage();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }, { passive: true });
+    })();
+
     // Mobile menu toggle
     function toggleMobileMenu() {
       document.getElementById('hamburger').classList.toggle('open');
@@ -652,24 +666,6 @@
       }
     });
 
-    // Subtle parallax on hero video while scrolling
-    var videoWrap = document.getElementById('hero-video-wrap');
-    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduceMotion) {
-      var ticking = false;
-      window.addEventListener('scroll', function () {
-        if (!ticking) {
-          window.requestAnimationFrame(function () {
-            var offset = window.scrollY;
-            if (offset < hero.offsetHeight * 1.2) {
-              videoWrap.style.transform = 'scale(1.15) translateY(' + (offset * 0.24) + 'px)';
-            }
-            ticking = false;
-          });
-          ticking = true;
-        }
-      }, { passive: true });
-    }
   </script>
 
   <script>

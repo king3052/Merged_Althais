@@ -78,6 +78,11 @@ async def about_page(request: Request, user=Depends(current_user)):
     return templates.TemplateResponse(request, "about.html", _marketing_ctx(user, "about"))
 
 
+@app.get("/contact")
+async def contact_page(request: Request, user=Depends(current_user)):
+    return templates.TemplateResponse(request, "contact.html", _marketing_ctx(user, "contact"))
+
+
 @app.get("/legal/privacy")
 async def privacy_page(request: Request, user=Depends(current_user)):
     return templates.TemplateResponse(request, "privacy.html", _marketing_ctx(user, ""))
