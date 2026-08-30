@@ -63,11 +63,8 @@
     #site-nav .nav-login { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); transition: color 0.2s ease; }
     #site-nav .nav-login:hover { color: #ffffff; }
     #site-nav.scrolled {
-      background: rgba(0,0,0,0.92);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255,255,255,0.12);
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+      background: transparent;
+      border-bottom: 1px solid transparent;
       padding: 18px 56px;
     }
     #site-nav.scrolled .nav-link { color: rgba(255,255,255,0.7); }
@@ -150,15 +147,6 @@
     .btn-secondary-hero:hover { background: rgba(255,255,255,0.12); border-color: #fff; transform: translateY(-2px); }
 
     #hero-bottom-bar { position: absolute; left: 0; right: 0; bottom: 68px; z-index: 2; font-family: 'Inter', sans-serif; }
-    #site-footer-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 22px 56px; border-top: 1px solid rgba(255,255,255,0.14);
-      font-family: 'Inter', sans-serif;
-    }
-    #site-footer-bar p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: rgba(255,255,255,0.45); }
-    #site-footer-bar .footer-links { display: flex; gap: 24px; }
-    #site-footer-bar a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); transition: color 0.2s ease; }
-    #site-footer-bar a:hover { color: #ffffff; }
 
     .trust-marquee { width: 100%; overflow: hidden; }
     .trust-marquee-track {
@@ -184,8 +172,6 @@
       .hero-actions { flex-direction: column; width: 100%; }
       .btn-primary-hero, .btn-secondary-hero { width: 100%; justify-content: center; }
       #hero-bottom-bar { bottom: 90px; }
-      #site-footer-bar { flex-direction: column; gap: 8px; padding: 14px 20px; text-align: center; }
-      #site-footer-bar .footer-links { gap: 16px; }
     }
 
     /* ══════════════════════════════════════════════════════════════
@@ -194,27 +180,33 @@
        prev/next), same interaction as the How It Works carousel.
        ══════════════════════════════════════════════════════════════ */
     #showcase {
-      position: sticky; top: 0; z-index: 1; min-height: 100svh; padding: 90px 24px 40px; overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
+      position: sticky; top: 0; z-index: 1; height: 100svh; padding: 70px 24px 34px; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
       transform: translateZ(0); will-change: transform;
     }
-    .showcase-inner { position: relative; z-index: 2; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+    .showcase-inner {
+      position: relative; z-index: 2; max-width: 1400px; width: 100%; height: 100%; margin: 0 auto; padding: 0 24px;
+      display: flex; flex-direction: column; align-items: center;
+    }
 
-    .showcase-text { max-width: 640px; margin: 0 auto 28px; text-align: center; }
+    .showcase-text { max-width: 640px; margin: 0 auto 16px; text-align: center; }
     .ps-progress { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
     .ps-heading {
       font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
       text-transform: uppercase; line-height: 1.12; font-size: clamp(1.6rem, 2.8vw, 2.3rem); margin-top: 12px;
     }
     .ps-cta {
-      display: inline-flex; align-items: center; gap: 10px; margin-top: 20px;
+      display: inline-flex; align-items: center; gap: 10px; margin-top: 16px;
       background: #fff; color: #0a0a0a; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
       padding: 14px 26px; border-radius: 2px; transition: background 0.2s ease, transform 0.2s ease;
     }
     .ps-cta:hover { background: #eee; transform: translateY(-2px); }
 
-    /* ── Coverflow stage: center window + peeking prev/next, clickable ── */
-    #ps-stage { position: relative; height: 420px; display: flex; align-items: center; justify-content: center; }
+    /* ── Coverflow stage: center window + peeking prev/next, clickable.
+       All three windows share one fixed frame size (matching the two
+       landscape screenshots); a portrait screenshot (slide 2) crops to
+       fit rather than resizing the frame per-slide. ── */
+    #ps-stage { position: relative; width: 100%; height: 520px; flex-shrink: 0; }
 
     .ps-browser {
       position: absolute; top: 50%; left: 50%; width: min(78vw, 980px);
@@ -229,26 +221,27 @@
     .ps-side-right { transform: translate(-4%,-50%) scale(0.84); }
 
     .ps-chrome {
-      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-      padding: 10px 14px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08); gap: 6px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 10px 14px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .ps-chrome-dot { width: 10px; height: 10px; border-radius: 50%; justify-self: start; }
-    .ps-chrome-dot + .ps-chrome-dot { margin-left: 6px; }
     .ps-url {
-      grid-column: 2; font-family: 'Inter', sans-serif; font-size: 11.5px; color: rgba(255,255,255,0.55);
+      font-family: 'Inter', sans-serif; font-size: 11.5px; color: rgba(255,255,255,0.55);
       background: rgba(255,255,255,0.06); border-radius: 999px; padding: 4px 16px; white-space: nowrap;
     }
-    .ps-img-frame { height: 340px; background: #fff; overflow: hidden; }
-    .ps-img-frame img { width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; transition: opacity 0.18s ease; }
+    .ps-img-frame { height: 480px; background: #0a0a0a; overflow: hidden; }
+    .ps-img-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; transition: opacity 0.18s ease; }
 
     @media (max-width: 900px) {
-      #ps-stage { height: auto; }
+      #ps-stage { position: static; height: auto; margin-top: 8px; }
       .ps-side { display: none; }
-      .ps-browser { position: static; transform: none !important; width: 100%; opacity: 1; filter: none; }
-      .ps-img-frame { height: 260px; }
+      .ps-browser {
+        position: static; transform: none !important; width: 100%; opacity: 1; filter: none;
+      }
+      .ps-img-frame { height: 300px; }
+      .ps-img-frame img { width: 100%; height: auto; object-fit: contain; }
     }
 
-    .ps-dots { display: flex; justify-content: center; gap: 8px; margin-top: 22px; }
+    .ps-dots { display: flex; justify-content: center; gap: 8px; flex-shrink: 0; margin-top: auto; padding-top: 22px; }
     .ps-dot {
       min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
       border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05);
@@ -259,97 +252,94 @@
     .ps-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
 
     /* ══════════════════════════════════════════════════════════════
-       Search — next sticky slide (search bar + live-filtered results,
-       modeled on a location-finder pattern: input + Clear + result list)
+       About Althais — next sticky slide. A bordered ~30/70 two-panel
+       shell — left panel is a search bar over a clickable, filterable
+       list of topic titles, right panel shows the selected topic's blurb.
        ══════════════════════════════════════════════════════════════ */
     #site-search {
-      position: sticky; top: 0; z-index: 2; min-height: 100svh; padding: 130px 24px; text-align: center;
-      display: flex; flex-direction: column; justify-content: center;
-      background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
+      position: sticky; top: 0; z-index: 2; min-height: 100svh; padding: 110px 24px; text-align: center;
+      display: flex; flex-direction: column; justify-content: center; overflow: hidden;
+      background: #000;
       transform: translateZ(0); will-change: transform;
     }
-    #site-search::before {
-      content: ''; position: absolute; inset: 0; z-index: 0;
-      background: rgba(0,0,0,0.68); pointer-events: none;
+    .ss-video-wrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+    .ss-video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .ss-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.68); pointer-events: none; }
+    .ss-frame {
+      position: absolute; left: 96px; top: 60%; width: 340px; height: 52px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #fff; border-radius: 0; background: transparent; z-index: 2;
+      cursor: pointer; transition: background 0.2s ease;
     }
-    #site-search > * { position: relative; z-index: 1; }
-    .ss-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-    .ss-heading {
-      font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
-      text-transform: uppercase; line-height: 1.12; font-size: clamp(1.8rem, 3.2vw, 2.6rem); margin: 16px auto 0;
+    .ss-frame:hover { background: rgba(255,255,255,0.1); }
+    .ss-frame span {
+      font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; letter-spacing: 0.2em;
+      text-transform: uppercase; font-size: 14px;
     }
-    .ss-bar {
-      display: flex; align-items: center; gap: 10px; max-width: 620px; margin: 40px auto 0;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
-      padding: 14px 18px; text-align: left;
+    @media (max-width: 760px) {
+      .ss-frame { left: 24px; width: 240px; height: 50px; }
     }
-    .ss-bar svg { flex-shrink: 0; color: rgba(255,255,255,0.5); }
-    .ss-bar input {
-      flex: 1; background: none; border: none; outline: none; color: #fff;
-      font-family: 'Inter', sans-serif; font-size: 14px;
-    }
-    .ss-bar input::placeholder { color: rgba(255,255,255,0.35); }
-    .ss-clear {
-      flex-shrink: 0; background: none; border: none; cursor: pointer;
-      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-      color: rgba(255,255,255,0.45); transition: color 0.2s ease;
-    }
-    .ss-clear:hover { color: #fff; }
-    .ss-results {
-      max-width: 620px; margin: 28px auto 0; max-height: 340px; overflow-y: auto;
-      display: flex; flex-direction: column; gap: 10px; text-align: left;
-    }
-    .ss-card {
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
-      padding: 16px 20px; transition: border-color 0.2s ease, background 0.2s ease;
-    }
-    .ss-card:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
-    .ss-card h3 { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; font-size: 14.5px; }
-    .ss-card p { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.55); font-size: 12.5px; line-height: 1.55; margin-top: 5px; }
-    .ss-card .ss-meta { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 8px; }
-    .ss-empty { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.45); font-size: 13px; padding: 20px 0; text-align: center; }
 
     /* ══════════════════════════════════════════════════════════════
-       Closing CTA — final sticky slide (the Contact Us page, in place)
+       Site Footer — compact newsletter + link bar. Normal document
+       flow (not sticky, not a full-height slide) — it just sits at
+       the bottom, right under the About Althais slide.
        ══════════════════════════════════════════════════════════════ */
-    #closing-cta {
-      position: sticky; top: 0; z-index: 3; min-height: 100svh; padding: 90px 24px; text-align: center;
-      display: flex; align-items: center; justify-content: center;
-      background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
-      transform: translateZ(0); will-change: transform;
+    #site-footer-bar {
+      position: relative; z-index: 3; padding: 28px 56px 20px;
+      background: #050505;
+      font-family: 'Inter', sans-serif;
     }
-    #closing-cta::before {
-      content: ''; position: absolute; inset: 0; z-index: 0;
-      background: rgba(0,0,0,0.68); pointer-events: none;
+
+    .ft-top {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
+      padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.14);
     }
-    #closing-cta > * { position: relative; z-index: 1; }
-    .cc-inner { max-width: 640px; margin: 0 auto; }
-    .cc-eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-    .cc-heading {
-      font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: 0.02em;
-      font-size: clamp(2.4rem, 6vw, 4.2rem); text-transform: uppercase; margin-top: 16px;
+    .ft-signup { max-width: 380px; }
+    .ft-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+    .ft-wordmark { font-size: clamp(1.2rem, 1.8vw, 1.5rem); font-weight: 800; letter-spacing: 0.02em; color: #fff; text-transform: uppercase; margin-top: 4px; }
+    .ft-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+    .ft-form {
+      display: flex; align-items: center; gap: 10px; margin-top: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 8px;
     }
-    .cc-sub { margin: 18px auto 0; max-width: 480px; color: rgba(255,255,255,0.72); font-size: 15px; line-height: 1.65; }
-    .cc-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin-top: 36px; }
-    .cc-btn {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: #fff; color: #0a0a0a; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-      padding: 18px 40px; border-radius: 2px; transition: background 0.2s ease, transform 0.2s ease;
+    .ft-form input {
+      flex: 1; min-width: 0; background: none; border: none; outline: none; color: #fff;
+      font-size: 12.5px; font-family: 'Inter', sans-serif;
     }
-    .cc-btn:hover { background: #eee; transform: translateY(-2px); }
-    .cc-btn-secondary {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.6);
-      font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-      padding: 17px 40px; border-radius: 2px; transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    .ft-form input::placeholder { color: rgba(255,255,255,0.35); }
+    .ft-form button {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4);
+      background: none; color: #fff; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease;
     }
-    .cc-btn-secondary:hover { background: rgba(255,255,255,0.12); border-color: #fff; transform: translateY(-2px); }
-    .cc-email-card {
-      margin: 44px auto 0; max-width: 420px; padding: 26px 30px;
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+    .ft-form button:hover { background: rgba(255,255,255,0.12); border-color: #fff; }
+    .ft-msg { font-size: 11px; color: #5ed99a; margin-top: 8px; min-height: 13px; }
+    .ft-msg.error { color: #ff8080; }
+    .ft-copy { font-size: 10.5px; color: rgba(255,255,255,0.4); margin-top: 10px; }
+
+    .ft-top-btn {
+      flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;
+      padding: 8px 14px; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.7); transition: border-color 0.2s ease, color 0.2s ease;
     }
-    .cc-email-card a { font-size: 17px; font-weight: 600; color: #fff; }
-    .cc-email-card p { font-size: 12.5px; color: rgba(255,255,255,0.55); line-height: 1.6; margin-top: 8px; }
+    .ft-top-btn:hover { border-color: #fff; color: #fff; }
+
+    .ft-links {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 14px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .ft-links a { color: rgba(255,255,255,0.5); transition: color 0.2s ease; }
+    .ft-links a:hover { color: #fff; }
+    .ft-dot { color: rgba(255,255,255,0.25); }
+    .ft-social { display: flex; gap: 14px; margin-left: auto; }
+
+    @media (max-width: 760px) {
+      #site-footer-bar { padding: 24px 24px 18px; }
+      .ft-top { flex-direction: column; }
+      .ft-top-btn { align-self: flex-start; }
+      .ft-social { margin-left: 0; }
+    }
   </style>
 </head>
 <body class="flex flex-col">
@@ -429,17 +419,17 @@
 
       <div id="ps-stage">
         <div class="ps-browser ps-side ps-side-left" id="ps-window-prev" aria-hidden="true">
-          <div class="ps-chrome"><span class="ps-chrome-dot" style="background:#ff5f57"></span><span class="ps-chrome-dot" style="background:#febc2e"></span><span class="ps-chrome-dot" style="background:#28c840"></span><div class="ps-url">app.althais.com</div></div>
+          <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
           <div class="ps-img-frame"><img id="ps-img-prev" src="" alt="" /></div>
         </div>
 
         <div class="ps-browser ps-center" id="ps-window-center">
-          <div class="ps-chrome"><span class="ps-chrome-dot" style="background:#ff5f57"></span><span class="ps-chrome-dot" style="background:#febc2e"></span><span class="ps-chrome-dot" style="background:#28c840"></span><div class="ps-url">app.althais.com</div></div>
+          <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
           <div class="ps-img-frame"><img id="ps-img" src="" alt="" /></div>
         </div>
 
         <div class="ps-browser ps-side ps-side-right" id="ps-window-next" aria-hidden="true">
-          <div class="ps-chrome"><span class="ps-chrome-dot" style="background:#ff5f57"></span><span class="ps-chrome-dot" style="background:#febc2e"></span><span class="ps-chrome-dot" style="background:#28c840"></span><div class="ps-url">app.althais.com</div></div>
+          <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
           <div class="ps-img-frame"><img id="ps-img-next" src="" alt="" /></div>
         </div>
       </div>
@@ -448,41 +438,51 @@
     </div>
   </section>
 
-  <!-- Search — next sticky slide -->
+  <!-- About Althais — next sticky slide -->
   <section id="site-search">
-    <span class="ss-eyebrow">Search</span>
-    <h2 class="ss-heading">Find What You Need</h2>
-    <div class="ss-bar">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="ss-input" placeholder="Search resources, coding updates, guides…" autocomplete="off" />
-      <button type="button" id="ss-clear" class="ss-clear">Clear</button>
+    <div class="ss-video-wrap">
+      <video autoplay muted loop playsinline preload="auto">
+        <source src="/videos/doctor.mp4" type="video/mp4" />
+      </video>
     </div>
-    <div class="ss-results" id="ss-results"></div>
+    <div class="ss-overlay"></div>
+    <a href="/about-althais" class="ss-frame"><span>About Althais</span></a>
   </section>
 
-  <!-- Closing CTA — final sticky slide, the Contact Us page in place -->
-  <section id="closing-cta">
-    <div class="cc-inner">
-      <span class="cc-eyebrow">Contact Us</span>
-      <h2 class="cc-heading">Ready to start?</h2>
-      <p class="cc-sub">Tell us about your practice and we'll be in touch — no commitment required.</p>
-      <div class="cc-actions">
-        <a href="#" class="cc-btn book-demo-trigger">Contact Us</a>
-        <a href="mailto:hello@althais.com" class="cc-btn-secondary">Email Us Directly</a>
-      </div>
-      <div class="cc-email-card">
-        <a href="mailto:hello@althais.com">hello@althais.com</a>
-        <p>We're a small team and read every message — expect a reply within one business day.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Site footer -->
+  <!-- Site footer — newsletter signup + links, replaces the old Contact Us slide -->
   <footer id="site-footer-bar">
-    <p>© 2026 Althais Health, Inc.</p>
-    <div class="footer-links">
+    <div class="ft-top">
+      <div class="ft-signup">
+        <span class="ft-eyebrow">— Stay In The Loop</span>
+        <div class="ft-wordmark">ALTHAIS</div>
+        <p class="ft-sub">Subscribe and get the latest news.</p>
+        <form id="newsletter-form" class="ft-form" novalidate>
+          <input type="email" id="newsletter-email" placeholder="Enter your email address" required autocomplete="email" />
+          <button type="submit" aria-label="Subscribe">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+        <p id="newsletter-msg" class="ft-msg"></p>
+        <p class="ft-copy">© 2026 Althais Health, Inc. All rights reserved.</p>
+      </div>
+      <a href="#site-nav" class="ft-top-btn">Top ↑</a>
+    </div>
+
+    <div class="ft-links">
+      <a href="/pricing">Pricing</a>
+      <span class="ft-dot">&middot;</span>
       <a href="/legal/privacy">Privacy</a>
+      <span class="ft-dot">&middot;</span>
       <a href="/legal/terms">Terms</a>
+      <span class="ft-dot">&middot;</span>
+      <a href="/resources">Resources</a>
+      <div class="ft-social">
+        <a href="https://www.linkedin.com" target="_blank" rel="noopener">LinkedIn</a>
+      </div>
+    </div>
+    <div class="ft-links">
+      <a href="/legal/terms">Terms Of Service</a>
+      <span class="ft-dot">&middot;</span>
       <a href="/contact">Contact</a>
     </div>
   </footer>
@@ -568,49 +568,38 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
-    // Search slide — live-filtered list of real resource articles
+    // Footer newsletter signup
     (function () {
-      var articles = [
-        { title: 'How a 6-Hospital System Cut Denials 66% in Four Months', excerpt: 'A regional health system was losing an estimated $4M a year to preventable denials across departments. Here’s the rollout that turned that around.', meta: '8 min read · Case Study' },
-        { title: 'CMS Finalizes 2026 Physician Fee Schedule: What Changes for E/M Coding', excerpt: 'A breakdown of the E/M and conversion factor changes billing teams need to account for starting this year.', meta: '6 min read · CMS Updates' },
-        { title: 'ICD-10-CM FY2026 Updates: The New Codes You Need to Know', excerpt: 'This year’s ICD-10-CM update adds new codes and revises several existing categories.', meta: '5 min read · ICD-10 News' },
-        { title: 'The Five Most Common Modifier Errors We See in Cardiology Claims', excerpt: 'Modifier 25, 59, and 26 account for a disproportionate share of cardiology denials.', meta: '7 min read · Medical Coding' },
-        { title: 'Where AI Actually Helps in Medical Coding — and Where It Doesn’t', excerpt: 'AI coding tools are good at pattern recognition across huge volumes of documentation. They’re not good at judgment calls with clinical ambiguity.', meta: '9 min read · AI in Healthcare' },
-        { title: 'Why Confidence Scores Matter More Than Accuracy Claims', excerpt: 'A vendor claiming ‘95% accuracy’ tells you nothing about which 5% is wrong. A confidence score tells a coder exactly where to look.', meta: '6 min read · AI in Healthcare' },
-        { title: 'A Practical Guide to Reducing Denial Rate Below 5%', excerpt: 'Most practices plateau around 8-10% denial rate. The path below 5% isn’t one big fix — it’s five specific, compounding changes.', meta: '10 min read · RCM Guide' },
-        { title: 'Prior Authorization: A Field Guide for Billing Teams', excerpt: 'Which procedures actually need prior auth, how to build the documentation payers want the first time.', meta: '8 min read · RCM Guide' }
-      ];
-
-      var input = document.getElementById('ss-input');
-      var clearBtn = document.getElementById('ss-clear');
-      var resultsEl = document.getElementById('ss-results');
-
-      function render(list) {
-        if (!list.length) {
-          resultsEl.innerHTML = '<div class="ss-empty">No results — try a different search term.</div>';
+      var form = document.getElementById('newsletter-form');
+      var emailInput = document.getElementById('newsletter-email');
+      var msgEl = document.getElementById('newsletter-msg');
+      if (!form) return;
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var email = emailInput.value.trim();
+        if (!email || email.indexOf('@') === -1) {
+          msgEl.textContent = 'Enter a valid email address.';
+          msgEl.classList.add('error');
           return;
         }
-        resultsEl.innerHTML = list.map(function (a) {
-          return '<div class="ss-card"><h3>' + a.title + '</h3><p>' + a.excerpt + '</p><div class="ss-meta">' + a.meta + '</div></div>';
-        }).join('');
-      }
-
-      function filter() {
-        var q = input.value.trim().toLowerCase();
-        if (!q) { render(articles); return; }
-        render(articles.filter(function (a) {
-          return a.title.toLowerCase().indexOf(q) !== -1 || a.excerpt.toLowerCase().indexOf(q) !== -1;
-        }));
-      }
-
-      input.addEventListener('input', filter);
-      clearBtn.addEventListener('click', function () {
-        input.value = '';
-        input.focus();
-        render(articles);
+        var body = new URLSearchParams();
+        body.set('email', email);
+        try {
+          var res = await fetch('/api/newsletter-signup', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() });
+          var data = await res.json().catch(function () { return {}; });
+          if (res.ok && data.ok) {
+            msgEl.textContent = 'You\'re subscribed — thanks!';
+            msgEl.classList.remove('error');
+            emailInput.value = '';
+          } else {
+            msgEl.textContent = data.error || 'Something went wrong. Please try again.';
+            msgEl.classList.add('error');
+          }
+        } catch (err) {
+          msgEl.textContent = 'Network error. Please try again.';
+          msgEl.classList.add('error');
+        }
       });
-
-      render(articles);
     })();
 
     // Mobile menu toggle

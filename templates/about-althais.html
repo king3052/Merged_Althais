@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}About Althais{% endblock %}
+{% block meta_description %}What Althais does, why it exists, and how it works — coding, claims, and payer intelligence in one platform.{% endblock %}
+{% block canonical %}https://althais.com/about-althais{% endblock %}
+
+{% block extra_head %}
+<style>
+  #aa-hero { position: relative; padding: 170px 24px 60px; text-align: center; background: #050505; }
+  #aa-shell-wrap { padding: 0 24px 130px; background: #050505; }
+  .aa-shell {
+    display: grid; grid-template-columns: 30% 1fr; max-width: 1080px; width: 100%; margin: 0 auto;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; overflow: hidden;
+    background: rgba(255,255,255,0.02); text-align: left;
+  }
+  .aa-panel { display: flex; flex-direction: column; min-width: 0; }
+  .aa-searchrow {
+    display: flex; align-items: center; gap: 10px; padding: 18px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.18);
+  }
+  .aa-searchrow svg { flex-shrink: 0; color: rgba(255,255,255,0.45); }
+  .aa-searchrow input {
+    flex: 1; min-width: 0; background: none; border: none; outline: none; color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 13px;
+  }
+  .aa-searchrow input::placeholder { color: rgba(255,255,255,0.35); }
+  .aa-clear {
+    flex-shrink: 0; background: none; border: none; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(255,255,255,0.45); transition: color 0.2s ease;
+  }
+  .aa-clear:hover { color: #fff; }
+  .aa-list { max-height: 480px; overflow-y: auto; }
+  .aa-empty { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.45); font-size: 12.5px; padding: 24px 20px; }
+  .aa-row {
+    padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer; transition: background 0.15s ease;
+  }
+  .aa-row:last-child { border-bottom: none; }
+  .aa-row:hover { background: rgba(255,255,255,0.03); }
+  .aa-row.active { background: rgba(255,255,255,0.06); }
+  .aa-row h3 {
+    font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+    text-transform: uppercase; font-size: 13.5px;
+  }
+  .aa-detail {
+    display: flex; flex-direction: column; justify-content: center;
+    background: rgba(255,255,255,0.05); border-left: 1px solid rgba(255,255,255,0.18);
+    min-height: 480px; padding: 44px 48px; text-align: left;
+  }
+  .aa-detail h3 {
+    font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+    text-transform: uppercase; line-height: 1.12; font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+  }
+  .aa-detail p { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.6); font-size: 14.5px; line-height: 1.7; margin-top: 14px; }
+  @media (max-width: 760px) {
+    .aa-shell { grid-template-columns: 1fr; }
+    .aa-detail { border-left: none; border-top: 1px solid rgba(255,255,255,0.18); min-height: 0; padding: 28px 24px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section id="aa-hero">
+  <span class="eyebrow fade-in fade-in-1">About</span>
+  <h1 class="hero-mono fade-in fade-in-2" style="margin-top:18px;color:#fff">About Althais</h1>
+  <p class="hero-sub fade-in fade-in-3" style="color:rgba(255,255,255,0.6)">Everything you'd want to know, in one place.</p>
+</section>
+
+<section id="aa-shell-wrap">
+  <div class="aa-shell">
+    <div class="aa-panel">
+      <div class="aa-searchrow">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="aa-input" placeholder="Search…" autocomplete="off" />
+        <button type="button" id="aa-clear" class="aa-clear">Clear</button>
+      </div>
+      <div class="aa-list" id="aa-results"></div>
+    </div>
+    <div class="aa-detail" id="aa-detail"></div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  var topics = [
+    { title: 'What Do We Do', excerpt: 'Althais turns clinical documentation into validated medical claims with AI — coding, claims, and payer intelligence in one platform.' },
+    { title: 'Why Althais', excerpt: 'Built by two people who got tired of watching claims get denied. Every code a human reviews before it ever reaches a claim.' },
+    { title: 'Our Mission', excerpt: 'Stop denials before they happen, not chase them after the fact.' },
+    { title: 'Who We Serve', excerpt: 'From independent practices to multi-provider health systems — anywhere a clinical note needs to become a paid claim.' },
+    { title: 'Our Story', excerpt: 'Two people who kept watching claims come back denied for reasons that were entirely preventable — so we built the tool that should have already existed.' },
+    { title: 'How It Works', excerpt: 'The provider writes the note, AI suggests the codes, the provider reviews, and the claim goes out checked against payer rules — one connected workflow.' },
+    { title: 'What Makes Us Different', excerpt: 'Most coding tools stop at suggesting a code. Althais follows the claim all the way to payment and flags payer-specific rules before you submit, not after you get denied.' },
+    { title: 'AI + Human Review', excerpt: 'Every AI-suggested code ships with a confidence score and the reasoning behind it. The provider accepts, edits, or rejects — nothing bills without a human decision.' },
+    { title: 'Security & Compliance', excerpt: 'Built for HIPAA-eligible workflows from day one — encrypted in transit and at rest, with an audit trail on every code and every claim.' },
+    { title: 'Integrations', excerpt: 'Connects to the clearinghouse you already use — no new vendor relationship required — and works alongside the EHR your practice already runs.' },
+    { title: 'The Team', excerpt: 'A small, hands-on team. No account managers reading from a script — when you have a question, you\'re talking to someone who can actually change the product.' },
+    { title: 'Pricing Philosophy', excerpt: 'Priced around claim volume, not per seat. You shouldn\'t pay more just to add a biller who reviews your own claims.' },
+    { title: 'Customer Results', excerpt: 'Practices using Althais have cut denial rates by more than half within the first quarter — by catching the same handful of mistakes payers reject every time.' },
+    { title: 'Where We\'re Headed', excerpt: 'The long-term goal isn\'t just faster coding — it\'s a claims process where denials are the exception, not something every practice budgets for.' }
+  ];
+
+  var input = document.getElementById('aa-input');
+  var clearBtn = document.getElementById('aa-clear');
+  var resultsEl = document.getElementById('aa-results');
+  var detailEl = document.getElementById('aa-detail');
+
+  function showDetail(t) {
+    detailEl.innerHTML = '<h3>' + t.title + '</h3><p>' + t.excerpt + '</p>';
+  }
+
+  function render(list) {
+    if (!list.length) {
+      resultsEl.innerHTML = '<div class="aa-empty">No results — try a different search term.</div>';
+      return;
+    }
+    resultsEl.innerHTML = list.map(function (t, i) {
+      return '<div class="aa-row' + (i === 0 ? ' active' : '') + '" data-title="' + t.title + '"><h3>' + t.title + '</h3></div>';
+    }).join('');
+    showDetail(list[0]);
+  }
+
+  resultsEl.addEventListener('click', function (e) {
+    var row = e.target.closest('.aa-row');
+    if (!row) return;
+    resultsEl.querySelectorAll('.aa-row').forEach(function (r) { r.classList.remove('active'); });
+    row.classList.add('active');
+    var t = topics.find(function (t) { return t.title === row.getAttribute('data-title'); });
+    if (t) showDetail(t);
+  });
+
+  function filter() {
+    var q = input.value.trim().toLowerCase();
+    if (!q) { render(topics); return; }
+    render(topics.filter(function (t) {
+      return t.title.toLowerCase().indexOf(q) !== -1 || t.excerpt.toLowerCase().indexOf(q) !== -1;
+    }));
+  }
+
+  input.addEventListener('input', filter);
+  clearBtn.addEventListener('click', function () {
+    input.value = '';
+    input.focus();
+    render(topics);
+  });
+
+  render(topics);
+})();
+</script>
+{% endblock %}
