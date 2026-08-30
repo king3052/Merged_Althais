@@ -5,69 +5,72 @@
 
 {% block extra_head %}
 <style>
-  #aa-hero { position: relative; padding: 170px 24px 60px; text-align: center; background: #050505; }
-  #aa-shell-wrap { padding: 0 24px 130px; background: #050505; }
+  #aa-shell-wrap { padding: 0 24px 130px; background: #fff; }
   .aa-shell {
     display: grid; grid-template-columns: 30% 1fr; max-width: 1080px; width: 100%; margin: 0 auto;
-    border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; overflow: hidden;
-    background: rgba(255,255,255,0.02); text-align: left;
+    border: 1px solid rgba(0,0,0,0.14); border-radius: 6px; overflow: hidden;
+    background: #fff; text-align: left;
   }
   .aa-panel { display: flex; flex-direction: column; min-width: 0; }
   .aa-searchrow {
     display: flex; align-items: center; gap: 10px; padding: 18px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.18);
+    border-bottom: 1px solid rgba(0,0,0,0.14);
   }
-  .aa-searchrow svg { flex-shrink: 0; color: rgba(255,255,255,0.45); }
+  .aa-searchrow svg { flex-shrink: 0; color: rgba(0,0,0,0.4); }
   .aa-searchrow input {
-    flex: 1; min-width: 0; background: none; border: none; outline: none; color: #fff;
+    flex: 1; min-width: 0; background: none; border: none; outline: none; color: #0a0a0a;
     font-family: 'Inter', sans-serif; font-size: 13px;
   }
-  .aa-searchrow input::placeholder { color: rgba(255,255,255,0.35); }
+  .aa-searchrow input::placeholder { color: rgba(0,0,0,0.35); }
   .aa-clear {
     flex-shrink: 0; background: none; border: none; cursor: pointer;
     font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    color: rgba(255,255,255,0.45); transition: color 0.2s ease;
+    color: rgba(0,0,0,0.4); transition: color 0.2s ease;
   }
-  .aa-clear:hover { color: #fff; }
+  .aa-clear:hover { color: #0a0a0a; }
   .aa-list { max-height: 480px; overflow-y: auto; }
-  .aa-empty { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.45); font-size: 12.5px; padding: 24px 20px; }
+  .aa-empty { font-family: 'Inter', sans-serif; color: rgba(0,0,0,0.4); font-size: 12.5px; padding: 24px 20px; }
   .aa-row {
-    padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 16px 20px; border-bottom: 1px solid rgba(0,0,0,0.1);
     cursor: pointer; transition: background 0.15s ease;
   }
   .aa-row:last-child { border-bottom: none; }
-  .aa-row:hover { background: rgba(255,255,255,0.03); }
-  .aa-row.active { background: rgba(255,255,255,0.06); }
+  .aa-row:hover { background: rgba(0,0,0,0.03); }
+  .aa-row.active { background: rgba(0,0,0,0.05); }
   .aa-row h3 {
-    font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
-    text-transform: uppercase; font-size: 13.5px;
+    font-family: 'Times New Roman', Times, serif; font-weight: 700; color: #0a0a0a; letter-spacing: 0;
+    text-transform: none; font-size: 15px;
   }
   .aa-detail {
     display: flex; flex-direction: column; justify-content: center;
-    background: rgba(255,255,255,0.05); border-left: 1px solid rgba(255,255,255,0.18);
+    background: #f7f7f7; border-left: 1px solid rgba(0,0,0,0.14);
     min-height: 480px; padding: 44px 48px; text-align: left;
   }
   .aa-detail h3 {
-    font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+    font-family: 'Inter', sans-serif; font-weight: 800; color: #0a0a0a; letter-spacing: -0.01em;
     text-transform: uppercase; line-height: 1.12; font-size: clamp(1.6rem, 2.8vw, 2.2rem);
   }
-  .aa-detail p { font-family: 'Inter', sans-serif; color: rgba(255,255,255,0.6); font-size: 14.5px; line-height: 1.7; margin-top: 14px; }
+  .aa-detail p { font-family: 'Inter', sans-serif; color: rgba(0,0,0,0.6); font-size: 14.5px; line-height: 1.7; margin-top: 14px; }
   @media (max-width: 760px) {
     .aa-shell { grid-template-columns: 1fr; }
-    .aa-detail { border-left: none; border-top: 1px solid rgba(255,255,255,0.18); min-height: 0; padding: 28px 24px; }
+    .aa-detail { border-left: none; border-top: 1px solid rgba(0,0,0,0.14); min-height: 0; padding: 28px 24px; }
   }
+
+  /* This page has a white background from the very top, so the nav
+     (designed for a dark hero) needs dark text/logo here instead. */
+  #site-nav .nav-logo-text { color: #0a0a0a; }
+  #site-nav .nav-logo-mark path, #site-nav .nav-logo-mark line { stroke: #0a0a0a; }
+  #site-nav .nav-link { color: rgba(10,10,10,0.7); }
+  #site-nav .nav-link:hover, #site-nav .nav-link.active { color: #0a0a0a; }
+  #site-nav .nav-login { color: rgba(10,10,10,0.7); }
+  #site-nav .nav-login:hover { color: #0a0a0a; }
+  #hamburger span { background: #0a0a0a; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<section id="aa-hero">
-  <span class="eyebrow fade-in fade-in-1">About</span>
-  <h1 class="hero-mono fade-in fade-in-2" style="margin-top:18px;color:#fff">About Althais</h1>
-  <p class="hero-sub fade-in fade-in-3" style="color:rgba(255,255,255,0.6)">Everything you'd want to know, in one place.</p>
-</section>
-
-<section id="aa-shell-wrap">
+<section id="aa-shell-wrap" style="padding-top:170px">
   <div class="aa-shell">
     <div class="aa-panel">
       <div class="aa-searchrow">
