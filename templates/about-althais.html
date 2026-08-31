@@ -13,7 +13,16 @@
   body.app-body { background: #2c3947; }
   #site-footer { background: #2c3947 !important; }
 
-  #aa-shell-wrap { padding: 0 24px 130px; background: #2c3947; }
+  /* Normal-flow section that slides up and covers the sticky #showcase
+     hero as you scroll — same layered-slide effect as landing.html.
+     Same swirl image as the hero, washed dark for the white cards. */
+  #aa-shell-wrap {
+    position: relative; z-index: 2; padding: 0 24px 130px;
+    background:
+      linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+      url('/static/backgrounds/wave-blue.png') center top / cover no-repeat,
+      #2c3947;
+  }
   .aa-wrap-inner { max-width: 1080px; width: 100%; margin: 0 auto; text-align: left; }
 
   /* Search bar + Apply/Clear — a standalone white bar above the shell,
@@ -90,7 +99,7 @@
      with its own swirl background (only the top has it).
      ══════════════════════════════════════════════════════════════ */
   #showcase {
-    position: relative; z-index: 1; min-height: 100svh; padding: 128px 24px 60px; overflow: hidden;
+    position: sticky; top: 0; z-index: 1; height: 100svh; padding: 128px 24px 60px; overflow: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: #2c3947;
   }
