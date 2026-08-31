@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Learn More — Althais{% endblock %}
+{% block meta_description %}Learn more about Althais.{% endblock %}
+{% block canonical %}https://althais.com/learn-more{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Page is white from the top, so the nav (designed for a dark hero)
+     needs dark text/logo here — the logo carries inline color:#fff in
+     base.html, which needs !important to beat. */
+  #site-nav .nav-logo-text { color: #0a0a0a !important; }
+  #site-nav .nav-logo-mark path, #site-nav .nav-logo-mark line { stroke: #0a0a0a !important; }
+  #site-nav .nav-link { color: rgba(10,10,10,0.7); }
+  #site-nav .nav-link:hover, #site-nav .nav-link.active { color: #0a0a0a; }
+  #site-nav .nav-login { color: rgba(10,10,10,0.7); }
+  #site-nav .nav-login:hover { color: #0a0a0a; }
+  #hamburger span { background: #0a0a0a; }
+
+  #lm-wrap { padding: 170px 24px 100px; background: #f4f4f5; }
+  .lm-inner { max-width: 1080px; width: 100%; margin: 0 auto; text-align: left; }
+
+  .lm-hint {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; color: rgba(0,0,0,0.5);
+    margin-bottom: 14px;
+  }
+
+  .lm-searchbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .lm-searchrow {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 1px solid rgba(0,0,0,0.16); border-radius: 4px;
+    padding: 14px 18px;
+  }
+  .lm-searchrow svg { flex-shrink: 0; color: rgba(0,0,0,0.4); }
+  .lm-searchrow input {
+    flex: 1; min-width: 0; background: none; border: none; outline: none; color: #0a0a0a;
+    font-family: 'Inter', sans-serif; font-size: 14px;
+  }
+  .lm-locate { flex-shrink: 0; color: rgba(0,0,0,0.35); display: flex; }
+  .lm-apply, .lm-clear {
+    flex-shrink: 0; cursor: pointer; border-radius: 4px;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+    padding: 14px 26px; transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .lm-apply { background: #2b2f38; color: #fff; border: 1px solid #2b2f38; }
+  .lm-apply:hover { background: #1c1f26; }
+  .lm-clear { background: #fff; color: #0a0a0a; border: 1px solid rgba(0,0,0,0.5); }
+  .lm-clear:hover { background: rgba(0,0,0,0.04); }
+
+  .lm-shell { display: grid; grid-template-columns: 30% 1fr; align-items: stretch; position: relative; }
+  .lm-list { max-height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 14px; }
+  .lm-row {
+    background: #fff; border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid transparent;
+    padding: 18px 20px; transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .lm-row:hover { background: #fafafa; }
+  .lm-row.active { background: #f3f3f4; border-left-color: #0a0a0a; }
+  .lm-row h3 {
+    font-family: 'Times New Roman', Times, serif; font-weight: 700; color: #0a0a0a; letter-spacing: 0;
+    font-size: 19px; outline: none; border-radius: 3px;
+  }
+  .lm-row .lm-address {
+    font-family: 'Times New Roman', Times, serif; color: #0a0a0a; font-size: 15px; line-height: 1.4;
+    margin-top: 6px; outline: none; border-radius: 3px;
+  }
+  .lm-badge {
+    display: inline-block; margin-top: 10px; background: rgba(0,0,0,0.06); color: #0a0a0a;
+    font-family: 'Inter', sans-serif; font-size: 12.5px; padding: 5px 10px; border-radius: 4px;
+    outline: none;
+  }
+  [contenteditable="true"]:focus { background: rgba(10,132,255,0.08); box-shadow: 0 0 0 2px rgba(10,132,255,0.25); }
+  .lm-toggle {
+    position: absolute; top: 50%; left: 30%; transform: translate(-50%, -50%); z-index: 3;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid rgba(0,0,0,0.14); border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12); cursor: pointer; color: #0a0a0a;
+    transition: transform 0.25s ease;
+  }
+  .lm-shell.collapsed .lm-toggle { transform: translate(-50%, -50%) rotate(180deg); left: 0; }
+  .lm-shell.collapsed .lm-panel { display: none; }
+  .lm-shell.collapsed .lm-map { grid-column: 1 / -1; }
+  .lm-panel { min-width: 0; }
+  .lm-map { background: #e2e2e4; min-height: 600px; }
+
+  @media (max-width: 760px) {
+    .lm-searchbar { flex-wrap: wrap; }
+    .lm-shell { grid-template-columns: 1fr; }
+    .lm-toggle { display: none; }
+    .lm-map { min-height: 240px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section id="lm-wrap">
+  <div class="lm-inner">
+    <p class="lm-hint">Click any title, address, or badge below to edit it directly — changes save automatically in this browser.</p>
+
+    <div class="lm-searchbar">
+      <div class="lm-searchrow">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="lm-input" autocomplete="off" />
+        <span class="lm-locate">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+      <button type="button" class="lm-apply">Apply</button>
+      <button type="button" class="lm-clear">Clear</button>
+    </div>
+
+    <div class="lm-shell" id="lm-shell">
+      <div class="lm-panel">
+        <div class="lm-list" id="lm-list">
+          <div class="lm-row active" data-id="1">
+            <h3 contenteditable="true" data-field="title">Gateway Center</h3>
+            <p class="lm-address" contenteditable="true" data-field="address">1505 University Dr E College Station TX 77840 United States</p>
+            <span class="lm-badge" contenteditable="true" data-field="distance">2.1 mi away</span>
+          </div>
+          <div class="lm-row" data-id="2">
+            <h3 contenteditable="true" data-field="title">San Tan Village</h3>
+            <p class="lm-address" contenteditable="true" data-field="address">2779 South Market Street Gilbert AZ 85295 United States</p>
+            <span class="lm-badge" contenteditable="true" data-field="distance">32.87 mi away</span>
+          </div>
+          <div class="lm-row" data-id="3">
+            <h3 contenteditable="true" data-field="title">Brenham Crossing</h3>
+            <p class="lm-address" contenteditable="true" data-field="address">974 US HWY 290 E Brenham TX 77833 United States</p>
+            <span class="lm-badge" contenteditable="true" data-field="distance">33.12 mi away</span>
+          </div>
+          <div class="lm-row" data-id="4">
+            <h3 contenteditable="true" data-field="title">Ravenwood Village</h3>
+            <p class="lm-address" contenteditable="true" data-field="address">249A I-45 Huntsville TX 77340 United States</p>
+            <span class="lm-badge" contenteditable="true" data-field="distance">46.3 mi away</span>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="lm-toggle" id="lm-toggle" aria-label="Toggle list panel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="lm-map"></div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  var STORAGE_KEY = 'althais-learn-more-edits';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { saved = {}; }
+
+  document.querySelectorAll('.lm-row').forEach(function (row) {
+    var id = row.getAttribute('data-id');
+    row.querySelectorAll('[contenteditable="true"]').forEach(function (el) {
+      var field = el.getAttribute('data-field');
+      var key = id + ':' + field;
+      if (saved[key] != null) el.textContent = saved[key];
+      el.addEventListener('blur', function () {
+        saved[key] = el.textContent;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); } catch (e) {}
+      });
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+      });
+    });
+    row.addEventListener('click', function (e) {
+      document.querySelectorAll('.lm-row').forEach(function (r) { r.classList.remove('active'); });
+      row.classList.add('active');
+    });
+  });
+
+  var toggleBtn = document.getElementById('lm-toggle');
+  var shellEl = document.getElementById('lm-shell');
+  toggleBtn.addEventListener('click', function () {
+    shellEl.classList.toggle('collapsed');
+  });
+})();
+</script>
+{% endblock %}

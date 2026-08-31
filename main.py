@@ -89,11 +89,15 @@ async def about_althais_page(request: Request, user=Depends(current_user)):
 
 
 @app.get("/walkthrough")
-@app.get("/learn-more")
 async def blank_placeholder_page(request: Request):
-    # Placeholder for the About Althais hero's two CTA buttons — blank
-    # white page until real content exists.
+    # Placeholder for the About Althais hero's "See The Full Walkthrough"
+    # button — blank white page until real content exists.
     return templates.TemplateResponse(request, "blank_page.html", {})
+
+
+@app.get("/learn-more")
+async def learn_more_page(request: Request, user=Depends(current_user)):
+    return templates.TemplateResponse(request, "learn_more.html", _marketing_ctx(user, "learn-more"))
 
 
 @app.get("/legal/privacy")
