@@ -56,21 +56,128 @@
     .aa-detail { border-left: none; border-top: 1px solid rgba(0,0,0,0.14); min-height: 0; padding: 28px 24px; }
   }
 
-  /* This page has a white background from the very top, so the nav
-     (designed for a dark hero) needs dark text/logo here instead. */
-  #site-nav .nav-logo-text { color: #0a0a0a; }
-  #site-nav .nav-logo-mark path, #site-nav .nav-logo-mark line { stroke: #0a0a0a; }
-  #site-nav .nav-link { color: rgba(10,10,10,0.7); }
-  #site-nav .nav-link:hover, #site-nav .nav-link.active { color: #0a0a0a; }
-  #site-nav .nav-login { color: rgba(10,10,10,0.7); }
-  #site-nav .nav-login:hover { color: #0a0a0a; }
-  #hamburger span { background: #0a0a0a; }
+  /* ══════════════════════════════════════════════════════════════
+     Product Showcase — coverflow slide sequence, moved here from the
+     landing page. Dark, full-bleed, sits above the white search shell
+     as this page's hero — the default (light-on-transparent → dark
+     frosted on scroll) nav styling from design-system.css applies as-is.
+     ══════════════════════════════════════════════════════════════ */
+  #showcase {
+    position: relative; z-index: 1; min-height: 100svh; padding: 170px 24px 60px; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #000;
+  }
+  .showcase-video-wrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .showcase-video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .showcase-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.68); pointer-events: none; }
+  .showcase-inner {
+    position: relative; z-index: 2; max-width: 1400px; width: 100%; margin: 0 auto; padding: 0 24px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  .showcase-text { max-width: 640px; margin: 0 auto 16px; text-align: center; }
+  .ps-progress { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
+  .ps-heading {
+    font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+    text-transform: uppercase; line-height: 1.12; font-size: clamp(1.6rem, 2.8vw, 2.3rem); margin-top: 12px;
+  }
+  .ps-cta {
+    display: inline-flex; align-items: center; gap: 10px; margin-top: 16px;
+    background: #fff; color: #0a0a0a; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 14px 26px; border-radius: 2px; transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .ps-cta:hover { background: #eee; transform: translateY(-2px); }
+
+  /* ── Coverflow stage: center window + peeking prev/next, clickable.
+     All three windows share one fixed frame size (matching the two
+     landscape screenshots); a portrait screenshot (slide 2) crops to
+     fit rather than resizing the frame per-slide. ── */
+  #ps-stage { position: relative; width: 100%; height: 520px; flex-shrink: 0; }
+
+  .ps-browser {
+    position: absolute; top: 50%; left: 50%; width: min(78vw, 980px);
+    background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.5); overflow: hidden;
+    transition: transform 0.45s cubic-bezier(.16,1,.3,1), opacity 0.45s ease, filter 0.45s ease;
+  }
+  .ps-center { transform: translate(-50%,-50%) scale(1); z-index: 3; opacity: 1; }
+  .ps-side { z-index: 1; opacity: 0.4; filter: blur(0.5px) brightness(0.65); cursor: pointer; }
+  .ps-side:hover { opacity: 0.65; filter: blur(0px) brightness(0.8); }
+  .ps-side-left { transform: translate(-96%,-50%) scale(0.84); }
+  .ps-side-right { transform: translate(-4%,-50%) scale(0.84); }
+
+  .ps-chrome {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 14px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .ps-url {
+    font-family: 'Inter', sans-serif; font-size: 11.5px; color: rgba(255,255,255,0.55);
+    background: rgba(255,255,255,0.06); border-radius: 999px; padding: 4px 16px; white-space: nowrap;
+  }
+  .ps-img-frame { height: 480px; background: #0a0a0a; overflow: hidden; }
+  .ps-img-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; transition: opacity 0.18s ease; }
+
+  @media (max-width: 900px) {
+    #ps-stage { position: static; height: auto; margin-top: 8px; }
+    .ps-side { display: none; }
+    .ps-browser {
+      position: static; transform: none !important; width: 100%; opacity: 1; filter: none;
+    }
+    .ps-img-frame { height: 300px; }
+    .ps-img-frame img { width: 100%; height: auto; object-fit: contain; }
+  }
+
+  .ps-dots { display: flex; justify-content: center; gap: 8px; flex-shrink: 0; margin-top: 22px; }
+  .ps-dot {
+    min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.55); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .ps-dot:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+  .ps-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<section id="aa-shell-wrap" style="padding-top:170px">
+<!-- Product Showcase — moved from the landing page, now this page's hero -->
+<section id="showcase">
+  <div class="showcase-video-wrap">
+    <video autoplay muted loop playsinline preload="auto">
+      <source src="/videos/althais-in-use.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <div class="showcase-overlay"></div>
+  <div class="showcase-inner">
+    <div class="showcase-text">
+      <div class="ps-progress"><span id="ps-num">01</span> / <span id="ps-total">03</span></div>
+      <h2 id="ps-title" class="ps-heading"></h2>
+      <a href="/how-it-works" class="ps-cta">See The Full Walkthrough →</a>
+    </div>
+
+    <div id="ps-stage">
+      <div class="ps-browser ps-side ps-side-left" id="ps-window-prev" aria-hidden="true">
+        <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
+        <div class="ps-img-frame"><img id="ps-img-prev" src="" alt="" /></div>
+      </div>
+
+      <div class="ps-browser ps-center" id="ps-window-center">
+        <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
+        <div class="ps-img-frame"><img id="ps-img" src="" alt="" /></div>
+      </div>
+
+      <div class="ps-browser ps-side ps-side-right" id="ps-window-next" aria-hidden="true">
+        <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
+        <div class="ps-img-frame"><img id="ps-img-next" src="" alt="" /></div>
+      </div>
+    </div>
+
+    <div class="ps-dots" id="ps-dots"></div>
+  </div>
+</section>
+
+<section id="aa-shell-wrap" style="padding-top:70px">
   <div class="aa-shell">
     <div class="aa-panel">
       <div class="aa-searchrow">
@@ -152,5 +259,72 @@
 
   render(topics);
 })();
+</script>
+<script>
+  // Product Showcase slideshow — headline+desc left, screenshot right,
+  // next-slide thumbnail peek, dots + top-right prev/next arrows.
+  (function () {
+    var slides = [
+      {
+        title: 'Capture The Notes As Written',
+        img: '/static/screenshots/provider-note.png',
+        alt: 'The Virtual SOAP note entry screen in Althais',
+      },
+      {
+        title: 'AI turns it into a claim',
+        img: '/static/screenshots/claim-assembly.png',
+        alt: 'A CMS-1500 health insurance claim form assembled automatically from approved codes',
+      },
+      {
+        title: 'Get paid, faster',
+        img: '/static/screenshots/payment.png',
+        alt: 'Claims filtered to Paid status showing posted payment amounts',
+      },
+    ];
+
+    var numEl = document.getElementById('ps-num');
+    var totalEl = document.getElementById('ps-total');
+    var titleEl = document.getElementById('ps-title');
+    var imgEl = document.getElementById('ps-img');
+    var imgPrevEl = document.getElementById('ps-img-prev');
+    var imgNextEl = document.getElementById('ps-img-next');
+    var windowPrevEl = document.getElementById('ps-window-prev');
+    var windowNextEl = document.getElementById('ps-window-next');
+    var dotsEl = document.getElementById('ps-dots');
+
+    totalEl.textContent = String(slides.length).padStart(2, '0');
+    dotsEl.innerHTML = slides.map(function (s, i) {
+      return '<button type="button" class="ps-dot" data-index="' + i + '">' + String(i + 1).padStart(2, '0') + '</button>';
+    }).join('');
+    var dots = dotsEl.querySelectorAll('.ps-dot');
+
+    var current = 0;
+    function render(index) {
+      current = (index + slides.length) % slides.length;
+      var s = slides[current];
+      var prevSlide = slides[(current - 1 + slides.length) % slides.length];
+      var nextSlide = slides[(current + 1) % slides.length];
+
+      numEl.textContent = String(current + 1).padStart(2, '0');
+      titleEl.textContent = s.title;
+      imgEl.src = s.img;
+      imgEl.alt = s.alt;
+
+      imgPrevEl.src = prevSlide.img;
+      imgPrevEl.alt = prevSlide.alt;
+      imgNextEl.src = nextSlide.img;
+      imgNextEl.alt = nextSlide.alt;
+
+      dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
+    }
+
+    windowPrevEl.addEventListener('click', function () { render(current - 1); });
+    windowNextEl.addEventListener('click', function () { render(current + 1); });
+    dots.forEach(function (d) {
+      d.addEventListener('click', function () { render(parseInt(d.getAttribute('data-index'), 10)); });
+    });
+
+    render(0);
+  })();
 </script>
 {% endblock %}
