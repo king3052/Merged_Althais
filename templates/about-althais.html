@@ -6,11 +6,15 @@
 {% block extra_head %}
 <style>
   /* body.app-body's shared background (--cream, a dark navy) shows through
-     during overscroll bounce at the very top of the page — match it to
-     this page's own hero instead of the site-wide navy. The shared
-     footer at the very bottom uses the same navy, so give it the same
-     override for a continuous look end to end. */
-  body.app-body { background: #2c3947; }
+     during overscroll bounce at the very top/bottom of the page — give it
+     the same swirl image as the hero (not just a flat matching color) so
+     the bounce sliver blends in seamlessly instead of reading as a bar. */
+  body.app-body {
+    background:
+      linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+      url('/static/backgrounds/wave-blue.png') center top / cover no-repeat,
+      #2c3947;
+  }
   #site-footer { background: #2c3947 !important; }
 
   /* Normal-flow section that slides up and covers the sticky #showcase
