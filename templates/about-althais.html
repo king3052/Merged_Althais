@@ -15,7 +15,24 @@
       url('/static/backgrounds/wave-blue.png') center top / cover no-repeat,
       #2c3947;
   }
-  #site-footer { background: #2c3947 !important; }
+  /* Swap the shared multi-column #site-footer for the compact bar used
+     on the landing page instead — same markup/styling as landing.html's
+     #site-footer-bar. */
+  #site-footer { display: none; }
+  #site-footer-bar {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 56px; border-top: 1px solid rgba(255,255,255,0.14);
+    font-family: 'Inter', sans-serif; background: #000;
+  }
+  #site-footer-bar p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: #fff; }
+  #site-footer-bar .footer-links { display: flex; gap: 24px; }
+  #site-footer-bar a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #fff; transition: color 0.2s ease; }
+  #site-footer-bar a:hover { color: rgba(255,255,255,0.7); }
+  @media (max-width: 480px) {
+    #site-footer-bar { flex-direction: column; gap: 8px; padding: 14px 20px; text-align: center; }
+    #site-footer-bar .footer-links { gap: 16px; }
+  }
 
   /* Normal-flow section that slides up and covers the sticky #showcase
      hero as you scroll — same layered-slide effect as landing.html.
@@ -261,6 +278,17 @@
     </div>
   </div>
 </section>
+
+<!-- Compact footer bar, same as landing.html — #site-footer (the shared
+     multi-column one) is hidden on this page. -->
+<footer id="site-footer-bar">
+  <p>© 2026 Althais Health, Inc.</p>
+  <div class="footer-links">
+    <a href="/legal/privacy">Privacy</a>
+    <a href="/legal/terms">Terms</a>
+    <a href="/contact">Contact</a>
+  </div>
+</footer>
 
 {% endblock %}
 
