@@ -89,27 +89,26 @@
   }
   .showcase-video-wrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
   .showcase-video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  /* City video is bright daytime footage — a light wash keeps the
-     black heading/text here legible instead of the dark wash used
-     for white text elsewhere. */
-  .showcase-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(255,255,255,0.6); pointer-events: none; }
+  /* Dark wash so the white heading/text here stay legible over the
+     bright city footage. */
+  .showcase-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.55); pointer-events: none; }
   .showcase-inner {
     position: relative; z-index: 2; max-width: 1400px; width: 100%; margin: 0 auto; padding: 0 24px;
     display: flex; flex-direction: column; align-items: center;
   }
 
   .showcase-text { max-width: 640px; margin: 0 auto 16px; text-align: center; }
-  .ps-progress { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: rgba(0,0,0,0.5); }
+  .ps-progress { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
   .ps-heading {
-    font-family: 'Inter', sans-serif; font-weight: 800; color: #0a0a0a; letter-spacing: -0.01em;
+    font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
     text-transform: uppercase; line-height: 1.12; font-size: clamp(1.6rem, 2.8vw, 2.3rem); margin-top: 12px;
   }
   .ps-cta {
     display: inline-flex; align-items: center; gap: 10px; margin-top: 16px;
-    background: #0a0a0a; color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    background: #fff; color: #0a0a0a; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
     padding: 14px 26px; border-radius: 2px; transition: background 0.2s ease, transform 0.2s ease;
   }
-  .ps-cta:hover { background: #2a2a2a; transform: translateY(-2px); }
+  .ps-cta:hover { background: #eee; transform: translateY(-2px); }
 
   /* ── Coverflow stage: center window + peeking prev/next, clickable.
      All three windows share one fixed frame size (matching the two
@@ -153,21 +152,16 @@
   .ps-dots { display: flex; justify-content: center; gap: 8px; flex-shrink: 0; margin-top: 22px; }
   .ps-dot {
     min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
-    border: 1px solid rgba(0,0,0,0.16); background: rgba(0,0,0,0.03);
-    color: rgba(0,0,0,0.55); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.55); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
     cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
-  .ps-dot:hover { color: #0a0a0a; border-color: rgba(0,0,0,0.4); }
-  .ps-dot.active { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
+  .ps-dot:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+  .ps-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
 
-  /* This page is white from the very top again, so the nav (designed
-     for a dark hero) needs dark text/logo here instead. The logo's
-     mark/text carry inline styles in base.html (color:#fff / stroke:#fff),
-     which beat a plain class rule — !important is needed to win. */
-  #site-nav .nav-logo-text { color: #0a0a0a !important; }
-  #site-nav .nav-logo-mark path, #site-nav .nav-logo-mark line { stroke: #0a0a0a !important; }
-  #site-nav .nav-link { color: rgba(10,10,10,0.7); }
-  #site-nav .nav-link:hover, #site-nav .nav-link.active { color: #0a0a0a; }
+  /* Hero is dark again (city video + dark wash), so the shared
+     design-system.css nav styling (light-on-transparent → dark
+     frosted on scroll) applies as-is — no color override needed. */
 
   /* No login/account entry point on this page. */
   #site-nav .nav-login, #hamburger, #mobile-menu { display: none; }
