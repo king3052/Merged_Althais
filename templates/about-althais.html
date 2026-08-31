@@ -87,6 +87,20 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: #3a4a5c;
   }
+  .showcase-bg-wrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .showcase-bg-wrap img {
+    position: absolute; top: 50%; left: 50%; width: 130%; height: 130%; object-fit: cover;
+    transform: translate(-50%,-50%) scale(1) rotate(0deg);
+    animation: swirlDrift 26s ease-in-out infinite alternate;
+  }
+  @keyframes swirlDrift {
+    0%   { transform: translate(-53%,-52%) scale(1.06) rotate(0deg); }
+    100% { transform: translate(-47%,-48%) scale(1.18) rotate(2deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .showcase-bg-wrap img { animation: none; }
+  }
+  .showcase-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.35); pointer-events: none; }
   .showcase-inner {
     position: relative; z-index: 2; max-width: 1400px; width: 100%; margin: 0 auto; padding: 0 24px;
     display: flex; flex-direction: column; align-items: center;
@@ -175,6 +189,10 @@
 
 <!-- Product Showcase — moved from the landing page, now this page's hero -->
 <section id="showcase">
+  <div class="showcase-bg-wrap">
+    <img src="/static/backgrounds/wave-abstract.png" alt="" />
+  </div>
+  <div class="showcase-overlay"></div>
   <div class="showcase-inner">
     <div class="showcase-text">
       <div class="ps-progress"><span id="ps-num">01</span> / <span id="ps-total">03</span></div>
