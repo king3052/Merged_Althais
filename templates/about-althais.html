@@ -5,46 +5,64 @@
 
 {% block extra_head %}
 <style>
-  #aa-shell-wrap { padding: 0 24px 130px; background: #fff; }
-  .aa-shell {
-    display: grid; grid-template-columns: 30% 1fr; max-width: 1080px; width: 100%; margin: 0 auto;
-    border: 1px solid rgba(0,0,0,0.14); border-radius: 6px; overflow: hidden;
-    background: #fff; text-align: left;
+  #aa-shell-wrap { padding: 0 24px 130px; background: #f4f4f5; }
+  .aa-wrap-inner { max-width: 1080px; width: 100%; margin: 0 auto; text-align: left; }
+
+  /* Search bar + Apply/Clear — a standalone white bar above the shell,
+     matching a location-finder search UI. */
+  .aa-searchbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
   }
-  .aa-panel { display: flex; flex-direction: column; min-width: 0; }
   .aa-searchrow {
-    display: flex; align-items: center; gap: 10px; padding: 18px 20px;
-    border-bottom: 1px solid rgba(0,0,0,0.14);
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 1px solid rgba(0,0,0,0.16); border-radius: 4px;
+    padding: 14px 18px;
   }
   .aa-searchrow svg { flex-shrink: 0; color: rgba(0,0,0,0.4); }
   .aa-searchrow input {
     flex: 1; min-width: 0; background: none; border: none; outline: none; color: #0a0a0a;
-    font-family: 'Inter', sans-serif; font-size: 13px;
+    font-family: 'Inter', sans-serif; font-size: 14px;
   }
   .aa-searchrow input::placeholder { color: rgba(0,0,0,0.35); }
-  .aa-clear {
-    flex-shrink: 0; background: none; border: none; cursor: pointer;
-    font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    color: rgba(0,0,0,0.4); transition: color 0.2s ease;
+  .aa-apply, .aa-clear {
+    flex-shrink: 0; cursor: pointer; border-radius: 4px;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+    padding: 14px 26px; transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .aa-clear:hover { color: #0a0a0a; }
-  .aa-list { max-height: 480px; overflow-y: auto; }
-  .aa-empty { font-family: 'Inter', sans-serif; color: rgba(0,0,0,0.4); font-size: 12.5px; padding: 24px 20px; }
+  .aa-apply { background: #2b2f38; color: #fff; border: 1px solid #2b2f38; }
+  .aa-apply:hover { background: #1c1f26; }
+  .aa-clear { background: #fff; color: #0a0a0a; border: 1px solid rgba(0,0,0,0.5); }
+  .aa-clear:hover { background: rgba(0,0,0,0.04); }
+
+  /* Two-column shell: card list on the left, detail panel on the right,
+     with a small floating toggle button on the seam between them. */
+  .aa-shell { display: grid; grid-template-columns: 30% 1fr; align-items: stretch; position: relative; }
+  .aa-panel { display: flex; flex-direction: column; min-width: 0; }
+  .aa-list { max-height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 14px; }
+  .aa-empty { font-family: 'Inter', sans-serif; color: rgba(0,0,0,0.4); font-size: 12.5px; padding: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; }
   .aa-row {
-    padding: 16px 20px; border-bottom: 1px solid rgba(0,0,0,0.1);
-    cursor: pointer; transition: background 0.15s ease;
+    background: #fff; border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid transparent;
+    padding: 18px 20px; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .aa-row:last-child { border-bottom: none; }
-  .aa-row:hover { background: rgba(0,0,0,0.03); }
-  .aa-row.active { background: rgba(0,0,0,0.05); }
+  .aa-row:hover { background: #fafafa; }
+  .aa-row.active { background: #f3f3f4; border-left-color: #0a0a0a; }
   .aa-row h3 {
     font-family: 'Times New Roman', Times, serif; font-weight: 700; color: #0a0a0a; letter-spacing: 0;
-    text-transform: none; font-size: 15px;
+    text-transform: none; font-size: 19px;
   }
+  .aa-toggle {
+    position: absolute; top: 50%; left: 30%; transform: translate(-50%, -50%); z-index: 3;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid rgba(0,0,0,0.14); border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12); cursor: pointer; color: #0a0a0a;
+    transition: transform 0.25s ease;
+  }
+  .aa-shell.collapsed .aa-toggle { transform: translate(-50%, -50%) rotate(180deg); left: 0; }
+  .aa-shell.collapsed .aa-panel { display: none; }
+  .aa-shell.collapsed .aa-detail { grid-column: 1 / -1; }
   .aa-detail {
     display: flex; flex-direction: column; justify-content: center;
-    background: #f7f7f7; border-left: 1px solid rgba(0,0,0,0.14);
-    min-height: 480px; padding: 44px 48px; text-align: left;
+    background: #e2e2e4; min-height: 600px; padding: 44px 48px; text-align: left;
   }
   .aa-detail h3 {
     font-family: 'Inter', sans-serif; font-weight: 800; color: #0a0a0a; letter-spacing: -0.01em;
@@ -52,8 +70,10 @@
   }
   .aa-detail p { font-family: 'Inter', sans-serif; color: rgba(0,0,0,0.6); font-size: 14.5px; line-height: 1.7; margin-top: 14px; }
   @media (max-width: 760px) {
+    .aa-searchbar { flex-wrap: wrap; }
     .aa-shell { grid-template-columns: 1fr; }
-    .aa-detail { border-left: none; border-top: 1px solid rgba(0,0,0,0.14); min-height: 0; padding: 28px 24px; }
+    .aa-toggle { display: none; }
+    .aa-detail { min-height: 0; padding: 28px 24px; margin-top: 10px; }
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -185,16 +205,25 @@
 </section>
 
 <section id="aa-shell-wrap" style="padding-top:70px">
-  <div class="aa-shell">
-    <div class="aa-panel">
+  <div class="aa-wrap-inner">
+    <div class="aa-searchbar">
       <div class="aa-searchrow">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="text" id="aa-input" placeholder="Search…" autocomplete="off" />
-        <button type="button" id="aa-clear" class="aa-clear">Clear</button>
       </div>
-      <div class="aa-list" id="aa-results"></div>
+      <button type="button" id="aa-apply" class="aa-apply">Apply</button>
+      <button type="button" id="aa-clear" class="aa-clear">Clear</button>
     </div>
-    <div class="aa-detail" id="aa-detail"></div>
+
+    <div class="aa-shell" id="aa-shell">
+      <div class="aa-panel">
+        <div class="aa-list" id="aa-results"></div>
+      </div>
+      <button type="button" id="aa-toggle" class="aa-toggle" aria-label="Toggle list panel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="aa-detail" id="aa-detail"></div>
+    </div>
   </div>
 </section>
 
@@ -221,7 +250,10 @@
   ];
 
   var input = document.getElementById('aa-input');
+  var applyBtn = document.getElementById('aa-apply');
   var clearBtn = document.getElementById('aa-clear');
+  var toggleBtn = document.getElementById('aa-toggle');
+  var shellEl = document.getElementById('aa-shell');
   var resultsEl = document.getElementById('aa-results');
   var detailEl = document.getElementById('aa-detail');
 
@@ -258,10 +290,15 @@
   }
 
   input.addEventListener('input', filter);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') filter(); });
+  applyBtn.addEventListener('click', filter);
   clearBtn.addEventListener('click', function () {
     input.value = '';
     input.focus();
     render(topics);
+  });
+  toggleBtn.addEventListener('click', function () {
+    shellEl.classList.toggle('collapsed');
   });
 
   render(topics);
