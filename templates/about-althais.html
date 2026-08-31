@@ -6,15 +6,11 @@
 {% block extra_head %}
 <style>
   /* body.app-body's shared background (--cream, a dark navy) shows through
-     during overscroll bounce at the very top/bottom of the page — give it
-     the same swirl image as the hero (not just a flat matching color) so
-     the bounce sliver blends in seamlessly instead of reading as a bar. */
-  body.app-body {
-    background:
-      linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
-      url('/static/backgrounds/wave-blue.png') center top / cover no-repeat,
-      #2c3947;
-  }
+     during overscroll bounce at the very top/bottom of the page. The
+     swirl image belongs to the hero only, so this is a flat gradient
+     that just blends with each edge: hero's navy at top, footer's
+     black at bottom. */
+  body.app-body { background: linear-gradient(#2c3947, #000); }
   /* Swap the shared multi-column #site-footer for the compact bar used
      on the landing page instead — same markup/styling as landing.html's
      #site-footer-bar. */
