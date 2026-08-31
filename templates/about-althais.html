@@ -5,6 +5,11 @@
 
 {% block extra_head %}
 <style>
+  /* body.app-body's shared background (--cream, a dark navy) shows through
+     during overscroll bounce at the very top of the page — match it to
+     this page's own hero instead of the site-wide navy. */
+  body.app-body { background: #2c3947; }
+
   #aa-shell-wrap { padding: 0 24px 130px; background: #f4f4f5; }
   .aa-wrap-inner { max-width: 1080px; width: 100%; margin: 0 auto; text-align: left; }
 
