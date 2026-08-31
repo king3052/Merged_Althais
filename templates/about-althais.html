@@ -5,11 +5,10 @@
 
 {% block extra_head %}
 <style>
-  /* body.app-body's shared background (--cream, a dark navy) shows through
-     during overscroll bounce at the very top/bottom of the page. The
-     swirl image belongs to the hero only, so this is a flat gradient
-     that just blends with each edge: hero's navy at top, footer's
-     black at bottom. */
+  /* Disable elastic overscroll bounce entirely (same as landing.html) —
+     stops any background/sticky-hero flash at the very top or bottom
+     of the page, rather than trying to color-match what it reveals. */
+  html, body.app-body { overscroll-behavior-y: none; }
   body.app-body { background: linear-gradient(#2c3947, #000); }
   /* Swap the shared multi-column #site-footer for the compact bar used
      on the landing page instead — same markup/styling as landing.html's
@@ -34,7 +33,7 @@
      hero as you scroll — same layered-slide effect as landing.html. */
   #aa-shell-wrap {
     position: relative; z-index: 2; padding: 0 24px 130px;
-    background: #8f9aa8;
+    background: #7c8896;
   }
   .aa-wrap-inner { max-width: 1080px; width: 100%; margin: 0 auto; text-align: left; }
 
