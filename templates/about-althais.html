@@ -65,9 +65,11 @@
   #showcase {
     position: relative; z-index: 1; min-height: 100svh; padding: 170px 24px 60px; overflow: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    /* Placeholder gradient standing in for a "doctor talking to another
-       doctor" photo — swap for a real background-image once one exists. */
-    background: linear-gradient(135deg, #eef2f6 0%, #e2e9f0 45%, #dbe4ed 100%);
+    /* Same swirl background used elsewhere on the site, washed with white
+       so the black heading/text here stay legible. */
+    background:
+      linear-gradient(rgba(255,255,255,0.82), rgba(255,255,255,0.82)),
+      url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
   }
   .showcase-inner {
     position: relative; z-index: 2; max-width: 1400px; width: 100%; margin: 0 auto; padding: 0 24px;
