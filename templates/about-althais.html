@@ -143,11 +143,13 @@
   #ps-stage { position: relative; width: 100%; height: 520px; flex-shrink: 0; margin-top: -50px; }
   /* Same treatment as the "About Althais" button on the landing page:
      clear box, white outline, sharp corners, white text. */
-  .ps-cta-below {
-    margin-top: 44px; background: transparent; color: #fff;
+  .ps-cta-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 44px; }
+  .ps-cta-row .ps-cta {
+    margin-top: 0; background: transparent; color: #fff;
     border: 1.5px solid #fff; border-radius: 0;
   }
-  .ps-cta-below:hover { background: rgba(255,255,255,0.1); transform: none; }
+  .ps-cta-row .ps-cta:hover { background: rgba(255,255,255,0.1); transform: none; }
+  .ps-cta-below { margin-right: 28px; }
 
   .ps-browser {
     position: absolute; top: 50%; left: 50%; width: min(56vw, 680px);
@@ -241,7 +243,10 @@
       </div>
     </div>
 
-    <a href="/how-it-works" class="ps-cta ps-cta-below">See The Full Walkthrough →</a>
+    <div class="ps-cta-row">
+      <a href="/how-it-works" class="ps-cta ps-cta-below">See The Full Walkthrough →</a>
+      <a href="#aa-shell-wrap" class="ps-cta ps-cta-learn">Learn More</a>
+    </div>
 
     <div class="ps-dots" id="ps-dots"></div>
   </div>
