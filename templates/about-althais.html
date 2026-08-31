@@ -135,14 +135,16 @@
   .ps-dot.active { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
 
   /* This page is white from the very top again, so the nav (designed
-     for a dark hero) needs dark text/logo here instead. */
-  #site-nav .nav-logo-text { color: #0a0a0a; }
-  #site-nav .nav-logo-mark path, #site-nav .nav-logo-mark line { stroke: #0a0a0a; }
+     for a dark hero) needs dark text/logo here instead. The logo's
+     mark/text carry inline styles in base.html (color:#fff / stroke:#fff),
+     which beat a plain class rule — !important is needed to win. */
+  #site-nav .nav-logo-text { color: #0a0a0a !important; }
+  #site-nav .nav-logo-mark path, #site-nav .nav-logo-mark line { stroke: #0a0a0a !important; }
   #site-nav .nav-link { color: rgba(10,10,10,0.7); }
   #site-nav .nav-link:hover, #site-nav .nav-link.active { color: #0a0a0a; }
-  #site-nav .nav-login { color: rgba(10,10,10,0.7); }
-  #site-nav .nav-login:hover { color: #0a0a0a; }
-  #hamburger span { background: #0a0a0a; }
+
+  /* No login/account entry point on this page. */
+  #site-nav .nav-login, #hamburger, #mobile-menu { display: none; }
 </style>
 {% endblock %}
 
