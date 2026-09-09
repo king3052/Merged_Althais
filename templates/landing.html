@@ -58,10 +58,15 @@
       display: flex; align-items: center; justify-content: space-between;
       max-width: 1600px; margin: 0 auto;
     }
-    #site-nav .nav-link { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); transition: color 0.2s ease; display: inline-flex; align-items: center; gap: 4px; }
-    #site-nav .nav-link:hover { color: #ffffff; }
-    #site-nav .nav-login { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); transition: color 0.2s ease; }
-    #site-nav .nav-login:hover { color: #ffffff; }
+    /* Unscrolled = over the white hero, so dark text; .scrolled further
+       down flips to white since it's over the dark lower section. The
+       logo's inline style="color:#fff" needs !important to beat here. */
+    #site-nav .nav-logo-text { color: #0d5bd7 !important; }
+    #site-nav .nav-logo-mark path, #site-nav .nav-logo-mark line { stroke: #0d5bd7; }
+    #site-nav .nav-link { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(10,10,10,0.75); transition: color 0.2s ease; display: inline-flex; align-items: center; gap: 4px; }
+    #site-nav .nav-link:hover { color: #0a0a0a; }
+    #site-nav .nav-login { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(10,10,10,0.75); transition: color 0.2s ease; }
+    #site-nav .nav-login:hover { color: #0a0a0a; }
     #site-nav.scrolled {
       background: transparent;
       border-bottom: 1px solid transparent;
@@ -78,7 +83,7 @@
 
     /* Mobile nav */
     #hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; z-index: 60; }
-    #hamburger span { width: 22px; height: 2px; background: #fff; transition: transform 0.25s ease, opacity 0.25s ease, background 0.25s ease; }
+    #hamburger span { width: 22px; height: 2px; background: #0a0a0a; transition: transform 0.25s ease, opacity 0.25s ease, background 0.25s ease; }
     #hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     #hamburger.open span:nth-child(2) { opacity: 0; }
     #hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
@@ -95,56 +100,36 @@
     #mobile-menu.open { opacity: 1; visibility: visible; transform: translateY(0); }
     #mobile-menu a { font-size: 15px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #fff; }
 
-    /* ── Hero / video background ─────────────────────────────────────── */
+    /* ── Hero — plain white, normal document flow (no sticky pin) ──────── */
     #hero {
-      position: sticky; top: 0; z-index: 1; height: 100svh; min-height: 560px; width: 100%;
+      position: relative; z-index: 1; height: 100svh; min-height: 560px; width: 100%;
       overflow: hidden; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(160deg, #0a0a0a 0%, #000000 100%);
-      transform: translateZ(0); will-change: transform;
-    }
-    #hero-video-wrap { position: absolute; inset: 0; overflow: hidden; will-change: transform; transform: scale(1.15); }
-    #hero-video {
-      position: absolute; inset: 0; height: 100%; width: 100%;
-      object-fit: cover;
-      animation: heroZoom 25s ease-out forwards;
-      transform-origin: center center;
-    }
-    @keyframes heroZoom {
-      from { transform: scale(1); }
-      to { transform: scale(1.12); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      #hero-video { animation: none; }
-    }
-    #hero-overlay {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.55);
+      background: #fff;
     }
     #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 900px; margin: 0 auto; }
     .hero-headline {
-      font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em; line-height: 1.12;
+      font-family: 'Inter', sans-serif; font-weight: 800; color: #0a0a0a; letter-spacing: -0.01em; line-height: 1.12;
       text-transform: uppercase;
       font-size: clamp(1.5rem, 3.6vw, 3rem);
-      text-shadow: 0 4px 40px rgba(0,0,0,0.4);
     }
     .hero-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin-top: 36px; font-family: 'Inter', sans-serif; }
     .btn-primary-hero {
       display: inline-flex; align-items: center; gap: 10px;
-      background: #fff; color: #0a0a0a;
+      background: #0a0a0a; color: #fff;
       font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
       padding: 18px 34px; border-radius: 2px;
       transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .btn-primary-hero:hover { background: #eee; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+    .btn-primary-hero:hover { background: #2a2a2a; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.2); }
     .btn-secondary-hero {
       display: inline-flex; align-items: center; gap: 10px;
-      background: transparent; color: #fff;
-      border: 1px solid rgba(255,255,255,0.6);
+      background: transparent; color: #0a0a0a;
+      border: 1px solid rgba(0,0,0,0.35);
       font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
       padding: 17px 34px; border-radius: 2px;
       transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
     }
-    .btn-secondary-hero:hover { background: rgba(255,255,255,0.12); border-color: #fff; transform: translateY(-2px); }
+    .btn-secondary-hero:hover { background: rgba(0,0,0,0.06); border-color: #0a0a0a; transform: translateY(-2px); }
 
     #hero-bottom-bar { position: absolute; left: 0; right: 0; bottom: 68px; z-index: 2; font-family: 'Inter', sans-serif; }
 
@@ -155,7 +140,7 @@
     }
     @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     .trust-marquee-track span {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.45);
+      font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(0,0,0,0.4);
       white-space: nowrap; padding: 0 28px;
     }
 
@@ -248,21 +233,6 @@
 
   <!-- Hero -->
   <section id="hero">
-    <div id="hero-video-wrap">
-      <video
-        id="hero-video"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="auto"
-        class="absolute inset-0 h-full w-full object-cover"
-      >
-        <source src="/videos/city.mp4" type="video/mp4" />
-      </video>
-    </div>
-    <div id="hero-overlay"></div>
-
     <div id="hero-content">
       <h1 class="hero-headline fade-in fade-in-1">
         TURN CLINICAL NOTES<br />INTO PAID CLAIMS.
