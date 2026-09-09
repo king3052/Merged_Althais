@@ -55,9 +55,12 @@
       font-family: 'Inter', sans-serif;
     }
     #nav-inner {
-      display: flex; align-items: center; justify-content: space-between;
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       max-width: 1600px; margin: 0 auto;
     }
+    #nav-inner > a:first-child { justify-self: start; }
+    #nav-inner .nav-links { justify-self: center; }
+    #nav-inner > div:last-child { justify-self: end; }
     /* Unscrolled = over the white hero, so dark text; .scrolled further
        down flips to white since it's over the dark lower section. The
        logo's inline style="color:#fff" needs !important to beat here. */
@@ -106,7 +109,7 @@
       overflow: hidden; display: flex; align-items: center; justify-content: center;
       background: #fff;
     }
-    #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 900px; margin: 0 auto; }
+    #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 900px; margin: -260px auto 0; }
     .hero-headline {
       font-family: 'Inter', sans-serif; font-weight: 800; color: #0a0a0a; letter-spacing: -0.01em; line-height: 1.12;
       text-transform: uppercase;
@@ -217,12 +220,12 @@
         <span class="nav-logo-text" style="font-size:15px;font-weight:600;letter-spacing:0.35em;color:#fff;text-transform:uppercase;padding-left:0.35em;transition:color 0.35s ease">ALTHAIS</span>
       </a>
 
+      <div class="nav-links flex items-center" style="gap:28px">
+        <a href="/about-althais" class="nav-link">About</a>
+        <a href="/pricing" class="nav-link">Pricing</a>
+      </div>
+
       <div class="flex items-center" style="gap:32px">
-        <div class="nav-links flex items-center" style="gap:28px">
-          <a href="/about-althais" class="nav-link">About</a>
-          <a href="/pricing" class="nav-link">Pricing</a>
-          <a href="/contact" class="nav-link">Contact Us</a>
-        </div>
         <a href="/login" class="nav-login" id="nav-login-desktop">Log in</a>
         <div id="hamburger" onclick="toggleMobileMenu()">
           <span></span><span></span><span></span>
@@ -235,7 +238,6 @@
   <div id="mobile-menu">
     <a href="/about-althais" onclick="toggleMobileMenu()">About</a>
     <a href="/pricing" onclick="toggleMobileMenu()">Pricing</a>
-    <a href="/contact" onclick="toggleMobileMenu()">Contact Us</a>
     <a href="/login" onclick="toggleMobileMenu()">Log in</a>
   </div>
 
