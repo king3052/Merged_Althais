@@ -10,10 +10,88 @@
   <style>
     * { box-sizing: border-box; }
     body { font-family: 'Inter', Arial, sans-serif; }
-    .video-hero { position: relative; min-height: 640px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .video-hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .video-hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
-    .video-hero-content { position: relative; z-index: 1; text-align: center; padding: 0 24px; max-width: 800px; margin: 0 auto; }
+    /* ── Original nav (transparent over hero, solid on scroll) ──────── */
+    #site-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      padding: 26px 56px;
+      background: transparent;
+      border-bottom: 1px solid transparent;
+      transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, padding 0.35s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    #nav-inner { display: flex; align-items: center; justify-content: space-between; max-width: 1600px; margin: 0 auto; }
+    #site-nav .nav-login { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); transition: color 0.2s ease; }
+    #site-nav .nav-login:hover { color: #ffffff; }
+    #site-nav.scrolled { background: rgba(0,0,0,0.75); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); padding: 18px 56px; }
+    #site-nav.scrolled .nav-login { color: rgba(255,255,255,0.7); }
+    #site-nav.scrolled .nav-login:hover { color: #fff; }
+
+    #hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; z-index: 60; }
+    #hamburger span { width: 22px; height: 2px; background: #fff; transition: transform 0.25s ease, opacity 0.25s ease, background 0.25s ease; }
+    #hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    #hamburger.open span:nth-child(2) { opacity: 0; }
+    #hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    #mobile-menu {
+      position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,0.94);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+      opacity: 0; visibility: hidden; transform: translateY(-12px);
+      transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    }
+    #mobile-menu.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    #mobile-menu a { font-size: 15px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #fff; }
+
+    /* ── Original hero / video background ────────────────────────── */
+    #hero {
+      position: relative; z-index: 1; height: 100svh; min-height: 560px; width: 100%;
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #0a0a0a 0%, #000000 100%);
+    }
+    #hero-video-wrap { position: absolute; inset: 0; overflow: hidden; transform: scale(1.15); }
+    #hero-video { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; animation: heroZoom 25s ease-out forwards; transform-origin: center center; }
+    @keyframes heroZoom { from { transform: scale(1); } to { transform: scale(1.12); } }
+    @media (prefers-reduced-motion: reduce) { #hero-video { animation: none; } }
+    #hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+    #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 900px; margin: 0 auto; }
+    .hero-headline {
+      font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em; line-height: 1.12;
+      text-transform: uppercase;
+      font-size: clamp(1.5rem, 3.6vw, 3rem);
+      text-shadow: 0 4px 40px rgba(0,0,0,0.4);
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin-top: 36px; font-family: 'Inter', sans-serif; }
+    .btn-primary-hero {
+      display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #0a0a0a;
+      font-size: 15px; font-weight: 600; padding: 14px 30px; border-radius: 999px;
+      transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; text-decoration: none;
+    }
+    .btn-primary-hero:hover { background: #eee; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+    .btn-secondary-hero {
+      display: inline-flex; align-items: center; gap: 10px; background: transparent; color: #fff;
+      border: 1px solid rgba(255,255,255,0.6); font-size: 15px; font-weight: 600; padding: 13px 30px; border-radius: 999px;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease; text-decoration: none;
+    }
+    .btn-secondary-hero:hover { background: rgba(255,255,255,0.12); border-color: #fff; transform: translateY(-2px); }
+
+    #hero-bottom-bar { position: absolute; left: 0; right: 0; bottom: 40px; z-index: 2; font-family: 'Inter', sans-serif; }
+    .trust-marquee { width: 100%; overflow: hidden; }
+    .trust-marquee-track { display: flex; align-items: center; width: max-content; animation: marquee-scroll 28s linear infinite; }
+    @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .trust-marquee-track span {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.45);
+      white-space: nowrap; padding: 0 28px;
+    }
+
+    @media (max-width: 900px) {
+      #site-nav .nav-login { display: none; }
+      #hamburger { display: flex; }
+      #site-nav { padding: 18px 20px; }
+      #site-nav.scrolled { padding: 14px 20px; }
+    }
+    @media (max-width: 480px) {
+      .hero-actions { flex-direction: column; width: 100%; }
+      .btn-primary-hero, .btn-secondary-hero { width: 100%; justify-content: center; }
+    }
     .product-section { padding: 120px 24px 40px; text-align: center; font-family: 'Inter', Arial, sans-serif; }
     .badge-pill {
       display: inline-flex; padding: 7px 18px; border: 1px solid #e2e2e2; border-radius: 999px;
@@ -120,30 +198,56 @@
   radial-gradient(700px 500px at 100% 100%, rgba(90,140,220,0.35), transparent 55%),
   #ffffff;
 ">
-  <header style="height:76px; border-bottom:1px solid #d9d9d9; display:flex; align-items:center; justify-content:space-between; padding:0 40px; font-family:'Inter',Arial,sans-serif;">
-    <a href="/" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
-      <svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-        <path d="M5,74 L40,16 L75,74" stroke="#14151a" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
-        <line x1="21" y1="49" x2="59" y2="49" stroke="#14151a" stroke-width="8" stroke-linecap="butt"/>
-      </svg>
-      <span style="font-size:15px; font-weight:600; letter-spacing:0.35em; color:#14151a; text-transform:uppercase; padding-left:0.35em;">Althais</span>
-    </a>
-    <a href="/login" style="font-size:12px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#14151a; text-decoration:none;">Log in</a>
+  <!-- Nav -->
+  <header id="site-nav">
+    <div id="nav-inner">
+      <a href="/" class="flex items-center" style="gap:12px">
+        <svg class="nav-logo-mark" width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+          <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+          <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8" stroke-linecap="butt"/>
+        </svg>
+        <span class="nav-logo-text" style="font-size:15px;font-weight:600;letter-spacing:0.35em;color:#fff;text-transform:uppercase;padding-left:0.35em">ALTHAIS</span>
+      </a>
+      <div class="flex items-center" style="gap:32px">
+        <a href="/login" class="nav-login">Log in</a>
+        <div id="hamburger" onclick="toggleMobileMenu()">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
   </header>
 
-  <section class="video-hero">
-    <video autoplay muted loop playsinline preload="auto">
-      <source src="/videos/city.mp4" type="video/mp4" />
-    </video>
-    <div class="video-hero-overlay"></div>
-    <div class="video-hero-content">
-      <h1 style="margin:0; font-family:'Times New Roman',Times,serif; font-weight:700; color:#fff; letter-spacing:-0.01em; line-height:1.2; font-size:clamp(2.2rem, 5.5vw, 3.6rem);">
-        Medical Intelligence<br />for the AI Era
+  <!-- Mobile menu -->
+  <div id="mobile-menu">
+    <a href="/login" onclick="toggleMobileMenu()">Log in</a>
+  </div>
+
+  <!-- Hero -->
+  <section id="hero">
+    <div id="hero-video-wrap">
+      <video id="hero-video" autoplay muted loop playsinline preload="auto">
+        <source src="/videos/city.mp4" type="video/mp4" />
+      </video>
+    </div>
+    <div id="hero-overlay"></div>
+
+    <div id="hero-content">
+      <h1 class="hero-headline">
+        TURN CLINICAL NOTES<br />INTO PAID CLAIMS.
       </h1>
-      <p style="margin:22px auto 0; max-width:640px; font-family:'Inter',Arial,sans-serif; font-weight:400; font-size:16px; line-height:1.6; color:rgba(255,255,255,0.85);">
-        Althais is the intelligence layer for modern healthcare teams — connecting documentation, coding, and claims so providers get paid faster.
-      </p>
-      <a href="/demo" style="display:inline-block; margin-top:32px; background:#fff; color:#14151a; font-family:'Inter',Arial,sans-serif; font-weight:600; font-size:15px; padding:14px 30px; border-radius:999px; text-decoration:none;">Book A Demo</a>
+      <div class="hero-actions">
+        <a href="/demo" class="btn-primary-hero">Book a Demo</a>
+        <a href="/contact" class="btn-secondary-hero">Contact Us</a>
+      </div>
+    </div>
+
+    <div id="hero-bottom-bar">
+      <div class="trust-marquee">
+        <div class="trust-marquee-track" id="trust-marquee-track">
+          <span>Trusted by providers building the future of healthcare revenue cycle automation.</span>
+          <span>Trusted by providers building the future of healthcare revenue cycle automation.</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -283,5 +387,32 @@
     <p>Book a demo to see how Althais helps your team capture, code, and get paid faster.</p>
     <a href="/demo" style="position:relative; z-index:1; display:inline-block; margin-top:32px; background:#14151a; color:#fff; font-family:'Inter',Arial,sans-serif; font-weight:600; font-size:15px; padding:14px 30px; border-radius:999px; text-decoration:none;">Book A Demo</a>
   </section>
+
+  <script>
+    // Ensure the trust-line marquee always has enough duplicated content to
+    // fill wide/fullscreen viewports without a gap before the loop resets.
+    var trustTrack = document.getElementById('trust-marquee-track');
+    var trustGuard = 0;
+    while (trustTrack.scrollWidth < window.innerWidth * 2 && trustGuard < 6) {
+      trustTrack.insertAdjacentHTML('beforeend', trustTrack.innerHTML);
+      trustGuard++;
+    }
+
+    // Nav solid-on-scroll
+    var nav = document.getElementById('site-nav');
+    var hero = document.getElementById('hero');
+    function onScroll() {
+      if (window.scrollY > (hero.offsetHeight - 90)) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      document.getElementById('hamburger').classList.toggle('open');
+      document.getElementById('mobile-menu').classList.toggle('open');
+    }
+  </script>
 </body>
 </html>
