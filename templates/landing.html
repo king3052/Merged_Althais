@@ -102,12 +102,17 @@
     #mobile-menu.open { opacity: 1; visibility: visible; transform: translateY(0); }
     #mobile-menu a { font-size: 17px; font-weight: 600; color: #14151a; }
 
-    /* ── Hero — warm off-white, editorial serif headline ─────────────── */
+    /* ── Hero — soft painterly gradient, editorial serif headline ─────── */
     #hero {
       position: relative; z-index: 1; width: 100%;
-      padding: 150px 24px 90px;
+      padding: 150px 24px 110px;
       display: flex; align-items: center; justify-content: center;
-      background: #fff;
+      overflow: hidden;
+      background:
+        radial-gradient(1200px 700px at 15% 15%, rgba(255,214,197,0.9), transparent 55%),
+        radial-gradient(1000px 650px at 85% 10%, rgba(214,224,255,0.85), transparent 55%),
+        radial-gradient(1400px 800px at 50% 100%, rgba(255,235,214,0.9), transparent 60%),
+        linear-gradient(180deg, #fdf6f0 0%, #f6ecf5 45%, #eef1fb 100%);
     }
     #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 1020px; margin: 0 auto; }
     .hero-badge {
@@ -128,15 +133,15 @@
     .hero-actions { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 34px; font-family: 'Inter', sans-serif; }
     .btn-primary-hero {
       display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-      background: linear-gradient(100deg, #d6ecff 0%, #bfe0ff 40%, #a3d0fd 75%, #8ec3fb 100%);
-      color: #14151a;
+      background: #14151a;
+      color: #fff;
       font-size: 15px; font-weight: 700;
       padding: 14px 28px; border-radius: 10px;
-      box-shadow: 0 12px 28px rgba(37,99,235,0.2);
+      box-shadow: 0 12px 28px rgba(20,21,26,0.25);
       transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
-    .btn-primary-hero:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(37,99,235,0.28); }
-    .btn-primary-hero svg path { stroke: #14151a; }
+    .btn-primary-hero:hover { background: #33343c; transform: translateY(-2px); box-shadow: 0 16px 34px rgba(20,21,26,0.32); }
+    .btn-primary-hero svg path { stroke: #fff; }
     .hero-action-link {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 13.5px; font-weight: 500; color: rgba(20,21,26,0.55);
