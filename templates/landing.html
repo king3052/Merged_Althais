@@ -208,13 +208,17 @@
       .pp-float-claim, .pp-float-toast { display: none; }
     }
 
-    /* ── Feature blocks — alternating text/media, Karumi-style rhythm ── */
-    .feature-section { padding: 110px 40px; background: #fff; }
-    .feature-inner {
-      max-width: 1180px; margin: 0 auto; display: grid;
-      grid-template-columns: 1fr 1fr; gap: 90px; align-items: center;
+    /* ── Feature rows — full-bleed edge-to-edge media panel + text,
+       Karumi-style: each row spans the whole frame width, the media
+       fills its column edge-to-edge (no card/radius/shadow), and a
+       thin divider line separates rows, flush with the frame lines. ── */
+    .feature-row {
+      display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
+      min-height: 520px; border-top: 1px solid #d9d9d9; background: #fff;
     }
-    .feature-inner.reverse .feature-media { order: -1; }
+    .feature-row.reverse .feature-copy { order: 2; }
+    .feature-row.reverse .feature-media { order: 1; }
+    .feature-copy { padding: 90px 70px; display: flex; flex-direction: column; justify-content: center; }
     .feature-label {
       font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
       letter-spacing: 0.14em; text-transform: uppercase; color: #2563eb; margin-bottom: 18px;
@@ -225,16 +229,17 @@
     }
     .feature-text { font-family: 'Inter', sans-serif; font-size: 15.5px; line-height: 1.7; color: rgba(20,21,26,0.62); max-width: 440px; }
     .feature-text a { color: #2563eb; font-weight: 600; }
-    .feature-media {
-      border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08);
-      box-shadow: 0 30px 70px rgba(20,21,26,0.1);
+    .feature-media { position: relative; overflow: hidden; background: #f3f5f8; border-left: 1px solid #d9d9d9; }
+    .feature-row.reverse .feature-media { border-left: none; border-right: 1px solid #d9d9d9; }
+    .feature-media img, .feature-media video {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; display: block;
     }
-    .feature-media img, .feature-media video { width: 100%; display: block; }
 
     @media (max-width: 900px) {
-      .feature-section { padding: 70px 20px; }
-      .feature-inner { grid-template-columns: 1fr; gap: 36px; }
-      .feature-inner.reverse .feature-media { order: 0; }
+      .feature-row { grid-template-columns: 1fr; min-height: 0; }
+      .feature-row.reverse .feature-copy, .feature-row.reverse .feature-media { order: 0; }
+      .feature-copy { padding: 50px 24px; }
+      .feature-media { min-height: 320px; border-left: none !important; border-right: none !important; border-top: 1px solid #d9d9d9; }
     }
 
     /* ── Trust section — plain feature cards, no fabricated certifications ── */
@@ -430,55 +435,47 @@
   </section>
 
   <!-- Feature: clinical documentation -->
-  <section class="feature-section">
-    <div class="feature-inner">
-      <div>
-        <p class="feature-label">Clinical Documentation</p>
-        <h2 class="feature-heading">Every note captured, structured, and coded as the visit happens</h2>
-        <p class="feature-text">Althais listens to the encounter and turns it into a structured clinical note with the right codes attached, so nothing gets left for later.</p>
-      </div>
-      <div class="feature-media"><img src="/static/screenshots/provider-note.png" alt="Provider note screen in Althais" /></div>
+  <section class="feature-row">
+    <div class="feature-copy">
+      <p class="feature-label">Clinical Documentation</p>
+      <h2 class="feature-heading">Every note captured, structured, and coded as the visit happens</h2>
+      <p class="feature-text">Althais listens to the encounter and turns it into a structured clinical note with the right codes attached, so nothing gets left for later.</p>
     </div>
+    <div class="feature-media"><img src="/static/screenshots/provider-note.png" alt="Provider note screen in Althais" /></div>
   </section>
 
   <!-- Feature: claims & submission (reversed) -->
-  <section class="feature-section" style="padding-top:0">
-    <div class="feature-inner reverse">
-      <div class="feature-media"><img src="/static/screenshots/claim-assembly.png" alt="Claim assembly screen in Althais" /></div>
-      <div>
-        <p class="feature-label">Claims &amp; Submission</p>
-        <h2 class="feature-heading">From claim assembly to submission without the busywork</h2>
-        <p class="feature-text">Claims are assembled straight from the documented note and validated before they ever leave your practice, cutting down on rework and denials.</p>
-      </div>
+  <section class="feature-row reverse">
+    <div class="feature-copy">
+      <p class="feature-label">Claims &amp; Submission</p>
+      <h2 class="feature-heading">From claim assembly to submission without the busywork</h2>
+      <p class="feature-text">Claims are assembled straight from the documented note and validated before they ever leave your practice, cutting down on rework and denials.</p>
     </div>
+    <div class="feature-media"><img src="/static/screenshots/claim-assembly.png" alt="Claim assembly screen in Althais" /></div>
   </section>
 
   <!-- Feature: payer intelligence -->
-  <section class="feature-section" style="padding-top:0">
-    <div class="feature-inner">
-      <div>
-        <p class="feature-label">Payer Intelligence</p>
-        <h2 class="feature-heading">Know what a payer will approve before you submit</h2>
-        <p class="feature-text">Payer-specific rules are checked automatically, flagging issues while there's still time to fix them instead of after a denial comes back.</p>
-      </div>
-      <div class="feature-media"><img src="/static/screenshots/payer-intelligence.png" alt="Payer intelligence screen in Althais" /></div>
+  <section class="feature-row">
+    <div class="feature-copy">
+      <p class="feature-label">Payer Intelligence</p>
+      <h2 class="feature-heading">Know what a payer will approve before you submit</h2>
+      <p class="feature-text">Payer-specific rules are checked automatically, flagging issues while there's still time to fix them instead of after a denial comes back.</p>
     </div>
+    <div class="feature-media"><img src="/static/screenshots/payer-intelligence.png" alt="Payer intelligence screen in Althais" /></div>
   </section>
 
   <!-- Feature: about Althais tie-in (reversed) -->
-  <section class="feature-section" style="padding-top:0">
-    <div class="feature-inner reverse">
-      <div class="feature-media">
-        <video autoplay muted loop playsinline preload="auto">
-          <source src="/videos/althais-in-use.mp4" type="video/mp4" />
-        </video>
-      </div>
-      <div>
-        <p class="feature-label">About Althais</p>
-        <h2 class="feature-heading">See the platform in action</h2>
-        <p class="feature-text">Take a closer look at how Althais fits into a practice's day-to-day, or <a href="/walkthrough">walk through it step by step</a>.</p>
-        <p class="feature-text" style="margin-top:18px"><a href="/about-althais">Learn more about Althais →</a></p>
-      </div>
+  <section class="feature-row reverse">
+    <div class="feature-copy">
+      <p class="feature-label">About Althais</p>
+      <h2 class="feature-heading">See the platform in action</h2>
+      <p class="feature-text">Take a closer look at how Althais fits into a practice's day-to-day, or <a href="/walkthrough">walk through it step by step</a>.</p>
+      <p class="feature-text" style="margin-top:18px"><a href="/about-althais">Learn more about Althais →</a></p>
+    </div>
+    <div class="feature-media">
+      <video autoplay muted loop playsinline preload="auto">
+        <source src="/videos/althais-in-use.mp4" type="video/mp4" />
+      </video>
     </div>
   </section>
 
