@@ -270,6 +270,45 @@
     .closing-cta p {
       position: relative; z-index: 1; max-width: 520px; margin: 20px auto 0; color: #555; font-size: 15.5px; line-height: 1.6;
     }
+
+    /* ── Problem section — 2x2 light cards + tall featured navy card ── */
+    .problem-section { background: #fdf8ef; padding: 110px 64px; }
+    .problem-inner { max-width: 1272px; margin: 0 auto; }
+    .problem-label { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: #5c5548; margin-bottom: 18px; }
+    .problem-heading {
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #14172c;
+      font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 56px; max-width: 820px;
+    }
+    .problem-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: stretch; }
+    .problem-cards-2x2 { grid-column: 1 / 3; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .problem-card {
+      background: #f6f1e8; border: 1px solid #e7ddc9; border-radius: 20px; padding: 36px 32px;
+      display: flex; flex-direction: column;
+    }
+    .problem-card-icon { color: #14172c; margin-bottom: 60px; }
+    .problem-card h3 { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 19px; color: #14172c; line-height: 1.3; margin: 0 0 14px; }
+    .problem-card p { font-family: 'Inter', sans-serif; font-size: 15px; color: #666; line-height: 1.6; margin: 0; }
+
+    .problem-featured {
+      grid-column: 3 / 4; background: #12162c; border-radius: 20px; padding: 36px 32px;
+      display: flex; flex-direction: column; justify-content: flex-end; min-height: 420px;
+    }
+    .problem-featured .problem-card-icon { color: #fff; margin-bottom: 60px; }
+    .problem-featured h3 { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 20px; color: #fff; line-height: 1.3; margin: 0 0 14px; }
+    .problem-featured p { font-family: 'Inter', sans-serif; font-size: 15px; color: #9aa0bd; line-height: 1.6; margin: 0; }
+
+    @media (max-width: 1024px) {
+      .problem-grid { grid-template-columns: 1fr 1fr; }
+      .problem-cards-2x2 { grid-column: 1 / 3; }
+      .problem-featured { grid-column: 1 / 3; min-height: 260px; }
+    }
+    @media (max-width: 640px) {
+      .problem-section { padding: 70px 20px; }
+      .problem-cards-2x2 { grid-template-columns: 1fr; grid-column: 1 / 2; }
+      .problem-grid { grid-template-columns: 1fr; }
+      .problem-featured { grid-column: 1 / 2; min-height: 0; }
+      .problem-card-icon, .problem-featured .problem-card-icon { margin-bottom: 32px; }
+    }
   </style>
 </head>
 <body class="flex flex-col">
@@ -319,6 +358,55 @@
       <p class="hero-small-text">See how Althais connects documentation, coding, and claims in one workflow.</p>
     </section>
   </div>
+
+  <!-- Problem section -->
+  <section class="problem-section">
+    <div class="problem-inner">
+      <p class="problem-label">The problem</p>
+      <h2 class="problem-heading">We hear this from<br />clinics like yours...</h2>
+
+      <div class="problem-grid">
+        <div class="problem-cards-2x2">
+          <div class="problem-card">
+            <div class="problem-card-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+            </div>
+            <h3>Documentation consumes the day.</h3>
+            <p>Providers spend hours finishing notes after appointments, taking time away from patients and their personal lives.</p>
+          </div>
+          <div class="problem-card">
+            <div class="problem-card-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+            </div>
+            <h3>Missed codes mean missed revenue.</h3>
+            <p>Incomplete documentation and overlooked codes cause clinics to leave earned reimbursement behind.</p>
+          </div>
+          <div class="problem-card">
+            <div class="problem-card-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M6 9v6M8.5 10.5L15.5 10.5M8.5 13.5L15.5 13.5" stroke-dasharray="2 2"/></svg>
+            </div>
+            <h3>Clinical and billing teams are disconnected.</h3>
+            <p>Important encounter information gets lost as it moves between providers, coders, billers, and payers.</p>
+          </div>
+          <div class="problem-card">
+            <div class="problem-card-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            </div>
+            <h3>Denials are caught too late.</h3>
+            <p>Many claim errors are discovered only after submission, creating rework, payment delays, and preventable appeals.</p>
+          </div>
+        </div>
+
+        <div class="problem-featured">
+          <div class="problem-card-icon">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 6v2M12 16v2M9 15a3 3 0 0 0 3 2c1.7 0 3-1 3-2.2 0-1.5-1.3-2-3-2.3-1.7-.3-3-.8-3-2.3C9 9 10.3 8 12 8a3 3 0 0 1 3 2"/></svg>
+          </div>
+          <h3>Every missed code is lost revenue.</h3>
+          <p>When documentation, coding, and claims operate separately, clinics lose time and money at every step.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div style="background:#fff;">
   <!-- Built by — placeholder slots until real company names are provided -->
