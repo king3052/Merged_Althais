@@ -216,42 +216,14 @@
     .ps2-progress span { display: block; height: 100%; width: 38%; background: #0d5bd7; border-radius: 999px; }
 
     #ps2-stage { position: relative; }
-
-    /* Floating decorative cards around the browser mockup, matching
-       the reference: AI-status card + Summary card top-left, a Claim
-       Preview card top-right. */
-    .ps2-float-card {
-      position: absolute; z-index: 3; background: #fff; border-radius: 12px;
-      box-shadow: 0 20px 45px rgba(0,0,0,0.35); font-family: 'Inter', sans-serif;
+    .ps2-float {
+      position: absolute; top: -30px; left: 6%; z-index: 2;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(11,18,32,0.85); border: 1px solid rgba(255,255,255,0.14); border-radius: 999px;
+      padding: 9px 16px; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600;
+      color: #fff; letter-spacing: 0.02em; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
-    #ps2-float-ai { top: -54px; left: 2%; padding: 14px 16px; width: 210px; }
-    .ps2-ai-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .ps2-ai-title { font-size: 13px; font-weight: 700; color: #0d5bd7; }
-    .ps2-ai-status { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: rgba(10,10,10,0.45); }
-    .ps2-spin { animation: ps2SpinAnim 1.4s linear infinite; }
-    @keyframes ps2SpinAnim { to { transform: rotate(360deg); } }
-    .ps2-ai-icons { display: flex; gap: 8px; margin-top: 12px; }
-    .ps2-icon-btn {
-      flex: 1; display: flex; align-items: center; justify-content: center; height: 30px;
-      border: 1px solid rgba(0,0,0,0.1); border-radius: 7px; color: rgba(10,10,10,0.55);
-    }
-
-    #ps2-float-summary { top: 64px; left: -6%; padding: 14px 16px; width: 200px; }
-    .ps2-summary-head {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      font-size: 12.5px; font-weight: 700; color: #0a0a0a;
-    }
-    .ps2-summary-sub { font-size: 10.5px; color: rgba(10,10,10,0.45); margin-top: 6px; }
-    .ps2-summary-bar { height: 6px; background: rgba(13,91,215,0.12); border-radius: 999px; margin-top: 10px; overflow: hidden; }
-    .ps2-summary-bar span { display: block; height: 100%; width: 55%; background: #7fb0f5; border-radius: 999px; }
-
-    #ps2-float-claim { top: -66px; right: 2%; padding: 14px 18px; width: 240px; }
-    .ps2-claim-head { font-size: 12.5px; font-weight: 700; color: #0a0a0a; margin-bottom: 10px; }
-    .ps2-claim-grid { display: flex; flex-direction: column; gap: 8px; }
-    .ps2-claim-grid > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .ps2-claim-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(10,10,10,0.4); }
-    .ps2-claim-val { font-size: 11.5px; font-weight: 600; color: #0a0a0a; }
-
+    .ps2-dot { width: 6px; height: 6px; border-radius: 50%; background: #3fd67a; flex-shrink: 0; }
     #ps2-browser {
       background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
       box-shadow: 0 40px 90px rgba(0,0,0,0.5); overflow: hidden;
@@ -270,7 +242,7 @@
     @media (max-width: 980px) {
       #ps2 { padding: 70px 24px; }
       #ps2-grid { grid-template-columns: 1fr; gap: 32px; }
-      .ps2-float-card { display: none; }
+      .ps2-float { left: 24px; }
       .ps2-img-frame { height: 320px; }
     }
 
@@ -417,36 +389,12 @@
       </div>
 
       <div id="ps2-stage">
-        <div id="ps2-float-ai" class="ps2-float-card">
-          <div class="ps2-ai-head">
-            <span class="ps2-ai-title">Althais AI</span>
-            <span class="ps2-ai-status"><svg class="ps2-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/></svg><span id="ps2-float-status">Analyzing</span></span>
-          </div>
-          <div class="ps2-ai-icons">
-            <span class="ps2-icon-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg></span>
-            <span class="ps2-icon-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></span>
-            <span class="ps2-icon-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15a9 9 0 1 1-9.2-9v9z"/><path d="M12 2.2a9 9 0 0 1 9.8 9.8H12V2.2z"/></svg></span>
-          </div>
+        <div id="ps2-float-chip" class="ps2-float">
+          <span class="ps2-dot"></span> Althais AI <span id="ps2-float-status">· Analyzing</span>
         </div>
-
-        <div id="ps2-float-summary" class="ps2-float-card">
-          <div class="ps2-summary-head">Summary <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
-          <div class="ps2-summary-sub">Notes coded · last 90 days</div>
-          <div class="ps2-summary-bar"><span></span></div>
-        </div>
-
-        <div id="ps2-float-claim" class="ps2-float-card">
-          <div class="ps2-claim-head">Claim Preview</div>
-          <div class="ps2-claim-grid">
-            <div><span class="ps2-claim-lbl">Insured's Name</span><span class="ps2-claim-val">J. Smith</span></div>
-            <div><span class="ps2-claim-lbl">Patient DOB</span><span class="ps2-claim-val">04/12/1968</span></div>
-            <div><span class="ps2-claim-lbl">Insurance ID</span><span class="ps2-claim-val">UHC-2026-4471</span></div>
-          </div>
-        </div>
-
         <div id="ps2-browser">
           <div class="ps2-chrome"><div class="ps2-url">app.althais.com</div></div>
-          <div class="ps2-img-frame"><img id="ps2-img" src="/static/screenshots/overview-dashboard.png" alt="The Althais EMR Overview dashboard" /></div>
+          <div class="ps2-img-frame"><img id="ps2-img" src="/static/screenshots/provider-note.png" alt="The Virtual SOAP note entry screen in Althais" /></div>
         </div>
       </div>
     </div>
@@ -618,7 +566,7 @@
     // Product showcase accordion — click a step, swap the screenshot.
     (function () {
       var slides = [
-        { img: '/static/screenshots/overview-dashboard.png', alt: 'The Althais EMR Overview dashboard', status: 'Analyzing' },
+        { img: '/static/screenshots/provider-note.png', alt: 'The Virtual SOAP note entry screen in Althais', status: 'Analyzing' },
         { img: '/static/screenshots/claim-assembly.png', alt: 'A CMS-1500 claim assembled automatically from approved codes', status: 'Coding' },
         { img: '/static/screenshots/payment.png', alt: 'Claims filtered to Paid status showing posted payment amounts', status: 'Paid' },
       ];
@@ -638,7 +586,7 @@
             imgEl.alt = slides[i].alt;
             imgEl.style.opacity = '1';
           }, 150);
-          if (statusEl) statusEl.textContent = slides[i].status;
+          if (statusEl) statusEl.textContent = '· ' + slides[i].status;
         });
       });
     })();
