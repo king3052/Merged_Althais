@@ -105,8 +105,10 @@
       margin-bottom: 28px;
     }
     .hero-badge svg { flex-shrink: 0; }
-    .hero-headline { display: flex; justify-content: center; }
-    .hero-headline img { width: 100%; max-width: 790px; height: auto; display: block; image-rendering: -webkit-optimize-contrast; }
+    .hero-headline {
+      font-family: 'Times New Roman', Times, Georgia, serif; font-weight: 700; color: #000; letter-spacing: -0.01em; line-height: 1.15;
+      font-size: clamp(2rem, 5vw, 3.6rem);
+    }
     .hero-sub {
       font-family: 'Times New Roman', Times, Georgia, serif; font-weight: 400; color: #000;
       font-size: 20px; line-height: 1.6; margin: 22px auto 0; max-width: 560px;
@@ -366,7 +368,7 @@
   <section id="hero">
     <div id="hero-content">
       <h1 class="hero-headline fade-in fade-in-2">
-        <img src="/static/backgrounds/hero-headline.png" alt="The intelligence behind every patient visit and every claim" />
+        The intelligence behind<br />every patient visit and every claim
       </h1>
       <p class="hero-sub fade-in fade-in-3">
         One platform that takes your documentation all the way to payment
