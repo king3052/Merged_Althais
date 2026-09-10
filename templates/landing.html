@@ -93,51 +93,6 @@
       border: 1px dashed #d5d5d5;
     }
 
-    /* ── Dark laptop-mockup hero ──────────────────────────────────── */
-    .dark-hero { position: relative; background: #0a0a0a; padding: 90px 24px 100px; overflow: hidden; }
-    .dark-hero::before {
-      content: ''; position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
-      width: 900px; height: 500px; background: radial-gradient(circle, rgba(120,120,140,0.25), transparent 65%);
-      pointer-events: none;
-    }
-    .laptop { position: relative; max-width: 900px; margin: 0 auto; }
-    .laptop-screen {
-      position: relative; background: #111; border: 14px solid #262626; border-bottom: none;
-      border-radius: 18px 18px 4px 4px; aspect-ratio: 16/10; overflow: hidden;
-      box-shadow: 0 40px 90px rgba(0,0,0,0.65);
-    }
-    .laptop-screen img {
-      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-      filter: blur(4px) brightness(0.4); transform: scale(1.05);
-    }
-    .laptop-screen::after {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(circle at 50% 35%, rgba(0,0,0,0.15), rgba(0,0,0,0.8) 85%);
-    }
-    .laptop-base {
-      width: calc(100% + 50px); margin-left: -25px; height: 14px;
-      background: linear-gradient(180deg, #2c2c2c, #151515);
-      clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
-      border-radius: 0 0 6px 6px;
-    }
-    .hero-overlay { position: absolute; left: 0; right: 0; top: 10%; z-index: 3; text-align: center; padding: 0 40px; }
-    .hero-eyebrow {
-      color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 600; letter-spacing: 0.25em;
-      text-transform: uppercase; margin-bottom: 16px;
-    }
-    .hero-headline-dark { color: #fff; font-weight: 500; font-size: clamp(1.7rem, 4.2vw, 3rem); margin: 0; line-height: 1.2; }
-    .hero-actions-dark { display: flex; gap: 14px; justify-content: center; margin-top: 26px; }
-    .btn-orange, .btn-ghost-light {
-      padding: 12px 26px; border-radius: 6px; font-weight: 600; font-size: 14px; text-decoration: none;
-      font-family: 'Inter', Arial, sans-serif;
-    }
-    .btn-orange { background: #e8622c; color: #fff; }
-    .btn-ghost-light { background: #ececec; color: #111; }
-    @media (max-width: 700px) {
-      .hero-overlay { top: 7%; }
-      .hero-actions-dark { flex-direction: column; align-items: center; }
-    }
-
     /* ── Closing CTA ──────────────────────────────────────────────── */
     .closing-cta {
       position: relative; margin-top: 90px; padding: 140px 24px 160px; text-align: center; overflow: hidden;
@@ -172,21 +127,14 @@
     <a href="/login" style="font-size:12px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#14151a; text-decoration:none;">Log in</a>
   </header>
 
-  <section class="dark-hero">
-    <div class="laptop">
-      <div class="laptop-screen">
-        <img src="/static/screenshots/ai-coding.png" alt="Althais product screen" />
-      </div>
-      <div class="laptop-base"></div>
-    </div>
-    <div class="hero-overlay">
-      <p class="hero-eyebrow">Healthcare-Native AI Platform</p>
-      <h1 class="hero-headline-dark">AI. Reimagined for Healthcare.</h1>
-      <div class="hero-actions-dark">
-        <a href="/demo" class="btn-orange">Get Started</a>
-        <a href="/contact" class="btn-ghost-light">Enterprise Sales</a>
-      </div>
-    </div>
+  <section style="padding:140px 24px 0; text-align:center;">
+    <h1 style="margin:0; font-family:'Inter',Arial,sans-serif; font-weight:500; color:#1a1a1a; letter-spacing:-0.01em; line-height:1.2; font-size:clamp(2.2rem, 5.5vw, 3.6rem);">
+      Medical Intelligence<br />for the AI Era
+    </h1>
+    <p style="margin:22px auto 0; max-width:640px; font-family:'Inter',Arial,sans-serif; font-weight:400; font-size:16px; line-height:1.6; color:#4a4a4a;">
+      Althais is the intelligence layer for modern healthcare teams — connecting documentation, coding, and claims so providers get paid faster.
+    </p>
+    <a href="/demo" style="display:inline-block; margin-top:32px; background:#14151a; color:#fff; font-family:'Inter',Arial,sans-serif; font-weight:600; font-size:15px; padding:14px 30px; border-radius:999px; text-decoration:none;">Book A Demo</a>
   </section>
 
   <!-- Built by — placeholder slots until real company names are provided -->
