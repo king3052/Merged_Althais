@@ -10,17 +10,17 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; height: 100%; background: #ececec; overscroll-behavior-y: none; }
+    html { scroll-behavior: smooth; height: 100%; background: #fff; overscroll-behavior-y: none; }
     body {
       font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; color: #1a1d24; min-height: 100%;
-      background: #ececec; overscroll-behavior-y: none;
+      background: #fff; overscroll-behavior-y: none;
     }
     a { text-decoration: none; }
 
-    /* Framed-canvas layout: grey page background, white centered
-       container with side borders running the full page height. */
+    /* Framed-canvas layout: no background color difference — just thin
+       vertical border lines marking the content edges, full page height. */
     #page-frame {
-      background: #fff; max-width: 1400px; margin: 0 auto; min-height: 100vh;
+      max-width: 1400px; margin: 0 auto; min-height: 100vh;
       border-left: 1px solid #d9d9d9; border-right: 1px solid #d9d9d9;
     }
 
