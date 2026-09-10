@@ -236,6 +236,15 @@
     .section-gap::before { top: 0; }
     .section-gap::after { bottom: 0; }
     .section-gap img { max-width: 100%; width: 620px; height: auto; display: block; }
+    /* Plain spacer between feature rows — same full-bleed top/bottom
+       lines as .section-gap, but no content, just breathing room. */
+    .row-spacer { position: relative; height: 64px; background: #fff; }
+    .row-spacer::before, .row-spacer::after {
+      content: ''; position: absolute; left: 50%; width: 100vw; margin-left: -50vw;
+      border-top: 1px solid #d9d9d9;
+    }
+    .row-spacer::before { top: 0; }
+    .row-spacer::after { bottom: 0; }
     .feature-row.reverse .feature-copy { order: 2; }
     .feature-row.reverse .feature-media { order: 1; }
     .feature-copy { padding: 90px 70px; display: flex; flex-direction: column; justify-content: center; }
@@ -468,6 +477,8 @@
     <div class="feature-media"><img src="/static/screenshots/provider-note.png" alt="Provider note screen in Althais" /></div>
   </section>
 
+  <div class="row-spacer"></div>
+
   <!-- Feature: claims & submission (reversed) -->
   <section class="feature-row reverse">
     <div class="feature-copy">
@@ -478,6 +489,8 @@
     <div class="feature-media"><img src="/static/screenshots/claim-assembly.png" alt="Claim assembly screen in Althais" /></div>
   </section>
 
+  <div class="row-spacer"></div>
+
   <!-- Feature: payer intelligence -->
   <section class="feature-row">
     <div class="feature-copy">
@@ -487,6 +500,8 @@
     </div>
     <div class="feature-media"><img src="/static/screenshots/payer-intelligence.png" alt="Payer intelligence screen in Althais" /></div>
   </section>
+
+  <div class="row-spacer"></div>
 
   <!-- Feature: about Althais tie-in (reversed) -->
   <section class="feature-row reverse">
