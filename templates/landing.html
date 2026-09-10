@@ -27,18 +27,6 @@
       border-left: 1px solid #d9d9d9; border-right: 1px solid #d9d9d9;
     }
 
-    /* Background for the sticky slides below the hero, which hand off to
-       the normal-flow footer once scrolled past. */
-    #lower-bg {
-      position: relative; z-index: 2;
-      background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
-    }
-    #lower-bg::before {
-      content: ''; position: absolute; inset: 0; z-index: 0;
-      background: rgba(0,0,0,0.68); pointer-events: none;
-    }
-    #lower-bg > * { position: relative; z-index: 1; }
-
     /* ── Fade-in on load ─────────────────────────────────────────────── */
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(22px); }
@@ -219,48 +207,83 @@
       .pp-float-claim, .pp-float-toast { display: none; }
     }
 
-    /* ══════════════════════════════════════════════════════════════
-       About Althais — next sticky slide. A bordered ~30/70 two-panel
-       shell — left panel is a search bar over a clickable, filterable
-       list of topic titles, right panel shows the selected topic's blurb.
-       ══════════════════════════════════════════════════════════════ */
-    #site-search {
-      position: relative; z-index: 2; min-height: 100svh; padding: 110px 24px; text-align: center;
-      display: flex; flex-direction: column; justify-content: center; overflow: hidden;
-      background: #000;
+    /* ── Feature blocks — alternating text/media, Karumi-style rhythm ── */
+    .feature-section { padding: 110px 40px; background: #fff; }
+    .feature-inner {
+      max-width: 1180px; margin: 0 auto; display: grid;
+      grid-template-columns: 1fr 1fr; gap: 90px; align-items: center;
     }
-    .ss-video-wrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
-    .ss-video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .ss-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.68); pointer-events: none; }
-    .ss-frame {
-      position: absolute; left: 96px; top: 60%; width: 320px; height: 46px;
+    .feature-inner.reverse .feature-media { order: -1; }
+    .feature-label {
+      font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #f2596b; margin-bottom: 18px;
+    }
+    .feature-heading {
+      font-family: 'Spectral', Georgia, serif; font-weight: 600; color: #14151a;
+      font-size: clamp(1.6rem, 2.8vw, 2.2rem); line-height: 1.3; margin-bottom: 18px;
+    }
+    .feature-text { font-family: 'Inter', sans-serif; font-size: 15.5px; line-height: 1.7; color: rgba(20,21,26,0.62); max-width: 440px; }
+    .feature-text a { color: #f2596b; font-weight: 600; }
+    .feature-media {
+      border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 30px 70px rgba(20,21,26,0.1);
+    }
+    .feature-media img, .feature-media video { width: 100%; display: block; }
+
+    @media (max-width: 900px) {
+      .feature-section { padding: 70px 20px; }
+      .feature-inner { grid-template-columns: 1fr; gap: 36px; }
+      .feature-inner.reverse .feature-media { order: 0; }
+    }
+
+    /* ── Trust section — plain feature cards, no fabricated certifications ── */
+    #trust-section { padding: 100px 40px; text-align: center; border-top: 1px solid #eee; background: #fff; }
+    .trust-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;
+      max-width: 1180px; margin: 56px auto 0; text-align: left;
+    }
+    .trust-card-icon {
+      width: 100%; aspect-ratio: 16/10; border-radius: 14px; margin-bottom: 20px;
+      background: radial-gradient(circle at 30% 30%, #ffd9a8, #ff9a5a 60%, #f2596b 100%);
       display: flex; align-items: center; justify-content: center;
-      border: 1.5px solid #fff; border-radius: 0; background: transparent; z-index: 2;
-      cursor: pointer; transition: background 0.2s ease;
     }
-    .ss-frame:hover { background: rgba(255,255,255,0.1); }
-    .ss-frame span {
-      font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; letter-spacing: 0.2em;
-      text-transform: uppercase; font-size: 12px;
-    }
-    @media (max-width: 760px) {
-      .ss-frame { left: 24px; width: 240px; height: 50px; }
+    .trust-card h3 { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: #14151a; margin-bottom: 8px; }
+    .trust-card p { font-family: 'Inter', sans-serif; font-size: 14px; color: rgba(20,21,26,0.6); line-height: 1.55; }
+    @media (max-width: 900px) {
+      #trust-section { padding: 60px 20px; }
+      .trust-grid { grid-template-columns: 1fr; }
     }
 
-    #site-footer-bar {
-      position: relative; z-index: 1;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 22px 56px; border-top: 1px solid rgba(255,255,255,0.14);
-      font-family: 'Inter', sans-serif; background: #000;
+    /* ── Closing CTA — warm radial glow, echoes the hero gradient button ── */
+    #closing-cta {
+      position: relative; padding: 130px 40px; text-align: center; overflow: hidden;
+      background: radial-gradient(1000px 520px at 50% 0%, rgba(255,178,102,0.5), transparent 65%), #fff;
+      border-top: 1px solid #eee;
     }
-    #site-footer-bar p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: #fff; }
-    #site-footer-bar .footer-links { display: flex; gap: 24px; }
-    #site-footer-bar a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #fff; transition: color 0.2s ease; }
-    #site-footer-bar a:hover { color: rgba(255,255,255,0.7); }
+    .cta-heading {
+      position: relative; z-index: 1; font-family: 'Spectral', Georgia, serif; font-weight: 600;
+      color: #14151a; font-size: clamp(1.8rem, 3.6vw, 2.6rem); line-height: 1.3; margin-bottom: 38px;
+    }
 
-    @media (max-width: 480px) {
-      #site-footer-bar { flex-direction: column; gap: 8px; padding: 14px 20px; text-align: center; }
-      #site-footer-bar .footer-links { gap: 16px; }
+    /* ── Footer — light, multi-column ── */
+    #site-footer { border-top: 1px solid #eee; padding: 70px 40px 36px; background: #fff; }
+    .footer-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 40px; }
+    .footer-brand p { font-family: 'Inter', sans-serif; font-size: 13.5px; color: rgba(20,21,26,0.55); line-height: 1.6; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #14151a; margin-bottom: 16px; }
+    .footer-col a { display: block; font-family: 'Inter', sans-serif; font-size: 13.5px; color: rgba(20,21,26,0.6); margin-bottom: 11px; transition: color 0.2s ease; }
+    .footer-col a:hover { color: #14151a; }
+    .footer-bottom {
+      max-width: 1180px; margin: 54px auto 0; padding-top: 26px; border-top: 1px solid #eee;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'Inter', sans-serif; font-size: 12px; color: rgba(20,21,26,0.45);
+    }
+    @media (max-width: 900px) {
+      #site-footer { padding: 50px 20px 30px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+    }
+    @media (max-width: 560px) {
+      .footer-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -405,29 +428,130 @@
     </div>
   </section>
 
-  <!-- Everything below the hero shares one continuous background image -->
-  <div id="lower-bg">
-  <!-- About Althais — sticky slide -->
-  <section id="site-search">
-    <div class="ss-video-wrap">
-      <video autoplay muted loop playsinline preload="auto">
-        <source src="/videos/althais-in-use.mp4" type="video/mp4" />
-      </video>
+  <!-- Feature: clinical documentation -->
+  <section class="feature-section">
+    <div class="feature-inner">
+      <div>
+        <p class="feature-label">Clinical Documentation</p>
+        <h2 class="feature-heading">Every note captured, structured, and coded as the visit happens</h2>
+        <p class="feature-text">Althais listens to the encounter and turns it into a structured clinical note with the right codes attached, so nothing gets left for later.</p>
+      </div>
+      <div class="feature-media"><img src="/static/screenshots/provider-note.png" alt="Provider note screen in Althais" /></div>
     </div>
-    <div class="ss-overlay"></div>
-    <a href="/about-althais" class="ss-frame"><span>About Althais</span></a>
+  </section>
+
+  <!-- Feature: claims & submission (reversed) -->
+  <section class="feature-section" style="padding-top:0">
+    <div class="feature-inner reverse">
+      <div class="feature-media"><img src="/static/screenshots/claim-assembly.png" alt="Claim assembly screen in Althais" /></div>
+      <div>
+        <p class="feature-label">Claims &amp; Submission</p>
+        <h2 class="feature-heading">From claim assembly to submission without the busywork</h2>
+        <p class="feature-text">Claims are assembled straight from the documented note and validated before they ever leave your practice, cutting down on rework and denials.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature: payer intelligence -->
+  <section class="feature-section" style="padding-top:0">
+    <div class="feature-inner">
+      <div>
+        <p class="feature-label">Payer Intelligence</p>
+        <h2 class="feature-heading">Know what a payer will approve before you submit</h2>
+        <p class="feature-text">Payer-specific rules are checked automatically, flagging issues while there's still time to fix them instead of after a denial comes back.</p>
+      </div>
+      <div class="feature-media"><img src="/static/screenshots/payer-intelligence.png" alt="Payer intelligence screen in Althais" /></div>
+    </div>
+  </section>
+
+  <!-- Feature: about Althais tie-in (reversed) -->
+  <section class="feature-section" style="padding-top:0">
+    <div class="feature-inner reverse">
+      <div class="feature-media">
+        <video autoplay muted loop playsinline preload="auto">
+          <source src="/videos/althais-in-use.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div>
+        <p class="feature-label">About Althais</p>
+        <h2 class="feature-heading">See the platform in action</h2>
+        <p class="feature-text">Take a closer look at how Althais fits into a practice's day-to-day, or <a href="/walkthrough">walk through it step by step</a>.</p>
+        <p class="feature-text" style="margin-top:18px"><a href="/about-althais">Learn more about Althais →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust section -->
+  <section id="trust-section">
+    <p class="feature-label" style="justify-content:center">Built For Healthcare</p>
+    <h2 class="feature-heading" style="max-width:640px;margin:0 auto">Documentation and billing infrastructure your team can rely on</h2>
+    <div class="trust-grid">
+      <div class="trust-card">
+        <div class="trust-card-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3>Encrypted end to end</h3>
+        <p>Patient and claims data is encrypted in transit and at rest throughout the platform.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-card-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Role-based access</h3>
+        <p>Providers, billers, and admins each see only what their role needs to see.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-card-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <h3>Built for clinical &amp; billing teams</h3>
+        <p>Designed around the real workflow from documentation to reimbursement, not bolted on after.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Closing CTA -->
+  <section id="closing-cta">
+    <h2 class="cta-heading">Bring documentation and billing<br class="hidden sm:block" />into one platform with Althais.</h2>
+    <a href="#" class="btn-primary-hero book-demo-trigger" style="position:relative;z-index:1;display:inline-flex">Book a Demo <svg width="9" height="15" viewBox="0 0 9 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L7.5 7.5L1 14" stroke="#14151a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
   </section>
 
   <!-- Site footer -->
-  <footer id="site-footer-bar">
-    <p>© 2026 Althais Health, Inc.</p>
-    <div class="footer-links">
-      <a href="/legal/privacy">Privacy</a>
-      <a href="/legal/terms">Terms</a>
-      <a href="/contact">Contact</a>
+  <footer id="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="flex items-center" style="gap:12px">
+          <svg width="22" height="22" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+            <path d="M5,74 L40,16 L75,74" stroke="#14151a" stroke-width="8" fill="none"/>
+            <line x1="21" y1="49" x2="59" y2="49" stroke="#14151a" stroke-width="8"/>
+          </svg>
+          <span style="font-size:15px;font-weight:600;letter-spacing:0.35em;color:#14151a;text-transform:uppercase">Althais</span>
+        </a>
+        <p>Documentation, coding, claims, and reimbursement, connected in one platform.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="/about-althais">About</a>
+        <a href="/contact">Contact</a>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="/product">Platform</a>
+        <a href="/how-it-works">How It Works</a>
+        <a href="/solutions">Solutions</a>
+        <a href="/pricing">Pricing</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="/legal/privacy">Privacy Policy</a>
+        <a href="/legal/terms">Terms of Service</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Althais Health, Inc.</p>
+      <p>Documentation, coding, and claims — connected.</p>
     </div>
   </footer>
-  </div><!-- /#lower-bg -->
 
   <!-- Book Demo modal -->
   <div id="book-demo-modal" style="position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(4,8,16,0.85);backdrop-filter:blur(8px);padding:24px">
