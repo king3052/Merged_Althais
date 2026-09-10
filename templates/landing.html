@@ -114,15 +114,16 @@
     .hero-actions { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 34px; font-family: 'Inter', sans-serif; }
     .btn-primary-hero {
       display: inline-flex; align-items: center; justify-content: space-between; gap: 28px;
-      background: linear-gradient(100deg, #ffd166 0%, #ff9a5a 35%, #ff6b6b 70%, #f2596b 100%);
-      color: #14151a;
+      background: linear-gradient(100deg, #7dc4fb 0%, #4da3f7 40%, #2f7ff0 75%, #2563eb 100%);
+      color: #fff;
       font-size: 16px; font-weight: 700;
       min-width: 260px;
       padding: 18px 22px 18px 26px; border-radius: 16px;
-      box-shadow: 0 12px 28px rgba(255,120,90,0.35);
+      box-shadow: 0 12px 28px rgba(37,99,235,0.35);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .btn-primary-hero:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(255,120,90,0.45); }
+    .btn-primary-hero:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(37,99,235,0.45); }
+    .btn-primary-hero svg path { stroke: #fff; }
     .hero-action-link {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 13.5px; font-weight: 500; color: rgba(20,21,26,0.55);
@@ -142,20 +143,20 @@
       #hero { padding: 150px 20px 70px; }
     }
 
-    /* ── Platform preview — full-bleed warm gradient with a dashboard
+    /* ── Platform preview — full-bleed cool-blue gradient with a dashboard
        mockup card + floating claim cards, right under the hero. ──── */
     #platform-preview {
       position: relative; z-index: 1; padding: 70px 40px 110px; overflow: hidden;
       background:
-        radial-gradient(1000px 500px at 20% 0%, rgba(255,178,102,0.9), transparent 60%),
-        radial-gradient(900px 600px at 85% 30%, rgba(255,140,120,0.6), transparent 55%),
-        radial-gradient(1200px 700px at 50% 100%, rgba(255,205,140,0.7), transparent 60%),
-        #ffd9a8;
+        radial-gradient(1000px 500px at 20% 0%, rgba(147,197,253,0.9), transparent 60%),
+        radial-gradient(900px 600px at 85% 30%, rgba(125,196,251,0.6), transparent 55%),
+        radial-gradient(1200px 700px at 50% 100%, rgba(191,219,254,0.7), transparent 60%),
+        #dbeafe;
     }
     #pp-mockup {
       position: relative; z-index: 1; max-width: 1180px; margin: 0 auto;
       background: rgba(255,255,255,0.92); border-radius: 18px; overflow: hidden;
-      box-shadow: 0 40px 90px rgba(150,80,30,0.25);
+      box-shadow: 0 40px 90px rgba(30,64,150,0.2);
     }
     .pp-titlebar { display: flex; align-items: center; gap: 7px; padding: 16px 20px; border-bottom: 1px solid rgba(0,0,0,0.06); }
     .pp-dot { width: 11px; height: 11px; border-radius: 50%; }
@@ -179,7 +180,7 @@
 
     .pp-float-claim {
       position: absolute; top: 8%; right: 6%; z-index: 3; width: 220px;
-      background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 25px 55px rgba(150,80,30,0.3);
+      background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 25px 55px rgba(30,64,150,0.25);
     }
     .pp-float-claim-head { display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; margin-bottom: 10px; }
     .pp-float-claim-head b { font-size: 12.5px; color: #14151a; }
@@ -190,12 +191,12 @@
       position: absolute; bottom: 6%; right: 4%; z-index: 3;
       display: flex; align-items: center; gap: 12px;
       background: #fff; border-radius: 999px; padding: 10px 12px 10px 16px;
-      box-shadow: 0 20px 45px rgba(150,80,30,0.28); font-family: 'Inter', sans-serif;
+      box-shadow: 0 20px 45px rgba(30,64,150,0.22); font-family: 'Inter', sans-serif;
     }
     .pp-float-toast b { font-size: 13px; color: #14151a; display: block; }
     .pp-float-toast span { font-size: 11.5px; color: rgba(20,21,26,0.5); }
     .pp-toast-arrow {
-      width: 32px; height: 32px; border-radius: 50%; background: #f2596b; color: #fff;
+      width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #fff;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
 
@@ -216,14 +217,14 @@
     .feature-inner.reverse .feature-media { order: -1; }
     .feature-label {
       font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
-      letter-spacing: 0.14em; text-transform: uppercase; color: #f2596b; margin-bottom: 18px;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #2563eb; margin-bottom: 18px;
     }
     .feature-heading {
       font-family: 'Spectral', Georgia, serif; font-weight: 600; color: #14151a;
       font-size: clamp(1.6rem, 2.8vw, 2.2rem); line-height: 1.3; margin-bottom: 18px;
     }
     .feature-text { font-family: 'Inter', sans-serif; font-size: 15.5px; line-height: 1.7; color: rgba(20,21,26,0.62); max-width: 440px; }
-    .feature-text a { color: #f2596b; font-weight: 600; }
+    .feature-text a { color: #2563eb; font-weight: 600; }
     .feature-media {
       border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08);
       box-shadow: 0 30px 70px rgba(20,21,26,0.1);
@@ -244,7 +245,7 @@
     }
     .trust-card-icon {
       width: 100%; aspect-ratio: 16/10; border-radius: 14px; margin-bottom: 20px;
-      background: radial-gradient(circle at 30% 30%, #ffd9a8, #ff9a5a 60%, #f2596b 100%);
+      background: radial-gradient(circle at 30% 30%, #bfdbfe, #60a5fa 60%, #2563eb 100%);
       display: flex; align-items: center; justify-content: center;
     }
     .trust-card h3 { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: #14151a; margin-bottom: 8px; }
@@ -254,10 +255,10 @@
       .trust-grid { grid-template-columns: 1fr; }
     }
 
-    /* ── Closing CTA — warm radial glow, echoes the hero gradient button ── */
+    /* ── Closing CTA — cool radial glow, echoes the hero gradient button ── */
     #closing-cta {
       position: relative; padding: 130px 40px; text-align: center; overflow: hidden;
-      background: radial-gradient(1000px 520px at 50% 0%, rgba(255,178,102,0.5), transparent 65%), #fff;
+      background: radial-gradient(1000px 520px at 50% 0%, rgba(147,197,253,0.5), transparent 65%), #fff;
       border-top: 1px solid #eee;
     }
     .cta-heading {
