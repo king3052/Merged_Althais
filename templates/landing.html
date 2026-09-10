@@ -105,7 +105,7 @@
     /* ── Hero — warm off-white, editorial serif headline ─────────────── */
     #hero {
       position: relative; z-index: 1; width: 100%;
-      padding: 190px 24px 90px;
+      padding: 150px 24px 90px;
       display: flex; align-items: center; justify-content: center;
       background: #fff;
     }
@@ -117,10 +117,8 @@
       margin-bottom: 28px;
     }
     .hero-badge svg { flex-shrink: 0; }
-    .hero-headline {
-      font-family: 'Spectral', Georgia, serif; font-weight: 700; color: #000; letter-spacing: -0.01em; line-height: 1.15;
-      font-size: clamp(2rem, 5vw, 3.6rem);
-    }
+    .hero-headline { display: flex; justify-content: center; }
+    .hero-headline img { width: 100%; max-width: 900px; height: auto; display: block; }
     .hero-sub {
       font-family: 'Inter', sans-serif; font-weight: 400; color: rgba(20,21,26,0.55);
       font-size: 17px; line-height: 1.6; margin: 22px auto 0; max-width: 560px;
@@ -306,7 +304,7 @@
   <section id="hero">
     <div id="hero-content">
       <h1 class="hero-headline fade-in fade-in-2">
-        The intelligence behind<br />every patient visit and every claim
+        <img src="/static/backgrounds/hero-headline.png" alt="The intelligence behind every patient visit and every claim" />
       </h1>
       <p class="hero-sub fade-in fade-in-3">
         Clinical documentation, coding, claims, and reimbursement—<br class="hidden sm:block" />connected in one intelligent platform.
