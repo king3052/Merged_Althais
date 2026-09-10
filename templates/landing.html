@@ -6,16 +6,23 @@
   <title>Althais — AI-Powered Medical Coding & Billing</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; height: 100%; background: #000; overscroll-behavior-y: none; }
+    html { scroll-behavior: smooth; height: 100%; background: #ececec; overscroll-behavior-y: none; }
     body {
       font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; color: #1a1d24; min-height: 100%;
-      background: #000; overscroll-behavior-y: none;
+      background: #ececec; overscroll-behavior-y: none;
     }
     a { text-decoration: none; }
+
+    /* Framed-canvas layout: grey page background, white centered
+       container with side borders running the full page height. */
+    #page-frame {
+      background: #fff; max-width: 1400px; margin: 0 auto; min-height: 100vh;
+      border-left: 1px solid #d9d9d9; border-right: 1px solid #d9d9d9;
+    }
 
     /* Background for the sticky slides below the hero, which hand off to
        the normal-flow footer once scrolled past. */
@@ -97,7 +104,7 @@
       display: flex; align-items: center; justify-content: center;
       background: #fdfaf7;
     }
-    #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 880px; margin: 0 auto; }
+    #hero-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; max-width: 1020px; margin: 0 auto; }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
       background: #fdeeee; color: #14151a; font-family: 'Inter', sans-serif;
@@ -106,7 +113,7 @@
     }
     .hero-badge svg { flex-shrink: 0; }
     .hero-headline {
-      font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; color: #14151a; letter-spacing: -0.01em; line-height: 1.15;
+      font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-optical-sizing: auto; color: #14151a; letter-spacing: -0.01em; line-height: 1.15;
       font-size: clamp(2rem, 5vw, 3.6rem);
     }
     .hero-sub {
@@ -254,6 +261,7 @@
   </style>
 </head>
 <body class="flex flex-col">
+<div id="page-frame">
 
   <!-- Nav -->
   <header id="site-nav">
@@ -476,6 +484,8 @@
       </div>
     </div>
   </div>
+
+</div><!-- /#page-frame -->
 
   <script>
     // Mobile menu toggle
