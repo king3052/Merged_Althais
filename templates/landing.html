@@ -10,6 +10,10 @@
   <style>
     * { box-sizing: border-box; }
     body { font-family: 'Inter', Arial, sans-serif; }
+    .video-hero { position: relative; min-height: 640px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .video-hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .video-hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+    .video-hero-content { position: relative; z-index: 1; text-align: center; padding: 0 24px; max-width: 800px; margin: 0 auto; }
     .product-section { padding: 120px 24px 40px; text-align: center; font-family: 'Inter', Arial, sans-serif; }
     .badge-pill {
       display: inline-flex; padding: 7px 18px; border: 1px solid #e2e2e2; border-radius: 999px;
@@ -127,14 +131,20 @@
     <a href="/login" style="font-size:12px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#14151a; text-decoration:none;">Log in</a>
   </header>
 
-  <section style="padding:140px 24px 0; text-align:center;">
-    <h1 style="margin:0; font-family:'Times New Roman',Times,serif; font-weight:700; color:#1a1a1a; letter-spacing:-0.01em; line-height:1.2; font-size:clamp(2.2rem, 5.5vw, 3.6rem);">
-      Medical Intelligence<br />for the AI Era
-    </h1>
-    <p style="margin:22px auto 0; max-width:640px; font-family:'Inter',Arial,sans-serif; font-weight:400; font-size:16px; line-height:1.6; color:#4a4a4a;">
-      Althais is the intelligence layer for modern healthcare teams — connecting documentation, coding, and claims so providers get paid faster.
-    </p>
-    <a href="/demo" style="display:inline-block; margin-top:32px; background:#14151a; color:#fff; font-family:'Inter',Arial,sans-serif; font-weight:600; font-size:15px; padding:14px 30px; border-radius:999px; text-decoration:none;">Book A Demo</a>
+  <section class="video-hero">
+    <video autoplay muted loop playsinline preload="auto">
+      <source src="/videos/city.mp4" type="video/mp4" />
+    </video>
+    <div class="video-hero-overlay"></div>
+    <div class="video-hero-content">
+      <h1 style="margin:0; font-family:'Times New Roman',Times,serif; font-weight:700; color:#fff; letter-spacing:-0.01em; line-height:1.2; font-size:clamp(2.2rem, 5.5vw, 3.6rem);">
+        Medical Intelligence<br />for the AI Era
+      </h1>
+      <p style="margin:22px auto 0; max-width:640px; font-family:'Inter',Arial,sans-serif; font-weight:400; font-size:16px; line-height:1.6; color:rgba(255,255,255,0.85);">
+        Althais is the intelligence layer for modern healthcare teams — connecting documentation, coding, and claims so providers get paid faster.
+      </p>
+      <a href="/demo" style="display:inline-block; margin-top:32px; background:#fff; color:#14151a; font-family:'Inter',Arial,sans-serif; font-weight:600; font-size:15px; padding:14px 30px; border-radius:999px; text-decoration:none;">Book A Demo</a>
+    </div>
   </section>
 
   <!-- Built by — placeholder slots until real company names are provided -->
