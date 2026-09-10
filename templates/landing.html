@@ -163,90 +163,6 @@
     }
 
     /* ══════════════════════════════════════════════════════════════
-       Product showcase — accordion (left) + live screenshot (right)
-       over a colorful gradient, sitting right under the hero buttons.
-       ══════════════════════════════════════════════════════════════ */
-    #ps2 {
-      position: relative; z-index: 1; padding: 100px 56px; overflow: hidden;
-      background:
-        radial-gradient(1100px 700px at 12% -10%, rgba(13,91,215,0.35), transparent 60%),
-        radial-gradient(900px 600px at 100% 10%, rgba(124,90,230,0.3), transparent 55%),
-        radial-gradient(800px 800px at 50% 120%, rgba(13,91,215,0.25), transparent 60%),
-        #0b1220;
-    }
-    #ps2::before {
-      content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-      background-size: 64px 64px;
-      -webkit-mask-image: linear-gradient(to bottom, black, transparent 85%);
-      mask-image: linear-gradient(to bottom, black, transparent 85%);
-    }
-    #ps2-grid {
-      position: relative; z-index: 1; max-width: 1360px; margin: 0 auto;
-      display: grid; grid-template-columns: 380px 1fr; gap: 56px; align-items: center;
-    }
-    #ps2-card {
-      background: #fff; border-radius: 16px; padding: 36px 32px;
-      box-shadow: 0 30px 70px rgba(0,0,0,0.35);
-    }
-    #ps2-heading {
-      font-family: 'Inter', sans-serif; font-weight: 800; color: #0a0a0a; letter-spacing: -0.01em;
-      line-height: 1.25; font-size: 22px; margin-bottom: 22px;
-    }
-    .ps2-item { border-top: 1px solid rgba(0,0,0,0.1); }
-    .ps2-item:last-child { border-bottom: 1px solid rgba(0,0,0,0.1); }
-    .ps2-item-header {
-      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 18px 2px; background: none; border: none; cursor: pointer; text-align: left;
-      font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 600; color: rgba(10,10,10,0.55);
-      transition: color 0.2s ease;
-    }
-    .ps2-item.active .ps2-item-header { color: #0a0a0a; }
-    .ps2-chev { flex-shrink: 0; color: rgba(10,10,10,0.35); transition: transform 0.25s ease; }
-    .ps2-item.active .ps2-chev { transform: rotate(180deg); color: #0d5bd7; }
-    .ps2-item-body {
-      max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease;
-      padding: 0 2px;
-    }
-    .ps2-item.active .ps2-item-body { max-height: 140px; padding: 0 2px 20px; }
-    .ps2-item-body p { font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.6; color: rgba(10,10,10,0.55); }
-    .ps2-progress { height: 3px; background: rgba(13,91,215,0.15); border-radius: 999px; margin-top: 14px; overflow: hidden; }
-    .ps2-progress span { display: block; height: 100%; width: 38%; background: #0d5bd7; border-radius: 999px; }
-
-    #ps2-stage { position: relative; }
-    .ps2-float {
-      position: absolute; top: -30px; left: 6%; z-index: 2;
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(11,18,32,0.85); border: 1px solid rgba(255,255,255,0.14); border-radius: 999px;
-      padding: 9px 16px; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600;
-      color: #fff; letter-spacing: 0.02em; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    .ps2-dot { width: 6px; height: 6px; border-radius: 50%; background: #3fd67a; flex-shrink: 0; }
-    #ps2-browser {
-      background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
-      box-shadow: 0 40px 90px rgba(0,0,0,0.5); overflow: hidden;
-    }
-    .ps2-chrome {
-      display: flex; align-items: center; justify-content: center;
-      padding: 10px 14px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .ps2-url {
-      font-family: 'Inter', sans-serif; font-size: 11.5px; color: rgba(255,255,255,0.55);
-      background: rgba(255,255,255,0.06); border-radius: 999px; padding: 4px 16px; white-space: nowrap;
-    }
-    .ps2-img-frame { height: 480px; background: #0a0a0a; }
-    .ps2-img-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: left top; transition: opacity 0.2s ease; }
-
-    @media (max-width: 980px) {
-      #ps2 { padding: 70px 24px; }
-      #ps2-grid { grid-template-columns: 1fr; gap: 32px; }
-      .ps2-float { left: 24px; }
-      .ps2-img-frame { height: 320px; }
-    }
-
-    /* ══════════════════════════════════════════════════════════════
        About Althais — next sticky slide. A bordered ~30/70 two-panel
        shell — left panel is a search bar over a clickable, filterable
        list of topic titles, right panel shows the selected topic's blurb.
@@ -342,59 +258,6 @@
         <div class="trust-marquee-track" id="trust-marquee-track">
           <span>Trusted by providers building the future of healthcare revenue cycle automation.</span>
           <span>Trusted by providers building the future of healthcare revenue cycle automation.</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Product showcase — accordion + live screenshot, sits right under
-       the hero's Book a Demo / Contact Us buttons. -->
-  <section id="ps2">
-    <div id="ps2-grid">
-      <div id="ps2-card">
-        <h2 id="ps2-heading">AI-Powered Documentation —<br />Faster &amp; More Accurate</h2>
-
-        <div class="ps2-item active" data-slide="0">
-          <button type="button" class="ps2-item-header">
-            <span>Capture The Notes As Written</span>
-            <svg class="ps2-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div class="ps2-item-body">
-            <p>Providers document or dictate the encounter exactly as they normally would — Althais structures it in the background.</p>
-            <div class="ps2-progress"><span></span></div>
-          </div>
-        </div>
-
-        <div class="ps2-item" data-slide="1">
-          <button type="button" class="ps2-item-header">
-            <span>AI Turns It Into A Claim</span>
-            <svg class="ps2-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div class="ps2-item-body">
-            <p>Relevant ICD-10 and CPT codes are recommended and checked against payer rules before a claim is ever assembled.</p>
-            <div class="ps2-progress"><span></span></div>
-          </div>
-        </div>
-
-        <div class="ps2-item" data-slide="2">
-          <button type="button" class="ps2-item-header">
-            <span>Get Paid, Faster</span>
-            <svg class="ps2-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div class="ps2-item-body">
-            <p>A qualified reviewer approves the work, the claim goes out clean, and reimbursement tracks all the way to paid.</p>
-            <div class="ps2-progress"><span></span></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="ps2-stage">
-        <div id="ps2-float-chip" class="ps2-float">
-          <span class="ps2-dot"></span> Althais AI <span id="ps2-float-status">· Analyzing</span>
-        </div>
-        <div id="ps2-browser">
-          <div class="ps2-chrome"><div class="ps2-url">app.althais.com</div></div>
-          <div class="ps2-img-frame"><img id="ps2-img" src="/static/screenshots/provider-note.png" alt="The Virtual SOAP note entry screen in Althais" /></div>
         </div>
       </div>
     </div>
@@ -560,36 +423,6 @@
       }
     });
 
-  </script>
-
-  <script>
-    // Product showcase accordion — click a step, swap the screenshot.
-    (function () {
-      var slides = [
-        { img: '/static/screenshots/provider-note.png', alt: 'The Virtual SOAP note entry screen in Althais', status: 'Analyzing' },
-        { img: '/static/screenshots/claim-assembly.png', alt: 'A CMS-1500 claim assembled automatically from approved codes', status: 'Coding' },
-        { img: '/static/screenshots/payment.png', alt: 'Claims filtered to Paid status showing posted payment amounts', status: 'Paid' },
-      ];
-      var items = document.querySelectorAll('#ps2-card .ps2-item');
-      var imgEl = document.getElementById('ps2-img');
-      var statusEl = document.getElementById('ps2-float-status');
-      if (!items.length || !imgEl) return;
-
-      items.forEach(function (item) {
-        item.querySelector('.ps2-item-header').addEventListener('click', function () {
-          var i = parseInt(item.getAttribute('data-slide'), 10);
-          items.forEach(function (it) { it.classList.remove('active'); });
-          item.classList.add('active');
-          imgEl.style.opacity = '0';
-          setTimeout(function () {
-            imgEl.src = slides[i].img;
-            imgEl.alt = slides[i].alt;
-            imgEl.style.opacity = '1';
-          }, 150);
-          if (statusEl) statusEl.textContent = '· ' + slides[i].status;
-        });
-      });
-    })();
   </script>
 
 </body>
