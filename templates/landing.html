@@ -293,24 +293,27 @@
     .problem-card h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 23px; color: #14172c; line-height: 1.3; margin: 0 0 14px; }
     .problem-card p { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; color: #666; line-height: 1.5; margin: 0; }
 
+    .problem-featured-col { grid-column: 3 / 4; display: flex; flex-direction: column; gap: 24px; }
     .problem-featured {
-      grid-column: 3 / 4; background: #12162c; border-radius: 20px; padding: 36px 32px;
-      display: flex; flex-direction: column; justify-content: flex-end; min-height: 420px;
+      flex: 1; background: #12162c; border-radius: 20px; padding: 32px 28px;
+      display: flex; flex-direction: column; justify-content: flex-end;
     }
-    .problem-featured .problem-card-icon { color: #fff; margin-bottom: 60px; }
-    .problem-featured h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 24px; color: #fff; line-height: 1.3; margin: 0 0 14px; }
-    .problem-featured p { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; color: #9aa0bd; line-height: 1.5; margin: 0; }
+    .problem-featured .problem-card-icon { color: #fff; margin-bottom: 24px; }
+    .problem-featured h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; color: #fff; line-height: 1.3; margin: 0 0 12px; }
+    .problem-featured p { font-family: 'Instrument Serif', Georgia, serif; font-size: 16px; color: #9aa0bd; line-height: 1.5; margin: 0; }
 
     @media (max-width: 1024px) {
       .problem-grid { grid-template-columns: 1fr 1fr; }
       .problem-cards-2x2 { grid-column: 1 / 3; }
-      .problem-featured { grid-column: 1 / 3; min-height: 260px; }
+      .problem-featured-col { grid-column: 1 / 3; flex-direction: row; }
+      .problem-featured { min-height: 260px; }
     }
     @media (max-width: 640px) {
       .problem-section { padding: 70px 20px; }
       .problem-cards-2x2 { grid-template-columns: 1fr; grid-column: 1 / 2; }
       .problem-grid { grid-template-columns: 1fr; }
-      .problem-featured { grid-column: 1 / 2; min-height: 0; }
+      .problem-featured-col { grid-column: 1 / 2; flex-direction: column; }
+      .problem-featured { min-height: 0; }
       .problem-card-icon, .problem-featured .problem-card-icon { margin-bottom: 32px; }
     }
 
@@ -468,19 +471,28 @@
           </div>
           <div class="problem-card">
             <div class="problem-card-icon">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
             </div>
             <h3>Denials are caught too late.</h3>
             <p>Many claim errors are discovered only after submission, creating rework, payment delays, and preventable appeals.</p>
           </div>
         </div>
 
-        <div class="problem-featured">
-          <div class="problem-card-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 6v2M12 16v2M9 15a3 3 0 0 0 3 2c1.7 0 3-1 3-2.2 0-1.5-1.3-2-3-2.3-1.7-.3-3-.8-3-2.3C9 9 10.3 8 12 8a3 3 0 0 1 3 2"/></svg>
+        <div class="problem-featured-col">
+          <div class="problem-featured">
+            <div class="problem-card-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v2M12 16v2M9 15a3 3 0 0 0 3 2c1.7 0 3-1 3-2.2 0-1.5-1.3-2-3-2.3-1.7-.3-3-.8-3-2.3C9 9 10.3 8 12 8a3 3 0 0 1 3 2"/></svg>
+            </div>
+            <h3>Every missed code is lost revenue.</h3>
+            <p>When documentation, coding, and claims operate separately, clinics lose time and money at every step.</p>
           </div>
-          <h3>Every missed code is lost revenue.</h3>
-          <p>When documentation, coding, and claims operate separately, clinics lose time and money at every step.</p>
+          <div class="problem-featured">
+            <div class="problem-card-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 15 14"/></svg>
+            </div>
+            <h3>A denied claim is frozen revenue.</h3>
+            <p>Once a claim is denied, that money sits stuck until someone catches it, fixes it, and resubmits.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -516,7 +528,7 @@
               <div class="sv-old-card">
                 <span class="sv-old-label">Codes</span>
                 <div class="sv-old-bar short"></div>
-                <svg class="sv-old-warn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <svg class="sv-old-warn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
               </div>
             </div>
             <div class="sv-old-row offset">
@@ -528,7 +540,7 @@
               <div class="sv-old-break"></div>
               <div class="sv-old-card">
                 <span class="sv-old-label">Payer</span>
-                <svg class="sv-old-warn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <svg class="sv-old-warn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
               </div>
             </div>
           </div>
