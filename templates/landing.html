@@ -251,8 +251,11 @@
       font-size: clamp(2.2rem, 4.6vw, 3.4rem); color: #14172c; margin: 0; line-height: 1.2;
     }
     .closing-cta p {
-      position: relative; z-index: 1; max-width: 520px; margin: 20px auto 0; color: #666;
-      font-size: 16px; line-height: 1.6; font-family: 'Inter', sans-serif;
+      position: relative; z-index: 1; max-width: none; margin: 20px auto 0; color: #666;
+      font-size: 16px; line-height: 1.6; font-family: 'Inter', sans-serif; white-space: nowrap;
+    }
+    @media (max-width: 640px) {
+      .closing-cta p { white-space: normal; }
     }
 
     /* ── Problem section — 2x2 light cards + tall featured navy card ── */
@@ -596,7 +599,7 @@
   <!-- Closing CTA -->
   <section class="closing-cta">
     <h2>Ready to turn documentation<br class="hidden-mobile" />into measurable outcomes?</h2>
-    <p style="font-family:'Instrument Serif', Georgia, serif; font-size:19px;">Book a demo to see how Althais helps your team capture, code, and get paid faster.</p>
+    <p style="font-family:'Instrument Serif', Georgia, serif; font-size:19px;">Book a demo to see how Althais helps your team capture and get paid faster.</p>
     <a href="/demo" class="hero-cta-btn" style="position:relative; z-index:1; margin-top:32px;">Book A Demo</a>
   </section>
 
