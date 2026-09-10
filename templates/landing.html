@@ -114,16 +114,16 @@
     .hero-actions { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 34px; font-family: 'Inter', sans-serif; }
     .btn-primary-hero {
       display: inline-flex; align-items: center; justify-content: space-between; gap: 28px;
-      background: linear-gradient(100deg, #ffd166 0%, #ff9a5a 35%, #ff6b6b 70%, #f2596b 100%);
-      color: #14151a;
+      background: #14151a;
+      color: #fff;
       font-size: 16px; font-weight: 700;
       min-width: 260px;
       padding: 18px 22px 18px 26px; border-radius: 16px;
-      box-shadow: 0 12px 28px rgba(255,120,90,0.35);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 12px 28px rgba(20,21,26,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
-    .btn-primary-hero:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(255,120,90,0.45); }
-    .btn-primary-hero svg path { stroke: #14151a; }
+    .btn-primary-hero:hover { background: #33343c; transform: translateY(-2px); box-shadow: 0 16px 34px rgba(20,21,26,0.4); }
+    .btn-primary-hero svg path { stroke: #fff; }
     .hero-action-link {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 13.5px; font-weight: 500; color: rgba(20,21,26,0.55);
