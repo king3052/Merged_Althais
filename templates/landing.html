@@ -30,13 +30,6 @@
     .fc-media { position: relative; min-height: 340px; padding: 28px; display: flex; align-items: flex-end; overflow: hidden; }
     .fc-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
     .fc-media::before { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.15), transparent 40%); z-index: 1; }
-    .fc-stat-card {
-      position: relative; z-index: 2; background: #fff; border-radius: 14px; padding: 16px 18px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.14); max-width: 220px; font-family: 'Inter', Arial, sans-serif;
-    }
-    .fc-stat-label { font-size: 11px; color: #888; margin-bottom: 6px; }
-    .fc-stat-value { font-size: 26px; font-weight: 700; color: #c9702f; }
-    .fc-stat-sub { font-size: 12px; color: #888; margin-top: 4px; }
     .fc-text { padding: 40px; text-align: left; display: flex; flex-direction: column; justify-content: center; font-family: 'Inter', Arial, sans-serif; }
     .fc-text h3 { font-weight: 600; font-size: 1.6rem; color: #1a1a1a; margin: 0 0 12px; }
     .fc-text p { color: #555; font-size: 15px; line-height: 1.6; margin: 0; max-width: 320px; }
@@ -205,11 +198,6 @@
         radial-gradient(600px 450px at 90% 90%, rgba(160,190,240,0.6), transparent 55%),
         linear-gradient(160deg, #fdf3ea 0%, #f6e9ee 60%, #eef1fb 100%);">
         <img src="/static/screenshots/provider-note.png" alt="Provider note screen in Althais" />
-        <div class="fc-stat-card">
-          <div class="fc-stat-label">Documentation Time</div>
-          <div class="fc-stat-value">-40%</div>
-          <div class="fc-stat-sub">per encounter, on average</div>
-        </div>
       </div>
       <div class="fc-text">
         <h3>Clinical Documentation</h3>
@@ -224,11 +212,6 @@
         radial-gradient(600px 450px at 10% 90%, rgba(230,190,220,0.55), transparent 55%),
         linear-gradient(160deg, #eef1fb 0%, #f3edf6 55%, #fdf3ea 100%);">
         <img src="/static/screenshots/claim-assembly.png" alt="Claim assembly screen in Althais" />
-        <div class="fc-stat-card">
-          <div class="fc-stat-label">Claims Flagged Pre-Submission</div>
-          <div class="fc-stat-value">27%</div>
-          <div class="fc-stat-sub">before they ever reach a payer</div>
-        </div>
       </div>
       <div class="fc-text">
         <h3>Claims Intelligence</h3>
@@ -243,11 +226,6 @@
         radial-gradient(600px 450px at 85% 85%, rgba(170,200,245,0.55), transparent 55%),
         linear-gradient(160deg, #fdf6f0 0%, #f6ecf5 55%, #eef1fb 100%);">
         <img src="/static/screenshots/payment.png" alt="Payment tracking screen in Althais" />
-        <div class="fc-stat-card">
-          <div class="fc-stat-label">Faster Reimbursement</div>
-          <div class="fc-stat-value">+18%</div>
-          <div class="fc-stat-sub">days to payment, improved</div>
-        </div>
       </div>
       <div class="fc-text">
         <h3>Revenue Outcomes</h3>
