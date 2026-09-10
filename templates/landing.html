@@ -134,6 +134,7 @@
 
     @media (max-width: 900px) {
       #site-nav .nav-links { display: none; }
+      #nav-inner > div:last-child > a { display: none; }
       #hamburger { display: flex; }
       #nav-inner { padding: 16px 20px; }
     }
@@ -361,6 +362,7 @@
     <a href="/how-it-works" onclick="toggleMobileMenu()">Platform</a>
     <a href="/solutions" onclick="toggleMobileMenu()">Solutions</a>
     <a href="/resources" onclick="toggleMobileMenu()">Resources</a>
+    <a href="/login" onclick="toggleMobileMenu()">Log In</a>
     <a href="#" class="book-demo-trigger" onclick="toggleMobileMenu()">Book a Demo</a>
   </div>
 
@@ -368,7 +370,7 @@
   <section id="hero">
     <div id="hero-content">
       <h1 class="hero-headline fade-in fade-in-2">
-        The intelligence behind<br />every patient visit and every claim
+        The intelligence behind<br class="hidden sm:block" /> every patient visit and every claim
       </h1>
       <p class="hero-sub fade-in fade-in-3">
         One platform that takes your documentation all the way to payment
