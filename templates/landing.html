@@ -223,15 +223,20 @@
       content: ''; position: absolute; top: 0; left: 50%; width: 100vw; margin-left: -50vw;
       border-top: 1px solid #d9d9d9;
     }
-    /* Space between the platform-preview mockup and the first feature row,
-       framed by full-bleed lines on both sides. */
-    .section-gap { position: relative; height: 64px; background: #fff; }
+    /* Lead-in band between the platform-preview mockup and the first
+       feature row, framed by full-bleed lines on both sides. */
+    .section-gap {
+      position: relative; background: #fff; text-align: center;
+      padding: 90px 24px; display: flex; flex-direction: column; align-items: center;
+    }
     .section-gap::before, .section-gap::after {
       content: ''; position: absolute; left: 50%; width: 100vw; margin-left: -50vw;
       border-top: 1px solid #d9d9d9;
     }
     .section-gap::before { top: 0; }
     .section-gap::after { bottom: 0; }
+    .section-gap .feature-label { justify-content: center; }
+    .section-gap .feature-heading { margin-bottom: 0; }
     .feature-row.reverse .feature-copy { order: 2; }
     .feature-row.reverse .feature-media { order: 1; }
     .feature-copy { padding: 90px 70px; display: flex; flex-direction: column; justify-content: center; }
@@ -450,7 +455,10 @@
     </div>
   </section>
 
-  <div class="section-gap"></div>
+  <div class="section-gap">
+    <p class="feature-label">What Althais Can Do For You</p>
+    <h2 class="feature-heading">Don't document like it's 1995</h2>
+  </div>
 
   <!-- Feature: clinical documentation -->
   <section class="feature-row">
