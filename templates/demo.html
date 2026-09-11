@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Book a Demo — Althais</title>
+  <title>Book a Demo: Althais</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Space+Mono:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { theme: { extend: {
-      fontFamily: { sans: ['Inter', 'sans-serif'], jos: ['"Josefin Sans"', 'sans-serif'] },
+      fontFamily: { sans: ['Inter', 'sans-serif'] },
       colors: {
         med: { 700: '#0a47b0', 600: '#0d5bd7', 100: '#e6efff' },
         ok:  { 600: '#0c8a4f', 100: '#d8f5e3' },
@@ -21,13 +21,21 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: 'Josefin Sans', sans-serif; -webkit-font-smoothing: antialiased;
-      background: rgba(4,8,16,0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      color: rgba(255,255,255,0.88); min-height: 100vh;
+      font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased;
+      background: #fdf8ef;
+      color: #14151a; min-height: 100vh; position: relative; overflow-x: hidden;
     }
-    input:focus, textarea:focus { outline: none; border-color: #0d5bd7; box-shadow: 0 0 0 3px rgba(13,91,215,0.16); }
+    .demo-glow-left {
+      position: fixed; left: -8%; bottom: -18%; width: 640px; height: 640px; max-width: 60vw;
+      background: radial-gradient(circle, rgba(148,158,184,0.55), transparent 70%);
+      filter: blur(60px); pointer-events: none; z-index: 0;
+    }
+    .demo-glow-right {
+      position: fixed; right: -10%; top: -18%; width: 640px; height: 640px; max-width: 60vw;
+      background: radial-gradient(circle, rgba(224,192,140,0.55), transparent 70%);
+      filter: blur(60px); pointer-events: none; z-index: 0;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #12162c; box-shadow: 0 0 0 3px rgba(18,22,44,0.12); }
 
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(18px); }
@@ -39,40 +47,49 @@
     .fade-in-3 { animation-delay: 0.3s; }
 
     #demo-nav {
+      position: relative; z-index: 2;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 26px 56px; border-bottom: 1px solid rgba(255,255,255,0.14);
-      font-family: 'Inter', sans-serif;
+      padding: 26px 56px; font-family: 'Inter', sans-serif;
     }
-    #demo-nav .nav-login { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.72); transition: color 0.2s ease; }
-    #demo-nav .nav-login:hover { color: #ffffff; }
+    #demo-nav .demo-logo span {
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.3em;
+      text-transform: uppercase; color: #14151a; padding-left: 0.2em;
+    }
+    #demo-nav .nav-login {
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.3em;
+      text-transform: uppercase; color: #14151a; transition: color 0.2s ease;
+    }
+    #demo-nav .nav-login:hover { color: #12162c; }
 
-    .demo-eyebrow { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: #ffffff; margin-bottom: 16px; }
+    .demo-eyebrow { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: #9a824f; margin-bottom: 16px; }
     .demo-headline {
-      font-family: 'Space Mono', monospace; font-weight: 700; text-transform: uppercase;
-      color: #fff; letter-spacing: 0.01em; line-height: 1.22;
-      font-size: clamp(1.4rem, 2.6vw, 2rem); margin-bottom: 18px;
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
+      color: #14172c; line-height: 1.15;
+      font-size: clamp(2.2rem, 4vw, 3rem); margin-bottom: 18px;
     }
-    .demo-copy { font-family: 'Inter', sans-serif; font-size: 14px; color: rgba(255,255,255,0.62); line-height: 1.75; margin-bottom: 32px; }
-    .demo-feature { font-family: 'Inter', sans-serif; font-size: 13.5px; color: rgba(255,255,255,0.8); }
-    .demo-feature-icon { width: 20px; height: 20px; background: rgba(13,91,215,0.22); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .demo-copy { font-family: 'Inter', sans-serif; font-size: 14px; color: #5c5f6b; line-height: 1.75; margin-bottom: 32px; }
+    .demo-feature { font-family: 'Inter', sans-serif; font-size: 13.5px; color: #2a2d3a; }
+    .demo-feature-icon { width: 20px; height: 20px; background: rgba(18,22,44,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
-    .demo-form-card { background: #fff; border-radius: 4px; padding: 40px 36px; box-shadow: 0 30px 80px rgba(0,0,0,0.45); }
+    .demo-form-card { position: relative; z-index: 2; background: #fffdf8; border: 1px solid rgba(20,21,26,0.1); border-radius: 18px; padding: 40px 36px; box-shadow: 0 24px 60px rgba(20,21,26,0.08); }
+    .demo-form-card h2 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 26px; color: #14172c; }
     .demo-submit-btn {
-      width: 100%; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-      color: #fff; background: #0a0a0a; border: none; border-radius: 2px; padding: 16px; cursor: pointer;
+      width: 100%; font-family: 'Instrument Serif', Georgia, serif; font-size: 18px; font-weight: 400;
+      color: #fff; background: #12162c; border: none; border-radius: 999px; padding: 14px; cursor: pointer;
       transition: background 0.2s ease, transform 0.2s ease;
     }
-    .demo-submit-btn:hover:not(:disabled) { background: #0d5bd7; transform: translateY(-1px); }
+    .demo-submit-btn:hover:not(:disabled) { background: #262b47; transform: translateY(-1px); }
     .demo-submit-btn:disabled { opacity: 0.6; cursor: default; }
 
     #demo-footer {
+      position: relative; z-index: 2;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 56px; border-top: 1px solid rgba(255,255,255,0.14);
-      font-family: 'Inter', sans-serif;
+      padding: 22px 56px; border-top: 1px solid rgba(255,255,255,0.14);
+      font-family: 'Inter', sans-serif; background: #12162c;
     }
-    #demo-footer p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: rgba(255,255,255,0.4); }
-    #demo-footer a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.4); transition: color 0.2s ease; }
-    #demo-footer a:hover { color: #fff; }
+    #demo-footer p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: #fff; }
+    #demo-footer a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #fff; transition: color 0.2s ease; }
+    #demo-footer a:hover { color: rgba(255,255,255,0.7); }
 
     @media (max-width: 640px) {
       #demo-nav, #demo-footer { padding: 18px 20px; }
@@ -82,59 +99,62 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+  <div class="demo-glow-left"></div>
+  <div class="demo-glow-right"></div>
+
   <!-- Nav -->
   <header id="demo-nav">
-    <a href="/" class="flex items-center" style="gap:12px">
-      <svg width="24" height="24" viewBox="0 0 80 80" fill="none">
-        <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
-        <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8" stroke-linecap="butt"/>
+    <a href="/" class="demo-logo flex items-center" style="gap:10px">
+      <svg width="22" height="22" viewBox="0 0 80 80" fill="none">
+        <path d="M5,74 L40,16 L75,74" stroke="#14151a" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+        <line x1="21" y1="49" x2="59" y2="49" stroke="#14151a" stroke-width="8" stroke-linecap="butt"/>
       </svg>
-      <span style="font-size:15px;font-weight:600;letter-spacing:0.35em;color:#fff;text-transform:uppercase;padding-left:0.35em">ALTHAIS</span>
+      <span>Althais</span>
     </a>
-    <a href="/login" class="nav-login">Log in</a>
+    <a href="/login" class="nav-login">Login</a>
   </header>
 
-  <main class="flex-1 flex items-center justify-center px-6 py-16">
+  <main class="flex-1 flex items-center justify-center px-6 py-16" style="position:relative;z-index:2">
     <div class="w-full max-w-[960px] grid md:grid-cols-2 gap-16 items-start">
 
       <!-- Left: value prop -->
       <div class="pt-2 fade-in fade-in-1">
         <p class="demo-eyebrow">Book a demo</p>
-        <h1 class="demo-headline">See Althais<br />in action</h1>
+        <h1 class="demo-headline" style="white-space:nowrap">See Althais In Action</h1>
         <p class="demo-copy">
-          Schedule a personalized walkthrough with our team. We'll show you how Althais handles ICD-10 / CPT coding, claim validation, and EDI transmission — and answer any questions about your practice's workflow.
+          Schedule a personalized walkthrough with our team. We'll show you how Althais handles ICD-10 / CPT coding, claim validation, and EDI transmission, and answer any questions about your practice's workflow.
         </p>
 
         <div class="space-y-4">
           <div class="flex items-start gap-3">
             <div class="demo-feature-icon">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#12162c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <p class="demo-feature">AI-assisted ICD-10 and CPT coding from clinical notes</p>
           </div>
           <div class="flex items-start gap-3">
             <div class="demo-feature-icon">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#12162c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <p class="demo-feature">Real-time claim validation and compliance checks</p>
           </div>
           <div class="flex items-start gap-3">
             <div class="demo-feature-icon">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#12162c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <p class="demo-feature">EDI 837P clearinghouse transmission</p>
           </div>
           <div class="flex items-start gap-3">
             <div class="demo-feature-icon">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2 2 4-4" stroke="#12162c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <p class="demo-feature">AI-generated denial appeal letters</p>
           </div>
         </div>
 
-        <div style="margin-top:40px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.14)">
-          <p style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:12px">Response time</p>
-          <p style="font-family:'Inter',sans-serif;font-size:13px;color:rgba(255,255,255,0.62)">We typically respond within <strong style="color:#fff">1 business day</strong> to schedule your demo.</p>
+        <div style="margin-top:40px;padding-top:32px;border-top:1px solid rgba(20,21,26,0.1)">
+          <p style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(20,21,26,0.4);margin-bottom:12px">Response Time</p>
+          <p style="font-family:'Inter',sans-serif;font-size:13px;color:#5c5f6b">We typically respond within <strong style="color:#14151a">1 business day</strong> to schedule your demo.</p>
         </div>
       </div>
 
@@ -146,51 +166,50 @@
           <div style="width:56px;height:56px;background:#d8f5e3;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#0c8a4f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <h3 class="jos" style="font-size:18px;font-weight:600;color:#0f1116;margin-bottom:8px">Request received</h3>
+          <h3 style="font-family:'Instrument Serif', Georgia, serif; font-size:22px;font-weight:400;color:#14172c;margin-bottom:8px">Request Received</h3>
           <p style="font-size:13.5px;color:#6b7280;line-height:1.6">Thanks! We'll be in touch within 1 business day to schedule your demo.</p>
-          <a href="/" style="display:inline-block;margin-top:24px;font-size:13px;color:#0d5bd7;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">← Back to home</a>
+          <a href="/" style="display:inline-block;margin-top:24px;font-size:13px;color:#12162c;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">← Back to home</a>
         </div>
 
         <!-- Form -->
         <div id="form-wrap">
-          <h2 class="jos" style="font-size:18px;font-weight:600;color:#0f1116;margin-bottom:4px">Request a demo</h2>
-          <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Fill in your details and we'll be in touch.</p>
+          <h2 style="margin-bottom:4px">Request A Demo</h2>
+          <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Fill In Your Details And We'll Be In Touch.</p>
 
-          <div id="msg" class="hidden mb-4 text-[12.5px] rounded-sm px-3 py-2 bg-risk-100 text-risk-600"></div>
+          <div id="msg" class="hidden mb-4 text-[12.5px] rounded-md px-3 py-2 bg-risk-100 text-risk-600"></div>
 
           <form id="demo-form" class="space-y-4" novalidate>
             <div>
-              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Full name</label>
+              <label class="block text-[11px] font-semibold mb-1.5" style="color:#2c313b">Full Name</label>
               <input id="full_name" type="text" autocomplete="name" required
-                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
-                style="color:#0f1116;border-color:#e4e6eb"
+                class="w-full text-[13px] border rounded-md px-3 py-2.5"
+                style="color:#14151a;background:#faf6ee;border-color:rgba(20,21,26,0.14)"
                 placeholder="Dr. Jane Smith" />
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Work email</label>
+              <label class="block text-[11px] font-semibold mb-1.5" style="color:#2c313b">Work Email</label>
               <input id="email" type="email" autocomplete="email" required
-                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
-                style="color:#0f1116;border-color:#e4e6eb"
+                class="w-full text-[13px] border rounded-md px-3 py-2.5"
+                style="color:#14151a;background:#faf6ee;border-color:rgba(20,21,26,0.14)"
                 placeholder="jane@practice.com" />
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Practice name</label>
+              <label class="block text-[11px] font-semibold mb-1.5" style="color:#2c313b">Practice Name</label>
               <input id="practice_name" type="text" required
-                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
-                style="color:#0f1116;border-color:#e4e6eb"
+                class="w-full text-[13px] border rounded-md px-3 py-2.5"
+                style="color:#14151a;background:#faf6ee;border-color:rgba(20,21,26,0.14)"
                 placeholder="Mercy Cardiology" />
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-ink-700 mb-1.5" style="color:#2c313b">Phone number</label>
+              <label class="block text-[11px] font-semibold mb-1.5" style="color:#2c313b">Phone Number</label>
               <input id="phone" type="tel" autocomplete="tel"
-                class="w-full text-[13px] border border-line rounded-md px-3 py-2.5"
-                style="color:#0f1116;border-color:#e4e6eb"
+                class="w-full text-[13px] border rounded-md px-3 py-2.5"
+                style="color:#14151a;background:#faf6ee;border-color:rgba(20,21,26,0.14)"
                 placeholder="+1 (555) 000-0000" />
             </div>
             <button id="btn" type="submit" class="demo-submit-btn">
-              Request demo →
+              Request Demo
             </button>
-            <p style="font-size:11px;color:#aaa;text-align:center">No commitment required. We'll reach out to schedule.</p>
           </form>
         </div>
       </div>
@@ -234,11 +253,11 @@
           $('success').classList.remove('hidden');
         } else {
           showMsg(data.error || 'Something went wrong. Please try again.');
-          $('btn').disabled = false; $('btn').textContent = 'Request demo →';
+          $('btn').disabled = false; $('btn').textContent = 'Request Demo';
         }
       } catch {
         showMsg('Network error. Please try again.');
-        $('btn').disabled = false; $('btn').textContent = 'Request demo →';
+        $('btn').disabled = false; $('btn').textContent = 'Request Demo';
       }
     });
   </script>
