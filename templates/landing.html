@@ -98,13 +98,23 @@
     .hero-benefit-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff8e90; display: inline-block; flex-shrink: 0; }
 
     .hero-cta-row { display: flex; justify-content: center; }
+    @keyframes ctaGradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
     .hero-cta-btn {
-      display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #ff9e73, #ff8e90);
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(120deg, #ff9e73, #ff8e90, #ffbe8a, #ff9e73);
+      background-size: 300% 300%; animation: ctaGradientFlow 5s ease infinite;
       color: #0c0a09; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;
       padding: 15px 26px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; text-decoration: none;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .hero-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(255,142,144,0.35); }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-cta-btn { animation: none; }
+    }
     .hero-small-text { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 13px; color: #979696; margin-top: 18px; }
 
     #book-demo-modal input::placeholder { color: rgba(255,255,255,0.35); }
