@@ -144,54 +144,59 @@
     /* ── Althais A centerpiece ── */
     .lava-hero-wrap {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 80px 24px 60px; background: #fff; position: relative; overflow: hidden;
+      padding: 100px 24px 80px; background: #fff; position: relative; overflow: hidden;
     }
+    /* Container sized to include the outermost ring so nothing clips */
     .althais-a-wrap {
-      position: relative; width: 260px; height: 260px; margin: 0 auto 48px;
+      position: relative; width: 360px; height: 360px; margin: 0 auto 52px;
       display: flex; align-items: center; justify-content: center;
     }
-    /* Outer spinning ring */
+    /* THE MISSING KEYFRAME — this is why nothing was moving */
+    @keyframes a-ring-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    /* Electron orbit rings — subtle circular tracks */
     .althais-a-ring {
       position: absolute; border-radius: 50%; animation: a-ring-spin linear infinite;
       pointer-events: none;
     }
     .althais-a-ring-1 {
-      inset: -28px; border: 1.5px solid rgba(255,140,40,0.28);
-      animation-duration: 14s;
+      width: 300px; height: 300px; border: 1px solid rgba(255,140,40,0.22);
+      animation-duration: 7s;
     }
     .althais-a-ring-2 {
-      inset: -50px; border: 1px solid rgba(255,100,20,0.14);
-      animation-duration: 20s; animation-direction: reverse;
+      width: 336px; height: 336px; border: 1px solid rgba(255,100,20,0.13);
+      animation-duration: 12s; animation-direction: reverse;
     }
     .althais-a-ring-3 {
-      inset: -72px; border: 1px solid rgba(255,180,60,0.08);
-      animation-duration: 28s;
+      width: 356px; height: 356px; border: 1px solid rgba(255,180,60,0.08);
+      animation-duration: 18s;
     }
-    /* Electron dots — one sits at the top of each ring div.
-       Since the ring itself rotates, the dot orbits the A. */
+    /* Electron dots — glowing orbs, white-hot center fading to coral */
     .althais-a-ring::after {
       content: ''; position: absolute;
-      width: 7px; height: 7px; border-radius: 50%;
-      top: -4px; left: 50%; margin-left: -3.5px;
-      background: #ff9e73;
-      box-shadow: 0 0 6px #ff9e73, 0 0 12px rgba(255,140,40,0.7);
+      width: 11px; height: 11px; border-radius: 50%;
+      top: -5.5px; left: 50%; margin-left: -5.5px;
+      background: radial-gradient(circle, #fff 0%, #ff9e73 50%, transparent 100%);
+      box-shadow: 0 0 6px 1px #ff9e73, 0 0 16px 3px rgba(255,140,40,0.7), 0 0 28px 5px rgba(255,100,20,0.3);
     }
     .althais-a-ring-2::after {
-      width: 5px; height: 5px; top: -3px; margin-left: -2.5px;
-      background: #ffb347;
-      box-shadow: 0 0 5px #ffb347, 0 0 10px rgba(255,180,60,0.6);
+      width: 9px; height: 9px; top: -4.5px; margin-left: -4.5px;
+      background: radial-gradient(circle, #fff 0%, #ffb347 55%, transparent 100%);
+      box-shadow: 0 0 5px 1px #ffb347, 0 0 13px 3px rgba(255,180,60,0.65), 0 0 22px 4px rgba(255,140,40,0.25);
     }
     .althais-a-ring-3::after {
-      width: 4px; height: 4px; top: -2px; margin-left: -2px;
-      background: #ff8e60;
-      box-shadow: 0 0 4px #ff8e60, 0 0 8px rgba(255,120,40,0.5);
+      width: 8px; height: 8px; top: -4px; margin-left: -4px;
+      background: radial-gradient(circle, #fff 0%, #ff8060 60%, transparent 100%);
+      box-shadow: 0 0 5px 1px #ff8060, 0 0 11px 2px rgba(255,100,40,0.6), 0 0 20px 4px rgba(255,80,20,0.25);
     }
-    /* Radial glow that pulses behind the logo */
+    /* Radial glow pulsing behind the A */
     .althais-a-glow {
-      position: absolute; inset: -60px; border-radius: 50%;
+      position: absolute; width: 280px; height: 280px; border-radius: 50%;
       background: radial-gradient(ellipse at center,
-        rgba(255,180,60,0.32) 0%,
-        rgba(255,120,30,0.18) 38%,
+        rgba(255,180,60,0.35) 0%,
+        rgba(255,120,30,0.18) 40%,
         transparent 70%);
       animation: a-glow-pulse 3.2s ease-in-out infinite;
       pointer-events: none;
@@ -200,26 +205,25 @@
       0%,100% { transform: scale(1);    opacity: 0.8; }
       50%      { transform: scale(1.12); opacity: 1; }
     }
-    /* The Althais logo — large, stroke-only (transparent fill) */
+    /* The Althais logo A */
     .althais-a-logo {
       position: relative; z-index: 2;
-      width: 210px; height: 210px;
-      filter: drop-shadow(0 0 14px rgba(255,140,40,0.55))
-              drop-shadow(0 0 32px rgba(255,80,20,0.32))
-              drop-shadow(0 0 60px rgba(255,120,40,0.15));
+      width: 200px; height: 200px;
+      filter: drop-shadow(0 0 14px rgba(255,140,40,0.6))
+              drop-shadow(0 0 32px rgba(255,80,20,0.35))
+              drop-shadow(0 0 56px rgba(255,120,40,0.18));
     }
 
     .lava-hero-tagline {
       font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(1.6rem, 3vw, 2.2rem);
       font-weight: 400; color: #0c0a09; text-align: center; line-height: 1.3;
-      max-width: 560px; margin-bottom: 28px;
+      max-width: 560px; margin-bottom: 20px;
     }
     .lava-hero-tagline em { font-style: italic; color: #e64200; }
     .lava-hero-sub {
       font-size: 15px; color: #888; text-align: center; max-width: 440px;
       line-height: 1.65; margin-bottom: 36px;
     }
-
 
 
     /* ── Showcase ── */
@@ -440,7 +444,83 @@
     .fc-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
     .fc-media::before { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.15), transparent 40%); z-index: 1; }
 
-    /* ── NCCI feature card (inline mockup, no screenshot needed) ── */
+    /* ── AI Documentation SOAP mockup card ── */
+    .fc-soap {
+      background: #fdf8f5; display: flex; flex-direction: column;
+      padding: 0; overflow: hidden; min-height: 340px;
+    }
+    .fc-soap-header {
+      background: #fff; border-bottom: 1px solid #f0ebe6; padding: 14px 20px;
+    }
+    .fc-soap-steps {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .fc-soap-step {
+      font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+      background: #f0ebe6; color: #bbb; font-family: 'Inter', sans-serif;
+    }
+    .fc-soap-step.done { background: #fff0ec; color: #ff7a30; }
+    .fc-soap-step.active { background: #ff9e73; color: #fff; }
+    .fc-soap-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .fc-soap-field {
+      background: #fff; border: 1px solid #efe8e2; border-radius: 8px; padding: 10px 13px;
+    }
+    .fc-soap-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .fc-soap-label { font-size: 9.5px; font-weight: 700; color: #bbb; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px; font-family: 'Inter', sans-serif; }
+    .fc-soap-value { font-size: 12.5px; color: #2c2c2c; font-family: 'Inter', sans-serif; line-height: 1.4; }
+    .fc-soap-timer { display: flex; align-items: center; gap: 6px; }
+    .fc-soap-timer-badge { font-size: 9.5px; font-weight: 700; background: #edfbf3; color: #0c8a4f; padding: 2px 6px; border-radius: 4px; }
+    .fc-soap-codes { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+    .fc-soap-code-row {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid #efe8e2; border-radius: 7px; padding: 7px 10px;
+      font-family: 'Inter', sans-serif; font-size: 11.5px;
+    }
+    .fc-soap-badge { font-weight: 700; font-size: 10px; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
+    .fc-soap-badge.cpt { background: #fff0ec; color: #ff7a30; }
+    .fc-soap-badge.icd { background: #edfbf3; color: #0c8a4f; }
+    .fc-soap-code-desc { color: #555; flex: 1; }
+    .fc-soap-code-ok { font-weight: 700; color: #0c8a4f; font-size: 10.5px; flex-shrink: 0; }
+
+    /* ── Revenue Tracking dashboard mockup card ── */
+    .fc-revenue {
+      background: #fdf8f5; display: flex; flex-direction: column;
+      padding: 0; overflow: hidden; min-height: 340px;
+    }
+    .fc-revenue-header {
+      background: #fff; border-bottom: 1px solid #f0ebe6;
+      padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .fc-revenue-title { font-size: 12px; font-weight: 700; color: #0c0a09; font-family: 'Inter', sans-serif; }
+    .fc-revenue-stats { display: flex; gap: 20px; }
+    .fc-revenue-stat { text-align: right; }
+    .fc-revenue-stat-val { font-size: 15px; font-weight: 700; color: #0c0a09; font-family: 'Inter', sans-serif; }
+    .fc-revenue-stat-val.ok { color: #0c8a4f; }
+    .fc-revenue-stat-val.warn { color: #ff7a30; }
+    .fc-revenue-stat-label { font-size: 10px; color: #aaa; font-family: 'Inter', sans-serif; }
+    .fc-revenue-claims { display: flex; flex-direction: column; gap: 0; flex: 1; }
+    .fc-revenue-claim {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 20px; border-bottom: 1px solid #f5efea;
+      font-family: 'Inter', sans-serif;
+    }
+    .fc-revenue-claim:hover { background: #fdf4f0; }
+    .fc-revenue-claim-id { font-size: 10.5px; font-weight: 700; color: #999; margin-bottom: 2px; }
+    .fc-revenue-claim-name { font-size: 12.5px; color: #2c2c2c; }
+    .fc-revenue-claim-right { display: flex; align-items: center; gap: 10px; }
+    .fc-revenue-claim-amt { font-size: 13px; font-weight: 700; color: #0c0a09; }
+    .fc-revenue-status { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+    .fc-revenue-status.submitted { background: #e6efff; color: #0d5bd7; }
+    .fc-revenue-status.paid { background: #edfbf3; color: #0c8a4f; }
+    .fc-revenue-status.denied { background: #fff0ec; color: #ff7a30; }
+    .fc-revenue-appeal {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff8f4; border-top: 1px solid #f0ebe6;
+      padding: 10px 20px; font-size: 11.5px; color: #ff7a30;
+      font-family: 'Inter', sans-serif; font-weight: 500;
+    }
+
+
     .fc-ncci {
       background: #fdf7f4; display: flex; flex-direction: column; justify-content: center;
       padding: 36px; position: relative; overflow: hidden;
@@ -537,16 +617,27 @@
     .problem-card, .problem-featured {
       border-radius: 16px; padding: 36px 32px; display: flex; flex-direction: column;
     }
-    .problem-card { background: #fff; border: 1px solid #efefef; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
-    .problem-card-icon { color: #0c0a09; margin-bottom: 60px; }
-    .problem-card h3, .problem-featured h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 23px; line-height: 1.3; margin: 0 0 14px; }
-    .problem-card h3 { color: #0c0a09; }
-    .problem-card p, .problem-featured p { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; line-height: 1.5; margin: 0; }
-    .problem-card p { color: #666; }
-    .problem-featured { background: #fff; border: 1px solid #f0e8e0; box-shadow: 0 8px 32px rgba(255,140,40,0.18), 0 2px 8px rgba(255,100,20,0.10); }
-    .problem-featured .problem-card-icon { color: #ff7a30; margin-bottom: 60px; }
-    .problem-featured h3 { color: #0c0a09; }
-    .problem-featured p { color: #666; }
+    /* All 6 problem cards — identical base style, same hover */
+    .problem-card, .problem-featured {
+      background: #fff;
+      border: 1px solid #efefef;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+    }
+    .problem-card:hover, .problem-featured:hover {
+      box-shadow: 0 8px 32px rgba(255,130,40,0.14), 0 2px 8px rgba(255,100,20,0.08);
+      border-color: #ffd4b8;
+      transform: translateY(-3px);
+    }
+    .problem-card-icon, .problem-featured .problem-card-icon { color: #ff7a30; margin-bottom: 60px; }
+    .problem-card h3, .problem-featured h3 {
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
+      font-size: 23px; line-height: 1.3; margin: 0 0 14px; color: #0c0a09;
+    }
+    .problem-card p, .problem-featured p {
+      font-family: 'Instrument Serif', Georgia, serif; font-size: 17px;
+      line-height: 1.5; margin: 0; color: #666;
+    }
     @media (max-width: 1024px) { .problem-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 640px) {
       .problem-section { padding: 70px 20px; }
@@ -656,7 +747,7 @@
       <span class="hero-badge"><span class="hero-badge-dot"></span>AI Medical Billing</span>
 
       <h1 class="hero-warm-headline fade-in fade-in-1">We help clinics<br />turn missed codes into revenue.</h1>
-      <p class="hero-warm-sub fade-in fade-in-2">The AI platform that documents, codes, and submits claims for you — so nothing gets missed on its way to getting paid.</p>
+      <p class="hero-warm-sub fade-in fade-in-2">The AI platform that documents, codes, and submits claims for you, so nothing gets missed on its way to getting paid.</p>
 
       <div class="hero-benefits fade-in fade-in-3">
         <span class="hero-benefit"><span class="hero-benefit-dot"></span>AI SOAP Notes</span>
@@ -723,7 +814,7 @@
       </svg>
     </div>
     <p class="lava-hero-tagline">Every visit should turn into <em>accurate documentation</em> and a <em>clean, paid claim.</em></p>
-    <p class="lava-hero-sub">Althais connects clinical documentation, AI-assisted coding, and claim submission into one seamless workflow — built for the clinics that need it most.</p>
+    <p class="lava-hero-sub">Althais connects clinical documentation, AI-assisted coding, and claim submission into one seamless workflow built for the clinics that need it most.</p>
     <a href="/demo" class="lava-btn">See how it works <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c0a09" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
   </div>
 
@@ -854,15 +945,58 @@
   </section>
 
   <div class="feature-cards">
-    <!-- Card 1: AI Documentation -->
+    <!-- Card 1: AI Documentation — inline SOAP mockup -->
     <div class="feature-card">
-      <div class="fc-media" style="background:radial-gradient(700px 500px at 20% 10%, rgba(255,158,115,0.5), transparent 60%),radial-gradient(600px 450px at 90% 90%, rgba(255,142,144,0.35), transparent 55%),linear-gradient(160deg, #fff7f2 0%, #fff0ec 60%, #fff9f2 100%);">
-        <img src="/static/screenshots/provider-note.png" alt="Provider note screen in Althais" />
+      <div class="fc-soap">
+        <div class="fc-soap-header">
+          <div class="fc-soap-steps">
+            <span class="fc-soap-step done">1 Patient</span>
+            <span class="fc-soap-step done">2 Note</span>
+            <span class="fc-soap-step active">3 AI Coding</span>
+            <span class="fc-soap-step">4 Review</span>
+          </div>
+        </div>
+        <div class="fc-soap-body">
+          <div class="fc-soap-field">
+            <div class="fc-soap-label">Chief Complaint</div>
+            <div class="fc-soap-value">Chest pain, shortness of breath, 2hr onset</div>
+          </div>
+          <div class="fc-soap-field">
+            <div class="fc-soap-label">Assessment</div>
+            <div class="fc-soap-value">Acute chest pain, r/o ACS. Stable vitals.</div>
+          </div>
+          <div class="fc-soap-row2">
+            <div class="fc-soap-field">
+              <div class="fc-soap-label">Visit Type</div>
+              <div class="fc-soap-value">Emergency Dept</div>
+            </div>
+            <div class="fc-soap-field">
+              <div class="fc-soap-label">Duration (timer)</div>
+              <div class="fc-soap-value fc-soap-timer">47 min <span class="fc-soap-timer-badge">verified</span></div>
+            </div>
+          </div>
+          <div class="fc-soap-field">
+            <div class="fc-soap-label">Plan</div>
+            <div class="fc-soap-value">EKG ordered, troponin labs, cardiology consult if elevated.</div>
+          </div>
+          <div class="fc-soap-codes">
+            <div class="fc-soap-code-row">
+              <span class="fc-soap-badge cpt">CPT</span>
+              <span class="fc-soap-code-desc">99285 · ED Visit, high complexity</span>
+              <span class="fc-soap-code-ok">✓ CMS verified</span>
+            </div>
+            <div class="fc-soap-code-row">
+              <span class="fc-soap-badge icd">ICD-10</span>
+              <span class="fc-soap-code-desc">R07.9 · Chest pain</span>
+              <span class="fc-soap-code-ok">94%</span>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="fc-text">
         <p class="section-eyebrow">AI Documentation</p>
-        <h3>Virtual SOAP — 15 structured fields, done in minutes</h3>
-        <p>Providers document visits through a structured clinical note workflow. The AI reads what you wrote — not a free-text box it has to guess from.</p>
+        <h3>Virtual SOAP: 15 structured fields, done in minutes</h3>
+        <p>Providers document visits through a structured clinical note workflow. The AI reads what you wrote, not a free-text box it has to guess from.</p>
       </div>
     </div>
 
@@ -873,17 +1007,17 @@
         <div class="ncci-demo">
           <div class="ncci-row">
             <span class="ncci-badge ncci-cpt">CPT</span>
-            <span class="ncci-desc">99285 — ED Visit, high complexity</span>
+            <span class="ncci-desc">99285 · ED Visit, high complexity</span>
             <span class="ncci-status ncci-ok">✓ CMS verified</span>
           </div>
           <div class="ncci-row">
             <span class="ncci-badge ncci-icd">ICD-10</span>
-            <span class="ncci-desc">R07.9 — Chest pain, unspecified</span>
+            <span class="ncci-desc">R07.9 · Chest pain, unspecified</span>
             <span class="ncci-status ncci-ok">94% conf.</span>
           </div>
           <div class="ncci-row">
             <span class="ncci-badge ncci-icd">ICD-10</span>
-            <span class="ncci-desc">R06.00 — Dyspnea, unspecified</span>
+            <span class="ncci-desc">R06.00 · Dyspnea, unspecified</span>
             <span class="ncci-status ncci-ok">91% conf.</span>
           </div>
           <div class="ncci-check-row">
@@ -891,7 +1025,7 @@
               <svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
             </div>
             <div>
-              <div class="ncci-check-title">NCCI edit check passed — 0 bundling conflicts</div>
+              <div class="ncci-check-title">NCCI edit check passed: 0 bundling conflicts</div>
               <div class="ncci-check-sub">Checked against CMS PTP edit table before submission</div>
             </div>
           </div>
@@ -899,7 +1033,7 @@
       </div>
       <div class="fc-text">
         <p class="section-eyebrow">Claims Intelligence</p>
-        <h3>Real NCCI checks — not AI guesses</h3>
+        <h3>Real NCCI checks, not AI guesses</h3>
         <p>Every claim is checked against the CMS procedure-to-procedure edit table before submission. Bundling errors caught before a denial, not after.</p>
       </div>
     </div>
@@ -909,7 +1043,7 @@
       <div class="fc-althea">
         <div class="fc-althea-chat">
           <div class="fc-althea-bubble-you">"Which claims are at risk today?"</div>
-          <div class="fc-althea-bubble-ai">3 claims flagged — CHC-00412 has low confidence on the 99291 critical care code. The 30-minute CMS threshold needs to be documented explicitly. Want me to open it?</div>
+          <div class="fc-althea-bubble-ai">3 claims flagged. CHC-00412 has low confidence on the 99291 critical care code. The 30-minute CMS threshold needs to be documented explicitly. Want me to open it?</div>
           <div class="fc-althea-bubble-you">"Open it"</div>
           <div class="fc-althea-bubble-ai">Opening CHC-00412 now.</div>
         </div>
@@ -920,14 +1054,76 @@
       <div class="fc-text">
         <p class="section-eyebrow">Althea Voice AI</p>
         <h3>Your practice answers you back</h3>
-        <p>Ask Althea about your schedule, a patient's medications, at-risk claims, or prior auth status — hands-free, mid-visit, without touching the keyboard.</p>
+        <p>Ask Althea about your schedule, a patient's medications, at-risk claims, or prior auth status, hands-free, mid-visit, without touching the keyboard.</p>
       </div>
     </div>
 
-    <!-- Card 4: Revenue tracking -->
+    <!-- Card 4: Revenue Tracking — inline claims dashboard mockup -->
     <div class="feature-card reverse">
-      <div class="fc-media" style="background:radial-gradient(700px 500px at 80% 15%, rgba(255,142,144,0.45), transparent 60%),radial-gradient(600px 450px at 10% 90%, rgba(255,158,115,0.35), transparent 55%),linear-gradient(160deg, #fff0ec 0%, #fff5ee 55%, #fff9f2 100%);">
-        <img src="/static/screenshots/payment.png" alt="Payment tracking screen in Althais" />
+      <div class="fc-revenue">
+        <div class="fc-revenue-header">
+          <span class="fc-revenue-title">Claims Overview</span>
+          <div class="fc-revenue-stats">
+            <div class="fc-revenue-stat">
+              <div class="fc-revenue-stat-val ok">94%</div>
+              <div class="fc-revenue-stat-label">Clean rate</div>
+            </div>
+            <div class="fc-revenue-stat">
+              <div class="fc-revenue-stat-val">$48,210</div>
+              <div class="fc-revenue-stat-label">Pending</div>
+            </div>
+            <div class="fc-revenue-stat">
+              <div class="fc-revenue-stat-val warn">3</div>
+              <div class="fc-revenue-stat-label">Denied</div>
+            </div>
+          </div>
+        </div>
+        <div class="fc-revenue-claims">
+          <div class="fc-revenue-claim">
+            <div class="fc-revenue-claim-info">
+              <div class="fc-revenue-claim-id">CHC-2026-00412</div>
+              <div class="fc-revenue-claim-name">Smith, John · 99291</div>
+            </div>
+            <div class="fc-revenue-claim-right">
+              <span class="fc-revenue-claim-amt">$1,240</span>
+              <span class="fc-revenue-status submitted">Submitted</span>
+            </div>
+          </div>
+          <div class="fc-revenue-claim">
+            <div class="fc-revenue-claim-info">
+              <div class="fc-revenue-claim-id">CHC-2026-00411</div>
+              <div class="fc-revenue-claim-name">Patel, R. · 99285</div>
+            </div>
+            <div class="fc-revenue-claim-right">
+              <span class="fc-revenue-claim-amt">$680</span>
+              <span class="fc-revenue-status paid">Paid</span>
+            </div>
+          </div>
+          <div class="fc-revenue-claim">
+            <div class="fc-revenue-claim-info">
+              <div class="fc-revenue-claim-id">CHC-2026-00409</div>
+              <div class="fc-revenue-claim-name">Torres, M. · 99283</div>
+            </div>
+            <div class="fc-revenue-claim-right">
+              <span class="fc-revenue-claim-amt">$340</span>
+              <span class="fc-revenue-status denied">Denied</span>
+            </div>
+          </div>
+          <div class="fc-revenue-claim">
+            <div class="fc-revenue-claim-info">
+              <div class="fc-revenue-claim-id">CHC-2026-00408</div>
+              <div class="fc-revenue-claim-name">Kim, S. · 99284</div>
+            </div>
+            <div class="fc-revenue-claim-right">
+              <span class="fc-revenue-claim-amt">$520</span>
+              <span class="fc-revenue-status paid">Paid</span>
+            </div>
+          </div>
+        </div>
+        <div class="fc-revenue-appeal">
+          <svg width="14" height="14" fill="none" stroke="#ff7a30" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Appeal letter generated for CHC-2026-00409
+        </div>
       </div>
       <div class="fc-text">
         <p class="section-eyebrow">Revenue Tracking</p>
@@ -944,7 +1140,7 @@
       <div class="althea-left">
         <p class="section-eyebrow">Althea Voice AI</p>
         <h2 class="althea-heading">17 clinical intents.<br />All hands-free.</h2>
-        <p class="althea-sub">Althea is a voice-powered AI built into Althais. It understands your practice, your patients, and your claims — and can surface any of it in seconds without breaking your clinical flow.</p>
+        <p class="althea-sub">Althea is a voice-powered AI built into Althais. It understands your practice, your patients, and your claims and can surface any of it in seconds without breaking your clinical flow.</p>
         <div class="althea-intents">
           <div class="althea-intent">
             <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
@@ -970,14 +1166,14 @@
       </div>
       <div>
         <div class="althea-chat-wrap">
-          <div class="althea-chat-label">Althea — Clinical AI</div>
+          <div class="althea-chat-label">Althea: Clinical AI</div>
           <div class="chat-row">
             <div class="chat-who">You</div>
             <div class="bubble-you">"What claims are at risk right now?"</div>
           </div>
           <div class="chat-row">
             <div class="chat-who">Althea</div>
-            <div class="bubble-ai">3 claims flagged this morning. CHC-2026-00412 has low AI confidence on the 99291 critical care code — the 30-minute threshold isn't documented explicitly. CHC-2026-00389 is missing a medical decision complexity note. Want me to open either one?</div>
+            <div class="bubble-ai">3 claims flagged this morning. CHC-2026-00412 shows low AI confidence on the 99291 critical care code; the 30-minute threshold is not documented explicitly. CHC-2026-00389 is missing a medical decision complexity note. Want me to open either one?</div>
           </div>
           <div class="chat-row">
             <div class="chat-who">You</div>
@@ -985,7 +1181,7 @@
           </div>
           <div class="chat-row">
             <div class="chat-who">Althea</div>
-            <div class="bubble-ai">Opening CHC-2026-00412 — you'll need to add the total critical care time to the note before submitting. The CMS threshold is 30 minutes for the first unit of 99291.</div>
+            <div class="bubble-ai">Opening CHC-2026-00412. You'll need to add the total critical care time to the note before submitting. The CMS threshold is 30 minutes for the first unit of 99291.</div>
           </div>
           <div class="althea-mic">
             <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -1009,10 +1205,10 @@
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
           </div>
-          <p class="t-text">"The coding engine caught a bundling error I would have missed — the kind that comes back as a denial two weeks later when you've already moved on."</p>
+          <p class="t-text">"The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you've already moved on."</p>
           <div class="t-person">
             <div class="t-avatar">JT</div>
-            <div><div class="t-name">Dr. James Tarin</div><div class="t-role">Tarin Health DPC — Pecos, TX</div></div>
+            <div><div class="t-name">Dr. James Tarin</div><div class="t-role">Tarin Health DPC, Pecos TX</div></div>
           </div>
         </div>
         <div class="t-card">
@@ -1026,7 +1222,7 @@
           <p class="t-text">"NCCI real-time checking is something I've been asking vendors to build for years. Most practices don't find out about bundling conflicts until after the rejection."</p>
           <div class="t-person">
             <div class="t-avatar">BC</div>
-            <div><div class="t-name">Bryan Cox</div><div class="t-role">Director, Revenue Cycle — MCH Odessa TX</div></div>
+            <div><div class="t-name">Bryan Cox</div><div class="t-role">Director, Revenue Cycle, MCH Odessa TX</div></div>
           </div>
         </div>
         <div class="t-card">
@@ -1037,10 +1233,10 @@
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
           </div>
-          <p class="t-text">"Small clinics running lean can't afford a billing department. Althais is built for exactly that setting — and the Althea voice layer is something I haven't seen anywhere else."</p>
+          <p class="t-text">"Small clinics running lean can't afford a billing department. Althais is built for exactly that setting, and the Althea voice layer is something I haven't seen anywhere else."</p>
           <div class="t-person">
             <div class="t-avatar">AG</div>
-            <div><div class="t-name">Dr. Ashish Gupta, MD MBA</div><div class="t-role">Deputy CMO — Hamilton Health Box</div></div>
+            <div><div class="t-name">Dr. Ashish Gupta, MD MBA</div><div class="t-role">Deputy CMO, Hamilton Health Box</div></div>
           </div>
         </div>
       </div>
@@ -1142,33 +1338,6 @@
   </div>
 
     </script>
-
-  <script>
-    // ── Smooth inertial scroll ──────────────────────────────────────────
-    // Replicates the momentum-based page scroll seen on Karumi.ai —
-    // wheel events are intercepted and eased over ~800ms.
-    (function() {
-      var currentY = window.scrollY, targetY = window.scrollY;
-      var ease = 0.085, running = false;
-
-      function smoothStep() {
-        var diff = targetY - currentY;
-        if (Math.abs(diff) < 0.5) { currentY = targetY; running = false; return; }
-        currentY += diff * ease;
-        window.scrollTo(0, currentY);
-        requestAnimationFrame(smoothStep);
-      }
-
-      window.addEventListener('wheel', function(e) {
-        e.preventDefault();
-        var delta = e.deltaY;
-        if (e.deltaMode === 1) delta *= 28;   // line mode
-        if (e.deltaMode === 2) delta *= window.innerHeight; // page mode
-        targetY = Math.max(0, Math.min(document.body.scrollHeight - window.innerHeight, targetY + delta * 1.1));
-        if (!running) { running = true; requestAnimationFrame(smoothStep); }
-      }, { passive: false });
-    })();
-  </script>
 
   <script>
     (function () {
