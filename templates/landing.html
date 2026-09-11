@@ -169,45 +169,65 @@
     }
 
     #site-footer-bar {
-      position: relative; z-index: 1;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 22px 56px; border-top: 1px solid rgba(255,255,255,0.14);
-      font-family: 'Inter', sans-serif; background: #12162c;
+      position: relative; z-index: 1; background: #fff; border-top: 1px solid #e5e5e5;
+      font-family: 'Inter', sans-serif; padding: 70px 64px 0;
     }
-    #site-footer-bar p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: #fff; }
-    #site-footer-bar .footer-links { display: flex; gap: 24px; }
-    #site-footer-bar a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #fff; transition: color 0.2s ease; }
-    #site-footer-bar a:hover { color: rgba(255,255,255,0.7); }
+    .footer-inner {
+      max-width: 1272px; margin: 0 auto; display: grid;
+      grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 32px; padding-bottom: 56px;
+    }
+    .footer-brand { display: flex; flex-direction: column; gap: 14px; max-width: 280px; }
+    .footer-logo { display: flex; align-items: center; gap: 8px; }
+    .footer-logo span {
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.3em;
+      text-transform: uppercase; color: #0c0a09; padding-left: 0.2em;
+    }
+    .footer-brand p { font-size: 13.5px; color: #979696; line-height: 1.6; margin: 0; }
+    .footer-col-title { font-size: 12px; font-weight: 600; color: #0c0a09; margin: 0 0 14px; }
+    .footer-col { display: flex; flex-direction: column; gap: 10px; }
+    .footer-col a { font-size: 13.5px; color: #666; transition: color 0.2s ease; width: fit-content; }
+    .footer-col a:hover { color: #0c0a09; }
+    .footer-bottom {
+      border-top: 1px solid #e5e5e5; padding: 22px 0; max-width: 1272px; margin: 0 auto;
+    }
+    .footer-bottom p { font-size: 12px; color: #979696; margin: 0; }
 
+    @media (max-width: 800px) {
+      #site-footer-bar { padding: 50px 24px 0; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+    }
     @media (max-width: 480px) {
-      #site-footer-bar { flex-direction: column; gap: 8px; padding: 14px 20px; text-align: center; }
-      #site-footer-bar .footer-links { gap: 16px; }
+      .footer-inner { grid-template-columns: 1fr; }
     }
 
-    .product-section { padding: 110px 64px 40px; font-family: 'Inter', Arial, sans-serif; background: #fdf8ef; }
+    .product-section { padding: 110px 64px 40px; font-family: 'Inter', Arial, sans-serif; background: #fff; }
     .product-inner { max-width: 1272px; margin: 0 auto; }
     .badge-pill {
       display: inline-flex; padding: 7px 18px; border: 1px solid #e2e2e2; border-radius: 999px;
       font-size: 13px; color: #555; background: #fff;
     }
-    .product-label { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; font-weight: 400; color: #5c5548; margin-bottom: 18px; }
+    .section-eyebrow {
+      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.3em;
+      text-transform: uppercase; color: #ff7a52; margin-bottom: 18px;
+    }
     .product-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #14172c;
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
       font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 20px; max-width: 820px;
     }
     .product-sub { max-width: 620px; margin: 0; color: #666; font-size: 16px; line-height: 1.6; }
 
-    .feature-cards { max-width: 1100px; margin: 60px auto 0; padding: 0 24px 120px; display: flex; flex-direction: column; gap: 32px; background: #fdf8ef; }
+    .feature-cards { max-width: 1100px; margin: 60px auto 0; padding: 0 24px 120px; display: flex; flex-direction: column; gap: 32px; background: #fff; }
     .feature-card {
       display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
-      background: #fafafa; border: 1px solid #ececec; border-radius: 24px; overflow: hidden; min-height: 340px;
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; overflow: hidden; min-height: 340px;
     }
     .feature-card.reverse .fc-media { order: 2; }
     .fc-media { position: relative; min-height: 340px; padding: 28px; display: flex; align-items: flex-end; overflow: hidden; }
     .fc-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
     .fc-media::before { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.15), transparent 40%); z-index: 1; }
     .fc-text { padding: 40px; text-align: left; display: flex; flex-direction: column; justify-content: center; font-family: 'Inter', Arial, sans-serif; }
-    .fc-text h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 1.9rem; color: #14172c; margin: 0 0 12px; }
+    .fc-text .section-eyebrow { margin-bottom: 14px; }
+    .fc-text h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 1.9rem; color: #0c0a09; margin: 0 0 12px; }
     .fc-text p { font-family: 'Instrument Serif', Georgia, serif; color: #666; font-size: 17px; line-height: 1.5; margin: 0; max-width: 340px; }
 
     @media (max-width: 800px) {
@@ -269,14 +289,20 @@
       border: 1px dashed #d5d5d5;
     }
 
-    /* ── Closing CTA ──────────────────────────────────────────────── */
+    /* ── Closing CTA — soft radial glow, matches Karumi's final CTA ── */
     .closing-cta {
-      position: relative; padding: 140px 24px 160px; text-align: center; overflow: hidden;
-      background: #fdf8ef;
+      position: relative; padding: 160px 24px 170px; text-align: center; overflow: hidden;
+      background: #fff;
+    }
+    .closing-cta::before {
+      content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 1100px; height: 600px; max-width: 140vw;
+      background: radial-gradient(ellipse at center, rgba(255,158,115,0.35), rgba(255,142,144,0.12) 55%, transparent 75%);
+      filter: blur(10px); pointer-events: none; z-index: 0;
     }
     .closing-cta h2 {
       position: relative; z-index: 1; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
-      font-size: clamp(2.2rem, 4.6vw, 3.4rem); color: #14172c; margin: 0; line-height: 1.2;
+      font-size: clamp(2.2rem, 4.6vw, 3.4rem); color: #0c0a09; margin: 0; line-height: 1.2;
     }
     .closing-cta p {
       position: relative; z-index: 1; max-width: none; margin: 20px auto 0; color: #666;
@@ -286,33 +312,40 @@
       .closing-cta p { white-space: normal; }
     }
 
-    /* ── Problem section — 2x2 light cards + tall featured navy card ── */
-    .problem-section { background: #fdf8ef; padding: 110px 64px; }
+    /* ── Statement section — big centered serif line, Karumi-style ──── */
+    .statement-section { background: #fff; padding: 100px 24px; text-align: center; }
+    .statement-section h2 {
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
+      font-size: clamp(1.9rem, 4vw, 2.9rem); line-height: 1.3; margin: 0 auto; max-width: 900px;
+    }
+    .statement-section h2 em { font-style: italic; color: #ff8360; }
+
+    /* ── Problem section — 2x2 light cards + tall featured black card ── */
+    .problem-section { background: #fff; padding: 110px 64px; }
     .problem-inner { max-width: 1272px; margin: 0 auto; }
-    .problem-label { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; font-weight: 400; color: #5c5548; margin-bottom: 18px; }
     .problem-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #14172c;
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
       font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 56px; max-width: 820px;
     }
-    /* One real 3-col x 2-row grid — light and navy cards are siblings in
-       DOM row order (card, card, navy, card, card, navy) so each grid row
+    /* One real 3-col x 2-row grid — light and dark cards are siblings in
+       DOM row order (card, card, dark, card, card, dark) so each grid row
        stretches every item in it to the same height automatically, and
        both card types share the exact same internal layout. */
     .problem-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: stretch; }
     .problem-card, .problem-featured {
-      border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column;
+      border-radius: 16px; padding: 36px 32px; display: flex; flex-direction: column;
     }
-    .problem-card { background: #f6f1e8; border: 1px solid #e7ddc9; }
-    .problem-card-icon { color: #14172c; margin-bottom: 60px; }
+    .problem-card { background: #fff; border: 1px solid #e5e5e5; }
+    .problem-card-icon { color: #0c0a09; margin-bottom: 60px; }
     .problem-card h3, .problem-featured h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 23px; line-height: 1.3; margin: 0 0 14px; }
-    .problem-card h3 { color: #14172c; }
+    .problem-card h3 { color: #0c0a09; }
     .problem-card p, .problem-featured p { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; line-height: 1.5; margin: 0; }
     .problem-card p { color: #666; }
 
-    .problem-featured { background: #12162c; }
-    .problem-featured .problem-card-icon { color: #fff; margin-bottom: 60px; }
+    .problem-featured { background: #0c0a09; }
+    .problem-featured .problem-card-icon { color: #ff9e73; margin-bottom: 60px; }
     .problem-featured h3 { color: #fff; }
-    .problem-featured p { color: #9aa0bd; }
+    .problem-featured p { color: #a3a09c; }
 
     @media (max-width: 1024px) {
       .problem-grid { grid-template-columns: 1fr 1fr; }
@@ -324,27 +357,26 @@
     }
 
     /* ── Solution section — two synced comparison cards ─────────────── */
-    .solution-section { background: #fdf8ef; padding: 110px 64px; }
+    .solution-section { background: #fff; padding: 110px 64px; }
     .solution-inner { max-width: 1272px; margin: 0 auto; }
-    .solution-label { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; font-weight: 400; color: #5c5548; margin-bottom: 18px; }
     .solution-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #14172c;
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
       font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 56px;
     }
     .solution-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: stretch; }
     .solution-card {
-      background: #fff; border: 1px solid #e7ddc9; border-radius: 20px; padding: 40px;
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px;
       display: flex; flex-direction: column;
     }
-    .solution-card h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 23px; color: #14172c; margin: 0 0 20px; }
+    .solution-card h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 23px; color: #0c0a09; margin: 0 0 20px; }
     .solution-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
     .solution-tab {
-      font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; font-weight: 400; color: #14172c;
-      background: #fff; border: 1px solid #e2ddd0; border-radius: 8px; padding: 8px 18px; cursor: pointer;
+      font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; font-weight: 400; color: #0c0a09;
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 8px 18px; cursor: pointer;
       transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     }
-    .solution-tab:hover { border-color: #c9c2b0; }
-    .solution-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .solution-tab:hover { border-color: #c2c2c2; }
+    .solution-tab.active { background: #0c0a09; color: #fff; border-color: #0c0a09; }
     .solution-text { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; color: #555; line-height: 1.5; margin: 0 0 32px; min-height: 66px; }
 
     .solution-visual { margin-top: auto; border-radius: 14px; overflow: hidden; min-height: 280px; position: relative; }
@@ -443,10 +475,15 @@
     </div>
   </section>
 
+  <!-- Statement -->
+  <section class="statement-section">
+    <h2>Every visit should turn into <em>accurate documentation</em> and a <em>clean, paid claim</em> — automatically.</h2>
+  </section>
+
   <!-- Problem section -->
   <section class="problem-section">
     <div class="problem-inner">
-      <p class="problem-label">The Problem</p>
+      <p class="section-eyebrow">The Problem</p>
       <h2 class="problem-heading">We hear this from<br />clinics like yours...</h2>
 
       <div class="problem-grid">
@@ -500,7 +537,7 @@
   <!-- Solution section -->
   <section class="solution-section">
     <div class="solution-inner">
-      <p class="solution-label">The Solution</p>
+      <p class="section-eyebrow">The Solution</p>
       <h2 class="solution-heading">With Althais, go from<br />documentation chaos to<br />paid claims.</h2>
 
       <div class="solution-grid">
@@ -583,11 +620,11 @@
     </div>
   </section>
 
-  <div style="background:#fdf8ef;">
+  <div style="background:#fff;">
   <!-- Product overview -->
   <section class="product-section">
     <div class="product-inner">
-      <p class="product-label">The Product</p>
+      <p class="section-eyebrow">The Product</p>
       <h2 class="product-heading">Meet Althais — Your Healthcare Intelligence Platform</h2>
     </div>
   </section>
@@ -596,12 +633,13 @@
     <!-- Card 1: media left, text right -->
     <div class="feature-card">
       <div class="fc-media" style="background:
-        radial-gradient(700px 500px at 20% 10%, rgba(255,200,150,0.85), transparent 60%),
-        radial-gradient(600px 450px at 90% 90%, rgba(160,190,240,0.6), transparent 55%),
-        linear-gradient(160deg, #fdf3ea 0%, #f6e9ee 60%, #eef1fb 100%);">
+        radial-gradient(700px 500px at 20% 10%, rgba(255,158,115,0.5), transparent 60%),
+        radial-gradient(600px 450px at 90% 90%, rgba(255,142,144,0.35), transparent 55%),
+        linear-gradient(160deg, #fff7f2 0%, #fff0ec 60%, #fff9f2 100%);">
         <img src="/static/screenshots/provider-note.png" alt="Provider note screen in Althais" />
       </div>
       <div class="fc-text">
+        <p class="section-eyebrow">AI Documentation</p>
         <h3>Clinical Documentation</h3>
         <p>Every note is captured and structured the moment the visit happens, with the right codes attached automatically.</p>
       </div>
@@ -610,12 +648,13 @@
     <!-- Card 2: text left, media right -->
     <div class="feature-card reverse">
       <div class="fc-media" style="background:
-        radial-gradient(700px 500px at 80% 15%, rgba(150,180,240,0.8), transparent 60%),
-        radial-gradient(600px 450px at 10% 90%, rgba(230,190,220,0.55), transparent 55%),
-        linear-gradient(160deg, #eef1fb 0%, #f3edf6 55%, #fdf3ea 100%);">
+        radial-gradient(700px 500px at 80% 15%, rgba(255,142,144,0.45), transparent 60%),
+        radial-gradient(600px 450px at 10% 90%, rgba(255,158,115,0.35), transparent 55%),
+        linear-gradient(160deg, #fff0ec 0%, #fff5ee 55%, #fff9f2 100%);">
         <img src="/static/screenshots/claim-assembly.png" alt="Claim assembly screen in Althais" />
       </div>
       <div class="fc-text">
+        <p class="section-eyebrow">Claims Intelligence</p>
         <h3>Claims Intelligence</h3>
         <p>Payer-specific rules are checked automatically, catching issues while there's still time to fix them.</p>
       </div>
@@ -624,12 +663,13 @@
     <!-- Card 3: media left, text right -->
     <div class="feature-card">
       <div class="fc-media" style="background:
-        radial-gradient(700px 500px at 25% 15%, rgba(255,210,170,0.85), transparent 60%),
-        radial-gradient(600px 450px at 85% 85%, rgba(170,200,245,0.55), transparent 55%),
-        linear-gradient(160deg, #fdf6f0 0%, #f6ecf5 55%, #eef1fb 100%);">
+        radial-gradient(700px 500px at 25% 15%, rgba(255,158,115,0.5), transparent 60%),
+        radial-gradient(600px 450px at 85% 85%, rgba(255,142,144,0.35), transparent 55%),
+        linear-gradient(160deg, #fff7f2 0%, #fff0ec 55%, #fff9f2 100%);">
         <img src="/static/screenshots/payment.png" alt="Payment tracking screen in Althais" />
       </div>
       <div class="fc-text">
+        <p class="section-eyebrow">Revenue Tracking</p>
         <h3>Revenue Outcomes</h3>
         <p>Track every visit from documentation to reimbursement, so nothing gets lost along the way.</p>
       </div>
@@ -642,16 +682,46 @@
   <section class="closing-cta">
     <h2>Ready to turn documentation<br class="hidden-mobile" />into measurable outcomes?</h2>
     <p style="font-family:'Instrument Serif', Georgia, serif; font-size:19px;">Book a demo to see how Althais helps your team capture and get paid faster.</p>
-    <a href="/demo" class="hero-cta-btn" style="position:relative; z-index:1; margin-top:32px;">Book A Demo</a>
+    <div class="hero-cta-row" style="position:relative; z-index:1; margin-top:32px;">
+      <a href="/demo" class="hero-cta-btn">Book A Demo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c0a09" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
+    </div>
+    <p class="hero-small-text" style="position:relative; z-index:1;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#979696" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Book a demo in minutes
+    </p>
   </section>
 
   <!-- Site footer -->
   <footer id="site-footer-bar">
-    <p>© 2026 Althais Health, Inc.</p>
-    <div class="footer-links">
-      <a href="/legal/privacy">Privacy</a>
-      <a href="/legal/terms">Terms</a>
-      <a href="/contact">Contact</a>
+    <div class="footer-inner">
+      <div class="footer-col footer-brand">
+        <a href="/" class="footer-logo">
+          <svg width="22" height="22" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+            <path d="M5,74 L40,16 L75,74" stroke="#0c0a09" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
+            <line x1="21" y1="49" x2="59" y2="49" stroke="#0c0a09" stroke-width="8" stroke-linecap="butt"/>
+          </svg>
+          <span>Althais</span>
+        </a>
+        <p>AI-powered documentation, coding, and claims for modern clinics.</p>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Product</p>
+        <a href="/">Overview</a>
+        <a href="/demo">Book A Demo</a>
+        <a href="/login">Login</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Company</p>
+        <a href="/contact">Contact</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Legal</p>
+        <a href="/legal/privacy">Privacy Policy</a>
+        <a href="/legal/terms">Terms Of Service</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Althais Health, Inc. All rights reserved.</p>
     </div>
   </footer>
 
