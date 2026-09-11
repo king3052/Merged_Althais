@@ -68,8 +68,8 @@
     }
     .hero-login-link:hover { color: #12162c; }
     .hero-nav-cta {
-      display: inline-block; background: #0c0a09; color: #fff; font-family: 'Inter', sans-serif;
-      font-size: 14px; font-weight: 500; padding: 10px 20px; border-radius: 999px; text-decoration: none;
+      display: inline-block; background: #0c0a09; color: #ffc9a0; font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 500; padding: 10px 20px; border-radius: 8px; text-decoration: none;
       transition: background 0.2s ease;
     }
     .hero-nav-cta:hover { background: #262b47; }
@@ -92,19 +92,29 @@
       font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
       font-size: clamp(3rem, 6.4vw, 4.4rem); line-height: 1.1; margin: 0 0 22px;
     }
-    .hero-warm-sub { font-family: 'Inter', sans-serif; font-size: 18px; color: #979696; line-height: 1.55; max-width: 560px; margin: 0 auto 32px; }
+    .hero-warm-sub { font-family: 'Inter', sans-serif; font-size: 16px; color: #0c0a09; line-height: 1.55; max-width: 560px; margin: 0 auto 32px; }
     .hero-benefits { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; margin-bottom: 34px; font-family: 'Instrument Serif', Georgia, serif; }
     .hero-benefit { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 400; color: #2a2d3a; }
     .hero-benefit-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff8e90; display: inline-block; flex-shrink: 0; }
 
     .hero-cta-row { display: flex; justify-content: center; }
+    @keyframes ctaGradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
     .hero-cta-btn {
-      display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #ff9e73, #ff8e90);
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(120deg, #ff9e73, #ff8e90, #ffbe8a, #ff9e73);
+      background-size: 300% 300%; animation: ctaGradientFlow 5s ease infinite;
       color: #0c0a09; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;
-      padding: 15px 26px; border-radius: 999px; border: none; cursor: pointer; white-space: nowrap; text-decoration: none;
+      padding: 15px 26px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; text-decoration: none;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .hero-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(255,142,144,0.35); }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-cta-btn { animation: none; }
+    }
     .hero-small-text { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 13px; color: #979696; margin-top: 18px; }
 
     #book-demo-modal input::placeholder { color: rgba(255,255,255,0.35); }
@@ -357,6 +367,16 @@
     }
     .statement-section h2 em { font-style: italic; color: #ff8360; }
 
+    /* ── Chart-1995 divider — centered line framed by full-bleed hairlines ── */
+    .chart-section {
+      background: #fff; padding: 90px 24px; text-align: center;
+      border-top: 1px solid #e5e5e5; border-bottom: 1px solid #e5e5e5;
+    }
+    .chart-heading {
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
+      font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 12px auto 0; max-width: 900px;
+    }
+
     /* ── Problem section — 2x2 light cards + tall featured black card ── */
     .problem-section { background: #fff; padding: 110px 64px; }
     .problem-inner { max-width: 1272px; margin: 0 auto; }
@@ -475,8 +495,7 @@
         <span>Althais</span>
       </a>
       <div class="hero-nav-right">
-        <a href="/login" class="hero-login-link">Login</a>
-        <a href="/demo" class="hero-nav-cta">Book A Demo</a>
+        <a href="/demo" class="hero-nav-cta">Talk To Sales</a>
       </div>
     </header>
 
@@ -674,6 +693,12 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- Chart-1995 divider -->
+  <section class="chart-section">
+    <p class="section-eyebrow">What Althais Can Do For You</p>
+    <h2 class="chart-heading">Don't Chart Like It's 1995.</h2>
   </section>
 
   <div style="background:#fff;">
