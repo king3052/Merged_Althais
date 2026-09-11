@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — {{ page_title }}</title>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line">
+      <h1 class="text-[18px] font-semibold text-ink-900">{{ page_title }}</h1>
+      <p class="text-[12px] text-ink-500 mt-0.5">{{ page_subtitle }}</p>
+    </div>
+
+    <div class="p-5">
+      <div class="bg-panel border border-line rounded-sm px-6 py-16 text-center">
+        <div class="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-med-100 text-med-700">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 8v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div class="text-[14px] font-semibold text-ink-900">{{ page_title }} is coming soon</div>
+        <div class="text-[12.5px] text-ink-500 mt-1.5 max-w-[440px] mx-auto leading-relaxed">{{ page_description }}</div>
+        {% if emr_link %}
+        <a href="{{ emr_link }}" class="inline-flex items-center gap-1.5 mt-5 text-[12px] font-semibold px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700">
+          {{ emr_link_label or "Open in EMR" }}
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

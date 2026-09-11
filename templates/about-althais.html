@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}About Althais{% endblock %}
+{% block meta_description %}What Althais does, why it exists, and how it works — coding, claims, and payer intelligence in one platform.{% endblock %}
+{% block canonical %}https://althais.com/about-althais{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Disable elastic overscroll bounce entirely (same as landing.html) —
+     stops any background/sticky-hero flash at the very top or bottom
+     of the page, rather than trying to color-match what it reveals. */
+  html, body.app-body { overscroll-behavior-y: none; }
+  body.app-body { background: linear-gradient(#2c3947, #000); }
+  /* Swap the shared multi-column #site-footer for the compact bar used
+     on the landing page instead — same markup/styling as landing.html's
+     #site-footer-bar. */
+  #site-footer { display: none; }
+  #site-footer-bar {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 56px; border-top: 1px solid rgba(255,255,255,0.14);
+    font-family: 'Inter', sans-serif; background: #000;
+  }
+  #site-footer-bar p { font-size: 11px; font-weight: 400; letter-spacing: 0.14em; color: #fff; }
+  #site-footer-bar .footer-links { display: flex; gap: 24px; }
+  #site-footer-bar a { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #fff; transition: color 0.2s ease; }
+  #site-footer-bar a:hover { color: rgba(255,255,255,0.7); }
+  @media (max-width: 480px) {
+    #site-footer-bar { flex-direction: column; gap: 8px; padding: 14px 20px; text-align: center; }
+    #site-footer-bar .footer-links { gap: 16px; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     Product Showcase — moved here from the landing page. This is now
+     the whole page's content: hero + a short "What We Do" blurb under
+     the buttons. No sliding/sticky behavior, no separate topic shell.
+     ══════════════════════════════════════════════════════════════ */
+  #showcase {
+    position: relative; z-index: 1; min-height: 100svh; padding: 128px 24px 60px; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #2c3947;
+  }
+  .showcase-bg-wrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .showcase-bg-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .showcase-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.35); pointer-events: none; }
+  .showcase-inner {
+    position: relative; z-index: 2; max-width: 1400px; width: 100%; margin: 0 auto; padding: 0 24px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  .showcase-text { display: none; max-width: 640px; margin: -64px auto 16px; text-align: center; }
+  .ps-progress { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
+  .ps-heading {
+    font-family: 'Inter', sans-serif; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+    text-transform: uppercase; line-height: 1.12; font-size: clamp(1.6rem, 2.8vw, 2.3rem); margin-top: 12px;
+  }
+  .ps-cta {
+    display: inline-flex; align-items: center; gap: 10px; margin-top: 16px;
+    background: #fff; color: #0a0a0a; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 14px 26px; border-radius: 2px; transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .ps-cta:hover { background: #eee; transform: translateY(-2px); }
+
+  /* ── Coverflow stage: center window + peeking prev/next, clickable.
+     All three windows share one fixed frame size (matching the two
+     landscape screenshots); a portrait screenshot (slide 2) crops to
+     fit rather than resizing the frame per-slide. ── */
+  #ps-stage { position: relative; width: 100%; height: 520px; flex-shrink: 0; margin-top: -50px; }
+  /* Same treatment as the "About Althais" button on the landing page:
+     clear box, white outline, sharp corners, white text. */
+  .ps-cta-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 44px; }
+  .ps-cta-row .ps-cta {
+    margin-top: 0; background: transparent; color: #fff;
+    border: 1.5px solid #fff; border-radius: 0;
+  }
+  .ps-cta-row .ps-cta:hover { background: rgba(255,255,255,0.1); transform: none; }
+  .ps-cta-below { margin-right: 28px; }
+
+  .ps-browser {
+    position: absolute; top: 50%; left: 50%; width: min(56vw, 680px);
+    background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.5); overflow: hidden;
+    transition: transform 0.45s cubic-bezier(.16,1,.3,1), opacity 0.45s ease, filter 0.45s ease;
+  }
+  .ps-center { transform: translate(-50%,-50%) scale(1); z-index: 3; opacity: 1; }
+  .ps-side { z-index: 1; opacity: 0.4; filter: blur(0.5px) brightness(0.65); cursor: pointer; }
+  .ps-side:hover { opacity: 0.65; filter: blur(0px) brightness(0.8); }
+  .ps-side-left { transform: translate(-96%,-50%) scale(0.84); }
+  .ps-side-right { transform: translate(-4%,-50%) scale(0.84); }
+
+  .ps-chrome {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 14px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .ps-url {
+    font-family: 'Inter', sans-serif; font-size: 11.5px; color: rgba(255,255,255,0.55);
+    background: rgba(255,255,255,0.06); border-radius: 6px; padding: 6px 120px; white-space: nowrap;
+  }
+  .ps-img-frame { height: 480px; background: #0a0a0a; overflow: hidden; }
+  .ps-img-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: left top; transition: opacity 0.18s ease; }
+
+  @media (max-width: 900px) {
+    #ps-stage { position: static; height: auto; margin-top: 8px; }
+    .ps-side { display: none; }
+    .ps-browser {
+      position: static; transform: none !important; width: 100%; opacity: 1; filter: none;
+    }
+    .ps-img-frame { height: 300px; }
+    .ps-img-frame img { width: 100%; height: auto; object-fit: contain; }
+  }
+
+  .ps-dots { display: none; }
+  .ps-dot {
+    min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.55); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .ps-dot:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+  .ps-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
+
+  /* Hero is dark again (city video + dark wash), so the shared
+     design-system.css nav styling (light-on-transparent → dark
+     frosted on scroll) mostly applies as-is — except the scrolled
+     state's navy frosted pill, which we keep transparent instead. */
+  #site-nav.scrolled {
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* No login/account entry point on this page. */
+  #site-nav .nav-login, #hamburger, #mobile-menu { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Product Showcase — moved from the landing page, now this page's hero -->
+<section id="showcase">
+  <div class="showcase-bg-wrap">
+    <img src="/static/backgrounds/wave-blue.png" alt="" />
+  </div>
+  <div class="showcase-overlay"></div>
+  <div class="showcase-inner">
+    <div class="showcase-text">
+      <div class="ps-progress"><span id="ps-num">01</span> / <span id="ps-total">03</span></div>
+      <h2 id="ps-title" class="ps-heading"></h2>
+      <a href="/how-it-works" class="ps-cta">See The Full Walkthrough →</a>
+    </div>
+
+    <div id="ps-stage">
+      <div class="ps-browser ps-side ps-side-left" id="ps-window-prev" aria-hidden="true">
+        <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
+        <div class="ps-img-frame"><img id="ps-img-prev" src="" alt="" /></div>
+      </div>
+
+      <div class="ps-browser ps-center" id="ps-window-center">
+        <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
+        <div class="ps-img-frame"><img id="ps-img" src="" alt="" /></div>
+      </div>
+
+      <div class="ps-browser ps-side ps-side-right" id="ps-window-next" aria-hidden="true">
+        <div class="ps-chrome"><div class="ps-url">app.althais.com</div></div>
+        <div class="ps-img-frame"><img id="ps-img-next" src="" alt="" /></div>
+      </div>
+    </div>
+
+    <div class="ps-cta-row">
+      <a href="/walkthrough" class="ps-cta ps-cta-below">See The Full Walkthrough →</a>
+      <a href="/learn-more" class="ps-cta ps-cta-learn">Learn More</a>
+    </div>
+
+    <div class="ps-dots" id="ps-dots"></div>
+  </div>
+</section>
+
+<!-- Compact footer bar, same as landing.html — #site-footer (the shared
+     multi-column one) is hidden on this page. -->
+<footer id="site-footer-bar">
+  <p>© 2026 Althais Health, Inc.</p>
+  <div class="footer-links">
+    <a href="/legal/privacy">Privacy</a>
+    <a href="/legal/terms">Terms</a>
+    <a href="/contact">Contact</a>
+  </div>
+</footer>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Product Showcase slideshow — headline+desc left, screenshot right,
+  // next-slide thumbnail peek, dots + top-right prev/next arrows.
+  (function () {
+    var slides = [
+      {
+        title: 'Capture The Notes As Written',
+        img: '/static/screenshots/provider-note.png',
+        alt: 'The Virtual SOAP note entry screen in Althais',
+      },
+      {
+        title: 'AI turns it into a claim',
+        img: '/static/screenshots/claim-assembly.png',
+        alt: 'A CMS-1500 health insurance claim form assembled automatically from approved codes',
+      },
+      {
+        title: 'Get paid, faster',
+        img: '/static/screenshots/payment.png',
+        alt: 'Claims filtered to Paid status showing posted payment amounts',
+      },
+    ];
+
+    var numEl = document.getElementById('ps-num');
+    var totalEl = document.getElementById('ps-total');
+    var titleEl = document.getElementById('ps-title');
+    var imgEl = document.getElementById('ps-img');
+    var imgPrevEl = document.getElementById('ps-img-prev');
+    var imgNextEl = document.getElementById('ps-img-next');
+    var windowPrevEl = document.getElementById('ps-window-prev');
+    var windowNextEl = document.getElementById('ps-window-next');
+    var dotsEl = document.getElementById('ps-dots');
+
+    totalEl.textContent = String(slides.length).padStart(2, '0');
+    dotsEl.innerHTML = slides.map(function (s, i) {
+      return '<button type="button" class="ps-dot" data-index="' + i + '">' + String(i + 1).padStart(2, '0') + '</button>';
+    }).join('');
+    var dots = dotsEl.querySelectorAll('.ps-dot');
+
+    var current = 0;
+    function render(index) {
+      current = (index + slides.length) % slides.length;
+      var s = slides[current];
+      var prevSlide = slides[(current - 1 + slides.length) % slides.length];
+      var nextSlide = slides[(current + 1) % slides.length];
+
+      numEl.textContent = String(current + 1).padStart(2, '0');
+      titleEl.textContent = s.title;
+      imgEl.src = s.img;
+      imgEl.alt = s.alt;
+
+      imgPrevEl.src = prevSlide.img;
+      imgPrevEl.alt = prevSlide.alt;
+      imgNextEl.src = nextSlide.img;
+      imgNextEl.alt = nextSlide.alt;
+
+      dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
+    }
+
+    windowPrevEl.addEventListener('click', function () { render(current - 1); });
+    windowNextEl.addEventListener('click', function () { render(current + 1); });
+    dots.forEach(function (d) {
+      d.addEventListener('click', function () { render(parseInt(d.getAttribute('data-index'), 10)); });
+    });
+
+    render(0);
+  })();
+</script>
+{% endblock %}

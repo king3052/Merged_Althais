@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Team Onboarding</title>
+  <style>
+    .modal-overlay { background: rgba(15,17,22,0.45); }
+    #profile-panel { transition: transform .22s ease; transform: translateX(100%); }
+    #profile-panel.is-open { transform: translateX(0); }
+    #profile-backdrop { transition: opacity .22s ease; }
+    .req-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid #eceef2; }
+    .req-check { width:18px; height:18px; border-radius:4px; border:1.5px solid #c7cad1; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-top:1px; }
+    .req-check.is-done { background:#0c8a4f; border-color:#0c8a4f; }
+    .req-check.is-missing { border-color:#c83838; }
+    .row-hover { cursor: pointer; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Team Onboarding</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Invite, verify, and prepare staff before they begin working with patients.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/staff/team" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold whitespace-nowrap">View Team</a>
+        <button id="invite-btn" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Invite Team Member</button>
+      </div>
+    </div>
+
+    <div class="p-5">
+      <!-- Summary cards -->
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Invited</div>
+          <div id="stat-invited" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Awaiting first login</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">In Progress</div>
+          <div id="stat-inprogress" class="text-[22px] font-semibold text-med-600 num mt-1">0</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Completing requirements</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Ready for Review</div>
+          <div id="stat-review" class="text-[22px] font-semibold text-warn-600 num mt-1">0</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Needs admin verification</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Completed</div>
+          <div id="stat-completed" class="text-[22px] font-semibold text-ok-600 num mt-1">0</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Approved &amp; added to Team</div>
+        </div>
+      </div>
+
+      <!-- Onboarding table -->
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+          <h3 class="text-[13px] font-semibold text-ink-900">Onboarding pipeline</h3>
+          <span id="ob-count-label" class="text-[11px] text-ink-500">0 in progress</span>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Team Member</th>
+                <th class="td text-left">Role</th>
+                <th class="td text-left">Location</th>
+                <th class="td text-left">Onboarding Progress</th>
+                <th class="td text-left">Missing Requirements</th>
+                <th class="td text-left">Start Date</th>
+                <th class="td text-left">Status</th>
+                <th class="td text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ob-rows"></tbody>
+          </table>
+          <div id="ob-empty" class="px-4 py-10 text-center text-[12px] text-ink-500">
+            No team members invited yet. Click <span class="font-semibold text-med-600">+ Invite Team Member</span> to get started.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== INVITE MODAL =================== -->
+  <div id="invite-modal" class="fixed inset-0 z-40 hidden items-center justify-center modal-overlay">
+    <div class="bg-white rounded-sm shadow-xl w-[420px] max-w-[92vw]">
+      <div class="px-4 py-3 border-b border-line flex items-center justify-between">
+        <h3 class="text-[13.5px] font-semibold text-ink-900">Invite Team Member</h3>
+        <button id="invite-close" type="button" class="text-ink-400 hover:text-ink-700">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-4 space-y-3">
+        <div>
+          <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Full name</label>
+          <input id="inv-name" type="text" placeholder="Jane Doe" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[13px] text-ink-900 outline-none focus:border-med-600" />
+        </div>
+        <div>
+          <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Email</label>
+          <input id="inv-email" type="email" placeholder="jane@clinic.com" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[13px] text-ink-900 outline-none focus:border-med-600" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Role</label>
+            <select id="inv-role" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[12.5px] text-ink-900 outline-none focus:border-med-600">
+              <option>Physician</option>
+              <option>Nurse</option>
+              <option>Medical Assistant</option>
+              <option>Biller</option>
+              <option>Practice Manager</option>
+              <option>Volunteer</option>
+              <option>Student</option>
+              <option>Administrator</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Location</label>
+            <input id="inv-location" type="text" placeholder="Main Clinic" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[12.5px] text-ink-900 outline-none focus:border-med-600" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Start date</label>
+          <input id="inv-start" type="date" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[12.5px] num text-ink-900 outline-none focus:border-med-600" />
+        </div>
+      </div>
+      <div class="px-4 py-3 border-t border-line flex items-center justify-end gap-2">
+        <button id="invite-cancel" type="button" class="text-[12px] px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Cancel</button>
+        <button id="invite-submit" type="button" class="text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Send Invitation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PROFILE SLIDE-OVER =================== -->
+  <div id="profile-backdrop" class="fixed inset-0 z-40 hidden modal-overlay"></div>
+  <aside id="profile-panel" class="fixed top-0 right-0 z-50 h-screen w-[440px] max-w-[94vw] bg-white border-l border-line shadow-xl overflow-y-auto thin-scroll">
+    <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
+      <div class="flex items-center gap-2.5">
+        <div id="pp-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px]">--</div>
+        <div>
+          <div id="pp-name" class="text-[13.5px] font-semibold text-ink-900">—</div>
+          <div id="pp-role" class="text-[11px] text-ink-500">—</div>
+        </div>
+      </div>
+      <button id="pp-close" type="button" class="text-ink-400 hover:text-ink-700">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Overall completion</span>
+        <span id="pp-pct" class="text-[13px] font-semibold text-ink-900 num">0%</span>
+      </div>
+      <div class="w-full h-2 bg-shell rounded-sm overflow-hidden"><div id="pp-bar" class="h-full bg-med-600" style="width:0%"></div></div>
+
+      <div class="mt-4">
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Required checklist</div>
+        <div id="pp-checklist"></div>
+      </div>
+
+      <div class="mt-4">
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Missing items</div>
+        <div id="pp-missing" class="text-[12px] text-risk-600"></div>
+      </div>
+
+      <div class="mt-4">
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Uploaded documents</div>
+        <div id="pp-docs" class="text-[12px] text-ink-500">No documents uploaded yet.</div>
+      </div>
+
+      <div class="mt-4">
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Notes</div>
+        <textarea rows="2" placeholder="Add an internal note…" class="w-full rounded-sm border border-line bg-white px-2.5 py-2 text-[12px] text-ink-900 outline-none focus:border-med-600"></textarea>
+      </div>
+
+      <div class="mt-4">
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Approval history &amp; audit trail</div>
+        <div id="pp-audit" class="text-[11.5px] text-ink-500 space-y-1.5"></div>
+      </div>
+
+      <div class="mt-5 border-t border-line pt-4 space-y-1.5">
+        <button class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
+          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Send reminder</button>
+        <button class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
+          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M12 3v12M7 10l5 5 5-5"/></svg>Request document</button>
+        <button id="pp-approve" type="button" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm bg-ok-600 hover:brightness-105 text-white text-[12px] font-semibold">
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>Approve onboarding</button>
+        <div class="flex gap-1.5">
+          <button class="flex-1 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">Edit role</button>
+          <button id="pp-remove" type="button" class="flex-1 px-2.5 py-1.5 rounded-sm border border-risk-600/30 bg-white hover:bg-risk-100 text-risk-600 text-[12px] font-semibold">Remove invitation</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+
+    // ---- Role-based onboarding requirements --------------------------------
+    const REQUIREMENT_LABELS = {
+      personal: 'Personal information', role_info: 'Employment / volunteer role', hipaa: 'HIPAA training',
+      bls: 'BLS / CPR certification', license: 'Professional license', immunizations: 'Immunization records',
+      background: 'Background check', gov_id: 'Government-issued ID', policies: 'Signed clinic policies',
+      emergency_contact: 'Emergency contact', location: 'Assigned location', access: 'System access & permissions'
+    };
+    const ROLE_REQUIREMENTS = {
+      'Physician':         ['personal','role_info','license','bls','hipaa','background','immunizations','gov_id','policies','emergency_contact','location','access'],
+      'Nurse':             ['personal','role_info','license','bls','hipaa','background','immunizations','gov_id','policies','emergency_contact','location','access'],
+      'Medical Assistant': ['personal','role_info','bls','hipaa','background','immunizations','gov_id','policies','emergency_contact','location','access'],
+      'Biller':            ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact','access'],
+      'Practice Manager':  ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact','access'],
+      'Volunteer':         ['personal','role_info','hipaa','background','immunizations','gov_id','policies','emergency_contact'],
+      'Student':           ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact'],
+      'Administrator':     ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact','access'],
+    };
+
+    let PEOPLE = [];
+    let nextId = 1;
+
+    function initials(name) { return (name || '').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?'; }
+
+    function computeProgress(p) {
+      const total = p.requirements.length;
+      const done = p.requirements.filter(r => r.done).length;
+      return total ? Math.round((done / total) * 100) : 0;
+    }
+    function computeStatus(p) {
+      const pct = computeProgress(p);
+      if (pct === 100) return p.approved ? 'Approved' : 'Needs Review';
+      if (p.requirements.some(r => r.expired)) return 'Expired Requirement';
+      if (pct === 0) return 'Invited';
+      return 'In Progress';
+    }
+    const STATUS_PILL = {
+      'Invited':            'background:#eceef2;color:#4a505c',
+      'In Progress':        'background:#e6efff;color:#0a47b0',
+      'Needs Review':       'background:#fff0d6;color:#b86a00',
+      'Approved':           'background:#d8f5e3;color:#0c8a4f',
+      'Expired Requirement':'background:#ffe1e1;color:#c83838',
+    };
+
+    function renderSummary() {
+      $('stat-invited').textContent = PEOPLE.filter(p => computeStatus(p) === 'Invited').length;
+      $('stat-inprogress').textContent = PEOPLE.filter(p => computeStatus(p) === 'In Progress').length;
+      $('stat-review').textContent = PEOPLE.filter(p => computeStatus(p) === 'Needs Review').length;
+      $('stat-completed').textContent = PEOPLE.filter(p => computeStatus(p) === 'Approved').length;
+      $('ob-count-label').textContent = `${PEOPLE.length} in pipeline`;
+    }
+
+    function renderTable() {
+      const tbody = $('ob-rows');
+      const empty = $('ob-empty');
+      if (!PEOPLE.length) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        renderSummary();
+        return;
+      }
+      empty.style.display = 'none';
+      tbody.innerHTML = PEOPLE.map(p => {
+        const pct = computeProgress(p);
+        const status = computeStatus(p);
+        const missing = p.requirements.filter(r => !r.done).map(r => REQUIREMENT_LABELS[r.key]);
+        return `
+        <tr class="row-hover" data-id="${p.id}">
+          <td class="td font-semibold text-ink-900">${esc(p.name)}</td>
+          <td class="td text-ink-600">${esc(p.role)}</td>
+          <td class="td text-ink-600">${esc(p.location || '—')}</td>
+          <td class="td">
+            <div class="flex items-center gap-2 num">
+              <div class="w-20 h-1.5 bg-shell rounded-sm overflow-hidden"><div class="h-full bg-med-600" style="width:${pct}%"></div></div>
+              <span class="text-ink-900 font-semibold text-[11.5px]">${pct}%</span>
+            </div>
+          </td>
+          <td class="td text-ink-500 text-[11.5px]">${missing.length ? esc(missing.slice(0,2).join(', ')) + (missing.length > 2 ? ` +${missing.length-2}` : '') : '—'}</td>
+          <td class="td text-ink-600 mono text-[11.5px]">${esc(p.start || '—')}</td>
+          <td class="td"><span class="pill" style="${STATUS_PILL[status]}">${status}</span></td>
+          <td class="td text-right"><button class="text-[11px] font-semibold text-med-600 hover:text-med-700" data-view="${p.id}">View</button></td>
+        </tr>`;
+      }).join('');
+      renderSummary();
+    }
+
+    // ---- Invite modal -------------------------------------------------------
+    $('invite-btn').addEventListener('click', () => { $('invite-modal').classList.remove('hidden'); $('invite-modal').classList.add('flex'); });
+    $('invite-close').addEventListener('click', closeInvite);
+    $('invite-cancel').addEventListener('click', closeInvite);
+    function closeInvite() { $('invite-modal').classList.add('hidden'); $('invite-modal').classList.remove('flex'); }
+
+    $('invite-submit').addEventListener('click', () => {
+      const name = $('inv-name').value.trim();
+      if (!name) { $('inv-name').focus(); return; }
+      const role = $('inv-role').value;
+      const reqKeys = ROLE_REQUIREMENTS[role] || ROLE_REQUIREMENTS['Administrator'];
+      const person = {
+        id: nextId++,
+        name, role,
+        location: $('inv-location').value.trim(),
+        start: $('inv-start').value,
+        approved: false,
+        requirements: reqKeys.map(key => ({ key, done: false, expired: false })),
+        audit: [{ text: `Invitation sent to ${name}`, time: 'just now' }],
+      };
+      PEOPLE.push(person);
+      renderTable();
+      closeInvite();
+      $('inv-name').value = ''; $('inv-email').value = ''; $('inv-location').value = ''; $('inv-start').value = '';
+      openProfile(person.id);
+    });
+
+    // ---- Profile slide-over --------------------------------------------------
+    let activeId = null;
+    function openProfile(id) {
+      const p = PEOPLE.find(x => x.id === id);
+      if (!p) return;
+      activeId = id;
+      $('pp-initials').textContent = initials(p.name);
+      $('pp-name').textContent = p.name;
+      $('pp-role').textContent = `${p.role}${p.location ? ' · ' + p.location : ''}`;
+      renderProfileBody(p);
+      $('profile-backdrop').classList.remove('hidden');
+      $('profile-panel').classList.add('is-open');
+    }
+    function renderProfileBody(p) {
+      const pct = computeProgress(p);
+      $('pp-pct').textContent = pct + '%';
+      $('pp-bar').style.width = pct + '%';
+      $('pp-checklist').innerHTML = p.requirements.map(r => `
+        <div class="req-row">
+          <div class="req-check ${r.done ? 'is-done' : (r.expired ? 'is-missing' : '')}" data-req="${r.key}">
+            ${r.done ? '<svg class="h-3 w-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>' : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[12.5px] font-medium text-ink-900">${esc(REQUIREMENT_LABELS[r.key])}</div>
+            <div class="text-[11px] text-ink-400">${r.done ? 'Verified' : (r.expired ? 'Expired — needs renewal' : 'Pending')}</div>
+          </div>
+        </div>`).join('');
+      const missing = p.requirements.filter(r => !r.done).map(r => REQUIREMENT_LABELS[r.key]);
+      $('pp-missing').innerHTML = missing.length ? missing.map(m => `<div>• ${esc(m)}</div>`).join('') : '<span class="text-ok-600">All requirements complete.</span>';
+      $('pp-audit').innerHTML = (p.audit || []).map(a => `<div>${esc(a.time)} — ${esc(a.text)}</div>`).reverse().join('');
+    }
+
+    document.getElementById('ob-rows').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-view]');
+      const row = e.target.closest('tr[data-id]');
+      const id = btn ? Number(btn.dataset.view) : (row ? Number(row.dataset.id) : null);
+      if (id) openProfile(id);
+    });
+
+    $('pp-close').addEventListener('click', closeProfile);
+    $('profile-backdrop').addEventListener('click', closeProfile);
+    function closeProfile() { $('profile-backdrop').classList.add('hidden'); $('profile-panel').classList.remove('is-open'); activeId = null; }
+
+    $('pp-checklist').addEventListener('click', (e) => {
+      const box = e.target.closest('[data-req]');
+      if (!box || activeId == null) return;
+      const p = PEOPLE.find(x => x.id === activeId);
+      const req = p.requirements.find(r => r.key === box.dataset.req);
+      req.done = !req.done;
+      req.expired = false;
+      p.audit.push({ text: `${REQUIREMENT_LABELS[req.key]} ${req.done ? 'verified' : 'marked pending'}`, time: 'just now' });
+      renderProfileBody(p);
+      renderTable();
+    });
+
+    $('pp-approve').addEventListener('click', () => {
+      if (activeId == null) return;
+      const p = PEOPLE.find(x => x.id === activeId);
+      const pct = computeProgress(p);
+      if (pct < 100) { alert('All required items must be verified before approval.'); return; }
+      p.approved = true;
+      p.audit.push({ text: 'Onboarding approved — moved to Staff → Team', time: 'just now' });
+      renderProfileBody(p);
+      renderTable();
+      alert(`${p.name} is now fully onboarded and has been added to Staff → Team.`);
+      closeProfile();
+    });
+
+    $('pp-remove').addEventListener('click', () => {
+      if (activeId == null) return;
+      const p = PEOPLE.find(x => x.id === activeId);
+      if (!confirm(`Remove invitation for ${p.name}?`)) return;
+      PEOPLE = PEOPLE.filter(x => x.id !== activeId);
+      renderTable();
+      closeProfile();
+    });
+
+    renderTable();
+
+    // Overview's "+ Add Staff" quick action links here with ?invite=1 so it
+    // drops straight into the invite flow instead of just landing on the page.
+    if (new URLSearchParams(location.search).get('invite') === '1') {
+      $('invite-modal').classList.remove('hidden');
+      $('invite-modal').classList.add('flex');
+    }
+  </script>
+</body>
+</html>

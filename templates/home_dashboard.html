@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Althais — Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+          },
+          colors: {
+            shell: '#f4f5f7',
+            panel: '#ffffff',
+            line: '#e4e6eb',
+            lineSoft: '#eceef2',
+            ink: { 900: '#0f1116', 800: '#1a1d24', 700: '#2c313b', 600: '#4a505c', 500: '#6b7280', 400: '#8b909c', 300: '#aab0bb' },
+            med: { 700: '#0a47b0', 600: '#0d5bd7', 500: '#1f6fea', 100: '#e6efff', 50: '#f3f7ff' },
+            ok: { 600: '#0c8a4f', 100: '#d8f5e3' },
+            warn: { 600: '#b86a00', 100: '#fff0d6' },
+            risk: { 600: '#c83838', 100: '#ffe1e1' },
+            neutral: { 600: '#4a505c', 100: '#eceef2' }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    .num { font-variant-numeric: tabular-nums; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    .thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: #d4d7de; border-radius: 4px; }
+    .thin-scroll::-webkit-scrollbar-thumb:hover { background: #b9bdc6; }
+
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.01em; line-height: 16px; }
+
+    .side-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; font-size: 12.5px; color: #2c313b; border-left: 2px solid transparent; cursor: pointer; }
+    .side-row:hover { background: #f1f3f7; }
+    .side-row.active { background: #e6efff; color: #0a47b0; font-weight: 600; border-left-color: #0d5bd7; }
+    .side-section { padding: 8px 12px 4px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #8b909c; font-weight: 600; }
+
+    .count-pill { font-size: 10.5px; font-weight: 600; padding: 0 5px; height: 16px; display: inline-flex; align-items: center; border-radius: 8px; background: #eceef2; color: #4a505c; }
+    .count-pill.alert { background: #ffe1e1; color: #c83838; }
+    .count-pill.med { background: #e6efff; color: #0a47b0; }
+
+    .kpi { flex: 1; min-width: 0; padding: 10px 14px; border-right: 1px solid #e4e6eb; }
+    .kpi:last-child { border-right: 0; }
+
+    .table-head { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7280; font-weight: 600; background: #f7f9fc; border-top: 1px solid #e4e6eb; border-bottom: 1px solid #e4e6eb; }
+    .td { padding: 7px 10px; font-size: 12.5px; color: #1a1d24; vertical-align: middle; }
+    .td-num { font-variant-numeric: tabular-nums; }
+    tbody tr { border-bottom: 1px solid #eceef2; }
+    .row-hover:hover { background: #f7f9fc; }
+
+    .panel-title { font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #4a505c; }
+
+    .panel-header-toggle { cursor: pointer; user-select: none; }
+    .panel-chevron { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 3px; color: #6b7280; }
+    .panel-header-toggle:hover .panel-chevron { background: #dbe8ff; }
+    .panel-chevron svg { transition: transform 0.16s ease; }
+    .panel-body { overflow: hidden; }
+    .panel-collapsible.is-collapsed .panel-body { display: none; }
+    .panel-collapsible.is-collapsed .panel-chevron svg { transform: rotate(-90deg); }
+
+    .nav-group-toggle { display:flex; align-items:center; gap:6px; width:100%; padding:8px 12px 4px; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:#8b909c; font-weight:600; cursor:pointer; background:none; border:none; text-align:left; }
+    .nav-group-toggle:hover { color:#4a505c; }
+    .nav-group-chevron { flex-shrink:0; transition: transform .15s ease; }
+    .nav-group.is-collapsed .nav-group-body { display:none; }
+    .nav-group.is-collapsed .nav-group-chevron { transform: rotate(-90deg); }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% if verified == '1' %}
+  <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Email verified — welcome to Althais.
+  </div>
+  <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
+  {% endif %}
+
+  <!-- =================== TOP BLUE HEADER =================== -->
+  <header class="bg-med-600 text-white">
+    <div class="flex h-12 items-center px-3">
+      <a href="/dashboard" class="flex items-center pr-4 border-r border-white/15 mr-4 h-full select-none" aria-label="Althais">
+        <span class="text-[15px] font-semibold tracking-[0.18em] leading-none">ALTHAIS</span>
+      </a>
+
+      <div class="flex items-center gap-2 text-[12.5px] whitespace-nowrap flex-shrink-0">
+        <span class="text-white/60">Practice Home</span>
+        <span class="text-white/40">—</span>
+        <span id="hdr-org-name" class="font-semibold">—</span>
+      </div>
+
+      <div class="ml-6 relative">
+        <div class="flex items-center gap-2 rounded-sm px-2 py-1 text-[12px] w-[280px] focus-within:brightness-110" style="background:#0d5bd7;border:1px solid rgba(255,255,255,0.25);">
+          <svg class="h-3.5 w-3.5 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
+          <input type="text" placeholder="Search patients, claims, staff…" autocomplete="off" class="bg-transparent outline-none flex-1 min-w-0" style="color:#fff;caret-color:#fff;" />
+          <span class="ml-auto text-[10px] tracking-wider text-white font-semibold px-1.5 rounded-sm" style="background:#0d5bd7;border:1px solid rgba(255,255,255,0.25);">⌘K</span>
+        </div>
+      </div>
+
+      <div class="ml-auto flex items-center gap-1 text-[12px]">
+        <button class="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm hover:bg-white/10">
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          Notifications
+          <span class="text-[10px] bg-white/20 px-1 rounded">0</span>
+        </button>
+        <div class="mx-2 h-5 w-px" style="background:rgba(255,255,255,0.25)"></div>
+        <div class="flex items-center gap-2">
+          <span id="hdr-user-name" class="text-[12px] text-white/70 hidden sm:block"></span>
+          <form method="POST" action="/logout" style="margin:0">
+            <button type="submit" class="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white/10 hover:bg-white/20 text-white text-[12px] font-semibold transition-colors">
+              <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =================== STATUS STRIP =================== -->
+  <nav class="bg-panel border-b border-line">
+    <div class="flex items-center px-3 h-9">
+      <span class="text-[13px] font-semibold text-med-600">Overview</span>
+      <div class="ml-auto flex items-center gap-1 pr-2 text-[11.5px] text-ink-500">
+        <span class="flex h-2 w-2 rounded-full bg-ok-600"></span>
+        <span>Practice sync · 12s ago</span>
+        <span class="mx-2 text-ink-300">|</span>
+        <span id="hdr-date" class="mono">—</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- =================== MAIN 3-COLUMN =================== -->
+  <div class="flex" style="height: calc(100vh - 92px);">
+
+    <!-- ========= LEFT SIDEBAR ========= -->
+    <aside class="w-[240px] flex-shrink-0 border-r border-line bg-panel overflow-y-auto thin-scroll">
+      <div class="border-b border-line px-3 py-3">
+        <div class="flex items-center gap-2.5">
+          <div id="sb-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px]">--</div>
+          <div class="flex-1 min-w-0">
+            <div id="sb-name" class="text-[13px] font-semibold text-ink-900 truncate">—</div>
+            <div id="sb-role" class="text-[11px] text-ink-500 mono capitalize">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-group" data-nav-group="home">
+        <button type="button" class="nav-group-toggle" data-nav-toggle="home"><svg class="nav-group-chevron h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>Home</span></button>
+        <div class="nav-group-body" data-nav-body="home">
+          <a class="side-row active" href="/dashboard"><span>Dashboard</span></a>
+          <a class="side-row" href="/schedule"><span>Schedule</span></a>
+          <a class="side-row" href="#inbox"><span>AI Inbox</span><span id="sc-inbox" class="count-pill alert">0</span></a>
+        </div>
+      </div>
+      <div class="nav-group" data-nav-group="emr">
+        <button type="button" class="nav-group-toggle" data-nav-toggle="emr"><svg class="nav-group-chevron h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>EMR</span></button>
+        <div class="nav-group-body" data-nav-body="emr">
+          <a class="side-row" href="/emr#patients-view"><span>Patients</span></a>
+          <a class="side-row" href="/emr#overview"><span>Encounters</span></a>
+          <a class="side-row" href="#copilot"><span>AI Second Brain</span></a>
+          <a class="side-row" href="/emr#patients-view"><span>Clinical Notes</span></a>
+          <a class="side-row" href="/emr#documents-view"><span>Documents</span></a>
+          <a class="side-row" href="/emr"><span>Orders &amp; Prescriptions</span></a>
+        </div>
+      </div>
+      <div class="nav-group" data-nav-group="revenue">
+        <button type="button" class="nav-group-toggle" data-nav-toggle="revenue"><svg class="nav-group-chevron h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>Revenue</span></button>
+        <div class="nav-group-body" data-nav-body="revenue">
+          <a class="side-row" href="/emr#claims"><span>Coding Queue</span></a>
+          <a class="side-row" href="/emr#claims"><span>Claims</span><span id="sc-claims" class="count-pill med">0</span></a>
+          <a class="side-row" href="/emr#denials-view"><span>Denials &amp; Appeals</span></a>
+          <a class="side-row" href="#revenue"><span>Payments</span></a>
+          <a class="side-row" href="/emr#payer-view"><span>Revenue Analytics</span></a>
+        </div>
+      </div>
+      <div class="nav-group" data-nav-group="practice">
+        <button type="button" class="nav-group-toggle" data-nav-toggle="practice"><svg class="nav-group-chevron h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>Practice</span></button>
+        <div class="nav-group-body" data-nav-body="practice">
+          <a class="side-row" href="/practice/team"><span>Team</span></a>
+          <a class="side-row" href="/practice/onboarding"><span>Onboarding</span></a>
+          <a class="side-row" href="/practice/compliance"><span>Compliance</span></a>
+          <a class="side-row" href="/practice/credentials"><span>Credentials</span></a>
+          <a class="side-row" href="/practice/training"><span>Training</span></a>
+          <a class="side-row" href="/practice/roles"><span>Roles &amp; Permissions</span></a>
+        </div>
+      </div>
+      <a class="side-row" href="/emr#settings" style="margin-top:4px;border-top:1px solid #e4e6eb;padding-top:8px;"><span>Settings</span></a>
+
+      <div class="border-t border-line mt-2 px-3 py-2 text-[10.5px] text-ink-400">
+        <div class="flex justify-between">
+          <span>Signed in as</span>
+        </div>
+        <div id="sb-email" class="text-ink-600 mono mt-0.5 truncate">—</div>
+      </div>
+    </aside>
+
+    <!-- ========= CENTER WORKSPACE ========= -->
+    <main class="flex-1 min-w-0 overflow-y-auto thin-scroll">
+
+      <!-- Action bar -->
+      <div class="flex items-center justify-end border-b border-line bg-panel px-4 h-[38px]">
+        <div class="flex items-center gap-1.5">
+          <a href="/emr#patients-view" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700">
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>New Patient</span>
+          </a>
+          <a href="/emr#overview" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 4l13 8-13 8V4Z"/></svg>Start Visit</span>
+          </a>
+          <a href="#charts-waiting" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2.5H6.5A1.5 1.5 0 0 0 5 4v16a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 20V7.5L14 2.5Z"/><path d="M13.5 2.5V8H19M9 13h6M9 17h6"/></svg>Review Charts</span>
+          </a>
+          <a href="/emr#claims" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 9 5 9-5"/></svg>Submit Claims</span>
+          </a>
+          <a href="/practice/onboarding?invite=1" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M2.5 19c0-3.3 2.6-5.7 6.5-5.7M17 8v6M14 11h6"/></svg>+ Add Staff</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- KPI ROW -->
+      <div class="bg-panel border-b border-line">
+        <div class="flex">
+          <div class="kpi">
+            <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Today's Patients</div>
+            <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0<span class="text-[13px] text-ink-300 font-normal"> / 0</span></div></div>
+            <div class="text-[10.5px] text-ink-400 mt-0.5">no appointments today</div>
+          </div>
+          <div class="kpi">
+            <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Charts Waiting</div>
+            <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0</div></div>
+            <div class="text-[10.5px] text-ink-400 mt-0.5">awaiting signature</div>
+          </div>
+          <div class="kpi">
+            <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Claims Awaiting Review</div>
+            <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0</div></div>
+            <div class="text-[10.5px] text-ink-400 mt-0.5 num">$0 total value</div>
+          </div>
+          <div class="kpi">
+            <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Staff Compliance Alerts</div>
+            <div class="flex items-end gap-2 mt-0.5"><div class="text-[20px] font-semibold text-ink-900 num">0</div></div>
+            <div class="text-[10.5px] text-ink-400 mt-0.5">no urgent items</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Schedule -->
+      <section id="schedule" class="bg-panel border-b border-line">
+        <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
+          <h2 class="text-[13px] font-semibold text-ink-900">Today's Schedule</h2>
+          <a href="/schedule" class="text-[11px] text-med-600 hover:text-med-700 font-medium">View full schedule →</a>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Time</th>
+                <th class="td text-left">Patient</th>
+                <th class="td text-left">Reason</th>
+                <th class="td text-left">Provider</th>
+                <th class="td text-left">Status</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- AI Inbox -->
+      <section id="inbox" class="bg-panel border-b border-line">
+        <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
+          <h2 class="text-[13px] font-semibold text-ink-900">AI Inbox</h2>
+          <span class="text-[10.5px] text-ink-500 font-medium">AI-triaged</span>
+        </div>
+        <ul id="alerts-list" class="divide-y divide-lineSoft text-[12px]"></ul>
+      </section>
+
+      <!-- Charts Waiting for Signature -->
+      <section id="charts-waiting" class="bg-panel border-b border-line">
+        <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
+          <h2 class="text-[13px] font-semibold text-ink-900">Charts Waiting for Signature</h2>
+          <a href="/emr#patients-view" class="text-[11px] text-med-600 hover:text-med-700 font-medium">Open EMR →</a>
+        </div>
+        <div id="signatures-rows" class="divide-y divide-lineSoft"></div>
+      </section>
+
+      <!-- Claims Ready for Submission -->
+      <section id="claims-panel" class="bg-panel border-b border-line">
+        <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
+          <h2 class="text-[13px] font-semibold text-ink-900">Claims Ready for Submission</h2>
+          <a href="/emr#claims" class="text-[11px] text-med-600 hover:text-med-700 font-medium">Open Claims →</a>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Claim</th>
+                <th class="td text-left">Patient</th>
+                <th class="td text-left">Payer</th>
+                <th class="td text-right">Amount</th>
+                <th class="td text-left">Status</th>
+                <th class="td text-right">Age</th>
+              </tr>
+            </thead>
+            <tbody id="claims-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ========= RIGHT SIDEBAR ========= -->
+    <aside class="w-[320px] flex-shrink-0 border-l border-line bg-panel overflow-y-auto thin-scroll">
+
+      <!-- AI Practice Copilot -->
+      <div id="copilot" class="border-b border-line panel-collapsible">
+        <div class="flex items-center justify-between px-3 py-2.5 border-b border-line panel-header-toggle" data-panel="copilot">
+          <div class="flex items-center gap-1.5">
+            <button type="button" class="panel-chevron" title="Expand / collapse"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+            <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 2.5c-3.6 0-6.2 2.7-6.2 6 0 2 .9 3.4 2 4.4.7.6 1 1 1 1.9v1.7h6.4v-1.7c0-.9.3-1.3 1-1.9 1.1-1 2-2.4 2-4.4 0-3.3-2.6-6-6.2-6Z"/></svg>
+            <h3 class="panel-title">AI Practice Copilot</h3>
+          </div>
+          <span class="text-[9.5px] uppercase tracking-wider text-ok-600 font-semibold" onclick="event.stopPropagation()">Live</span>
+        </div>
+        <div class="panel-body">
+        <ul id="copilot-list" class="divide-y divide-lineSoft text-[12px]"></ul>
+        </div>
+      </div>
+
+      <!-- Revenue Snapshot -->
+      <div id="revenue" class="border-b border-line panel-collapsible">
+        <div class="flex items-center justify-between px-3 py-2.5 border-b border-line panel-header-toggle" data-panel="revenue">
+          <div class="flex items-center gap-1.5">
+            <button type="button" class="panel-chevron" title="Expand / collapse"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+            <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>
+            <h3 class="panel-title">Revenue Snapshot</h3>
+          </div>
+        </div>
+        <div class="panel-body">
+        <div class="p-3">
+          <div class="flex items-end justify-between">
+            <div>
+              <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Pending reimbursement</div>
+              <div class="text-[24px] font-semibold text-ink-900 num leading-tight">$0</div>
+              <div class="text-[11px] text-ink-400 font-semibold">no claims outstanding</div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Collected · 7d</div>
+              <div class="text-[16px] font-semibold text-ink-900 num">$0</div>
+              <div class="text-[11px] text-ink-400 font-semibold">0 payments</div>
+            </div>
+          </div>
+
+          <svg id="revenue-spark" class="w-full mt-3" viewBox="0 0 300 70" preserveAspectRatio="none">
+            <line x1="0" y1="20" x2="300" y2="20" stroke="#eceef2" stroke-width="1"/>
+            <line x1="0" y1="40" x2="300" y2="40" stroke="#eceef2" stroke-width="1"/>
+            <line x1="0" y1="60" x2="300" y2="60" stroke="#eceef2" stroke-width="1"/>
+            <path d="M0,68 L300,68" fill="none" stroke="#aab0bb" stroke-width="1.6" stroke-dasharray="3 3"/>
+          </svg>
+          <div class="flex justify-center text-[10px] text-ink-400 mt-1">No data to chart yet</div>
+
+          <div class="mt-3 space-y-1.5 text-[11.5px]">
+            <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Recent payments</div>
+            <div id="payments-list" class="space-y-1.5"></div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- Staff Onboarding and Compliance Alerts -->
+      <div id="team" class="border-b border-line panel-collapsible">
+        <div class="flex items-center justify-between px-3 py-2.5 border-b border-line panel-header-toggle" data-panel="team">
+          <div class="flex items-center gap-1.5">
+            <button type="button" class="panel-chevron" title="Expand / collapse"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+            <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2M16.5 4.5c1.7.4 3 2 3 3.9s-1.3 3.5-3 3.9"/></svg>
+            <h3 class="panel-title">Staff Onboarding &amp; Compliance Alerts</h3>
+          </div>
+          <span id="team-alert-count" class="text-[16px] font-semibold text-ink-900 num" onclick="event.stopPropagation()">0</span>
+        </div>
+        <div class="panel-body">
+        <div class="px-3 pt-2 pb-0.5 text-[10.5px] text-ink-400">Urgent operational items only</div>
+        <ul id="team-list" class="divide-y divide-lineSoft text-[12px]"></ul>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div id="activity" class="border-b border-line panel-collapsible">
+        <div class="flex items-center justify-between px-3 py-2.5 border-b border-line panel-header-toggle" data-panel="activity">
+          <div class="flex items-center gap-1.5">
+            <button type="button" class="panel-chevron" title="Expand / collapse"><svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+            <h3 class="panel-title">Recent Activity</h3>
+          </div>
+        </div>
+        <div class="panel-body">
+        <ul id="activity-list" class="divide-y divide-lineSoft text-[12px] max-h-[320px] overflow-y-auto thin-scroll"></ul>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <script>
+    window.__ALTHAIS_USER__ = {{ user_json | safe }};
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+
+    // ---- Collapsible right-sidebar panels (same behavior as the EMR) ------
+    document.querySelectorAll('.panel-header-toggle').forEach(header => {
+      header.addEventListener('click', () => {
+        header.closest('.panel-collapsible').classList.toggle('is-collapsed');
+      });
+    });
+
+    // ---- Collapsible left-sidebar nav groups (persisted) -------------------
+    document.querySelectorAll('[data-nav-toggle]').forEach(btn => {
+      const key = 'althais.nav.collapsed.' + btn.dataset.navToggle;
+      const group = btn.closest('.nav-group');
+      if (localStorage.getItem(key) === '1') group.classList.add('is-collapsed');
+      btn.addEventListener('click', () => {
+        group.classList.toggle('is-collapsed');
+        localStorage.setItem(key, group.classList.contains('is-collapsed') ? '1' : '0');
+      });
+    });
+
+    // ── Header ──────────────────────────────────────────────────────────
+    (function () {
+      const u = window.__ALTHAIS_USER__ || {};
+      const displayName = u.provider_name || u.full_name || (u.email ? u.email.split('@')[0] : 'there');
+      const initialsSrc = u.provider_name || u.full_name || u.email || 'A';
+      const initials = initialsSrc.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'A';
+
+      const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      $('hdr-date').textContent = dateStr;
+      $('hdr-org-name').textContent = u.organization || 'Althais';
+
+      $('sb-initials').textContent = initials;
+      $('sb-name').textContent = displayName;
+      $('sb-role').textContent = u.role || 'admin';
+      $('sb-email').textContent = u.email || '';
+      $('hdr-user-name').textContent = displayName;
+    })();
+
+    // ── Data (empty until wired to real endpoints — mirrors the EMR's own
+    //    zero-state pattern: "No Patient" / "0 claims to show" / "No active risks") ──
+    const emptyRow = (colspan, text) => `<tr><td class="td text-center text-ink-500" colspan="${colspan}" style="padding:24px 10px;">${esc(text)}</td></tr>`;
+    const emptyState = (text, sub) => `
+      <div class="text-center" style="padding:22px 10px;">
+        <div class="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-ok-100 text-ok-600">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+        </div>
+        <div class="font-semibold text-ink-900 text-[12px]">${esc(text)}</div>
+        ${sub ? `<div class="text-ink-400 text-[11px] mt-0.5">${esc(sub)}</div>` : ''}
+      </div>`;
+
+    const SCHEDULE = [];
+    const STATUS_PILL = {
+      'Completed':  'background:#d8f5e3;color:#0c8a4f',
+      'In room':    'background:#0d5bd7;color:#fff',
+      'Checked in': 'background:#fff0d6;color:#b86a00',
+      'Upcoming':   'background:#eceef2;color:#4a505c',
+      'No-show':    'background:#ffe1e1;color:#c83838',
+    };
+    $('schedule-rows').innerHTML = SCHEDULE.length ? SCHEDULE.map(a => `
+      <tr class="row-hover">
+        <td class="td mono text-ink-500">${esc(a.time)}</td>
+        <td class="td font-semibold text-ink-900">${esc(a.name)}</td>
+        <td class="td text-ink-600">${esc(a.reason)}</td>
+        <td class="td text-ink-600">${esc(a.provider)}</td>
+        <td class="td"><span class="pill" style="${STATUS_PILL[a.status]}">${esc(a.status)}</span></td>
+      </tr>
+    `).join('') : emptyRow(5, 'No appointments scheduled today.');
+
+    const ALERTS = [];
+    const LEVEL_STYLE = { high: 'background:#ffe1e1;color:#c83838', medium: 'background:#fff0d6;color:#b86a00', low: 'background:#eceef2;color:#4a505c' };
+    $('alerts-list').innerHTML = ALERTS.length ? ALERTS.map(a => `
+      <li class="px-4 py-2 flex items-start gap-2.5">
+        <span class="pill flex-shrink-0" style="${LEVEL_STYLE[a.level]}">${a.level}</span>
+        <span class="text-ink-700 leading-snug">${esc(a.text)}</span>
+      </li>
+    `).join('') : `<li>${emptyState('No active alerts', 'Althea will flag risks here as they come up.')}</li>`;
+
+    const SIGNATURES = [];
+    $('signatures-rows').innerHTML = SIGNATURES.length ? SIGNATURES.map(s => `
+      <div class="flex items-center gap-3 px-4 py-2 row-hover">
+        <div class="flex-1 min-w-0 text-[12.5px]">
+          <span class="font-semibold text-ink-900">${esc(s.name)}</span>
+          <span class="text-ink-500"> — ${esc(s.type)} · ${esc(s.provider)}</span>
+        </div>
+        <span class="text-[11px] text-ink-400 mono flex-shrink-0">${esc(s.wait)}</span>
+        <button class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">Sign</button>
+      </div>
+    `).join('') : `<div class="px-4 py-2.5 text-[12px] text-ink-500">No charts awaiting signature.</div>`;
+
+    const CLAIMS = [];
+    const CLAIM_PILL = {
+      'Ready to submit': 'background:#d8f5e3;color:#0c8a4f',
+      'Needs review':    'background:#fff0d6;color:#b86a00',
+      'Denied — appeal': 'background:#ffe1e1;color:#c83838',
+    };
+    $('claims-rows').innerHTML = CLAIMS.length ? CLAIMS.map(c => `
+      <tr class="row-hover">
+        <td class="td mono text-ink-500">${esc(c.id)}</td>
+        <td class="td font-semibold text-ink-900">${esc(c.name)}</td>
+        <td class="td text-ink-600">${esc(c.payer)}</td>
+        <td class="td td-num text-right text-ink-900">$${c.amount.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+        <td class="td"><span class="pill" style="${CLAIM_PILL[c.status]}">${esc(c.status)}</span></td>
+        <td class="td td-num text-right text-ink-400">${esc(c.age)}</td>
+      </tr>
+    `).join('') : emptyRow(6, 'No claims to show.');
+    $('sc-claims').textContent = CLAIMS.length;
+
+    const COPILOT = [];
+    $('copilot-list').innerHTML = COPILOT.length ? COPILOT.map(c => `
+      <li class="px-3 py-2.5">
+        <div class="text-ink-700 text-[11.5px] leading-snug">${esc(c.text)}</div>
+        <a href="${c.href}" class="text-[10.5px] text-med-600 hover:text-med-700 font-medium mt-1 inline-block">${esc(c.action)} →</a>
+      </li>
+    `).join('') : `<li>${emptyState('No recommendations yet', 'Althea will surface insights once there is practice activity to analyze.')}</li>`;
+
+    const PAYMENTS = [];
+    $('payments-list').innerHTML = PAYMENTS.length ? PAYMENTS.map(p => {
+      const maxPay = Math.max(...PAYMENTS.map(x => x.amount));
+      return `
+      <div class="flex items-center justify-between">
+        <span class="text-ink-700">${esc(p.payer)}</span>
+        <div class="flex items-center gap-2 num">
+          <div class="w-16 h-1.5 bg-shell rounded-sm overflow-hidden"><div class="h-full bg-med-600" style="width:${Math.round((p.amount/maxPay)*100)}%"></div></div>
+          <span class="text-right text-ink-900 font-semibold">$${p.amount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+        </div>
+      </div>`;
+    }).join('') : `<div class="text-ink-400 text-[11px]">No payments recorded yet.</div>`;
+
+    // Only urgent, actionable items belong here (e.g. "2 staff have incomplete
+    // onboarding", "1 license expires in 7 days") — routine status lives on
+    // the full Practice pages, not on Home. Each item links to where it's resolved.
+    const STAFF_ALERTS = [];
+    const TONE_TEXT = { ok: 'text-ok-600', warn: 'text-warn-600', risk: 'text-risk-600' };
+    $('team-list').innerHTML = STAFF_ALERTS.length ? STAFF_ALERTS.map(t => `
+      <li class="px-3 py-2 row-hover">
+        <a href="${t.href}" class="block">
+          <div class="font-semibold ${TONE_TEXT[t.tone]}">${esc(t.label)}</div>
+          <div class="text-ink-500 text-[11px] mt-0.5">${esc(t.detail)}</div>
+        </a>
+      </li>
+    `).join('') : `<li>${emptyState('No urgent staff alerts', 'Onboarding and compliance issues that need attention will show up here.')}</li>`;
+    $('team-alert-count').textContent = STAFF_ALERTS.length;
+
+    const ACTIVITY = [];
+    $('activity-list').innerHTML = ACTIVITY.length ? ACTIVITY.map(a => `
+      <li class="px-3 py-2">
+        <div class="text-ink-700 leading-snug">${esc(a.text)}</div>
+        <div class="text-ink-400 text-[10.5px] mt-0.5">${esc(a.time)}</div>
+      </li>
+    `).join('') : `<li class="px-3 py-2 text-[12px] text-ink-500">No recent activity. Actions on patients and claims will appear here as they happen.</li>`;
+
+    $('sc-inbox').textContent = ALERTS.length + SIGNATURES.length;
+  </script>
+</body>
+</html>

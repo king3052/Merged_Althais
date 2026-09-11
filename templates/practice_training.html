@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Training</title>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Training</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">HIPAA, safety, policy, and role-specific training across the practice.</p>
+      </div>
+      <button type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Assign Training</button>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">HIPAA training</div>
+          <div class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">completion rate</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Clinic policy training</div>
+          <div class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">completion rate</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Safety training</div>
+          <div class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">completion rate</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Role-specific training</div>
+          <div class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">completion rate</div>
+        </div>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+          <h3 class="text-[13px] font-semibold text-ink-900">Assigned training</h3>
+          <span class="text-[11px] text-ink-500">0 assignments</span>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Team Member</th>
+                <th class="td text-left">Training</th>
+                <th class="td text-left">Status</th>
+                <th class="td text-left">Due Date</th>
+                <th class="td text-left">Completed Date</th>
+                <th class="td text-left">Certificate</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="px-4 py-10 text-center text-[12px] text-ink-500">
+            No training assigned yet. Click <span class="font-semibold text-med-600">+ Assign Training</span> to assign HIPAA, safety, policy, or role-specific courses.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'], mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'] },
+      colors: {
+        shell: '#f4f5f7', panel: '#ffffff', line: '#e4e6eb', lineSoft: '#eceef2',
+        ink: { 900: '#0f1116', 800: '#1a1d24', 700: '#2c313b', 600: '#4a505c', 500: '#6b7280', 400: '#8b909c', 300: '#aab0bb' },
+        med: { 700: '#0a47b0', 600: '#0d5bd7', 500: '#1f6fea', 100: '#e6efff', 50: '#f3f7ff' },
+        ok: { 600: '#0c8a4f', 100: '#d8f5e3' },
+        warn: { 600: '#b86a00', 100: '#fff0d6' },
+        risk: { 600: '#c83838', 100: '#ffe1e1' },
+        neutral: { 600: '#4a505c', 100: '#eceef2' }
+      }
+    } }
+  };
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+  .thin-scroll::-webkit-scrollbar-thumb { background: #d4d7de; border-radius: 4px; }
+  .thin-scroll::-webkit-scrollbar-thumb:hover { background: #b9bdc6; }
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.01em; line-height: 16px; }
+  .count-pill { font-size: 10.5px; font-weight: 600; padding: 0 5px; height: 16px; display: inline-flex; align-items: center; border-radius: 8px; background: #eceef2; color: #4a505c; }
+  .count-pill.alert { background: #ffe1e1; color: #c83838; }
+  .count-pill.med { background: #e6efff; color: #0a47b0; }
+  .kpi { flex: 1; min-width: 0; padding: 10px 14px; border-right: 1px solid #e4e6eb; }
+  .kpi:last-child { border-right: 0; }
+  .table-head { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7280; font-weight: 600; background: #f7f9fc; border-top: 1px solid #e4e6eb; border-bottom: 1px solid #e4e6eb; }
+  .td { padding: 7px 10px; font-size: 12.5px; color: #1a1d24; vertical-align: middle; }
+  .td-num { font-variant-numeric: tabular-nums; }
+  tbody tr { border-bottom: 1px solid #eceef2; }
+  .row-hover:hover { background: #f7f9fc; }
+  .panel-title { font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #4a505c; }
+  .panel-header-toggle { cursor: pointer; user-select: none; }
+  .panel-chevron { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 3px; color: #6b7280; }
+  .panel-header-toggle:hover .panel-chevron { background: #dbe8ff; }
+  .panel-chevron svg { transition: transform 0.16s ease; }
+  .panel-body { overflow: hidden; }
+  .panel-collapsible.is-collapsed .panel-body { display: none; }
+  .panel-collapsible.is-collapsed .panel-chevron svg { transform: rotate(-90deg); }
+
+  /* ── Two-row horizontal navigation (shared: _nav.html) ───────────────── */
+  .primary-tab { padding: 0 14px; height: 44px; display: flex; align-items: center; color: rgba(255,255,255,0.68); font-weight: 500; font-size: 13.5px; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .primary-tab:hover { color: #fff; }
+  .primary-tab.active { color: #fff; font-weight: 700; border-bottom-color: #fff; }
+  .nav-tab { position: relative; padding: 9px 14px; font-size: 12.5px; color: #4a505c; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+  .nav-tab:hover { color: #0f1116; }
+  .nav-tab.active { color: #0d5bd7; font-weight: 600; }
+  .nav-tab.active::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: #0d5bd7; border-radius: 1px; }
+</style>

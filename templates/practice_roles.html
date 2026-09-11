@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Roles & Permissions</title>
+  <style>
+    .perm-cell { width:26px; height:26px; border-radius:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; margin:0 auto; border:1.5px solid #e4e6eb; }
+    .perm-cell.is-on { background:#0c8a4f; border-color:#0c8a4f; }
+    .perm-cell:hover { border-color:#0d5bd7; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Roles &amp; Permissions</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Control what each role can access across the practice.</p>
+      </div>
+      <button id="create-role-btn" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Create Role</button>
+    </div>
+
+    <div class="p-5">
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+          <h3 class="text-[13px] font-semibold text-ink-900">Permission matrix</h3>
+          <span class="text-[11px] text-ink-500">Click a cell to toggle access</span>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left" style="min-width:160px;">Role</th>
+                <th class="td text-center">Patient Records</th>
+                <th class="td text-center">Clinical Notes</th>
+                <th class="td text-center">Coding</th>
+                <th class="td text-center">Claims</th>
+                <th class="td text-center">Revenue</th>
+                <th class="td text-center">Staff Records</th>
+                <th class="td text-center">Compliance</th>
+                <th class="td text-center">Settings</th>
+              </tr>
+            </thead>
+            <tbody id="roles-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const AREAS = ['patients','notes','coding','claims','revenue','staff','compliance','settings'];
+    let ROLES = [
+      { name: 'Physician',        perms: { patients:1, notes:1, coding:1, claims:1, revenue:0, staff:0, compliance:0, settings:0 } },
+      { name: 'Nurse',            perms: { patients:1, notes:1, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
+      { name: 'Medical Assistant',perms: { patients:1, notes:1, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
+      { name: 'Biller',           perms: { patients:1, notes:0, coding:1, claims:1, revenue:1, staff:0, compliance:0, settings:0 } },
+      { name: 'Practice Manager', perms: { patients:1, notes:0, coding:0, claims:1, revenue:1, staff:1, compliance:1, settings:1 } },
+      { name: 'Volunteer',        perms: { patients:0, notes:0, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
+      { name: 'Student',          perms: { patients:1, notes:1, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
+      { name: 'Administrator',    perms: { patients:1, notes:1, coding:1, claims:1, revenue:1, staff:1, compliance:1, settings:1 } },
+    ];
+
+    function renderRoles() {
+      $('roles-rows').innerHTML = ROLES.map((r, ri) => `
+        <tr>
+          <td class="td font-semibold text-ink-900">${r.name}</td>
+          ${AREAS.map(a => `
+            <td class="td text-center">
+              <div class="perm-cell ${r.perms[a] ? 'is-on' : ''}" data-role="${ri}" data-area="${a}">
+                ${r.perms[a] ? '<svg class="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>' : ''}
+              </div>
+            </td>`).join('')}
+        </tr>`).join('');
+    }
+    renderRoles();
+
+    $('roles-rows').addEventListener('click', (e) => {
+      const cell = e.target.closest('.perm-cell');
+      if (!cell) return;
+      const r = ROLES[Number(cell.dataset.role)];
+      r.perms[cell.dataset.area] = r.perms[cell.dataset.area] ? 0 : 1;
+      renderRoles();
+    });
+
+    $('create-role-btn').addEventListener('click', () => {
+      const name = prompt('New role name:');
+      if (!name) return;
+      ROLES.push({ name, perms: Object.fromEntries(AREAS.map(a => [a, 0])) });
+      renderRoles();
+    });
+  </script>
+</body>
+</html>

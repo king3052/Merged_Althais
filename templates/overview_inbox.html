@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — AI Inbox</title>
+  <style>
+    .chip { font-size: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid #e4e6eb; background: #fff; color: #4a505c; cursor: pointer; }
+    .chip.active { background: #0d5bd7; border-color: #0d5bd7; color: #fff; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line">
+      <h1 class="text-[18px] font-semibold text-ink-900">AI Inbox</h1>
+      <p class="text-[12px] text-ink-500 mt-0.5">Priority alerts Althea has flagged across patients, claims, and staff.</p>
+    </div>
+
+    <div class="p-5">
+      <div class="flex flex-wrap gap-1.5 mb-4">
+        <button class="chip active">All</button>
+        <button class="chip">High</button>
+        <button class="chip">Medium</button>
+        <button class="chip">Low</button>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+          <h3 class="text-[13px] font-semibold text-ink-900">Priority alerts</h3>
+          <span class="text-[11px] text-ink-500">0 alerts</span>
+        </div>
+        <ul id="alerts-list" class="divide-y divide-lineSoft text-[12px]"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    const ALERTS = [];
+    document.getElementById('alerts-list').innerHTML = ALERTS.length ? ALERTS.map(a => `
+      <li class="px-4 py-2.5 flex items-start gap-2.5">
+        <span class="pill flex-shrink-0" style="background:#ffe1e1;color:#c83838">${esc(a.level)}</span>
+        <span class="text-ink-700 leading-snug">${esc(a.text)}</span>
+      </li>
+    `).join('') : `
+      <li class="text-center" style="padding:40px 10px;">
+        <div class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-ok-100 text-ok-600">
+          <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+        </div>
+        <div class="font-semibold text-ink-900 text-[13px]">No active alerts</div>
+        <div class="text-ink-400 text-[12px] mt-0.5">Althea will flag risks here as they come up across the practice.</div>
+      </li>`;
+
+    document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+      document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+    }));
+  </script>
+</body>
+</html>

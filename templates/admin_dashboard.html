@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Althais Admin — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] },
+      colors: {
+        shell: '#f4f5f7', panel: '#ffffff', line: '#e4e6eb', lineSoft: '#eceef2',
+        ink: { 900: '#0f1116', 700: '#2c313b', 500: '#6b7280', 400: '#8b909c' },
+        med: { 700: '#0a47b0', 600: '#0d5bd7', 100: '#e6efff' },
+        ok: { 600: '#0c8a4f', 100: '#d8f5e3' }, risk: { 600: '#c83838', 100: '#ffe1e1' }
+      }
+    } } };
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-shell min-h-screen">
+  <!-- Top bar -->
+  <header class="bg-med-700 text-white px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-[14px] font-bold tracking-widest uppercase">ALTHAIS</span>
+      <span class="text-[12px] text-med-100 border-l border-white/30 pl-3">Admin</span>
+    </div>
+    <button id="logout" class="text-[12px] bg-white/10 hover:bg-white/20 rounded-sm px-3 py-1.5 transition">Sign out</button>
+  </header>
+
+  <main class="max-w-[1100px] mx-auto px-6 py-8">
+    <h1 class="text-[20px] font-semibold text-ink-900">Overview</h1>
+    <p class="text-[13px] text-ink-500 mt-1">All registered accounts and usage across Althais.</p>
+
+    <!-- Stat cards -->
+    <div id="stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+      <div class="bg-panel border border-line rounded-md p-4">
+        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Total accounts</div>
+        <div id="stat-users" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
+      </div>
+      <div class="bg-panel border border-line rounded-md p-4">
+        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Organizations</div>
+        <div id="stat-orgs" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
+      </div>
+      <div class="bg-panel border border-line rounded-md p-4">
+        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Total logins</div>
+        <div id="stat-logins" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
+      </div>
+      <div class="bg-panel border border-line rounded-md p-4">
+        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Claims submitted</div>
+        <div id="stat-claims" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
+      </div>
+    </div>
+
+    <!-- Users table -->
+    <div class="bg-panel border border-line rounded-md mt-6 overflow-hidden">
+      <div class="px-4 py-3 border-b border-line flex items-center justify-between">
+        <h2 class="text-[13px] font-semibold text-ink-900">Accounts</h2>
+        <input id="search" type="text" placeholder="Filter by email or org…" class="text-[12px] border border-line rounded-sm px-2.5 py-1.5 w-64 bg-white" />
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="bg-shell">
+              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Account</th>
+              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Organization</th>
+              <th class="text-right px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Logins</th>
+              <th class="text-right px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Claims</th>
+              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Last login</th>
+              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Joined</th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let ALL = [];
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function fmtRelative(iso) {
+      if (!iso) return 'never';
+      const d = new Date(iso), now = new Date();
+      const mins = Math.round((now - d) / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hrs = Math.round(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      const days = Math.round(hrs / 24);
+      if (days < 30) return days + 'd ago';
+      return fmtDate(iso);
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+    function render(list) {
+      const rows = $('rows');
+      if (!list.length) {
+        rows.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">No accounts found.</td></tr>';
+        return;
+      }
+      rows.innerHTML = list.map(u => `
+        <tr class="border-t border-lineSoft hover:bg-shell">
+          <td class="px-4 py-2.5">
+            <div class="text-[12.5px] font-medium text-ink-900">${esc(u.full_name || '—')}</div>
+            <div class="text-[11px] text-ink-500 mono">${esc(u.email)}</div>
+          </td>
+          <td class="px-4 py-2.5 text-[12.5px] text-ink-700">${esc(u.organization || '—')}</td>
+          <td class="px-4 py-2.5 text-right text-[12.5px] mono text-ink-900">${u.login_count}</td>
+          <td class="px-4 py-2.5 text-right text-[12.5px] mono text-ink-900">${u.claims_submitted}</td>
+          <td class="px-4 py-2.5 text-[12px] text-ink-500">${fmtRelative(u.last_login)}</td>
+          <td class="px-4 py-2.5 text-[12px] text-ink-500">${fmtDate(u.created_at)}</td>
+          <td class="px-4 py-2.5 text-right">
+            <button data-del="${u.id}" class="text-[11px] text-ink-400 hover:text-risk-600 font-medium">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function applyStats(list) {
+      $('stat-users').textContent = list.length;
+      $('stat-orgs').textContent = new Set(list.map(u => (u.organization || '').toLowerCase()).filter(Boolean)).size;
+      $('stat-logins').textContent = list.reduce((s, u) => s + (u.login_count || 0), 0);
+      $('stat-claims').textContent = list.reduce((s, u) => s + (u.claims_submitted || 0), 0);
+    }
+
+    async function load() {
+      try {
+        const res = await fetch('/api/admin/users', { credentials: 'same-origin' });
+        if (res.status === 401) { window.location.href = '/admin/login'; return; }
+        ALL = await res.json();
+        applyStats(ALL);
+        render(ALL);
+      } catch {
+        $('rows').innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-risk-600">Failed to load.</td></tr>';
+      }
+    }
+
+    $('search').addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+      render(ALL.filter(u => (u.email || '').toLowerCase().includes(q) || (u.organization || '').toLowerCase().includes(q)));
+    });
+
+    $('rows').addEventListener('click', async e => {
+      const btn = e.target.closest('[data-del]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-del');
+      const u = ALL.find(x => String(x.id) === id);
+      if (!confirm(`Delete account ${u ? u.email : ''}? This cannot be undone.`)) return;
+      const res = await fetch('/api/admin/users/' + id, { method: 'DELETE', credentials: 'same-origin' });
+      if (res.ok) { ALL = ALL.filter(x => String(x.id) !== id); applyStats(ALL); render(ALL); }
+      else alert('Delete failed.');
+    });
+
+    $('logout').addEventListener('click', async () => {
+      await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin' });
+      window.location.href = '/admin/login';
+    });
+
+    load();
+  </script>
+</body>
+</html>

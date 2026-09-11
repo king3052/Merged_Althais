@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Recent Activity</title>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line">
+      <h1 class="text-[18px] font-semibold text-ink-900">Recent Activity</h1>
+      <p class="text-[12px] text-ink-500 mt-0.5">A log of actions on patients, claims, and staff across the practice.</p>
+    </div>
+
+    <div class="p-5">
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+          <h3 class="text-[13px] font-semibold text-ink-900">Activity feed</h3>
+          <span class="text-[11px] text-ink-500">0 events</span>
+        </div>
+        <ul id="activity-list" class="divide-y divide-lineSoft text-[12px]"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    const ACTIVITY = [];
+    document.getElementById('activity-list').innerHTML = ACTIVITY.length ? ACTIVITY.map(a => `
+      <li class="px-4 py-2.5">
+        <div class="text-ink-700 leading-snug">${esc(a.text)}</div>
+        <div class="text-ink-400 text-[10.5px] mt-0.5">${esc(a.time)}</div>
+      </li>
+    `).join('') : `<li class="px-4 py-10 text-center text-[12px] text-ink-500">No recent activity. Actions on patients, claims, and staff will appear here as they happen.</li>`;
+  </script>
+</body>
+</html>

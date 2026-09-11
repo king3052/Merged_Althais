@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Schedule</title>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Schedule</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Appointments across the practice.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center rounded-sm border border-line bg-white text-[12px]">
+          <button type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-r border-line">‹</button>
+          <button type="button" id="sch-today-label" class="px-3 py-1.5 text-ink-900 font-semibold mono">—</button>
+          <button type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-l border-line">›</button>
+        </div>
+        <button type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ New Appointment</button>
+      </div>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Today's appointments</div>
+          <div class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">This week</div>
+          <div class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">No-shows · 7d</div>
+          <div class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+        </div>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+          <h3 class="text-[13px] font-semibold text-ink-900">Appointments</h3>
+          <span class="text-[11px] text-ink-500">0 scheduled</span>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Time</th>
+                <th class="td text-left">Patient</th>
+                <th class="td text-left">Reason</th>
+                <th class="td text-left">Provider</th>
+                <th class="td text-left">Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="px-4 py-10 text-center text-[12px] text-ink-500">
+            No appointments scheduled for this day. Click <span class="font-semibold text-med-600">+ New Appointment</span> to add one.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const now = new Date();
+    document.getElementById('sch-today-label').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  </script>
+</body>
+</html>

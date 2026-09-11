@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}How It Works — From Clinical Note to Paid Claim | Althais{% endblock %}
+{% block meta_description %}Follow a single encounter through Althais: the doctor writes a note, AI extracts and codes it, the provider reviews, and the claim is assembled, checked, submitted, tracked, and paid.{% endblock %}
+{% block canonical %}https://althais.com/how-it-works{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Page-scoped: match clinicalhours.org's black/white/gray palette here
+     without touching the shared navy design system used on other pages. */
+  body.app-body { background: #000 !important; }
+  #site-nav.scrolled { background: rgba(0,0,0,0.9) !important; }
+  #site-footer { background: #000 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cinematic-page" style="background:#000">
+
+<!-- Real-product workflow slideshow (moved here from the homepage) -->
+<section id="workflow" style="padding:100px 24px">
+  <div style="max-width:1440px;margin:0 auto" id="wf-carousel">
+    <div id="wf-stage">
+      <button type="button" id="wf-prev" class="wf-arrow wf-arrow-outer" aria-label="Previous step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+
+      <div class="wf-browser wf-side wf-side-left" id="wf-window-prev" aria-hidden="true">
+        <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+        <div class="wf-img-frame"><img id="wf-img-prev" src="" alt="" /></div>
+      </div>
+
+      <div class="wf-browser wf-center" id="wf-window-center" title="Click to see what happens in this step">
+        <div class="wf-flip-inner" id="wf-flip-inner">
+          <div class="wf-face wf-face-front">
+            <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+            <div class="wf-img-frame"><img id="wf-img" src="" alt="" /></div>
+            <div class="wf-flip-hint">Click to see what this step does</div>
+          </div>
+          <div class="wf-face wf-face-back">
+            <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+            <div class="wf-back-content">
+              <svg id="wf-icon-back" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path id="wf-icon-back-path" d=""/></svg>
+              <div id="wf-back-num" style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.2em;color:rgba(255,255,255,0.5);margin-top:18px"></div>
+              <h3 id="wf-back-title" style="font-family:'Inter',sans-serif;font-weight:600;color:#fff;font-size:clamp(1.4rem,2.6vw,2rem);margin-top:10px"></h3>
+              <p id="wf-back-sub" style="font-family:'Inter',sans-serif;color:rgba(255,255,255,0.68);font-size:16px;line-height:1.65;max-width:480px;margin:18px auto 0"></p>
+              <div class="wf-flip-hint">Click to see the screenshot</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-browser wf-side wf-side-right" id="wf-window-next" aria-hidden="true">
+        <div class="wf-chrome"><span class="wf-chrome-dot" style="background:#ff5f57"></span><span class="wf-chrome-dot" style="background:#febc2e"></span><span class="wf-chrome-dot" style="background:#28c840"></span><div class="wf-url">app.althais.com</div></div>
+        <div class="wf-img-frame"><img id="wf-img-next" src="" alt="" /></div>
+      </div>
+
+      <button type="button" id="wf-next" class="wf-arrow wf-arrow-outer" aria-label="Next step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <div id="wf-dots" style="display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:28px"></div>
+  </div>
+
+  {% set steps = [
+    ("01", "Provider Note", "Clinical documentation is captured as-is — SOAP notes, dictation, or EHR text.", "M4 3h10l4 4v14H4V3z M14 3v4h4 M8 11h8 M8 15h8", "provider-note", "The Virtual SOAP note entry screen in Althais, showing chief complaint, HPI, vitals, and assessment/plan fields"),
+    ("02", "AI Generates the Codes", "Diagnoses and procedures are extracted directly from the note, producing ICD-10 and CPT codes with full specificity, correct modifiers, and a confidence score per code.", "M12 2a7 7 0 0 1 7 7c0 3-2 4.5-2 7h-10c0-2.5-2-4-2-7a7 7 0 0 1 7-7z M9 20h6", "ai-coding", "AI-suggested ICD-10 and CPT codes generated from the clinical note, with confidence scores"),
+    ("03", "Provider Review", "The rendering provider accepts, edits, or rejects each suggested code.", "M9 12l2 2 4-4 M21 12a9 9 0 1 1-9-9", "provider-review", "Provider accepting AI-suggested codes in Althais, shown with a green accepted state"),
+    ("04", "Claim Assembly", "Approved codes, modifiers, and encounter data are assembled into a claim.", "M4 7h16M4 12h16M4 17h10", "claim-assembly", "A CMS-1500 health insurance claim form assembled automatically from the approved codes"),
+    ("05", "Payer Intelligence", "The claim is checked against payer-specific rules before it ever leaves the building.", "M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z", "payer-intelligence", "Payer Intelligence dashboard showing tracked payers, approval rates, and payer-specific billing rules"),
+    ("06", "Submission", "The clean claim is transmitted through your clearinghouse of choice.", "M22 2 11 13 M22 2l-7 20-4-9-9-4 20-7z", "submission", "Claim transmission confirmation showing the EDI transaction details and submission status"),
+    ("07", "Claim Tracking", "Status updates flow back in real time — accepted, pending, denied.", "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5", "claim-tracking", "Claims Overview table showing multiple claims with live status — paid, submitted, denied, pending review"),
+    ("08", "Payment", "Remittance is reconciled and posted, closing the loop back to analytics.", "M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6", "payment", "Claims filtered to Paid status, showing posted payment amounts per claim"),
+  ] %}
+  <div id="wf-steps-data" hidden>
+    {% for num, title, sub, path, img, alt in steps %}
+    <div class="wf-step-data" data-num="{{ num }}" data-title="{{ title }}" data-sub="{{ sub }}" data-icon="{{ path }}" data-img="/static/screenshots/{{ img }}.png" data-alt="{{ alt }}"></div>
+    {% endfor %}
+  </div>
+</section>
+
+<style>
+  .wf-arrow {
+    flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .wf-arrow:hover { background: rgba(255,255,255,0.18); }
+  .wf-arrow:active { transform: scale(0.92); }
+  .wf-dot {
+    min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.55); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .wf-dot:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+  .wf-dot.active { background: #fff; color: #0a0a0a; border-color: #fff; }
+
+  /* ── Coverflow browser-window stage ─────────────────────────────── */
+  #wf-stage { position: relative; height: 800px; display: flex; align-items: center; justify-content: center; }
+  .wf-arrow-outer { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; }
+  .wf-arrow-outer#wf-prev { left: 0; }
+  .wf-arrow-outer#wf-next { right: 0; }
+
+  .wf-browser {
+    position: absolute; top: 50%; left: 50%; width: min(90vw, 1180px);
+    background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.5); overflow: hidden;
+    transition: transform 0.45s cubic-bezier(.16,1,.3,1), opacity 0.45s ease, filter 0.45s ease;
+  }
+  .wf-center { transform: translate(-50%,-50%) scale(1); z-index: 3; opacity: 1; cursor: pointer; perspective: 1600px; }
+  .wf-side { z-index: 1; opacity: 0.4; filter: blur(0.5px) brightness(0.65); cursor: pointer; }
+  .wf-side:hover { opacity: 0.65; filter: blur(0px) brightness(0.8); }
+  .wf-side-left { transform: translate(-95%,-50%) scale(0.82); }
+  .wf-side-right { transform: translate(-5%,-50%) scale(0.82); }
+
+  /* ── Flash-card flip (center window only) ──────────────────────── */
+  .wf-flip-inner { position: relative; width: 100%; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(.16,1,.3,1); }
+  .wf-center.flipped .wf-flip-inner { transform: rotateY(180deg); }
+  .wf-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; width: 100%; }
+  .wf-face-front { position: relative; }
+  .wf-face-back {
+    position: absolute; inset: 0; transform: rotateY(180deg);
+    background: #0a0a0a; display: flex; flex-direction: column;
+  }
+  .wf-back-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; text-align: center; }
+  .wf-flip-hint {
+    font-family: 'Inter', sans-serif; font-size: 11px; color: rgba(255,255,255,0.65);
+    letter-spacing: 0.04em;
+  }
+  .wf-face-front .wf-flip-hint {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.55); padding: 6px 14px; border-radius: 999px; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s ease; color: rgba(255,255,255,0.85);
+  }
+  .wf-center:hover .wf-face-front .wf-flip-hint { opacity: 1; }
+  .wf-face-back .wf-flip-hint { margin-top: 24px; }
+
+  .wf-chrome {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    padding: 10px 14px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08); gap: 6px;
+  }
+  .wf-chrome-dot { width: 10px; height: 10px; border-radius: 50%; justify-self: start; }
+  .wf-chrome-dot + .wf-chrome-dot { margin-left: 6px; }
+  .wf-url {
+    grid-column: 2; font-family: 'Inter', sans-serif; font-size: 11.5px; color: rgba(255,255,255,0.55);
+    background: rgba(255,255,255,0.06); border-radius: 999px; padding: 4px 16px; white-space: nowrap;
+  }
+  /* Fixed image area (same size on every step) so the window never resizes
+     or re-centers when a taller/shorter screenshot swaps in — cover + top
+     crops like a real browser viewport instead of letterboxing white bars. */
+  .wf-img-frame { height: 700px; background: #fff; overflow: hidden; }
+  .wf-browser img { width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
+
+  @media (max-width: 860px) {
+    #wf-stage { height: auto; }
+    .wf-side { display: none; }
+    .wf-browser { position: static; transform: none !important; width: 100%; opacity: 1; filter: none; }
+    .wf-img-frame { height: 380px; }
+    .wf-arrow-outer { position: absolute; top: 50%; }
+  }
+</style>
+
+<script>
+(function () {
+  var steps = Array.prototype.map.call(document.querySelectorAll('#wf-steps-data .wf-step-data'), function (el) {
+    return {
+      num: el.getAttribute('data-num'),
+      title: el.getAttribute('data-title'),
+      sub: el.getAttribute('data-sub'),
+      icon: el.getAttribute('data-icon'),
+      img: el.getAttribute('data-img'),
+      alt: el.getAttribute('data-alt'),
+    };
+  });
+  if (!steps.length) return;
+
+  var imgEl = document.getElementById('wf-img');
+  var imgPrevEl = document.getElementById('wf-img-prev');
+  var imgNextEl = document.getElementById('wf-img-next');
+  var windowCenterEl = document.getElementById('wf-window-center');
+  var windowPrevEl = document.getElementById('wf-window-prev');
+  var windowNextEl = document.getElementById('wf-window-next');
+  var backNumEl = document.getElementById('wf-back-num');
+  var backTitleEl = document.getElementById('wf-back-title');
+  var backSubEl = document.getElementById('wf-back-sub');
+  var backIconEl = document.getElementById('wf-icon-back-path');
+  var dotsEl = document.getElementById('wf-dots');
+  var prevBtn = document.getElementById('wf-prev');
+  var nextBtn = document.getElementById('wf-next');
+
+  dotsEl.innerHTML = steps.map(function (s, i) {
+    return '<button type="button" class="wf-dot" data-index="' + i + '">' + s.num + '</button>';
+  }).join('');
+  var dots = dotsEl.querySelectorAll('.wf-dot');
+
+  var current = 0;
+  function render(index, opts) {
+    opts = opts || {};
+    current = (index + steps.length) % steps.length;
+    var s = steps[current];
+    var prevStep = steps[(current - 1 + steps.length) % steps.length];
+    var nextStep = steps[(current + 1) % steps.length];
+
+    dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
+
+    // Navigating to a different step always shows its screenshot first.
+    windowCenterEl.classList.remove('flipped');
+    backNumEl.textContent = 'STEP ' + s.num + ' / ' + steps.length;
+    backTitleEl.textContent = s.title;
+    backSubEl.textContent = s.sub;
+    backIconEl.setAttribute('d', s.icon);
+
+    imgPrevEl.src = prevStep.img;
+    imgPrevEl.alt = prevStep.alt;
+    imgNextEl.src = nextStep.img;
+    imgNextEl.alt = nextStep.alt;
+
+    if (opts.instant) {
+      imgEl.src = s.img;
+      imgEl.alt = s.alt;
+    } else {
+      imgEl.style.opacity = '0';
+      setTimeout(function () {
+        imgEl.src = s.img;
+        imgEl.alt = s.alt;
+        imgEl.style.opacity = '1';
+      }, 140);
+    }
+  }
+
+  prevBtn.addEventListener('click', function () { render(current - 1); });
+  nextBtn.addEventListener('click', function () { render(current + 1); });
+  windowPrevEl.addEventListener('click', function () { render(current - 1); });
+  windowNextEl.addEventListener('click', function () { render(current + 1); });
+  windowCenterEl.addEventListener('click', function () { windowCenterEl.classList.toggle('flipped'); });
+  dots.forEach(function (d) {
+    d.addEventListener('click', function () { render(parseInt(d.getAttribute('data-index'), 10)); });
+  });
+
+  render(0, { instant: true });
+})();
+</script>
+
+</div>
+
+{% endblock %}
