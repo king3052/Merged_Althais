@@ -47,14 +47,6 @@
       position: relative; overflow: hidden; background: #ffffff; padding: 32px 64px 70px;
       min-height: 74svh; display: flex; flex-direction: column;
     }
-    /* Wide, flat, heavily-blurred wash pinned to the bottom edge — a band
-       of warm color, not a circular blob, and it never reaches the nav. */
-    .hero-warm-wrap::before {
-      content: ''; position: absolute; left: -20%; right: -20%; bottom: -20%;
-      height: 45%;
-      background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,175,130,0.4), rgba(255,160,130,0.18) 45%, transparent 75%);
-      filter: blur(45px); pointer-events: none; z-index: 0;
-    }
     .hero-nav-row {
       position: relative; z-index: 2; max-width: 1280px; width: 100%; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
