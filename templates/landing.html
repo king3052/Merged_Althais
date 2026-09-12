@@ -45,12 +45,18 @@
     /* ── Hero ── */
     .hero-warm-wrap {
       position: relative; overflow: hidden; background: #ffffff; padding: 32px 64px 70px;
-      min-height: 100svh; display: flex; flex-direction: column;
+      min-height: 74svh; display: flex; flex-direction: column;
     }
     .hero-nav-row {
       position: relative; z-index: 2; max-width: 1280px; width: 100%; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
       font-family: 'Inter', sans-serif;
+      padding-bottom: 20px;
+    }
+    .hero-nav-row::after {
+      content: ''; position: absolute; bottom: 0; left: 50%;
+      width: 100vw; transform: translateX(-50%);
+      height: 1px; background: #e5e5e5;
     }
     .hero-nav-logo { display: flex; align-items: center; gap: 10px; }
     .hero-nav-logo span {
@@ -94,24 +100,25 @@
     .hero-warm-content {
       position: relative; z-index: 2; max-width: 920px; margin: 0 auto; text-align: center;
       flex: 1; display: flex; flex-direction: column; justify-content: center;
+      padding-top: 48px;
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px; align-self: center;
-      padding: 7px 16px 7px 8px; border: 1px solid #ffd3d4; border-radius: 999px;
-      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #0c0a09;
-      background: #fff; margin: 0 auto 28px;
+      padding: 6px 14px 6px 7px; border: 1px solid #ffd3d4; border-radius: 999px;
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; color: #0c0a09;
+      background: #fff; margin: 0 auto 24px;
     }
     .hero-badge-dot {
-      width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+      width: 18px; height: 18px; border-radius: 6px; flex-shrink: 0;
       background: linear-gradient(135deg, #ff9e73, #ff8e90);
     }
     .hero-warm-headline {
       font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      font-size: clamp(3rem, 6.4vw, 4.4rem); line-height: 1.1; margin: 0 0 22px;
+      font-size: clamp(2.6rem, 5.6vw, 3.8rem); line-height: 1.1; margin: 0 0 18px;
     }
-    .hero-warm-sub { font-family: 'Inter', sans-serif; font-size: 16px; color: #0c0a09; line-height: 1.55; max-width: 560px; margin: 0 auto 32px; }
-    .hero-benefits { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; margin-bottom: 34px; font-family: 'Instrument Serif', Georgia, serif; }
-    .hero-benefit { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 400; color: #2a2d3a; }
+    .hero-warm-sub { font-family: 'Inter', sans-serif; font-size: 15px; color: #0c0a09; line-height: 1.55; max-width: 540px; margin: 0 auto 28px; }
+    .hero-benefits { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 22px; margin-bottom: 30px; font-family: 'Instrument Serif', Georgia, serif; }
+    .hero-benefit { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 400; color: #2a2d3a; }
     .hero-benefit-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff8e90; display: inline-block; flex-shrink: 0; }
 
     .hero-cta-row { display: flex; justify-content: center; gap: 12px; align-items: center; }
@@ -124,8 +131,8 @@
       display: inline-flex; align-items: center; gap: 8px;
       background: linear-gradient(120deg, #ff9e73, #ff8e90, #ffbe8a, #ff9e73);
       background-size: 300% 300%; animation: ctaGradientFlow 5s ease infinite;
-      color: #0c0a09; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;
-      padding: 15px 26px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; text-decoration: none;
+      color: #0c0a09; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+      padding: 13px 22px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; text-decoration: none;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .hero-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(255,142,144,0.35); }
@@ -134,12 +141,12 @@
     }
     .hero-cta-secondary {
       display: inline-flex; align-items: center; gap: 6px;
-      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: #0c0a09;
-      border: 1px solid #e5e5e5; border-radius: 999px; padding: 14px 22px;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: #0c0a09;
+      border: 1px solid #e5e5e5; border-radius: 999px; padding: 12px 20px;
       transition: border-color 0.2s ease, color 0.2s ease;
     }
     .hero-cta-secondary:hover { border-color: #0c0a09; color: #0c0a09; }
-    .hero-small-text { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 13px; color: #979696; margin-top: 18px; }
+    .hero-small-text { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #979696; margin-top: 16px; }
 
     #book-demo-modal input::placeholder { color: rgba(255,255,255,0.35); }
     #book-demo-modal input:focus { outline: none; border-color: #ffffff; box-shadow: 0 0 0 3px rgba(255,255,255,0.16); }
@@ -250,10 +257,10 @@
 
     /* ── Showcase ── */
     .hero-showcase {
-      position: relative; overflow: hidden; padding: 90px 24px 70px;
+      position: relative; overflow: hidden; padding: 50px 24px 70px;
       background: linear-gradient(135deg, #fda37e, #fdbc81 55%, #ffcf9e);
     }
-    .showcase-text { position: relative; z-index: 2; max-width: 640px; margin: 0 auto 36px; text-align: center; }
+    .showcase-text { display: none; position: relative; z-index: 2; max-width: 640px; margin: 0 auto 36px; text-align: center; }
     .ps-progress {
       font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.3em;
       text-transform: uppercase; color: rgba(12,10,9,0.55);
@@ -262,9 +269,9 @@
       font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
       line-height: 1.2; font-size: clamp(1.6rem, 3vw, 2.2rem); margin-top: 10px;
     }
-    #ps-stage { position: relative; z-index: 1; width: 100%; max-width: 1400px; height: 460px; margin: 0 auto; }
+    #ps-stage { position: relative; z-index: 1; width: 100%; max-width: 1400px; height: 540px; margin: 0 auto; }
     .ps-browser {
-      position: absolute; top: 50%; left: 50%; width: min(78vw, 900px); background: #fff;
+      position: absolute; top: 50%; left: 50%; width: min(86vw, 1040px); background: #fff;
       border-radius: 14px; overflow: hidden; box-shadow: 0 40px 90px rgba(120,60,20,0.28);
       border: 1px solid rgba(255,255,255,0.6);
       transition: transform 0.45s cubic-bezier(.16,1,.3,1), opacity 0.45s ease, filter 0.45s ease;
@@ -282,9 +289,141 @@
     .hero-showcase-chrome span:nth-child(1) { background: #ff5f57; }
     .hero-showcase-chrome span:nth-child(2) { background: #febc2e; }
     .hero-showcase-chrome span:nth-child(3) { background: #28c840; }
-    .ps-img-frame { height: 420px; background: #fff; overflow: hidden; }
+    .ps-img-frame { position: relative; height: 500px; background: #fff; overflow: hidden; }
     .ps-img-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: left top; }
-    .ps-dots { position: relative; z-index: 2; display: flex; justify-content: center; gap: 8px; margin-top: 28px; }
+
+    /* ── Live "typing" note mockup — a faithful recreation of the real
+       Virtual SOAP note screen (see static/screenshots/provider-note.png)
+       with every field pre-filled except Plan, which types live so the
+       slide reads as an in-progress note inside the actual product. ── */
+    .ps-note-mock { display: none; flex-direction: column; height: 100%; background: #fff; text-align: left; overflow: hidden; }
+    .note-mock-topbar {
+      display: flex; align-items: center; gap: 18px; padding: 14px 22px; border-bottom: 1px solid #eee;
+      font-family: 'Inter', sans-serif; flex-shrink: 0;
+    }
+    .note-mock-topbar .nm-title { font-size: 13px; font-weight: 700; color: #14151a; margin-right: 4px; }
+    .note-mock-tabs { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; color: #b0b5bf; }
+    .note-mock-tabs .nm-chev { color: #d5d8de; font-size: 10px; }
+    .note-mock-tabs .active { color: #fff; background: #2f6fed; padding: 3px 9px; border-radius: 5px; }
+    .note-mock-body { padding: 18px 24px 0; flex: 1; overflow: hidden; }
+    .nm-record {
+      background: #f6f7f9; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
+      font-family: 'Inter', sans-serif;
+    }
+    .nm-record-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; color: #4a505c; margin-bottom: 6px; }
+    .nm-record-row { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: #6b7280; }
+    .nm-checkbox { width: 12px; height: 12px; border: 1.5px solid #c7cbd3; border-radius: 3px; flex-shrink: 0; }
+    .nm-record-btn {
+      background: #a9c6f5; color: #fff; font-size: 10.5px; font-weight: 600; padding: 5px 10px;
+      border-radius: 5px; margin-right: 6px; white-space: nowrap;
+    }
+    .nm-label {
+      font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+      color: #9aa0ac; text-transform: uppercase; margin-bottom: 5px;
+    }
+    .nm-field {
+      border: 1px solid #e4e6eb; border-radius: 6px; padding: 7px 10px;
+      font-family: 'Inter', sans-serif; font-size: 11.5px; color: #1a1d24; line-height: 1.45;
+    }
+    .nm-row { display: grid; gap: 14px; margin-bottom: 14px; }
+    .nm-row-2 { grid-template-columns: 1fr 1fr; }
+    .nm-row-4 { grid-template-columns: repeat(4, 1fr); }
+    .nm-row-hpi-vitals { grid-template-columns: 1.6fr 1fr; }
+    .nm-vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .nm-vitals-grid .nm-label { margin-bottom: 3px; }
+    .nm-plan-field { border-color: #2f6fed; box-shadow: 0 0 0 3px rgba(47,111,237,0.12); min-height: 34px; }
+    .nm-plan-text { white-space: pre-wrap; }
+    .nm-cursor {
+      display: inline-block; width: 2px; height: 13px; background: #1a1d24; margin-left: 1px;
+      vertical-align: text-bottom; animation: note-mock-blink 0.9s step-end infinite;
+    }
+    @keyframes note-mock-blink { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .nm-cursor { animation: none; } }
+
+    /* ── Live claim-assembly mockup (slide 2) — recreates the real Claim
+       Preview / CMS-1500 screen, with service-line rows appearing one at a
+       time as if AI is assembling the claim from the coded note. ── */
+    .claim-mock { display: none; flex-direction: column; height: 100%; background: #fff; text-align: left; overflow: hidden; }
+    .claim-mock-topbar {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+      padding: 16px 22px; border-bottom: 1px solid #eee; flex-shrink: 0; font-family: 'Inter', sans-serif;
+    }
+    .cm-title { font-size: 14px; font-weight: 700; color: #14151a; }
+    .cm-subtitle { font-size: 10.5px; color: #8b909c; margin-top: 2px; }
+    .cm-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .cm-btn {
+      font-size: 10.5px; font-weight: 600; color: #4a505c; border: 1px solid #e4e6eb;
+      border-radius: 6px; padding: 5px 10px; white-space: nowrap;
+    }
+    .cm-btn-primary { background: #0c8a4f; color: #fff; border-color: #0c8a4f; }
+    .claim-mock-body { padding: 16px 24px 0; flex: 1; overflow: hidden; }
+    .cm-dx { font-weight: 600; }
+    .cm-table { border: 1px solid #e4e6eb; border-radius: 8px; overflow: hidden; }
+    .cm-table-header {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 8px;
+      background: #f6f7f9; padding: 8px 14px; font-family: 'Inter', sans-serif;
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #9aa0ac;
+    }
+    .cm-table-rows { min-height: 74px; }
+    .cm-row {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 8px;
+      padding: 10px 14px; font-family: 'Inter', sans-serif; font-size: 12px; color: #1a1d24;
+      border-top: 1px solid #eee; opacity: 0; transform: translateY(6px);
+      animation: cm-row-in 0.4s ease forwards;
+    }
+    .cm-row .cm-code { font-weight: 700; color: #0d5bd7; }
+    @keyframes cm-row-in { to { opacity: 1; transform: translateY(0); } }
+    .cm-total {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid #e4e6eb;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #14151a;
+      opacity: 0; transition: opacity 0.4s ease;
+    }
+    .cm-total.show { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { .cm-row { animation: none; opacity: 1; transform: none; } }
+
+    /* ── Live "claims get paid" mockup (slide 3) — recreates the real
+       Claims Overview screen, with status pills flipping from Pending to
+       Paid one row at a time. ── */
+    .payment-mock { display: none; flex-direction: column; height: 100%; background: #fff; text-align: left; overflow: hidden; font-family: 'Inter', sans-serif; }
+    .pm-navbar {
+      display: flex; align-items: center; gap: 22px; background: #0a47b0; color: rgba(255,255,255,0.75);
+      padding: 9px 22px; font-size: 11px; font-weight: 600; flex-shrink: 0;
+    }
+    .pm-brand { font-size: 12px; font-weight: 700; letter-spacing: 0.16em; color: #fff; margin-right: 6px; }
+    .pm-nav-active { color: #fff; }
+    .pm-subnav {
+      display: flex; align-items: center; gap: 10px; background: #0d5bd7; color: rgba(255,255,255,0.85);
+      padding: 8px 22px; font-size: 11px; font-weight: 600; flex-shrink: 0;
+    }
+    .pm-brand-small { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: #fff; }
+    .pm-subnav-text { color: rgba(255,255,255,0.8); font-weight: 500; }
+    .pm-body { padding: 16px 22px 0; flex: 1; overflow: hidden; }
+    .pm-heading-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .pm-heading { font-size: 14px; font-weight: 700; color: #14151a; }
+    .pm-filters { display: flex; gap: 6px; font-size: 11px; font-weight: 600; color: #8b909c; }
+    .pm-filters span { padding: 4px 10px; border-radius: 6px; }
+    .pm-filters .active { background: #14151a; color: #fff; }
+    .pm-table { border: 1px solid #e4e6eb; border-radius: 8px; overflow: hidden; }
+    .pm-table-header {
+      display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.9fr 0.9fr; gap: 8px;
+      background: #f6f7f9; padding: 8px 14px; font-size: 9.5px; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase; color: #9aa0ac;
+    }
+    .pm-row {
+      display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.9fr 0.9fr; gap: 8px; align-items: center;
+      padding: 11px 14px; font-size: 12px; color: #1a1d24; border-top: 1px solid #eee;
+      transition: background 0.3s ease;
+    }
+    .pm-row.flash { background: #f3f9f5; }
+    .pm-badge {
+      display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700;
+      padding: 3px 8px; border-radius: 999px; background: #eceef2; color: #6b7280; width: fit-content;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    .pm-badge.paid { background: #d8f5e3; color: #0c8a4f; }
+    @media (prefers-reduced-motion: reduce) { .pm-row.flash { transition: none; } }
+    .ps-dots { display: none; position: relative; z-index: 2; justify-content: center; gap: 8px; margin-top: 28px; }
     .ps-dot {
       min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
       border: 1px solid rgba(12,10,9,0.18); background: rgba(255,255,255,0.4);
@@ -879,7 +1018,128 @@
       </div>
       <div class="ps-browser ps-center" id="ps-window-center">
         <div class="hero-showcase-chrome"><span></span><span></span><span></span></div>
-        <div class="ps-img-frame"><img id="ps-img" src="" alt="" /></div>
+        <div class="ps-img-frame">
+          <img id="ps-img" src="" alt="" />
+          <div class="ps-note-mock" id="ps-note-mock">
+            <div class="note-mock-topbar">
+              <span class="nm-title">Virtual SOAP</span>
+              <div class="note-mock-tabs">
+                <span>1 Patient</span><span class="nm-chev">&rsaquo;</span>
+                <span class="active">2 Note</span><span class="nm-chev">&rsaquo;</span>
+                <span>3 AI Coding</span><span class="nm-chev">&rsaquo;</span>
+                <span>4 Review</span>
+              </div>
+            </div>
+            <div class="note-mock-body">
+              <div class="nm-record">
+                <div class="nm-record-title">RECORD ENCOUNTER (OPTIONAL)</div>
+                <div class="nm-record-row">
+                  <span class="nm-checkbox"></span>
+                  <span>I confirm the patient has been informed this visit is being recorded to assist with documentation.</span>
+                </div>
+              </div>
+              <div class="nm-row nm-row-2">
+                <div>
+                  <div class="nm-label">Chief Complaint</div>
+                  <div class="nm-field">Chest pain and shortness of breath for 2 days</div>
+                </div>
+                <div>
+                  <div class="nm-label">Vitals</div>
+                  <div class="nm-vitals-grid">
+                    <div><div class="nm-label">BP</div><div class="nm-field">148/92</div></div>
+                    <div><div class="nm-label">HR</div><div class="nm-field">88</div></div>
+                    <div><div class="nm-label">Temp</div><div class="nm-field">98.4</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="nm-row">
+                <div>
+                  <div class="nm-label">HPI</div>
+                  <div class="nm-field">58-year-old presents with intermittent substernal chest pressure radiating to the left arm, worse with exertion, associated with mild dyspnea.</div>
+                </div>
+              </div>
+              <div class="nm-row nm-row-4">
+                <div><div class="nm-label">Review Of Systems</div><div class="nm-field">Positive for chest pain, dyspnea on exertion.</div></div>
+                <div><div class="nm-label">Past Medical Hx</div><div class="nm-field">Type 2 diabetes, hypertension</div></div>
+                <div><div class="nm-label">Past Surgical Hx</div><div class="nm-field">Appendectomy 2004</div></div>
+                <div><div class="nm-label">Family History</div><div class="nm-field">Father with MI at age 60</div></div>
+              </div>
+              <div class="nm-row nm-row-2">
+                <div>
+                  <div class="nm-label">Assessment</div>
+                  <div class="nm-field">Chest pain, likely cardiac etiology given risk factors — rule out ACS.</div>
+                </div>
+                <div>
+                  <div class="nm-label">Plan</div>
+                  <div class="nm-field nm-plan-field"><span class="nm-plan-text" id="note-mock-text"></span><span class="nm-cursor"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 2 — live claim assembly mockup -->
+          <div class="claim-mock" id="claim-mock">
+            <div class="claim-mock-topbar">
+              <div>
+                <div class="cm-title">Claim Preview</div>
+                <div class="cm-subtitle">CMS-1500 (Health Insurance Claim Form) summary &middot; generated from AI-coded note</div>
+              </div>
+              <div class="cm-actions">
+                <span class="cm-btn">&larr; Back</span>
+                <span class="cm-btn">Print</span>
+                <span class="cm-btn">Download</span>
+                <span class="cm-btn cm-btn-primary">Next &rarr;</span>
+              </div>
+            </div>
+            <div class="claim-mock-body">
+              <div class="nm-row nm-row-2" style="margin-bottom:12px">
+                <div><div class="nm-label">Patient's Name</div><div class="nm-field">Smith, John</div></div>
+                <div><div class="nm-label">Insured's Name</div><div class="nm-field">Smith, John</div></div>
+              </div>
+              <div class="nm-row nm-row-4" style="margin-bottom:14px">
+                <div><div class="nm-label">Dx A</div><div class="nm-field cm-dx">E11.9</div></div>
+                <div><div class="nm-label">Dx B</div><div class="nm-field cm-dx">I10</div></div>
+                <div><div class="nm-label">Dx C</div><div class="nm-field cm-dx">N18.2</div></div>
+                <div><div class="nm-label">Dx D</div><div class="nm-field cm-dx">&mdash;</div></div>
+              </div>
+              <div class="cm-table">
+                <div class="cm-table-header">
+                  <span>Date Of Service</span><span>CPT Code</span><span>Dx Pointer</span><span>Charges</span>
+                </div>
+                <div class="cm-table-rows" id="cm-table-rows"></div>
+              </div>
+              <div class="cm-total" id="cm-total">
+                <span>Total Charge</span><span id="cm-total-amount">&mdash;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3 — live "claim gets paid" mockup -->
+          <div class="payment-mock" id="payment-mock">
+            <div class="pm-navbar">
+              <span class="pm-brand">ALTHAIS</span>
+              <span>Overview</span><span class="pm-nav-active">EMR</span><span>Revenue</span><span>Staff</span>
+            </div>
+            <div class="pm-subnav">
+              <span class="pm-brand-small">ALTHAIS</span>
+              <span class="pm-subnav-text">Patient Chart &mdash; Smith, John &nbsp;&middot;&nbsp; M / 58</span>
+            </div>
+            <div class="pm-body">
+              <div class="pm-heading-row">
+                <span class="pm-heading">Claims Overview</span>
+                <div class="pm-filters">
+                  <span>All</span><span>Pending</span><span>Denied</span><span class="active">Paid</span>
+                </div>
+              </div>
+              <div class="pm-table">
+                <div class="pm-table-header">
+                  <span>Patient</span><span>CPT</span><span>Payer</span><span>Amount</span><span>Status</span>
+                </div>
+                <div class="pm-table-rows" id="pm-table-rows"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="ps-browser ps-side ps-side-right" id="ps-window-next" aria-hidden="true">
         <div class="hero-showcase-chrome"><span></span><span></span><span></span></div>
@@ -1516,12 +1776,103 @@
       var windowPrevEl = document.getElementById('ps-window-prev');
       var windowNextEl = document.getElementById('ps-window-next');
       var dotsEl = document.getElementById('ps-dots');
+      var noteMockEl = document.getElementById('ps-note-mock');
+      var noteTextEl = document.getElementById('note-mock-text');
+      var claimMockEl = document.getElementById('claim-mock');
+      var cmRowsEl = document.getElementById('cm-table-rows');
+      var cmTotalEl = document.getElementById('cm-total');
+      var cmTotalAmountEl = document.getElementById('cm-total-amount');
+      var paymentMockEl = document.getElementById('payment-mock');
+      var pmRowsEl = document.getElementById('pm-table-rows');
       totalEl.textContent = String(slides.length).padStart(2, '0');
       dotsEl.innerHTML = slides.map(function (s, i) {
         return '<button type="button" class="ps-dot" data-index="' + i + '">' + String(i + 1).padStart(2, '0') + '</button>';
       }).join('');
       var dots = dotsEl.querySelectorAll('.ps-dot');
       var current = 0;
+      var activeTimers = [];
+      function clearActiveTimers() { activeTimers.forEach(clearTimeout); activeTimers = []; }
+
+      // ── Slide 1: typewriter loop for the "Capture The Notes" slide —
+      // replaces the static screenshot with a live-looking note so it reads
+      // as an in-progress visit instead of a finished document.
+      var NOTE_SCRIPT = 'Serial troponins, EKG monitoring, cardiology consult, aspirin 81mg, admit for observation.';
+      function startTyping() {
+        var i = 0;
+        noteTextEl.textContent = '';
+        (function tick() {
+          if (i < NOTE_SCRIPT.length) {
+            i++;
+            noteTextEl.textContent = NOTE_SCRIPT.slice(0, i);
+            var lastChar = NOTE_SCRIPT[i - 1];
+            var delay = 24 + Math.random() * 34;
+            if (lastChar === ',') delay += 160;
+            if (lastChar === '.') delay += 380;
+            activeTimers.push(setTimeout(tick, delay));
+          } else {
+            activeTimers.push(setTimeout(startTyping, 2400));
+          }
+        })();
+      }
+
+      // ── Slide 2: claim service lines appear one at a time, as if AI is
+      // assembling the CMS-1500 from the note that was just typed.
+      var CM_ROWS = [
+        { date: '06/26/2026', code: '99213', dx: 'A,B,C', charge: '$142.50' },
+        { date: '06/26/2026', code: '93000', dx: 'A,B,C', charge: '$142.50' }
+      ];
+      function startClaimAssembly() {
+        cmRowsEl.innerHTML = '';
+        cmTotalEl.classList.remove('show');
+        cmTotalAmountEl.textContent = '—';
+        function addRow(i) {
+          if (i >= CM_ROWS.length) {
+            activeTimers.push(setTimeout(function () {
+              cmTotalAmountEl.textContent = '$285.00';
+              cmTotalEl.classList.add('show');
+              activeTimers.push(setTimeout(startClaimAssembly, 2600));
+            }, 250));
+            return;
+          }
+          var r = CM_ROWS[i];
+          var row = document.createElement('div');
+          row.className = 'cm-row';
+          row.innerHTML = '<span>' + r.date + '</span><span class="cm-code">' + r.code + '</span><span>' + r.dx + '</span><span>' + r.charge + '</span>';
+          cmRowsEl.appendChild(row);
+          activeTimers.push(setTimeout(function () { addRow(i + 1); }, 750));
+        }
+        activeTimers.push(setTimeout(function () { addRow(0); }, 400));
+      }
+
+      // ── Slide 3: claim rows flip from Pending to Paid one at a time,
+      // dramatizing claims actually getting paid.
+      var PM_ROWS = [
+        { patient: 'Smith, John', cpt: '99213', payer: 'UnitedHealthcare', amount: '$285.00' },
+        { patient: 'Williams, Robert', cpt: '99215', payer: 'Medicare', amount: '$445.00' },
+        { patient: 'Davis, Sarah', cpt: '99213', payer: 'Aetna', amount: '$265.00' }
+      ];
+      function startPaymentFlip() {
+        pmRowsEl.innerHTML = PM_ROWS.map(function (r) {
+          return '<div class="pm-row"><span>' + r.patient + '</span><span>' + r.cpt + '</span><span>' + r.payer + '</span><span>' + r.amount +
+            '</span><span class="pm-badge">Pending</span></div>';
+        }).join('');
+        var rowEls = pmRowsEl.querySelectorAll('.pm-row');
+        function payRow(i) {
+          if (i >= rowEls.length) {
+            activeTimers.push(setTimeout(startPaymentFlip, 2600));
+            return;
+          }
+          var row = rowEls[i];
+          var badge = row.querySelector('.pm-badge');
+          row.classList.add('flash');
+          badge.textContent = '✓ Paid';
+          badge.classList.add('paid');
+          activeTimers.push(setTimeout(function () { row.classList.remove('flash'); }, 600));
+          activeTimers.push(setTimeout(function () { payRow(i + 1); }, 550));
+        }
+        activeTimers.push(setTimeout(function () { payRow(0); }, 500));
+      }
+
       function render(index) {
         current = (index + slides.length) % slides.length;
         var s = slides[current];
@@ -1529,9 +1880,28 @@
         var next = slides[(current + 1) % slides.length];
         numEl.textContent = String(current + 1).padStart(2, '0');
         titleEl.textContent = s.title;
-        imgEl.src = s.img; imgEl.alt = s.alt;
         imgPrevEl.src = prev.img; imgPrevEl.alt = prev.alt;
         imgNextEl.src = next.img; imgNextEl.alt = next.alt;
+
+        clearActiveTimers();
+        imgEl.style.display = 'none';
+        noteMockEl.style.display = 'none';
+        claimMockEl.style.display = 'none';
+        paymentMockEl.style.display = 'none';
+
+        if (current === 0) {
+          noteMockEl.style.display = 'flex';
+          startTyping();
+        } else if (current === 1) {
+          claimMockEl.style.display = 'flex';
+          startClaimAssembly();
+        } else if (current === 2) {
+          paymentMockEl.style.display = 'flex';
+          startPaymentFlip();
+        } else {
+          imgEl.style.display = 'block';
+          imgEl.src = s.img; imgEl.alt = s.alt;
+        }
         dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
       }
       windowPrevEl.addEventListener('click', function () { render(current - 1); });
