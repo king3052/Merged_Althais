@@ -931,15 +931,11 @@
       position: relative; padding: 160px 24px 170px; text-align: center; overflow: hidden;
       background: #fff;
     }
-    /* Half circle, not a full oval — a dome of light with a flat base,
-       like a sunrise arcing up behind the heading. Box height is half its
-       width and the gradient's center sits at the box's bottom edge, so
-       only the top arc of the circle is ever visible. */
     .closing-cta::before {
-      content: ''; position: absolute; left: 50%; top: 62%; transform: translate(-50%, -100%);
-      width: 1100px; height: 550px; max-width: 140vw;
-      background: radial-gradient(circle at 50% 100%, rgba(255,158,115,0.5), rgba(255,142,144,0.18) 50%, transparent 72%);
-      filter: blur(20px); pointer-events: none; z-index: 0;
+      content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 1100px; height: 600px; max-width: 140vw;
+      background: radial-gradient(ellipse at center, rgba(255,158,115,0.35), rgba(255,142,144,0.12) 55%, transparent 75%);
+      filter: blur(10px); pointer-events: none; z-index: 0;
     }
     .closing-cta h2 {
       position: relative; z-index: 1; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
