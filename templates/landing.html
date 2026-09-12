@@ -424,39 +424,24 @@
     .pm-badge.paid { background: #d8f5e3; color: #0c8a4f; }
     @media (prefers-reduced-motion: reduce) { .pm-row.flash { transition: none; } }
 
-    /* ── Bottom-right brand widget — decorative only, no click behavior.
-       A pill card (avatar + two-line copy + accent dot) in the site's own
-       warm palette, in place of the old circular Althea launcher. ── */
+    /* ── Bottom-right glow — decorative only, no click behavior, no label.
+       Just a soft glowing accent circle in the site's warm palette. ── */
     #brand-pill {
-      position: fixed; bottom: 28px; right: 28px; z-index: 40;
-      display: flex; align-items: center; gap: 12px;
-      background: #fff; border-radius: 999px; padding: 10px 28px 10px 10px;
-      box-shadow: 0 12px 32px rgba(12,10,9,0.14), 0 2px 8px rgba(12,10,9,0.06);
-      font-family: 'Inter', sans-serif; pointer-events: none;
-      animation: brand-pill-in 0.5s cubic-bezier(.16,1,.3,1) 0.6s both;
-    }
-    @keyframes brand-pill-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-    #brand-pill .bp-avatar {
-      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      position: fixed; bottom: 34px; right: 34px; z-index: 40;
+      width: 40px; height: 40px; border-radius: 50%;
       background: linear-gradient(135deg, #ff9e73, #ff8e90);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 16px; color: #fff;
+      box-shadow: 0 0 24px 8px rgba(255,142,144,0.45), 0 0 60px 20px rgba(255,158,115,0.25);
+      pointer-events: none;
+      animation: brand-pill-in 0.5s cubic-bezier(.16,1,.3,1) 0.6s both, brand-glow-pulse 3.2s ease-in-out 1.1s infinite;
     }
-    #brand-pill .bp-text { line-height: 1.3; white-space: nowrap; }
-    #brand-pill .bp-title { font-size: 12.5px; font-weight: 700; color: #0c0a09; }
-    #brand-pill .bp-sub { font-size: 11px; color: #8b8f99; }
-    /* Overflows the pill's own right edge on purpose — half tucked inside
-       the card, half poking out past it, matching the reference design. */
-    #brand-pill .bp-dot {
-      position: absolute; top: 50%; right: -14px; transform: translateY(-50%);
-      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-      background: linear-gradient(135deg, #ff9e73, #ff8e90);
-      box-shadow: 0 4px 12px rgba(255,120,110,0.35), 0 0 0 3px #fff;
+    @keyframes brand-pill-in { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+    @keyframes brand-glow-pulse {
+      0%, 100% { box-shadow: 0 0 24px 8px rgba(255,142,144,0.45), 0 0 60px 20px rgba(255,158,115,0.25); }
+      50% { box-shadow: 0 0 32px 12px rgba(255,142,144,0.6), 0 0 76px 26px rgba(255,158,115,0.35); }
     }
+    @media (prefers-reduced-motion: reduce) { #brand-pill { animation: brand-pill-in 0.5s cubic-bezier(.16,1,.3,1) 0.6s both; } }
     @media (max-width: 560px) {
-      #brand-pill { right: 16px; bottom: 16px; padding: 8px 24px 8px 8px; gap: 10px; }
-      #brand-pill .bp-avatar { width: 32px; height: 32px; font-size: 14px; }
-      #brand-pill .bp-dot { width: 28px; height: 28px; right: -12px; }
+      #brand-pill { right: 20px; bottom: 20px; width: 32px; height: 32px; }
     }
     .ps-dots { display: none; position: relative; z-index: 2; justify-content: center; gap: 8px; margin-top: 28px; }
     .ps-dot {
@@ -2010,14 +1995,7 @@
   </script>
 
   <!-- Decorative brand pill — no click behavior, see #brand-pill CSS -->
-  <div id="brand-pill" aria-hidden="true">
-    <div class="bp-avatar">A</div>
-    <div class="bp-text">
-      <div class="bp-title">Althea, ready to help</div>
-      <div class="bp-sub">Ask about billing, codes, claims.</div>
-    </div>
-    <div class="bp-dot"></div>
-  </div>
+  <div id="brand-pill" aria-hidden="true"></div>
 
 </body>
 </html>
