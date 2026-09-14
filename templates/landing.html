@@ -938,6 +938,55 @@
       font-size: 16px; line-height: 1.6; font-family: 'Inter', sans-serif; white-space: nowrap;
     }
     @media (max-width: 640px) { .closing-cta p { white-space: normal; } }
+
+    /* ── Scroll-reveal: fade + rise into place the first time each element
+       crosses into view (driven by IntersectionObserver below). ── */
+    .reveal {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.8s cubic-bezier(.16,1,.3,1), transform 0.8s cubic-bezier(.16,1,.3,1);
+    }
+    .reveal.in-view { opacity: 1; transform: none; }
+    /* Staggered children within a reveal group — each sibling waits a beat
+       longer so cards in a row arrive one after another, not all at once. */
+    .reveal-group.in-view > *:nth-child(1) { transition-delay: 0s; }
+    .reveal-group.in-view > *:nth-child(2) { transition-delay: 0.08s; }
+    .reveal-group.in-view > *:nth-child(3) { transition-delay: 0.16s; }
+    .reveal-group.in-view > *:nth-child(4) { transition-delay: 0.24s; }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal-group > * { opacity: 1 !important; transform: none !important; transition: none !important; }
+    }
+
+    /* ── Stats strip — dark band between the showcase and Problem section,
+       numbers count up from 0 the first time they scroll into view. ── */
+    .stats-strip { background: #0c0a09; padding: 80px 24px; }
+    .stats-inner {
+      max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 40px 24px; text-align: center;
+    }
+    .stat-item { position: relative; }
+    .stat-item:not(:last-child)::after {
+      content: ''; position: absolute; top: 8%; bottom: 8%; right: -12px; width: 1px;
+      background: rgba(255,255,255,0.12);
+    }
+    .stat-number {
+      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
+      font-size: clamp(2.2rem, 4.4vw, 3rem); line-height: 1; margin-bottom: 10px;
+      background: linear-gradient(135deg, #ffb385, #ff9aa0);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .stat-label {
+      font-family: 'Inter', sans-serif; font-size: 12.5px; color: rgba(255,255,255,0.6);
+      letter-spacing: 0.01em;
+    }
+    @media (max-width: 900px) {
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .stats-inner .stat-item:nth-child(2)::after { display: none; }
+    }
+    @media (max-width: 560px) {
+      .stats-strip { padding: 56px 24px; }
+      .stats-inner { grid-template-columns: 1fr; gap: 32px; }
+      .stat-item::after { display: none; }
+    }
   </style>
 </head>
 <body class="flex flex-col">
@@ -1149,20 +1198,42 @@
     <div class="ps-dots" id="ps-dots"></div>
   </section>
 
+  <!-- Stats strip -->
+  <section class="stats-strip">
+    <div class="stats-inner reveal-group">
+      <div class="stat-item reveal">
+        <div class="stat-number"><span class="stat-count" data-target="98" data-suffix="%">0</span></div>
+        <div class="stat-label">AI coding accuracy</div>
+      </div>
+      <div class="stat-item reveal">
+        <div class="stat-number"><span class="stat-count" data-target="3.2" data-decimals="1" data-suffix="&times;">0</span></div>
+        <div class="stat-label">Faster claim turnaround</div>
+      </div>
+      <div class="stat-item reveal">
+        <div class="stat-number"><span class="stat-count" data-target="4.9" data-decimals="1" data-prefix="$" data-suffix="K">0</span></div>
+        <div class="stat-label">Avg. revenue recovered / mo</div>
+      </div>
+      <div class="stat-item reveal">
+        <div class="stat-number"><span class="stat-count" data-target="15" data-suffix=" min">0</span></div>
+        <div class="stat-label">Saved per encounter</div>
+      </div>
+    </div>
+  </section>
+
   <!-- Problem -->
   <section class="problem-section">
     <div class="problem-inner">
       <p class="section-eyebrow">The Problem</p>
-      <h2 class="problem-heading">We hear this from<br />clinics like yours...</h2>
-      <div class="problem-grid">
-        <div class="problem-card">
+      <h2 class="problem-heading reveal">We hear this from<br />clinics like yours...</h2>
+      <div class="problem-grid reveal-group">
+        <div class="problem-card reveal">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
           </div>
           <h3>Documentation consumes the day.</h3>
           <p>Providers spend hours finishing notes after appointments, taking time away from patients and their personal lives.</p>
         </div>
-        <div class="problem-card">
+        <div class="problem-card reveal">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
           </div>
@@ -1176,14 +1247,14 @@
           <h3>Every missed code is lost revenue.</h3>
           <p>When documentation, coding, and claims operate separately, clinics lose time and money at every step.</p>
         </div>
-        <div class="problem-card">
+        <div class="problem-card reveal">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M6 9v6M8.5 10.5L15.5 10.5M8.5 13.5L15.5 13.5" stroke-dasharray="2 2"/></svg>
           </div>
           <h3>Clinical and billing teams are disconnected.</h3>
           <p>Important encounter information gets lost as it moves between providers, coders, billers, and payers.</p>
         </div>
-        <div class="problem-card">
+        <div class="problem-card reveal">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
           </div>
@@ -1203,7 +1274,7 @@
 
   <!-- Solution -->
   <section class="solution-section">
-    <div class="solution-inner">
+    <div class="solution-inner reveal">
       <p class="section-eyebrow">The Solution</p>
       <h2 class="solution-heading">With Althais, go from<br />documentation chaos to<br />paid claims.</h2>
       <div class="solution-grid">
@@ -1363,9 +1434,9 @@
     </div>
   </section>
 
-  <div class="feature-cards">
+  <div class="feature-cards reveal-group">
     <!-- Card 1: AI Documentation — inline SOAP mockup -->
-    <div class="feature-card">
+    <div class="feature-card reveal">
       <div class="fc-soap">
         <div class="fc-soap-header">
           <div class="fc-soap-steps">
@@ -1420,7 +1491,7 @@
     </div>
 
     <!-- Card 2: NCCI — inline mockup, no screenshot needed -->
-    <div class="feature-card reverse">
+    <div class="feature-card reverse reveal">
       <div class="fc-ncci">
         <p class="section-eyebrow" style="margin-bottom:10px;">NCCI Edit Checking</p>
         <div class="ncci-demo">
@@ -1458,7 +1529,7 @@
     </div>
 
     <!-- Card 3: Althea — inline chat mockup -->
-    <div class="feature-card">
+    <div class="feature-card reveal">
       <div class="fc-althea">
         <div class="fc-althea-chat">
           <div class="fc-althea-bubble-you">"Which claims are at risk today?"</div>
@@ -1478,7 +1549,7 @@
     </div>
 
     <!-- Card 4: Revenue Tracking — inline claims dashboard mockup -->
-    <div class="feature-card reverse">
+    <div class="feature-card reverse reveal">
       <div class="fc-revenue">
         <div class="fc-revenue-header">
           <span class="fc-revenue-title">Claims Overview</span>
@@ -1555,7 +1626,7 @@
 
   <!-- Althea deep-dive section -->
   <div class="althea-section">
-    <div class="althea-inner">
+    <div class="althea-inner reveal">
       <div class="althea-left">
         <p class="section-eyebrow">Althea Voice AI</p>
         <h2 class="althea-heading">17 clinical intents.<br />All hands-free.</h2>
@@ -1615,8 +1686,8 @@
     <div class="testimonials-inner">
       <p class="section-eyebrow">Testimonials</p>
       <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;color:#0c0a09;font-size:clamp(2.2rem,4.6vw,3.4rem);line-height:1.2;">What clinicians and advisors say</h2>
-      <div class="testimonials-grid">
-        <div class="t-card">
+      <div class="testimonials-grid reveal-group">
+        <div class="t-card reveal">
           <div class="t-stars">
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -1630,7 +1701,7 @@
             <div><div class="t-name">Dr. James Tarin</div><div class="t-role">Tarin Health DPC, Pecos TX</div></div>
           </div>
         </div>
-        <div class="t-card">
+        <div class="t-card reveal">
           <div class="t-stars">
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -1644,7 +1715,7 @@
             <div><div class="t-name">Bryan Cox</div><div class="t-role">Director, Revenue Cycle, MCH Odessa TX</div></div>
           </div>
         </div>
-        <div class="t-card">
+        <div class="t-card reveal">
           <div class="t-stars">
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -1664,7 +1735,7 @@
 
   <!-- Closing CTA -->
   <section class="closing-cta">
-    <h2>Ready to turn documentation<br />into measurable outcomes?</h2>
+    <h2 class="reveal">Ready to turn documentation<br />into measurable outcomes?</h2>
     <p style="font-family:'Instrument Serif', Georgia, serif; font-size:19px;">Book a demo to see how Althais helps your team capture and get paid faster.</p>
     <div class="hero-cta-row" style="position:relative; z-index:1; margin-top:32px;">
       <a href="/demo" class="lava-btn" style="font-size:16px;padding:17px 32px;">Book A Demo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c0a09" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -1974,6 +2045,98 @@
     });
   </script>
 
+  <script>
+    // ── Scroll reveal: fade+rise each .reveal element in once, the first
+    // time it crosses into the viewport.
+    (function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('in-view'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+      els.forEach(function (el) { io.observe(el); });
+
+      // reveal-group containers themselves need the in-view class too, so
+      // the nth-child stagger delays (scoped to .reveal-group.in-view) apply
+      var groups = document.querySelectorAll('.reveal-group');
+      if ('IntersectionObserver' in window) {
+        var groupIo = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('in-view');
+              groupIo.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+        groups.forEach(function (el) { groupIo.observe(el); });
+      } else {
+        groups.forEach(function (el) { el.classList.add('in-view'); });
+      }
+    })();
+
+    // ── Stat counters: count up from 0 to their target the first time they
+    // scroll into view.
+    (function () {
+      var counters = document.querySelectorAll('.stat-count');
+      if (!counters.length) return;
+      function animate(el) {
+        var target = parseFloat(el.getAttribute('data-target'));
+        var decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
+        var prefix = el.getAttribute('data-prefix') || '';
+        var suffix = el.getAttribute('data-suffix') || '';
+        var start = null;
+        var duration = 1400;
+        function tick(now) {
+          if (start === null) start = now;
+          var p = Math.min((now - start) / duration, 1);
+          var eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = prefix + (target * eased).toFixed(decimals) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+      if (!('IntersectionObserver' in window)) { counters.forEach(animate); return; }
+      var seen = new WeakSet();
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !seen.has(entry.target)) {
+            seen.add(entry.target);
+            animate(entry.target);
+          }
+        });
+      }, { threshold: 0.4 });
+      counters.forEach(function (c) { io.observe(c); });
+    })();
+
+    // ── Showcase carousel: auto-advance through the 3 live slides so the
+    // typing/claim/payment animations are seen without needing a click.
+    // Pauses while the user is actively interacting with it.
+    (function () {
+      var stage = document.getElementById('ps-stage');
+      if (!stage) return;
+      var AUTO_ADVANCE_MS = 6500;
+      var timer = null;
+      function scheduleNext() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          var nextBtn = document.getElementById('ps-window-next');
+          if (nextBtn) nextBtn.click();
+        }, AUTO_ADVANCE_MS);
+      }
+      stage.addEventListener('click', scheduleNext);
+      stage.addEventListener('mouseenter', function () { clearTimeout(timer); });
+      stage.addEventListener('mouseleave', scheduleNext);
+      scheduleNext();
+    })();
+  </script>
 
 </body>
 </html>
