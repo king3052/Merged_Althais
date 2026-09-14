@@ -1006,37 +1006,6 @@
       .reveal, .reveal-group > * { opacity: 1 !important; transform: none !important; transition: none !important; }
     }
 
-    /* ── Stats strip — dark band between the showcase and Problem section,
-       numbers count up from 0 the first time they scroll into view. ── */
-    .stats-strip { background: #0c0a09; padding: 80px 24px; }
-    .stats-inner {
-      max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 40px 24px; text-align: center;
-    }
-    .stat-item { position: relative; }
-    .stat-item:not(:last-child)::after {
-      content: ''; position: absolute; top: 8%; bottom: 8%; right: -12px; width: 1px;
-      background: rgba(255,255,255,0.12);
-    }
-    .stat-number {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
-      font-size: clamp(2.2rem, 4.4vw, 3rem); line-height: 1; margin-bottom: 10px;
-      background: linear-gradient(135deg, #ffb385, #ff9aa0);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-    }
-    .stat-label {
-      font-family: 'Inter', sans-serif; font-size: 12.5px; color: rgba(255,255,255,0.6);
-      letter-spacing: 0.01em;
-    }
-    @media (max-width: 900px) {
-      .stats-inner { grid-template-columns: repeat(2, 1fr); }
-      .stats-inner .stat-item:nth-child(2)::after { display: none; }
-    }
-    @media (max-width: 560px) {
-      .stats-strip { padding: 56px 24px; }
-      .stats-inner { grid-template-columns: 1fr; gap: 32px; }
-      .stat-item::after { display: none; }
-    }
   </style>
 </head>
 <body class="flex flex-col">
@@ -1246,28 +1215,6 @@
       </div>
     </div>
     <div class="ps-dots" id="ps-dots"></div>
-  </section>
-
-  <!-- Stats strip -->
-  <section class="stats-strip">
-    <div class="stats-inner reveal-group">
-      <div class="stat-item reveal">
-        <div class="stat-number"><span class="stat-count" data-target="98" data-suffix="%">0</span></div>
-        <div class="stat-label">AI coding accuracy</div>
-      </div>
-      <div class="stat-item reveal">
-        <div class="stat-number"><span class="stat-count" data-target="3.2" data-decimals="1" data-suffix="&times;">0</span></div>
-        <div class="stat-label">Faster claim turnaround</div>
-      </div>
-      <div class="stat-item reveal">
-        <div class="stat-number"><span class="stat-count" data-target="4.9" data-decimals="1" data-prefix="$" data-suffix="K">0</span></div>
-        <div class="stat-label">Avg. revenue recovered / mo</div>
-      </div>
-      <div class="stat-item reveal">
-        <div class="stat-number"><span class="stat-count" data-target="15" data-suffix=" min">0</span></div>
-        <div class="stat-label">Saved per encounter</div>
-      </div>
-    </div>
   </section>
 
   <!-- Problem -->
@@ -2131,40 +2078,6 @@
       } else {
         groups.forEach(function (el) { el.classList.add('in-view'); });
       }
-    })();
-
-    // ── Stat counters: count up from 0 to their target the first time they
-    // scroll into view.
-    (function () {
-      var counters = document.querySelectorAll('.stat-count');
-      if (!counters.length) return;
-      function animate(el) {
-        var target = parseFloat(el.getAttribute('data-target'));
-        var decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
-        var prefix = el.getAttribute('data-prefix') || '';
-        var suffix = el.getAttribute('data-suffix') || '';
-        var start = null;
-        var duration = 1400;
-        function tick(now) {
-          if (start === null) start = now;
-          var p = Math.min((now - start) / duration, 1);
-          var eased = 1 - Math.pow(1 - p, 3);
-          el.textContent = prefix + (target * eased).toFixed(decimals) + suffix;
-          if (p < 1) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-      }
-      if (!('IntersectionObserver' in window)) { counters.forEach(animate); return; }
-      var seen = new WeakSet();
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting && !seen.has(entry.target)) {
-            seen.add(entry.target);
-            animate(entry.target);
-          }
-        });
-      }, { threshold: 0.4 });
-      counters.forEach(function (c) { io.observe(c); });
     })();
 
     // ── Showcase carousel: auto-advance through the 3 live slides so the
