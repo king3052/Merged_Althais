@@ -21,7 +21,7 @@ from datetime import timezone, timedelta
 
 from fastapi import APIRouter, Depends, Request, Form, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import create_engine, String, Integer, DateTime, select, text
+from sqlalchemy import create_engine, String, Integer, DateTime, Text, UniqueConstraint, select, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Mapped, mapped_column, Session
 import bcrypt
 import jwt  # PyJWT
@@ -150,6 +150,27 @@ class OrgClaim(Base):
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
+
+
+class OrgSettings(Base):
+    """
+    Generic per-organization settings storage, one row per (org, category).
+    Each category (e.g. 'ai', 'billing', 'notifications', 'practice',
+    'security', 'appearance') stores its whole settings object as a JSON
+    blob in `data`. This keeps every settings tab on one flexible schema
+    instead of needing a new table per tab — new toggles/fields just add
+    new keys to the JSON, no migration needed.
+    """
+    __tablename__ = "org_settings"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    org_key: Mapped[str] = mapped_column(String(255), index=True)
+    category: Mapped[str] = mapped_column(String(64), index=True)
+    data: Mapped[str] = mapped_column(Text, default="{}")
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime, default=lambda: dt.datetime.now(timezone.utc),
+        onupdate=lambda: dt.datetime.now(timezone.utc),
+    )
+    __table_args__ = (UniqueConstraint("org_key", "category", name="uq_org_settings_org_category"),)
 
 
 Base.metadata.create_all(engine)
@@ -580,6 +601,90 @@ def invite_user(
         ),
     )
     return JSONResponse({"ok": True, "user_id": new_user.id})
+
+
+@router.delete("/api/org/users/{user_id}")
+def remove_team_member(
+    user_id: int,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Remove a teammate from the organization. Admins only, cannot remove self."""
+    if (user.role or "admin") != "admin":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Admin role required.")
+    target = db.get(User, user_id)
+    if not target or target.organization != user.organization:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found.")
+    if target.id == user.id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="You cannot remove your own account.")
+    db.delete(target)
+    db.commit()
+    return {"ok": True, "removed_user_id": user_id}
+
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Org settings — generic per-category JSON storage shared across the team.
+#  Powers every toggle/threshold/table in the Settings tabs (AI Automation,
+#  Billing & Claims, Notifications, Security, Appearance, etc.) so changes
+#  persist server-side and sync across every teammate's login, not just the
+#  browser that made the change.
+# ──────────────────────────────────────────────────────────────────────────
+import json as _json
+
+@router.get("/api/org/settings/{category}")
+def get_org_settings(
+    category: str,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    row = db.scalar(
+        select(OrgSettings).where(
+            OrgSettings.org_key == user.organization,
+            OrgSettings.category == category,
+        )
+    )
+    if not row:
+        return JSONResponse({"category": category, "data": {}})
+    try:
+        parsed = _json.loads(row.data)
+    except Exception:
+        parsed = {}
+    return JSONResponse({"category": category, "data": parsed,
+                          "updated_at": row.updated_at.isoformat() if row.updated_at else None})
+
+
+@router.post("/api/org/settings/{category}")
+async def save_org_settings(
+    category: str,
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Accepts a raw JSON body and stores it as this org's settings for
+    the given category. Any role can save — admins-only writes (like fee
+    schedule or scrubber rules) are enforced by the frontend hiding the
+    controls from non-admins; this endpoint just persists what's sent."""
+    try:
+        body = await request.json()
+    except Exception:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Request body must be valid JSON.")
+    row = db.scalar(
+        select(OrgSettings).where(
+            OrgSettings.org_key == user.organization,
+            OrgSettings.category == category,
+        )
+    )
+    if row:
+        row.data = _json.dumps(body)
+    else:
+        row = OrgSettings(org_key=user.organization, category=category, data=_json.dumps(body))
+        db.add(row)
+    db.commit()
+    return {"ok": True, "category": category}
 
 
 # ──────────────────────────────────────────────────────────────────────────
