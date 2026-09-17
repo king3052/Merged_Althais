@@ -29,15 +29,13 @@
       </a>
       <div class="nav-links">
         <a href="#product">Product</a>
-        <a href="#althea">Althea</a>
-        <a href="#revenue">Revenue Cycle</a>
         <a href="#why">Why Althais</a>
         <a href="#security">Security</a>
         <a href="#company">Company</a>
       </div>
       <div class="nav-actions">
         <a class="sign-in" href="/login">Sign In</a>
-        <a class="nav-cta" href="#demo">Request Demo <i data-lucide="arrow-down-right" width="15" height="15"></i></a>
+        <a class="nav-cta" href="/demo">Request Demo <i data-lucide="arrow-down-right" width="15" height="15"></i></a>
       </div>
       <div class="mobile-menu">
         <button type="button" id="mobile-menu-btn" aria-label="Toggle navigation" aria-expanded="false">
@@ -46,11 +44,9 @@
         </button>
         <div class="mobile-pop" id="mobile-pop" hidden>
           <a href="#product">Product</a>
-          <a href="#althea">Althea</a>
-          <a href="#revenue">Revenue Cycle</a>
           <a href="#why">Why Althais</a>
           <a href="#security">Security</a>
-          <a href="#demo">Request Demo</a>
+          <a href="/demo">Request Demo</a>
         </div>
       </div>
     </nav>
@@ -278,37 +274,6 @@
     </div>
   </section>
 
-  <section class="ruled-section knowledge-section" id="althea">
-    <div class="section-frame">
-      <div class="below-head" data-reveal><span class="eyebrow">CLINICAL INTELLIGENCE</span><h2>Your clinical second brain.<br /><em>This is Althea.</em></h2><p>Althea is the AI intelligence layer inside Althais. It helps providers retrieve and understand relevant patient information without searching disconnected records.</p></div>
-
-      <div class="knowledge-stage">
-        <div class="knowledge-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
-        <div class="knowledge-panel">
-          <div class="assistant-top"><div><span class="althea-orb"><span class="spark-icon" aria-hidden="true">✦</span></span><p><b>Althea</b><small>Clinical intelligence · demo chart</small></p></div><span class="context-pill"><i></i> CONTEXT READY</span></div>
-          <div class="knowledge-patient"><span>DM</span><div><small>DEMO PATIENT</small><b>Daniel M. · 54</b></div><em>6 sources</em></div>
-          <div class="question-bubble">Summarize this patient&apos;s previous visits.</div>
-          <div class="answer-bubble">
-            <span class="spark-icon" aria-hidden="true">✦</span>
-            <div>
-              <b>Demo clinical summary</b>
-              <p>Across four visits, blood pressure improved after the care plan changed. The most recent note reports better adherence and no new symptoms. A follow-up remains open.</p>
-              <div class="answer-sources"><span>Mar 12 visit</span><span>Jun 04 visit</span><span>Current plan</span></div>
-            </div>
-          </div>
-          <div class="source-tabs">
-            <button type="button" class="active"><span>01</span>Previous visits</button>
-            <button type="button"><span>02</span>Clinical history</button>
-            <button type="button"><span>03</span>Medications</button>
-            <button type="button"><span>04</span>Relevant notes</button>
-            <button type="button"><span>05</span>Follow-ups</button>
-            <button type="button"><span>06</span>Recent encounter</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <section class="ruled-section platform-section">
     <div class="section-frame">
       <div class="below-head" data-reveal><span class="eyebrow">ONE PLATFORM</span><h2>One encounter.<br />One source of truth.</h2><p>Information created during the encounter flows through the rest of the workflow instead of being repeatedly re-entered.</p></div>
@@ -360,23 +325,6 @@
     </div>
   </section>
 
-  <section class="workflow-section" id="revenue">
-    <div class="section-frame dark-frame">
-      <div class="below-head" data-reveal><span class="eyebrow">CONNECTED WORKFLOW</span><h2>From encounter<br />to reimbursement.</h2><p>The same clinical context moves from the first word of the encounter to the final reimbursement view.</p></div>
-      <div class="loop-stage">
-        <div class="loop-track"><span class="flow-dot"></span><span class="flow-dot second"></span></div>
-        <div class="loop-center"><span class="brand-symbol"><i></i><i></i><i></i></span><b>One encounter</b><small>Shared clinical context</small></div>
-        <div class="loop-node loop-0"><span>01</span><b>Encounter</b><i data-lucide="arrow-right"></i></div>
-        <div class="loop-node loop-1"><span>02</span><b>Documentation</b><i data-lucide="arrow-right"></i></div>
-        <div class="loop-node loop-2"><span>03</span><b>Coding</b><i data-lucide="arrow-right"></i></div>
-        <div class="loop-node loop-3"><span>04</span><b>Validation</b><i data-lucide="arrow-right"></i></div>
-        <div class="loop-node loop-4"><span>05</span><b>Submission</b><i data-lucide="arrow-right"></i></div>
-        <div class="loop-node loop-5"><span>06</span><b>Reimbursement</b><i data-lucide="arrow-right"></i></div>
-        <div class="loop-node loop-6"><span>07</span><b>Monitoring</b><i data-lucide="check"></i></div>
-      </div>
-    </div>
-  </section>
-
   <section class="ruled-section implementation-section" id="why">
     <div class="section-frame">
       <div class="below-head" data-reveal><span class="eyebrow">IMPLEMENTATION</span><h2>A connected workflow,<br />built around your team.</h2><p>Althais is configured around the people, responsibilities, and review points already inside the practice.</p></div>
@@ -389,58 +337,8 @@
     </div>
   </section>
 
-  <section class="demo-cta-section" id="demo">
-    <div class="section-frame demo-cta-inner">
-      <div class="demo-cta-copy">
-        <span class="eyebrow light">PRODUCT DEMO</span>
-        <h2>See Althais<br /><em>in action.</em></h2>
-        <p>See how one encounter moves through clinical documentation, coding, claims, and revenue.</p>
-        <a href="/demo">Request a Demo <i data-lucide="arrow-right" width="17" height="17"></i></a>
-      </div>
-      <div class="demo-cta-visual">
-        <div class="demo-cycle">
-          <div><span>01</span><b>Encounter</b><i data-lucide="chevron-right"></i></div>
-          <div><span>02</span><b>SOAP note</b><i data-lucide="chevron-right"></i></div>
-          <div class="active"><span>03</span><b>AI coding</b><i data-lucide="chevron-right"></i></div>
-          <div><span>04</span><b>Claim review</b><i data-lucide="chevron-right"></i></div>
-          <div><span>05</span><b>Revenue</b></div>
-        </div>
-        <div class="demo-focus-card">
-          <small>AI CODING · DEMO</small>
-          <div><span>CPT</span><b>99213</b><em>94% confidence</em></div>
-          <div><span>ICD-10</span><b>I10</b><em>Supported</em></div>
-          <p><i data-lucide="shield-check"></i> NCCI edit check passed</p>
-          <strong><i data-lucide="user-check"></i> Ready for review</strong>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="ruled-section human-section" id="review">
-    <div class="section-frame">
-      <div class="below-head" data-reveal><span class="eyebrow">HUMAN IN THE LOOP</span><h2>AI assists.<br />Your team stays in control.</h2><p>Althais surfaces recommendations and supporting context. The people responsible for care and billing make the important decisions.</p></div>
-      <div class="review-architecture">
-        <div class="review-flow">
-          <div><i data-lucide="brain-circuit"></i><small>01 · AI ANALYSIS</small><b>Recommendation</b></div>
-          <i data-lucide="chevron-right"></i>
-          <div><i data-lucide="activity"></i><small>02 · EVIDENCE</small><b>Confidence + reasoning</b></div>
-          <i data-lucide="chevron-right"></i>
-          <div><i data-lucide="user-check"></i><small>03 · HUMAN</small><b>Provider or staff review</b></div>
-          <i data-lucide="chevron-right"></i>
-          <div><i data-lucide="circle-check-big"></i><small>04 · APPROVED</small><b>Workflow continues</b></div>
-        </div>
-        <div class="review-cards">
-          <div><span><i data-lucide="file-text" width="15" height="15"></i></span><small>Documentation</small><b>Ready for review</b><em>Review</em></div>
-          <div><span><i data-lucide="clipboard-check" width="15" height="15"></i></span><small>Coding</small><b>Recommendation</b><em>Review</em></div>
-          <div><span><i data-lucide="shield-check" width="15" height="15"></i></span><small>Claim</small><b>Potential issue</b><em>Attention</em></div>
-          <div><span><i data-lucide="receipt-text" width="15" height="15"></i></span><small>Workflow</small><b>Ready for review</b><em>Review</em></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <section class="security-section" id="security">
-    <div class="section-frame dark-frame">
+    <div class="section-frame">
       <div class="below-head" data-reveal><span class="eyebrow">BUILT FOR HEALTHCARE</span><h2>Secure, controlled, and designed<br />for healthcare workflows.</h2><p>Security, traceability, and clear approval points are considered throughout the clinical and revenue workflow.</p></div>
       <div class="security-layout">
         <div class="security-art">
@@ -516,14 +414,11 @@
         <div>
           <small>PLATFORM</small>
           <a href="#product">Product</a>
-          <a href="#althea">Althea</a>
-          <a href="#revenue">Revenue Cycle</a>
           <a href="/pricing">Pricing</a>
         </div>
         <div>
           <small>WHY ALTHAIS</small>
           <a href="#how-it-works">How it works</a>
-          <a href="#review">Human review</a>
           <a href="#security">Security</a>
         </div>
         <div>
