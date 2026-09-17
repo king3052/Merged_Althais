@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Althais: AI-Powered Medical Coding & Billing</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
@@ -13,7 +17,7 @@
     html { scroll-behavior: smooth; height: 100%; background: #fff; overscroll-behavior-y: none; }
     body {
       font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; color: #1a1d24; min-height: 100%;
-      background: #fff; overscroll-behavior-y: none; overflow-x: hidden;
+      background: #fff; overscroll-behavior-y: none;
     }
     a { text-decoration: none; }
 
@@ -44,30 +48,19 @@
 
     /* ── Hero ── */
     .hero-warm-wrap {
-      position: relative; background: #ffffff; padding: 40px 100px 70px;
+      position: relative; overflow: hidden; background: #ffffff; padding: 32px 64px 70px;
       min-height: 74svh; display: flex; flex-direction: column;
     }
-    /* Sticky header — full-bleed white bar pinned to the top of the
-       viewport for the entire page (not scoped to the hero), with the
-       separator line as its own bottom border so it always spans edge to
-       edge regardless of the page-frame's width. */
-    .site-header-sticky {
-      position: sticky; top: 0; z-index: 50;
-      width: 100vw; margin-left: calc(-50vw + 50%);
-      background: #fff; border-bottom: 1px solid #e5e5e5;
-    }
     .hero-nav-row {
-      position: relative; z-index: 2; max-width: 1200px; width: 100%; margin: 0 auto;
+      position: relative; z-index: 2; max-width: 1280px; width: 100%; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
       font-family: 'Inter', sans-serif;
-      padding: 18px 100px;
-      /* Continues the page-frame's vertical border lines through the sticky
-         header — the header itself is full-bleed, so without this the
-         lines would appear to break where the header covers them. */
-      border-left: 1px solid rgba(12,10,9,0.1); border-right: 1px solid rgba(12,10,9,0.1);
+      padding-bottom: 20px;
     }
-    @media (max-width: 640px) {
-      .hero-nav-row { border-left: none; border-right: none; }
+    .hero-nav-row::after {
+      content: ''; position: absolute; bottom: 0; left: 50%;
+      width: 100vw; transform: translateX(-50%);
+      height: 1px; background: #e5e5e5;
     }
     .hero-nav-logo { display: flex; align-items: center; gap: 10px; }
     .hero-nav-logo span {
@@ -268,7 +261,7 @@
 
     /* ── Showcase ── */
     .hero-showcase {
-      position: relative; overflow: hidden; padding: 60px 100px 80px;
+      position: relative; overflow: hidden; padding: 50px 24px 70px;
       background: linear-gradient(135deg, #fda37e, #fdbc81 55%, #ffcf9e);
     }
     .showcase-text { display: none; position: relative; z-index: 2; max-width: 640px; margin: 0 auto 36px; text-align: center; }
@@ -452,13 +445,12 @@
       .ps-img-frame img { object-fit: contain; }
     }
     @media (max-width: 900px) {
-      .hero-nav-row { justify-content: space-between; padding-left: 24px; padding-right: 24px; }
+      .hero-nav-row { justify-content: space-between; }
       .hero-nav-cta { display: none; }
       .hero-hamburger { display: flex; }
     }
     @media (max-width: 560px) {
       .hero-warm-wrap { padding-left: 20px; padding-right: 20px; }
-      .hero-nav-row { padding-left: 20px; padding-right: 20px; }
       .hero-cta-btn { width: 100%; justify-content: center; }
       .hero-benefits { gap: 14px 20px; }
       .hero-showcase { padding: 60px 20px; }
@@ -466,7 +458,7 @@
 
     /* ── Althea light section ── */
     .althea-section {
-      background: #fdf7f4; padding: 100px 100px;
+      background: #fdf7f4; padding: 100px 64px;
       border-top: 1px solid #f0e8e4; border-bottom: 1px solid #f0e8e4;
     }
     .althea-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
@@ -475,40 +467,23 @@
     .althea-sub { font-size: 14px; color: #0c0a09; line-height: 1.65; margin-bottom: 32px; }
     .althea-intents { display: flex; flex-direction: column; gap: 8px; }
     .althea-intent {
-      display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+      display: flex; align-items: center; gap: 12px;
       background: #fff; border: 1px solid #ede5e0;
       border-radius: 10px; padding: 12px 16px;
       font-family: 'Instrument Serif', Georgia, serif; font-size: 16px; color: #555;
-      cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      transition: background 0.2s ease, border-color 0.2s ease;
     }
     .althea-intent:hover { background: #fff5f0; border-color: #ffc8b8; }
-    .althea-intent.active {
-      background: #fff5f0; border-color: #ff9e73; color: #0c0a09;
-      box-shadow: 0 0 0 1px #ff9e73 inset;
-    }
     .althea-intent-icon {
       width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
       background: #fff0ec; display: flex; align-items: center; justify-content: center;
-      transition: background 0.2s ease;
     }
-    .althea-intent.active .althea-intent-icon { background: #ffe1d3; }
     .althea-chat-wrap {
       background: #fff; border-radius: 18px; padding: 24px;
       border: 1px solid #ede5e0; display: flex; flex-direction: column; gap: 12px;
       box-shadow: 0 8px 32px rgba(255,158,115,0.1);
     }
-    .althea-chat-label {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: #bbb; margin-bottom: 4px;
-    }
-    .at-live-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
-      box-shadow: 0 0 0 0 rgba(74,222,128,0.6); animation: at-live-pulse 1.8s ease-in-out infinite;
-    }
-    @keyframes at-live-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.5); } 50% { box-shadow: 0 0 0 4px rgba(74,222,128,0); } }
-    .chat-scroll { display: flex; flex-direction: column; gap: 12px; min-height: 168px; }
+    .althea-chat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #bbb; margin-bottom: 16px; }
     .chat-row { display: flex; flex-direction: column; gap: 4px; }
     .chat-who { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #ccc; margin-bottom: 4px; }
     .bubble-you {
@@ -521,46 +496,13 @@
       color: #444; border-radius: 14px 14px 14px 3px; padding: 10px 14px;
       font-size: 13px; line-height: 1.45; max-width: 86%;
     }
-    .at-typing {
-      display: none; align-self: flex-start; align-items: center; gap: 4px;
-      background: #f5f0ee; padding: 10px 14px; border-radius: 14px 14px 14px 3px; width: fit-content;
-    }
-    .at-typing.show { display: flex; }
-    .at-typing span { width: 6px; height: 6px; border-radius: 50%; background: #c7beb9; animation: at-bounce 1.1s ease-in-out infinite; }
-    .at-typing span:nth-child(2) { animation-delay: 0.15s; }
-    .at-typing span:nth-child(3) { animation-delay: 0.3s; }
-    @keyframes at-bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
-    .at-cursor {
-      display: inline-block; width: 2px; height: 12px; background: #444; margin-left: 1px;
-      vertical-align: text-bottom; animation: at-cursor-blink 0.9s step-end infinite;
-    }
-    @keyframes at-cursor-blink { 50% { opacity: 0; } }
     .althea-mic {
-      position: relative; width: 48px; height: 48px; border-radius: 50%; margin: 16px auto 0;
+      width: 48px; height: 48px; border-radius: 50%; margin: 16px auto 0;
       background: linear-gradient(135deg, #ff9e73, #ff8e90);
       display: flex; align-items: center; justify-content: center; cursor: pointer;
       animation: mic-pulse 2.5s ease-in-out infinite;
     }
     @keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,158,115,0.4)} 50%{box-shadow:0 0 0 12px rgba(255,158,115,0)} }
-    .althea-mic-wave {
-      position: absolute; inset: 0; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; gap: 2.5px; opacity: 0; transition: opacity 0.2s ease;
-    }
-    .althea-mic.active .althea-mic-wave { opacity: 1; }
-    .althea-mic.active svg { opacity: 0; }
-    .althea-mic-wave span {
-      width: 2.5px; height: 8px; border-radius: 2px; background: #fff;
-      animation: at-wave 0.9s ease-in-out infinite;
-    }
-    .althea-mic-wave span:nth-child(1) { animation-delay: 0s; }
-    .althea-mic-wave span:nth-child(2) { animation-delay: 0.12s; }
-    .althea-mic-wave span:nth-child(3) { animation-delay: 0.24s; }
-    .althea-mic-wave span:nth-child(4) { animation-delay: 0.12s; }
-    .althea-mic-wave span:nth-child(5) { animation-delay: 0s; }
-    @keyframes at-wave { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1.4); } }
-    @media (prefers-reduced-motion: reduce) {
-      .at-cursor, .althea-mic, .at-live-dot, .althea-mic-wave span { animation: none; }
-    }
 
     @media (max-width: 900px) {
       .althea-inner { grid-template-columns: 1fr; gap: 40px; }
@@ -590,7 +532,7 @@
     @media (max-width: 760px) { .ss-frame { left: 24px; width: 240px; height: 50px; } }
 
     /* ── Testimonials ── */
-    .testimonials-section { background: #fff; padding: 100px 100px; }
+    .testimonials-section { background: #fff; padding: 100px 64px; }
     .testimonials-inner { max-width: 1100px; margin: 0 auto; }
     .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px; }
     .t-card {
@@ -616,7 +558,7 @@
     /* ── Footer ── */
     #site-footer-bar {
       position: relative; z-index: 1; background: #fff; border-top: 1px solid #e5e5e5;
-      font-family: 'Inter', sans-serif; padding: 70px 100px 0;
+      font-family: 'Inter', sans-serif; padding: 70px 64px 0;
     }
     .footer-inner {
       max-width: 1272px; margin: 0 auto; display: grid;
@@ -645,7 +587,7 @@
     @media (max-width: 480px) { .footer-inner { grid-template-columns: 1fr; } }
 
     /* ── Product section ── */
-    .product-section { padding: 110px 100px 40px; font-family: 'Inter', Arial, sans-serif; background: #fff; }
+    .product-section { padding: 110px 64px 40px; font-family: 'Inter', Arial, sans-serif; background: #fff; }
     .product-inner { max-width: 1272px; margin: 0 auto; }
     .section-eyebrow {
       font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.3em;
@@ -655,36 +597,6 @@
       font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
       font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 20px; max-width: 820px;
     }
-    /* ── Full-width standalone feature blocks (AI Documentation, Claims
-       Intelligence) — no card border/box, span the section's full padded
-       width, with a generous white gap between them instead of sitting in
-       the tighter boxed-card list below. ── */
-    .feature-full-wrap { margin: 60px 0 0; display: flex; flex-direction: column; gap: 56px; background: #fff; }
-    .feature-full {
-      display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
-      width: 100%; min-height: 380px; background: #fff;
-      border-top: 1px solid #e5e5e5; border-bottom: 1px solid #e5e5e5;
-    }
-    .feature-full.feature-full-reverse .fc-media { order: 2; }
-    .feature-full.feature-full-reverse .fc-ncci { order: 2; }
-    .feature-full.feature-full-reverse .fc-soap { order: 2; }
-    .feature-full.feature-full-reverse .fc-althea { order: 2; }
-    .feature-full.feature-full-reverse .fc-revenue { order: 2; }
-    .feature-full .fc-text { padding: 40px 56px; border-left: 1px solid #e5e5e5; }
-    .feature-full.feature-full-reverse .fc-text { border-left: none; border-right: 1px solid #e5e5e5; }
-    @media (max-width: 900px) {
-      .feature-full .fc-text,
-      .feature-full.feature-full-reverse .fc-text { border-left: none; border-right: none; border-top: 1px solid #e5e5e5; }
-    }
-    @media (max-width: 900px) {
-      .feature-full { grid-template-columns: 1fr; }
-      .feature-full.feature-full-reverse .fc-media,
-      .feature-full.feature-full-reverse .fc-ncci,
-      .feature-full.feature-full-reverse .fc-soap,
-      .feature-full.feature-full-reverse .fc-althea,
-      .feature-full.feature-full-reverse .fc-revenue { order: initial; }
-      .feature-full-wrap { gap: 56px; }
-    }
     .feature-cards { max-width: 1100px; margin: 60px auto 0; padding: 0 24px 120px; display: flex; flex-direction: column; gap: 32px; background: #fff; }
     .feature-card {
       display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
@@ -692,7 +604,6 @@
       box-shadow: 0 4px 24px rgba(255,150,60,0.09), 0 1px 4px rgba(255,100,30,0.07);
       transition: box-shadow 0.25s ease, transform 0.25s ease;
     }
-    .feature-card.feature-card-sharp { border-radius: 0; }
     .feature-card:hover {
       box-shadow: 0 8px 40px rgba(255,140,50,0.16), 0 2px 8px rgba(255,90,20,0.10);
       transform: translateY(-2px);
@@ -860,7 +771,7 @@
     }
 
     /* ── Problem section — 2x2 light cards + tall featured black card ── */
-    .problem-section { background: #fff; padding: 110px 100px; }
+    .problem-section { background: #fff; padding: 110px 64px; }
     .problem-inner { max-width: 1272px; margin: 0 auto; }
     .problem-heading {
       font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
@@ -908,7 +819,7 @@
     }
 
     /* ── Solution section ── */
-    .solution-section { background: #fff; padding: 110px 100px; }
+    .solution-section { background: #fff; padding: 110px 64px; }
     .solution-inner { max-width: 1272px; margin: 0 auto; }
     .solution-heading {
       font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
@@ -1031,132 +942,12 @@
       font-size: 16px; line-height: 1.6; font-family: 'Inter', sans-serif; white-space: nowrap;
     }
     @media (max-width: 640px) { .closing-cta p { white-space: normal; } }
-
-    /* ── Scroll-reveal: fade + rise into place the first time each element
-       crosses into view (driven by IntersectionObserver below). ── */
-    .reveal {
-      opacity: 0; transform: translateY(28px);
-      transition: opacity 0.8s cubic-bezier(.16,1,.3,1), transform 0.8s cubic-bezier(.16,1,.3,1);
-    }
-    .reveal.in-view { opacity: 1; transform: none; }
-    /* Staggered children within a reveal group — each sibling waits a beat
-       longer so cards in a row arrive one after another, not all at once. */
-    .reveal-group.in-view > *:nth-child(1) { transition-delay: 0s; }
-    .reveal-group.in-view > *:nth-child(2) { transition-delay: 0.08s; }
-    .reveal-group.in-view > *:nth-child(3) { transition-delay: 0.16s; }
-    .reveal-group.in-view > *:nth-child(4) { transition-delay: 0.24s; }
-    @media (prefers-reduced-motion: reduce) {
-      .reveal, .reveal-group > * { opacity: 1 !important; transform: none !important; transition: none !important; }
-    }
-
-    /* ── "Always in sync" — orbit diagram of the systems Althea pulls from,
-       feeding a live activity list, echoing the reference site's CRM-sync
-       section but built from our own systems, not real third-party logos. ── */
-    .sync-section {
-      padding: 110px 100px; overflow: hidden; position: relative;
-      background: linear-gradient(135deg, #fda37e, #fdbc81 55%, #ffcf9e);
-    }
-    .sync-inner {
-      max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 0.85fr 1.15fr;
-      gap: 40px; align-items: center;
-    }
-    .sync-text .section-eyebrow { color: #7a3a1a; }
-    .sync-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #2a1710;
-      font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; margin: 12px 0 16px;
-    }
-    .sync-sub { font-family: 'Inter', sans-serif; font-size: 14.5px; line-height: 1.65; color: #4a2f20; max-width: 380px; }
-    .sync-visual {
-      position: relative; width: 100%; aspect-ratio: 15 / 11; max-width: 620px; margin: 0 auto;
-    }
-    .sync-orbit-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-    .sync-orbit-svg path {
-      fill: none; stroke: rgba(122,58,26,0.55); stroke-width: 1.5; stroke-dasharray: 5 6;
-    }
-    .sync-node {
-      position: absolute; width: 21%; aspect-ratio: 5/3; transform: translate(-50%, -50%);
-      background: #17110d; border-radius: 12px; color: #fff;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-      box-shadow: 0 14px 28px rgba(20,10,5,0.3); font-family: 'Inter', sans-serif;
-    }
-    .sync-node span { font-size: 10px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
-    .sync-node svg { width: 18px; height: 18px; }
-    .sync-node-a { top: 6%; left: 62%; }
-    .sync-node-b { top: 34%; left: 22%; }
-    .sync-node-c { top: 64%; left: 22%; }
-    .sync-node-d { top: 92%; left: 62%; }
-    .sync-feed {
-      position: absolute; top: 50%; right: 0; transform: translateY(-50%);
-      width: 58%; display: flex; flex-direction: column; gap: 10px;
-    }
-    .sync-feed-row {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(255,255,255,0.92); border-radius: 10px; padding: 9px 12px;
-      box-shadow: 0 6px 18px rgba(40,15,5,0.12); font-family: 'Inter', sans-serif;
-    }
-    .sync-feed-avatar {
-      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 9.5px; font-weight: 700;
-    }
-    .sync-feed-label { font-size: 10px; font-weight: 700; color: #17110d; letter-spacing: 0.04em; flex-shrink: 0; }
-    .sync-feed-badge {
-      font-size: 8.5px; font-weight: 700; letter-spacing: 0.03em; color: #7a3a1a;
-      background: #ffe1d0; border-radius: 4px; padding: 2px 6px; flex-shrink: 0; white-space: nowrap;
-    }
-    .sync-feed-meta { font-size: 9px; color: #9a8f88; margin-left: auto; text-align: right; white-space: nowrap; }
-    @media (max-width: 900px) {
-      .sync-section { padding: 70px 20px; }
-      .sync-inner { grid-template-columns: 1fr; gap: 48px; }
-      .sync-text { text-align: center; margin: 0 auto; }
-      .sync-sub { margin: 0 auto; }
-      .sync-visual { max-width: 440px; }
-      .sync-feed-meta { display: none; }
-    }
-    @media (max-width: 640px) {
-      /* The desktop aspect-ratio runs out of vertical room once the
-         container narrows — switch to a fixed height with more room
-         instead, and pull the top/bottom nodes in so they clear the
-         feed list rather than overlapping it. */
-      .sync-visual { aspect-ratio: auto; height: 480px; max-width: 360px; }
-      .sync-node-a, .sync-node-d { left: 44%; }
-      .sync-feed { width: 64%; }
-    }
-    @media (max-width: 520px) {
-      .sync-node span { display: none; }
-      .sync-node { width: 15%; }
-      .sync-node-a, .sync-node-d { left: 38%; }
-      .sync-feed { width: 68%; }
-    }
-
-    /* ── Page frame — the whole site lives inside a fixed-width bordered
-       container, like the reference: nothing (including section
-       backgrounds) renders past the two vertical rules, and content sits
-       well inset from them rather than flush against the edge. ── */
-    .page-frame {
-      width: 100%; max-width: 1200px; margin: 0 auto; position: relative;
-      border-left: 1px solid rgba(12,10,9,0.1); border-right: 1px solid rgba(12,10,9,0.1);
-      min-width: 0; /* body is a flex container (Tailwind's flex flex-col) — without
-        this, page-frame refuses to shrink below its content's intrinsic width and
-        overflows the viewport on narrow screens. */
-    }
-    /* Keeps a visible gutter between the border and the true viewport edge
-       on every screen narrower than the max-width, so the line never sits
-       flush against the browser edge (otherwise invisible). */
-    @media (min-width: 641px) {
-      .page-frame { width: calc(100% - 32px); }
-    }
-    @media (max-width: 640px) {
-      .page-frame { border-left: none; border-right: none; }
-    }
   </style>
 </head>
 <body class="flex flex-col">
-  <div class="page-frame">
-  <!-- Sticky site header — pinned to the top of the viewport for the whole
-       page, not just the hero. Lives outside .hero-warm-wrap so it keeps
-       working once the user scrolls past the hero section entirely. -->
-  <div class="site-header-sticky">
+
+  <!-- Hero -->
+  <div class="hero-warm-wrap">
     <header class="hero-nav-row">
       <a href="/" class="hero-nav-logo">
         <svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true">
@@ -1166,7 +957,7 @@
         <span>Althais</span>
       </a>
       <div class="hero-nav-right">
-        <a href="/login" class="hero-nav-cta">Talk To Sales</a>
+        <a href="/demo" class="hero-nav-cta">Talk To Sales</a>
         <button type="button" class="hero-hamburger" id="hero-hamburger-btn" aria-label="Open menu" aria-expanded="false" aria-controls="hero-mobile-menu">
           <span></span><span></span><span></span>
         </button>
@@ -1175,28 +966,25 @@
         </div>
       </div>
     </header>
-  </div>
-  <script>
-    (function () {
-      var btn = document.getElementById('hero-hamburger-btn');
-      var menu = document.getElementById('hero-mobile-menu');
-      if (!btn || !menu) return;
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var open = menu.classList.toggle('open');
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      });
-      document.addEventListener('click', function (e) {
-        if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== btn) {
-          menu.classList.remove('open');
-          btn.setAttribute('aria-expanded', 'false');
-        }
-      });
-    })();
-  </script>
+    <script>
+      (function () {
+        var btn = document.getElementById('hero-hamburger-btn');
+        var menu = document.getElementById('hero-mobile-menu');
+        if (!btn || !menu) return;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var open = menu.classList.toggle('open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', function (e) {
+          if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== btn) {
+            menu.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      })();
+    </script>
 
-  <!-- Hero -->
-  <div class="hero-warm-wrap">
     <section class="hero-warm-content">
       <h1 class="hero-warm-headline fade-in fade-in-1">We help clinics<br />turn missed codes into revenue.</h1>
       <p class="hero-warm-sub fade-in fade-in-2">The AI platform that documents, codes, and submits claims for you, so nothing gets missed on its way to getting paid.</p>
@@ -1369,16 +1157,16 @@
   <section class="problem-section">
     <div class="problem-inner">
       <p class="section-eyebrow">The Problem</p>
-      <h2 class="problem-heading reveal">We hear this from<br />clinics like yours...</h2>
-      <div class="problem-grid reveal-group">
-        <div class="problem-card reveal">
+      <h2 class="problem-heading">We hear this from<br />clinics like yours...</h2>
+      <div class="problem-grid">
+        <div class="problem-card">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
           </div>
           <h3>Documentation consumes the day.</h3>
           <p>Providers spend hours finishing notes after appointments, taking time away from patients and their personal lives.</p>
         </div>
-        <div class="problem-card reveal">
+        <div class="problem-card">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
           </div>
@@ -1392,14 +1180,14 @@
           <h3>Every missed code is lost revenue.</h3>
           <p>When documentation, coding, and claims operate separately, clinics lose time and money at every step.</p>
         </div>
-        <div class="problem-card reveal">
+        <div class="problem-card">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M6 9v6M8.5 10.5L15.5 10.5M8.5 13.5L15.5 13.5" stroke-dasharray="2 2"/></svg>
           </div>
           <h3>Clinical and billing teams are disconnected.</h3>
           <p>Important encounter information gets lost as it moves between providers, coders, billers, and payers.</p>
         </div>
-        <div class="problem-card reveal">
+        <div class="problem-card">
           <div class="problem-card-icon">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
           </div>
@@ -1419,7 +1207,7 @@
 
   <!-- Solution -->
   <section class="solution-section">
-    <div class="solution-inner reveal">
+    <div class="solution-inner">
       <p class="section-eyebrow">The Solution</p>
       <h2 class="solution-heading">With Althais, go from<br />documentation chaos to<br />paid claims.</h2>
       <div class="solution-grid">
@@ -1579,9 +1367,9 @@
     </div>
   </section>
 
-  <div class="feature-full-wrap reveal-group">
-    <!-- AI Documentation — full-width standalone block, mockup left / text right -->
-    <div class="feature-full">
+  <div class="feature-cards">
+    <!-- Card 1: AI Documentation — inline SOAP mockup -->
+    <div class="feature-card">
       <div class="fc-soap">
         <div class="fc-soap-header">
           <div class="fc-soap-steps">
@@ -1635,8 +1423,8 @@
       </div>
     </div>
 
-    <!-- Claims Intelligence (NCCI) — full-width standalone block, mockup right / text left -->
-    <div class="feature-full feature-full-reverse">
+    <!-- Card 2: NCCI — inline mockup, no screenshot needed -->
+    <div class="feature-card reverse">
       <div class="fc-ncci">
         <p class="section-eyebrow" style="margin-bottom:10px;">NCCI Edit Checking</p>
         <div class="ncci-demo">
@@ -1674,7 +1462,7 @@
     </div>
 
     <!-- Card 3: Althea — inline chat mockup -->
-    <div class="feature-full reveal">
+    <div class="feature-card">
       <div class="fc-althea">
         <div class="fc-althea-chat">
           <div class="fc-althea-bubble-you">"Which claims are at risk today?"</div>
@@ -1694,7 +1482,7 @@
     </div>
 
     <!-- Card 4: Revenue Tracking — inline claims dashboard mockup -->
-    <div class="feature-full feature-full-reverse reveal">
+    <div class="feature-card reverse">
       <div class="fc-revenue">
         <div class="fc-revenue-header">
           <span class="fc-revenue-title">Claims Overview</span>
@@ -1771,55 +1559,54 @@
 
   <!-- Althea deep-dive section -->
   <div class="althea-section">
-    <div class="althea-inner reveal">
+    <div class="althea-inner">
       <div class="althea-left">
         <p class="section-eyebrow">Althea Voice AI</p>
         <h2 class="althea-heading">17 clinical intents.<br />All hands-free.</h2>
         <p class="althea-sub">Althea is a voice-powered AI built into Althais. It understands your practice, your patients, and your claims and can surface any of it in seconds without breaking your clinical flow.</p>
-        <div class="althea-intents" id="althea-intent-list">
-          <button type="button" class="althea-intent" data-intent="0">
+        <div class="althea-intents">
+          <div class="althea-intent">
             <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
             "What's my schedule today?"
-          </button>
-          <button type="button" class="althea-intent" data-intent="1">
+          </div>
+          <div class="althea-intent">
             <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
             "Which claims are at risk?"
-          </button>
-          <button type="button" class="althea-intent" data-intent="2">
+          </div>
+          <div class="althea-intent">
             <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V7l4-4h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2z"/></svg></div>
             "What are Martinez's medications?"
-          </button>
-          <button type="button" class="althea-intent" data-intent="3">
+          </div>
+          <div class="althea-intent">
             <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
             "Any pending prior auths?"
-          </button>
-          <button type="button" class="althea-intent" data-intent="4">
+          </div>
+          <div class="althea-intent">
             <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
             "Stop the visit timer"
-          </button>
+          </div>
         </div>
       </div>
       <div>
         <div class="althea-chat-wrap">
-          <div class="althea-chat-label">
-            Althea: Clinical AI
-            <span class="at-live-dot" aria-hidden="true"></span>
+          <div class="althea-chat-label">Althea: Clinical AI</div>
+          <div class="chat-row">
+            <div class="chat-who">You</div>
+            <div class="bubble-you">"What claims are at risk right now?"</div>
           </div>
-          <div class="chat-scroll" id="althea-chat-scroll">
-            <div class="chat-row">
-              <div class="chat-who">You</div>
-              <div class="bubble-you" id="althea-user-bubble">&nbsp;</div>
-            </div>
-            <div class="chat-row">
-              <div class="chat-who">Althea</div>
-              <div class="at-typing" id="althea-typing"><span></span><span></span><span></span></div>
-              <div class="bubble-ai" id="althea-ai-bubble" style="display:none;"><span id="althea-ai-text"></span><span class="at-cursor"></span></div>
-            </div>
+          <div class="chat-row">
+            <div class="chat-who">Althea</div>
+            <div class="bubble-ai">3 claims flagged this morning. CHC-2026-00412 shows low AI confidence on the 99291 critical care code; the 30-minute threshold is not documented explicitly. CHC-2026-00389 is missing a medical decision complexity note. Want me to open either one?</div>
           </div>
-          <div class="althea-mic" id="althea-mic">
-            <div class="althea-mic-wave" id="althea-mic-wave">
-              <span></span><span></span><span></span><span></span><span></span>
-            </div>
+          <div class="chat-row">
+            <div class="chat-who">You</div>
+            <div class="bubble-you">"Open the first one"</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-who">Althea</div>
+            <div class="bubble-ai">Opening CHC-2026-00412. You'll need to add the total critical care time to the note before submitting. The CMS threshold is 30 minutes for the first unit of 99291.</div>
+          </div>
+          <div class="althea-mic">
             <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
           </div>
         </div>
@@ -1827,79 +1614,13 @@
     </div>
   </div>
 
-  <!-- Always in sync -->
-  <section class="sync-section">
-    <div class="sync-inner">
-      <div class="sync-text reveal">
-        <p class="section-eyebrow">Always Connected</p>
-        <h2 class="sync-heading">Always in-sync with<br />your practice.</h2>
-        <p class="sync-sub">Every voice query Althea handles is pulled live from your schedule, claims, and patient chart — and logged automatically, ready for your team to review.</p>
-      </div>
-      <div class="sync-visual reveal">
-        <svg class="sync-orbit-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M62,6 C40,6 22,18 22,34 C22,46 22,52 22,64 C22,80 40,92 62,92" />
-          <path d="M62,6 C85,6 95,15 95,25" />
-          <path d="M62,92 C85,92 95,83 95,75" />
-        </svg>
-        <div class="sync-node sync-node-a">
-          <svg fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          <span>Scheduling</span>
-        </div>
-        <div class="sync-node sync-node-b">
-          <svg fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h3"/></svg>
-          <span>Claims</span>
-        </div>
-        <div class="sync-node sync-node-c">
-          <svg fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V7l4-4h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2z"/></svg>
-          <span>Patient Chart</span>
-        </div>
-        <div class="sync-node sync-node-d">
-          <svg fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-          <span>Prior Auth</span>
-        </div>
-        <div class="sync-feed">
-          <div class="sync-feed-row">
-            <div class="sync-feed-avatar" style="background:linear-gradient(135deg,#ff9e73,#ff8e90);">A</div>
-            <div class="sync-feed-label">ALTHEA</div>
-            <div class="sync-feed-badge">SCHEDULE</div>
-            <div class="sync-feed-meta">0:42 &middot; 09:14 AM</div>
-          </div>
-          <div class="sync-feed-row">
-            <div class="sync-feed-avatar" style="background:linear-gradient(135deg,#ff9e73,#ff8e90);">A</div>
-            <div class="sync-feed-label">ALTHEA</div>
-            <div class="sync-feed-badge">CLAIMS RISK</div>
-            <div class="sync-feed-meta">1:05 &middot; 10:02 AM</div>
-          </div>
-          <div class="sync-feed-row">
-            <div class="sync-feed-avatar" style="background:linear-gradient(135deg,#ff9e73,#ff8e90);">A</div>
-            <div class="sync-feed-label">ALTHEA</div>
-            <div class="sync-feed-badge">PATIENT CHART</div>
-            <div class="sync-feed-meta">0:38 &middot; 11:47 AM</div>
-          </div>
-          <div class="sync-feed-row">
-            <div class="sync-feed-avatar" style="background:linear-gradient(135deg,#ff9e73,#ff8e90);">A</div>
-            <div class="sync-feed-label">ALTHEA</div>
-            <div class="sync-feed-badge">PRIOR AUTH</div>
-            <div class="sync-feed-meta">0:51 &middot; 1:20 PM</div>
-          </div>
-          <div class="sync-feed-row">
-            <div class="sync-feed-avatar" style="background:linear-gradient(135deg,#ff9e73,#ff8e90);">A</div>
-            <div class="sync-feed-label">ALTHEA</div>
-            <div class="sync-feed-badge">VISIT TIMER</div>
-            <div class="sync-feed-meta">0:12 &middot; 2:05 PM</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- Testimonials -->
   <section class="testimonials-section">
     <div class="testimonials-inner">
       <p class="section-eyebrow">Testimonials</p>
       <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;color:#0c0a09;font-size:clamp(2.2rem,4.6vw,3.4rem);line-height:1.2;">What clinicians and advisors say</h2>
-      <div class="testimonials-grid reveal-group">
-        <div class="t-card reveal">
+      <div class="testimonials-grid">
+        <div class="t-card">
           <div class="t-stars">
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -1913,7 +1634,7 @@
             <div><div class="t-name">Dr. James Tarin</div><div class="t-role">Tarin Health DPC, Pecos TX</div></div>
           </div>
         </div>
-        <div class="t-card reveal">
+        <div class="t-card">
           <div class="t-stars">
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -1927,7 +1648,7 @@
             <div><div class="t-name">Bryan Cox</div><div class="t-role">Director, Revenue Cycle, MCH Odessa TX</div></div>
           </div>
         </div>
-        <div class="t-card reveal">
+        <div class="t-card">
           <div class="t-stars">
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -1947,7 +1668,7 @@
 
   <!-- Closing CTA -->
   <section class="closing-cta">
-    <h2 class="reveal">Ready to turn documentation<br />into measurable outcomes?</h2>
+    <h2>Ready to turn documentation<br />into measurable outcomes?</h2>
     <p style="font-family:'Instrument Serif', Georgia, serif; font-size:19px;">Book a demo to see how Althais helps your team capture and get paid faster.</p>
     <div class="hero-cta-row" style="position:relative; z-index:1; margin-top:32px;">
       <a href="/demo" class="lava-btn" style="font-size:16px;padding:17px 32px;">Book A Demo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c0a09" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -1989,7 +1710,6 @@
       <p>© 2026 Althais Health, Inc. All rights reserved.</p>
     </div>
   </footer>
-  </div>
 
   <!-- Book Demo modal — unchanged from Kevin's version -->
   <div id="video-demo-modal" style="position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:#fff;padding:24px">
@@ -2258,156 +1978,6 @@
     });
   </script>
 
-  <script>
-    // ── Scroll reveal: fade+rise each .reveal element in once, the first
-    // time it crosses into the viewport.
-    (function () {
-      var els = document.querySelectorAll('.reveal');
-      if (!('IntersectionObserver' in window)) {
-        els.forEach(function (el) { el.classList.add('in-view'); });
-        return;
-      }
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-            io.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
-      els.forEach(function (el) { io.observe(el); });
-
-      // reveal-group containers themselves need the in-view class too, so
-      // the nth-child stagger delays (scoped to .reveal-group.in-view) apply
-      var groups = document.querySelectorAll('.reveal-group');
-      if ('IntersectionObserver' in window) {
-        var groupIo = new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('in-view');
-              groupIo.unobserve(entry.target);
-            }
-          });
-        }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
-        groups.forEach(function (el) { groupIo.observe(el); });
-      } else {
-        groups.forEach(function (el) { el.classList.add('in-view'); });
-      }
-    })();
-
-    // ── Showcase carousel: auto-advance through the 3 live slides so the
-    // typing/claim/payment animations are seen without needing a click.
-    // Pauses while the user is actively interacting with it.
-    (function () {
-      var stage = document.getElementById('ps-stage');
-      if (!stage) return;
-      var AUTO_ADVANCE_MS = 6500;
-      var timer = null;
-      function scheduleNext() {
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-          var nextBtn = document.getElementById('ps-window-next');
-          if (nextBtn) nextBtn.click();
-        }, AUTO_ADVANCE_MS);
-      }
-      stage.addEventListener('click', scheduleNext);
-      stage.addEventListener('mouseenter', function () { clearTimeout(timer); });
-      stage.addEventListener('mouseleave', scheduleNext);
-      scheduleNext();
-    })();
-
-    // ── Althea Voice AI deep-dive: a live conversation player. Clicking an
-    // intent (or just letting it auto-cycle) plays out a typing indicator,
-    // then a typed-out answer, with the mic showing a "listening" waveform —
-    // turns the static chat mockup into an actual little demo.
-    (function () {
-      var list = document.getElementById('althea-intent-list');
-      if (!list) return;
-      var buttons = list.querySelectorAll('.althea-intent');
-      var userBubble = document.getElementById('althea-user-bubble');
-      var typingEl = document.getElementById('althea-typing');
-      var aiBubble = document.getElementById('althea-ai-bubble');
-      var aiTextEl = document.getElementById('althea-ai-text');
-      var mic = document.getElementById('althea-mic');
-
-      var INTENTS = [
-        { q: '"What\'s my schedule today?"', a: 'You have 6 visits today, starting with Maria Johnson at 9:00 AM for a follow-up. Two are flagged high-priority for prior auth review before the visit.' },
-        { q: '"Which claims are at risk?"', a: '3 claims flagged this morning. CHC-2026-00412 shows low AI confidence on the 99291 critical care code — the 30-minute threshold isn’t documented explicitly. Want me to open it?' },
-        { q: '"What are Martinez’s medications?"', a: 'Martinez, Carla is on Lisinopril 10mg daily, Metformin 500mg BID, and Atorvastatin 20mg nightly. Last refill was 12 days ago.' },
-        { q: '"Any pending prior auths?"', a: '2 pending. An MRI for Thompson, Ray is awaiting UnitedHealthcare approval, submitted 3 days ago. A PT referral for Nguyen, Linh needs a diagnosis code before it can be sent.' },
-        { q: '"Stop the visit timer"', a: 'Timer stopped at 14 minutes. I’ve logged that as the documented visit duration — want me to apply it to today’s E/M code selection?' }
-      ];
-
-      var activeTimers = [];
-      var advanceTimer = null;
-      var current = 0;
-      function clearAll() { activeTimers.forEach(clearTimeout); activeTimers = []; }
-
-      function typeAnswer(text) {
-        var i = 0;
-        aiTextEl.textContent = '';
-        (function tick() {
-          if (i < text.length) {
-            i++;
-            aiTextEl.textContent = text.slice(0, i);
-            var last = text[i - 1];
-            var delay = 12 + Math.random() * 16;
-            if (last === ',') delay += 90;
-            if (last === '.') delay += 180;
-            activeTimers.push(setTimeout(tick, delay));
-          } else {
-            mic.classList.remove('active');
-            scheduleAdvance();
-          }
-        })();
-      }
-
-      function playIntent(index) {
-        clearAll();
-        current = (index + INTENTS.length) % INTENTS.length;
-        var item = INTENTS[current];
-
-        buttons.forEach(function (b, i) { b.classList.toggle('active', i === current); });
-        userBubble.textContent = item.q;
-        aiBubble.style.display = 'none';
-        typingEl.classList.add('show');
-        mic.classList.add('active');
-
-        activeTimers.push(setTimeout(function () {
-          typingEl.classList.remove('show');
-          aiBubble.style.display = 'block';
-          typeAnswer(item.a);
-        }, 900));
-      }
-
-      function scheduleAdvance() {
-        clearTimeout(advanceTimer);
-        advanceTimer = setTimeout(function () { playIntent(current + 1); }, 3200);
-      }
-
-      buttons.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          clearTimeout(advanceTimer);
-          playIntent(parseInt(btn.getAttribute('data-intent'), 10));
-        });
-      });
-
-      var started = false;
-      function start() {
-        if (started) return;
-        started = true;
-        playIntent(0);
-      }
-      if ('IntersectionObserver' in window) {
-        var io = new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) { if (entry.isIntersecting) { start(); io.disconnect(); } });
-        }, { threshold: 0.3 });
-        io.observe(list);
-      } else {
-        start();
-      }
-    })();
-  </script>
 
 </body>
 </html>
