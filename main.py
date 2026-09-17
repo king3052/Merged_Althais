@@ -110,6 +110,21 @@ async def terms_page(request: Request, user=Depends(current_user)):
     return templates.TemplateResponse(request, "terms.html", _marketing_ctx(user, ""))
 
 
+@app.get("/legal/hipaa")
+async def hipaa_redirect(request: Request):
+    return RedirectResponse(url="/legal/privacy#hipaa", status_code=302)
+
+
+@app.get("/security")
+async def security_redirect(request: Request):
+    return RedirectResponse(url="/legal/privacy", status_code=302)
+
+
+@app.get("/company/careers")
+async def careers_redirect(request: Request):
+    return RedirectResponse(url="/contact", status_code=302)
+
+
 # ── Password reset pages ──────────────────────────────────────────────────
 @app.get("/forgot-password")
 async def forgot_password_page():
