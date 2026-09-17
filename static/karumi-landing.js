@@ -1,19 +1,28 @@
 (function () {
   "use strict";
 
+  // Setting the `.hidden` IDL property doesn't reflect onto the `hidden`
+  // content attribute for SVG elements in every browser, so the lucide-
+  // rendered icons never actually hide via the property alone. Toggle the
+  // attribute directly everywhere so it works for both HTML and SVG nodes.
+  function setHidden(el, value) {
+    if (value) el.setAttribute("hidden", "");
+    else el.removeAttribute("hidden");
+  }
+
   function setupTabs(root, opts) {
     var buttons = root.querySelectorAll(opts.buttonSelector);
     var panels = root.querySelectorAll(opts.panelSelector);
     buttons.forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var index = btn.getAttribute(opts.dataAttr);
+        var index = btn.getAttribute(opts.buttonAttr);
         buttons.forEach(function (b) {
           var active = b === btn;
           b.classList.toggle("active", active);
           if (b.hasAttribute("aria-selected")) b.setAttribute("aria-selected", String(active));
         });
         panels.forEach(function (p) {
-          p.hidden = p.getAttribute(opts.dataAttr) !== index;
+          setHidden(p, p.getAttribute(opts.panelAttr) !== index);
         });
       });
     });
@@ -36,17 +45,17 @@
     var iconClose = landing.querySelector("#mobile-close-icon");
     if (menuBtn && menuPop) {
       var closeMenu = function () {
-        menuPop.hidden = true;
+        setHidden(menuPop, true);
         menuBtn.setAttribute("aria-expanded", "false");
-        if (iconMenu) iconMenu.hidden = false;
-        if (iconClose) iconClose.hidden = true;
+        if (iconMenu) setHidden(iconMenu, false);
+        if (iconClose) setHidden(iconClose, true);
       };
       menuBtn.addEventListener("click", function () {
-        var isOpen = !menuPop.hidden;
-        menuPop.hidden = isOpen;
+        var isOpen = !menuPop.hasAttribute("hidden");
+        setHidden(menuPop, isOpen);
         menuBtn.setAttribute("aria-expanded", String(!isOpen));
-        if (iconMenu) iconMenu.hidden = !isOpen;
-        if (iconClose) iconClose.hidden = isOpen;
+        if (iconMenu) setHidden(iconMenu, !isOpen);
+        if (iconClose) setHidden(iconClose, isOpen);
       });
       menuPop.querySelectorAll("a").forEach(function (a) {
         a.addEventListener("click", closeMenu);
@@ -57,21 +66,24 @@
     setupTabs(landing, {
       buttonSelector: ".case-tabs button",
       panelSelector: "[data-case-panel]",
-      dataAttr: "data-case-index",
+      buttonAttr: "data-case-index",
+      panelAttr: "data-case-panel",
     });
 
     // How-it-works tabs
     setupTabs(landing, {
       buttonSelector: ".how-tabs button",
       panelSelector: "[data-how-panel]",
-      dataAttr: "data-how-index",
+      buttonAttr: "data-how-index",
+      panelAttr: "data-how-panel",
     });
 
     // Testimonial tabs
     setupTabs(landing, {
       buttonSelector: ".testimonial-tabs button",
       panelSelector: "[data-testimonial-panel]",
-      dataAttr: "data-testimonial-index",
+      buttonAttr: "data-testimonial-index",
+      panelAttr: "data-testimonial-panel",
     });
 
     // Althea "context sources" tabs — visual only, no content swap in the source design
