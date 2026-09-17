@@ -3,1348 +3,212 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Althais: AI-Powered Medical Coding & Billing</title>
+  <title>Althais — From Patient Encounter to Reimbursement</title>
+  <meta name="description" content="Althais connects clinical documentation, medical coding, claim validation, and revenue workflows through one AI-powered healthcare platform." />
+  <meta property="og:title" content="Althais — From Patient Encounter to Reimbursement" />
+  <meta property="og:description" content="One structured encounter. One shared AI reasoning layer. One connected path to reimbursement." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png" />
   <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; height: 100%; background: #fff; overscroll-behavior-y: none; }
-    body {
-      font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; color: #1a1d24; min-height: 100%;
-      background: #fff; overscroll-behavior-y: none;
-    }
-    a { text-decoration: none; }
-
-    #lower-bg {
-      position: relative; z-index: 2;
-      background: #000 url('/static/backgrounds/wave-abstract.png') center top / cover no-repeat;
-    }
-    #lower-bg::before {
-      content: ''; position: absolute; inset: 0; z-index: 0;
-      background: rgba(0,0,0,0.68); pointer-events: none;
-    }
-    #lower-bg > * { position: relative; z-index: 1; }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(22px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in { opacity: 0; animation: fadeInUp 0.9s cubic-bezier(0.16,1,0.3,1) forwards; }
-    .fade-in-1 { animation-delay: 0.05s; }
-    .fade-in-2 { animation-delay: 0.2s; }
-    .fade-in-3 { animation-delay: 0.35s; }
-    .fade-in-4 { animation-delay: 0.5s; }
-    .fade-in-5 { animation-delay: 0.65s; }
-    .fade-in-6 { animation-delay: 0.8s; }
-    @media (prefers-reduced-motion: reduce) {
-      .fade-in { animation: none; opacity: 1; transform: none; }
-    }
-
-    /* ── Hero ── */
-    .hero-warm-wrap {
-      position: relative; overflow: hidden; background: #ffffff; padding: 32px 64px 70px;
-      min-height: 74svh; display: flex; flex-direction: column;
-    }
-    .hero-nav-row {
-      position: relative; z-index: 2; max-width: 1280px; width: 100%; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
-      font-family: 'Inter', sans-serif;
-      padding-bottom: 20px;
-    }
-    .hero-nav-row::after {
-      content: ''; position: absolute; bottom: 0; left: 50%;
-      width: 100vw; transform: translateX(-50%);
-      height: 1px; background: #e5e5e5;
-    }
-    .hero-nav-logo { display: flex; align-items: center; gap: 10px; }
-    .hero-nav-logo span {
-      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.3em;
-      text-transform: uppercase; color: #14151a; padding-left: 0.2em;
-    }
-    .hero-nav-right { display: flex; align-items: center; gap: 24px; position: relative; }
-    .hero-login-link {
-      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.3em;
-      text-transform: uppercase; color: #14151a;
-    }
-    .hero-login-link:hover { color: #12162c; }
-    .hero-nav-cta {
-      display: inline-block; background: #0c0a09; color: #ffc9a0; font-family: 'Inter', sans-serif;
-      font-size: 14px; font-weight: 500; padding: 10px 20px; border-radius: 8px; text-decoration: none;
-      transition: background 0.2s ease;
-    }
-    .hero-nav-cta:hover { background: #0c0a09; }
-
-    /* Mobile / half-tab width: logo stays top-left, this hamburger takes the
-       top-right corner in place of the "Talk To Sales" button, opening a
-       small menu with the Contact Sales link. */
-    .hero-hamburger {
-      display: none; flex-direction: column; justify-content: center; gap: 5px;
-      width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;
-      flex-shrink: 0;
-    }
-    .hero-hamburger span { display: block; width: 22px; height: 2px; background: #14151a; border-radius: 1px; }
-    .hero-mobile-menu {
-      display: none; position: absolute; top: calc(100% + 10px); right: 0; z-index: 40;
-      min-width: 170px; background: #fff; border: 1px solid rgba(12,10,9,0.08); border-radius: 10px;
-      box-shadow: 0 14px 32px rgba(0,0,0,0.14); padding: 6px;
-    }
-    .hero-mobile-menu.open { display: block; }
-    .hero-mobile-menu a {
-      display: block; padding: 11px 14px; border-radius: 6px; text-decoration: none;
-      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
-      text-transform: uppercase; color: #14151a; transition: background 0.15s ease;
-    }
-    .hero-mobile-menu a:hover { background: #f4f4f4; }
-    .hero-warm-content {
-      position: relative; z-index: 2; max-width: 920px; margin: 0 auto; text-align: center;
-      flex: 1; display: flex; flex-direction: column; justify-content: center;
-      padding-top: 48px;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px; align-self: center;
-      padding: 6px 14px 6px 7px; border: 1px solid #ffd3d4; border-radius: 999px;
-      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; color: #0c0a09;
-      background: #fff; margin: 0 auto 24px;
-    }
-    .hero-badge-dot {
-      width: 18px; height: 18px; border-radius: 6px; flex-shrink: 0;
-      background: linear-gradient(135deg, #ff9e73, #ff8e90);
-    }
-    .hero-warm-headline {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      font-size: clamp(2.6rem, 5.6vw, 3.8rem); line-height: 1.1; margin: 0 0 18px;
-    }
-    .hero-warm-sub { font-family: 'Inter', sans-serif; font-size: 15px; color: #0c0a09; line-height: 1.55; max-width: 540px; margin: 0 auto 28px; }
-    .hero-benefits { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 22px; margin-bottom: 30px; font-family: 'Instrument Serif', Georgia, serif; }
-    .hero-benefit { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 400; color: #2a2d3a; }
-    .hero-benefit-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff8e90; display: inline-block; flex-shrink: 0; }
-
-    .hero-cta-row { display: flex; justify-content: center; gap: 12px; align-items: center; }
-    @keyframes ctaGradientFlow {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .hero-cta-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: linear-gradient(120deg, #ff9e73, #ff8e90, #ffbe8a, #ff9e73);
-      background-size: 300% 300%; animation: ctaGradientFlow 5s ease infinite;
-      color: #0c0a09; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
-      padding: 13px 22px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; text-decoration: none;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .hero-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(255,142,144,0.35); }
-    @media (prefers-reduced-motion: reduce) {
-      .hero-cta-btn { animation: none; }
-    }
-    .hero-cta-secondary {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: #0c0a09;
-      border: 1px solid #e5e5e5; border-radius: 999px; padding: 12px 20px;
-      transition: border-color 0.2s ease, color 0.2s ease;
-    }
-    .hero-cta-secondary:hover { border-color: #0c0a09; color: #0c0a09; }
-    .hero-small-text { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #979696; margin-top: 16px; }
-
-    #book-demo-modal input::placeholder { color: rgba(255,255,255,0.35); }
-    #book-demo-modal input:focus { outline: none; border-color: #ffffff; box-shadow: 0 0 0 3px rgba(255,255,255,0.16); }
-
-    /* ── Primary CTA button — slow subtle lava shift ── */
-    @keyframes lava-subtle {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .lava-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: linear-gradient(270deg, #ff9e73, #ffb085, #ff8e90, #ffa070, #ff9e73);
-      background-size: 300% 300%;
-      animation: lava-subtle 6s ease infinite;
-      color: #0c0a09; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;
-      padding: 15px 26px; border-radius: 999px; border: none; cursor: pointer;
-      white-space: nowrap; text-decoration: none;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 18px rgba(255,142,100,0.35);
-    }
-    .lava-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(255,120,80,0.45); }
-
-    /* ── Althais A centerpiece ── */
-    .lava-hero-wrap {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 100px 24px 80px; background: #fff; position: relative; overflow: hidden;
-    }
-    /* Container sized to include the outermost ring so nothing clips */
-    .althais-a-wrap {
-      position: relative; width: 360px; height: 360px; margin: 0 auto 52px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    /* THE MISSING KEYFRAME — this is why nothing was moving */
-    @keyframes a-ring-spin {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
-    }
-    /* Electron orbit rings — subtle circular tracks */
-    .althais-a-ring {
-      position: absolute; border-radius: 50%; animation: a-ring-spin linear infinite;
-      pointer-events: none;
-    }
-    .althais-a-ring-1 {
-      width: 300px; height: 300px; border: 1px solid rgba(255,140,40,0.22);
-      animation-duration: 7s;
-    }
-    .althais-a-ring-2 {
-      width: 336px; height: 336px; border: 1px solid rgba(255,100,20,0.13);
-      animation-duration: 12s; animation-direction: reverse;
-    }
-    .althais-a-ring-3 {
-      width: 356px; height: 356px; border: 1px solid rgba(255,180,60,0.08);
-      animation-duration: 18s;
-    }
-    /* Electron dots — glowing orbs, white-hot center fading to coral */
-    .althais-a-ring::after {
-      content: ''; position: absolute;
-      width: 11px; height: 11px; border-radius: 50%;
-      top: -5.5px; left: 50%; margin-left: -5.5px;
-      background: radial-gradient(circle, #fff 0%, #ff9e73 50%, transparent 100%);
-      box-shadow: 0 0 6px 1px #ff9e73, 0 0 16px 3px rgba(255,140,40,0.7), 0 0 28px 5px rgba(255,100,20,0.3);
-    }
-    .althais-a-ring-2::after {
-      width: 9px; height: 9px; top: -4.5px; margin-left: -4.5px;
-      background: radial-gradient(circle, #fff 0%, #ffb347 55%, transparent 100%);
-      box-shadow: 0 0 5px 1px #ffb347, 0 0 13px 3px rgba(255,180,60,0.65), 0 0 22px 4px rgba(255,140,40,0.25);
-    }
-    .althais-a-ring-3::after {
-      width: 8px; height: 8px; top: -4px; margin-left: -4px;
-      background: radial-gradient(circle, #fff 0%, #ff8060 60%, transparent 100%);
-      box-shadow: 0 0 5px 1px #ff8060, 0 0 11px 2px rgba(255,100,40,0.6), 0 0 20px 4px rgba(255,80,20,0.25);
-    }
-    /* Radial glow pulsing behind the A */
-    .althais-a-glow {
-      position: absolute; width: 280px; height: 280px; border-radius: 50%;
-      background: radial-gradient(ellipse at center,
-        rgba(255,180,60,0.35) 0%,
-        rgba(255,120,30,0.18) 40%,
-        transparent 70%);
-      animation: a-glow-pulse 3.2s ease-in-out infinite;
-      pointer-events: none;
-    }
-    @keyframes a-glow-pulse {
-      0%,100% { transform: scale(1);    opacity: 0.8; }
-      50%      { transform: scale(1.12); opacity: 1; }
-    }
-    /* The Althais logo A */
-    .althais-a-logo {
-      position: relative; z-index: 2;
-      width: 200px; height: 200px;
-      filter: drop-shadow(0 0 14px rgba(255,140,40,0.6))
-              drop-shadow(0 0 32px rgba(255,80,20,0.35))
-              drop-shadow(0 0 56px rgba(255,120,40,0.18));
-    }
-
-    .lava-hero-tagline {
-      font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(1.6rem, 3vw, 2.2rem);
-      font-weight: 400; color: #0c0a09; text-align: center; line-height: 1.3;
-      max-width: 560px; margin-bottom: 20px;
-    }
-    .lava-hero-tagline em { font-style: italic; color: #e64200; }
-    .lava-hero-sub {
-      font-size: 13px; color: #0c0a09; text-align: center; max-width: 440px;
-      line-height: 1.65; margin-bottom: 36px;
-    }
-
-
-    /* ── Showcase ── */
-    .hero-showcase {
-      position: relative; overflow: hidden; padding: 50px 24px 70px;
-      background: linear-gradient(135deg, #fda37e, #fdbc81 55%, #ffcf9e);
-    }
-    .showcase-text { display: none; position: relative; z-index: 2; max-width: 640px; margin: 0 auto 36px; text-align: center; }
-    .ps-progress {
-      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.3em;
-      text-transform: uppercase; color: rgba(12,10,9,0.55);
-    }
-    .ps-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      line-height: 1.2; font-size: clamp(1.6rem, 3vw, 2.2rem); margin-top: 10px;
-    }
-    #ps-stage { position: relative; z-index: 1; width: 100%; max-width: 1400px; height: 540px; margin: 0 auto; }
-    .ps-browser {
-      position: absolute; top: 50%; left: 50%; width: min(86vw, 1040px); background: #fff;
-      border-radius: 14px; overflow: hidden; box-shadow: 0 40px 90px rgba(120,60,20,0.28);
-      border: 1px solid rgba(255,255,255,0.6);
-      transition: transform 0.45s cubic-bezier(.16,1,.3,1), opacity 0.45s ease, filter 0.45s ease;
-    }
-    .ps-center { transform: translate(-50%,-50%) scale(1); z-index: 3; opacity: 1; }
-    .ps-side { z-index: 1; opacity: 0.55; filter: brightness(0.9); cursor: pointer; }
-    .ps-side:hover { opacity: 0.8; }
-    .ps-side-left { transform: translate(-97%,-50%) scale(0.85); }
-    .ps-side-right { transform: translate(-3%,-50%) scale(0.85); }
-    .hero-showcase-chrome {
-      display: flex; align-items: center; gap: 6px; padding: 12px 16px; background: #f4ede4;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-    }
-    .hero-showcase-chrome span { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-    .hero-showcase-chrome span:nth-child(1) { background: #ff5f57; }
-    .hero-showcase-chrome span:nth-child(2) { background: #febc2e; }
-    .hero-showcase-chrome span:nth-child(3) { background: #28c840; }
-    .ps-img-frame { position: relative; height: 500px; background: #fff; overflow: hidden; }
-    .ps-img-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: left top; }
-
-    /* ── Live "typing" note mockup — a faithful recreation of the real
-       Virtual SOAP note screen (see static/screenshots/provider-note.png)
-       with every field pre-filled except Plan, which types live so the
-       slide reads as an in-progress note inside the actual product. ── */
-    .ps-note-mock { display: none; flex-direction: column; height: 100%; background: #fff; text-align: left; overflow: hidden; }
-    .note-mock-topbar {
-      display: flex; align-items: center; gap: 18px; padding: 14px 22px; border-bottom: 1px solid #eee;
-      font-family: 'Inter', sans-serif; flex-shrink: 0;
-    }
-    .note-mock-topbar .nm-title { font-size: 13px; font-weight: 700; color: #14151a; margin-right: 4px; }
-    .note-mock-tabs { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; color: #b0b5bf; }
-    .note-mock-tabs .nm-chev { color: #d5d8de; font-size: 10px; }
-    .note-mock-tabs .active { color: #fff; background: #2f6fed; padding: 3px 9px; border-radius: 5px; }
-    .note-mock-body { padding: 18px 24px 0; flex: 1; overflow: hidden; }
-    .nm-record {
-      background: #f6f7f9; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
-      font-family: 'Inter', sans-serif;
-    }
-    .nm-record-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; color: #4a505c; margin-bottom: 6px; }
-    .nm-record-row { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: #6b7280; }
-    .nm-checkbox { width: 12px; height: 12px; border: 1.5px solid #c7cbd3; border-radius: 3px; flex-shrink: 0; }
-    .nm-record-btn {
-      background: #a9c6f5; color: #fff; font-size: 10.5px; font-weight: 600; padding: 5px 10px;
-      border-radius: 5px; margin-right: 6px; white-space: nowrap;
-    }
-    .nm-label {
-      font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
-      color: #9aa0ac; text-transform: uppercase; margin-bottom: 5px;
-    }
-    .nm-field {
-      border: 1px solid #e4e6eb; border-radius: 6px; padding: 7px 10px;
-      font-family: 'Inter', sans-serif; font-size: 11.5px; color: #1a1d24; line-height: 1.45;
-    }
-    .nm-row { display: grid; gap: 14px; margin-bottom: 14px; }
-    .nm-row-2 { grid-template-columns: 1fr 1fr; }
-    .nm-row-4 { grid-template-columns: repeat(4, 1fr); }
-    .nm-row-hpi-vitals { grid-template-columns: 1.6fr 1fr; }
-    .nm-vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .nm-vitals-grid .nm-label { margin-bottom: 3px; }
-    .nm-plan-field { border-color: #2f6fed; box-shadow: 0 0 0 3px rgba(47,111,237,0.12); min-height: 34px; }
-    .nm-plan-text { white-space: pre-wrap; }
-    .nm-cursor {
-      display: inline-block; width: 2px; height: 13px; background: #1a1d24; margin-left: 1px;
-      vertical-align: text-bottom; animation: note-mock-blink 0.9s step-end infinite;
-    }
-    @keyframes note-mock-blink { 50% { opacity: 0; } }
-    @media (prefers-reduced-motion: reduce) { .nm-cursor { animation: none; } }
-
-    /* ── Live claim-assembly mockup (slide 2) — recreates the real Claim
-       Preview / CMS-1500 screen, with service-line rows appearing one at a
-       time as if AI is assembling the claim from the coded note. ── */
-    .claim-mock { display: none; flex-direction: column; height: 100%; background: #fff; text-align: left; overflow: hidden; }
-    .claim-mock-topbar {
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
-      padding: 16px 22px; border-bottom: 1px solid #eee; flex-shrink: 0; font-family: 'Inter', sans-serif;
-    }
-    .cm-title { font-size: 14px; font-weight: 700; color: #14151a; }
-    .cm-subtitle { font-size: 10.5px; color: #8b909c; margin-top: 2px; }
-    .cm-actions { display: flex; gap: 8px; flex-shrink: 0; }
-    .cm-btn {
-      font-size: 10.5px; font-weight: 600; color: #4a505c; border: 1px solid #e4e6eb;
-      border-radius: 6px; padding: 5px 10px; white-space: nowrap;
-    }
-    .cm-btn-primary { background: #0c8a4f; color: #fff; border-color: #0c8a4f; }
-    .claim-mock-body { padding: 16px 24px 0; flex: 1; overflow: hidden; }
-    .cm-dx { font-weight: 600; }
-    .cm-table { border: 1px solid #e4e6eb; border-radius: 8px; overflow: hidden; }
-    .cm-table-header {
-      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 8px;
-      background: #f6f7f9; padding: 8px 14px; font-family: 'Inter', sans-serif;
-      font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #9aa0ac;
-    }
-    .cm-table-rows { min-height: 74px; }
-    .cm-row {
-      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 8px;
-      padding: 10px 14px; font-family: 'Inter', sans-serif; font-size: 12px; color: #1a1d24;
-      border-top: 1px solid #eee; opacity: 0; transform: translateY(6px);
-      animation: cm-row-in 0.4s ease forwards;
-    }
-    .cm-row .cm-code { font-weight: 700; color: #0d5bd7; }
-    @keyframes cm-row-in { to { opacity: 1; transform: translateY(0); } }
-    .cm-total {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 14px; padding-top: 12px; border-top: 1px solid #e4e6eb;
-      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #14151a;
-      opacity: 0; transition: opacity 0.4s ease;
-    }
-    .cm-total.show { opacity: 1; }
-    @media (prefers-reduced-motion: reduce) { .cm-row { animation: none; opacity: 1; transform: none; } }
-
-    /* ── Live "claims get paid" mockup (slide 3) — recreates the real
-       Claims Overview screen, with status pills flipping from Pending to
-       Paid one row at a time. ── */
-    .payment-mock { display: none; flex-direction: column; height: 100%; background: #fff; text-align: left; overflow: hidden; font-family: 'Inter', sans-serif; }
-    .pm-navbar {
-      display: flex; align-items: center; gap: 22px; background: #0a47b0; color: rgba(255,255,255,0.75);
-      padding: 9px 22px; font-size: 11px; font-weight: 600; flex-shrink: 0;
-    }
-    .pm-brand { font-size: 12px; font-weight: 700; letter-spacing: 0.16em; color: #fff; margin-right: 6px; }
-    .pm-nav-active { color: #fff; }
-    .pm-subnav {
-      display: flex; align-items: center; gap: 10px; background: #0d5bd7; color: rgba(255,255,255,0.85);
-      padding: 8px 22px; font-size: 11px; font-weight: 600; flex-shrink: 0;
-    }
-    .pm-brand-small { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: #fff; }
-    .pm-subnav-text { color: rgba(255,255,255,0.8); font-weight: 500; }
-    .pm-body { padding: 16px 22px 0; flex: 1; overflow: hidden; }
-    .pm-heading-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .pm-heading { font-size: 14px; font-weight: 700; color: #14151a; }
-    .pm-filters { display: flex; gap: 6px; font-size: 11px; font-weight: 600; color: #8b909c; }
-    .pm-filters span { padding: 4px 10px; border-radius: 6px; }
-    .pm-filters .active { background: #14151a; color: #fff; }
-    .pm-table { border: 1px solid #e4e6eb; border-radius: 8px; overflow: hidden; }
-    .pm-table-header {
-      display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.9fr 0.9fr; gap: 8px;
-      background: #f6f7f9; padding: 8px 14px; font-size: 9.5px; font-weight: 700;
-      letter-spacing: 0.05em; text-transform: uppercase; color: #9aa0ac;
-    }
-    .pm-row {
-      display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.9fr 0.9fr; gap: 8px; align-items: center;
-      padding: 11px 14px; font-size: 12px; color: #1a1d24; border-top: 1px solid #eee;
-      transition: background 0.3s ease;
-    }
-    .pm-row.flash { background: #f3f9f5; }
-    .pm-badge {
-      display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700;
-      padding: 3px 8px; border-radius: 999px; background: #eceef2; color: #6b7280; width: fit-content;
-      transition: background 0.3s ease, color 0.3s ease;
-    }
-    .pm-badge.paid { background: #d8f5e3; color: #0c8a4f; }
-    @media (prefers-reduced-motion: reduce) { .pm-row.flash { transition: none; } }
-    .ps-dots { display: none; position: relative; z-index: 2; justify-content: center; gap: 8px; margin-top: 28px; }
-    .ps-dot {
-      min-width: 34px; height: 28px; padding: 0 6px; border-radius: 6px;
-      border: 1px solid rgba(12,10,9,0.18); background: rgba(255,255,255,0.4);
-      color: rgba(12,10,9,0.6); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
-      cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    }
-    .ps-dot:hover { color: #0c0a09; border-color: rgba(12,10,9,0.4); }
-    .ps-dot.active { background: #0c0a09; color: #fff; border-color: #0c0a09; }
-
-    @media (max-width: 900px) {
-      #ps-stage { height: auto; }
-      .ps-side { display: none; }
-      .ps-browser { position: static; transform: none !important; width: 100%; opacity: 1; filter: none; }
-      .ps-img-frame { height: 260px; }
-      .ps-img-frame img { object-fit: contain; }
-    }
-    @media (max-width: 900px) {
-      .hero-nav-row { justify-content: space-between; }
-      .hero-nav-cta { display: none; }
-      .hero-hamburger { display: flex; }
-    }
-    @media (max-width: 560px) {
-      .hero-warm-wrap { padding-left: 20px; padding-right: 20px; }
-      .hero-cta-btn { width: 100%; justify-content: center; }
-      .hero-benefits { gap: 14px 20px; }
-      .hero-showcase { padding: 60px 20px; }
-    }
-
-    /* ── Althea light section ── */
-    .althea-section {
-      background: #fdf7f4; padding: 100px 64px;
-      border-top: 1px solid #f0e8e4; border-bottom: 1px solid #f0e8e4;
-    }
-    .althea-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-    .althea-left .section-eyebrow { color: #ff7a52; margin-bottom: 16px; }
-    .althea-heading { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; margin-bottom: 16px; }
-    .althea-sub { font-size: 14px; color: #0c0a09; line-height: 1.65; margin-bottom: 32px; }
-    .althea-intents { display: flex; flex-direction: column; gap: 8px; }
-    .althea-intent {
-      display: flex; align-items: center; gap: 12px;
-      background: #fff; border: 1px solid #ede5e0;
-      border-radius: 10px; padding: 12px 16px;
-      font-family: 'Instrument Serif', Georgia, serif; font-size: 16px; color: #555;
-      transition: background 0.2s ease, border-color 0.2s ease;
-    }
-    .althea-intent:hover { background: #fff5f0; border-color: #ffc8b8; }
-    .althea-intent-icon {
-      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
-      background: #fff0ec; display: flex; align-items: center; justify-content: center;
-    }
-    .althea-chat-wrap {
-      background: #fff; border-radius: 18px; padding: 24px;
-      border: 1px solid #ede5e0; display: flex; flex-direction: column; gap: 12px;
-      box-shadow: 0 8px 32px rgba(255,158,115,0.1);
-    }
-    .althea-chat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #bbb; margin-bottom: 16px; }
-    .chat-row { display: flex; flex-direction: column; gap: 4px; }
-    .chat-who { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #ccc; margin-bottom: 4px; }
-    .bubble-you {
-      align-self: flex-end; background: linear-gradient(135deg, #ff9e73, #ff8e90);
-      color: #0c0a09; border-radius: 14px 14px 3px 14px; padding: 10px 14px;
-      font-size: 13px; line-height: 1.45; max-width: 82%; font-weight: 500;
-    }
-    .bubble-ai {
-      align-self: flex-start; background: #f5f0ee;
-      color: #444; border-radius: 14px 14px 14px 3px; padding: 10px 14px;
-      font-size: 13px; line-height: 1.45; max-width: 86%;
-    }
-    .althea-mic {
-      width: 48px; height: 48px; border-radius: 50%; margin: 16px auto 0;
-      background: linear-gradient(135deg, #ff9e73, #ff8e90);
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
-      animation: mic-pulse 2.5s ease-in-out infinite;
-    }
-    @keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,158,115,0.4)} 50%{box-shadow:0 0 0 12px rgba(255,158,115,0)} }
-
-    @media (max-width: 900px) {
-      .althea-inner { grid-template-columns: 1fr; gap: 40px; }
-      .althea-section { padding: 64px 24px; }
-    }
-
-    /* ── Video section ── */
-    #site-search {
-      position: relative; z-index: 2; min-height: 100svh; padding: 110px 24px; text-align: center;
-      display: flex; flex-direction: column; justify-content: center; overflow: hidden;
-      background: #000;
-    }
-    .ss-video-wrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
-    .ss-video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .ss-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.68); pointer-events: none; }
-    .ss-frame {
-      position: absolute; left: 96px; top: 60%; width: 320px; height: 46px;
-      display: flex; align-items: center; justify-content: center;
-      border: 1.5px solid #fff; border-radius: 0; background: transparent; z-index: 2;
-      cursor: pointer; transition: background 0.2s ease;
-    }
-    .ss-frame:hover { background: rgba(255,255,255,0.1); }
-    .ss-frame span {
-      font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; letter-spacing: 0.2em;
-      text-transform: uppercase; font-size: 12px;
-    }
-    @media (max-width: 760px) { .ss-frame { left: 24px; width: 240px; height: 50px; } }
-
-    /* ── Testimonials ── */
-    .testimonials-section { background: #fff; padding: 100px 64px; }
-    .testimonials-inner { max-width: 1100px; margin: 0 auto; }
-    .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px; }
-    .t-card {
-      background: #fafafa; border: 1px solid #efefef; border-radius: 16px; padding: 32px;
-      display: flex; flex-direction: column;
-    }
-    .t-stars { display: flex; gap: 3px; margin-bottom: 18px; }
-    .t-text { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; color: #555; line-height: 1.55; flex: 1; margin-bottom: 24px; font-style: italic; }
-    .t-person { display: flex; align-items: center; gap: 12px; }
-    .t-avatar {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: linear-gradient(135deg, #ff9e73, #ff8e90);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: #0c0a09; flex-shrink: 0;
-    }
-    .t-name { font-size: 13.5px; font-weight: 700; color: #0c0a09; }
-    .t-role { font-size: 12px; color: #979696; }
-    @media (max-width: 900px) {
-      .testimonials-grid { grid-template-columns: 1fr; }
-      .testimonials-section { padding: 64px 24px; }
-    }
-
-    /* ── Footer ── */
-    #site-footer-bar {
-      position: relative; z-index: 1; background: #fff; border-top: 1px solid #e5e5e5;
-      font-family: 'Inter', sans-serif; padding: 70px 64px 0;
-    }
-    .footer-inner {
-      max-width: 1272px; margin: 0 auto; display: grid;
-      grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 32px; padding-bottom: 56px;
-    }
-    .footer-brand { display: flex; flex-direction: column; gap: 14px; max-width: 280px; }
-    .footer-logo { display: flex; align-items: center; gap: 8px; }
-    .footer-logo span {
-      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.3em;
-      text-transform: uppercase; color: #0c0a09; padding-left: 0.2em;
-    }
-    .footer-brand p { font-size: 13.5px; color: #979696; line-height: 1.6; margin: 0; }
-    .footer-col-title { font-size: 12px; font-weight: 600; color: #0c0a09; margin: 0 0 14px; }
-    .footer-col { display: flex; flex-direction: column; gap: 10px; }
-    .footer-col a { font-size: 13.5px; color: #666; transition: color 0.2s ease; width: fit-content; }
-    .footer-col a:hover { color: #0c0a09; }
-    .footer-bottom {
-      border-top: 1px solid #e5e5e5; padding: 22px 0; max-width: 1272px; margin: 0 auto;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .footer-bottom p { font-size: 12px; color: #979696; margin: 0; }
-    @media (max-width: 800px) {
-      #site-footer-bar { padding: 50px 24px 0; }
-      .footer-inner { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 480px) { .footer-inner { grid-template-columns: 1fr; } }
-
-    /* ── Product section ── */
-    .product-section { padding: 110px 64px 40px; font-family: 'Inter', Arial, sans-serif; background: #fff; }
-    .product-inner { max-width: 1272px; margin: 0 auto; }
-    .section-eyebrow {
-      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.3em;
-      text-transform: uppercase; color: #ff7a52; margin-bottom: 18px;
-    }
-    .product-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 20px; max-width: 820px;
-    }
-    .feature-cards { max-width: 1100px; margin: 60px auto 0; padding: 0 24px 120px; display: flex; flex-direction: column; gap: 32px; background: #fff; }
-    .feature-card {
-      display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
-      background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; overflow: hidden; min-height: 340px;
-      box-shadow: 0 4px 24px rgba(255,150,60,0.09), 0 1px 4px rgba(255,100,30,0.07);
-      transition: box-shadow 0.25s ease, transform 0.25s ease;
-    }
-    .feature-card:hover {
-      box-shadow: 0 8px 40px rgba(255,140,50,0.16), 0 2px 8px rgba(255,90,20,0.10);
-      transform: translateY(-2px);
-    }
-    .feature-card.reverse .fc-media { order: 2; }
-    .feature-card.reverse .fc-ncci  { order: 2; }
-    .feature-card.reverse .fc-althea { order: 2; }
-    .feature-card.reverse .fc-revenue { order: 2; }
-    .feature-card.reverse .fc-soap  { order: 2; }
-    .fc-media { position: relative; min-height: 340px; padding: 28px; display: flex; align-items: flex-end; overflow: hidden; }
-    .fc-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
-    .fc-media::before { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.15), transparent 40%); z-index: 1; }
-
-    /* ── AI Documentation SOAP mockup card ── */
-    .fc-soap {
-      background: #fdf8f5; display: flex; flex-direction: column;
-      padding: 0; overflow: hidden; min-height: 340px;
-    }
-    .fc-soap-header {
-      background: #fff; border-bottom: 1px solid #f0ebe6; padding: 14px 20px;
-    }
-    .fc-soap-steps {
-      display: flex; gap: 6px; flex-wrap: wrap;
-    }
-    .fc-soap-step {
-      font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
-      background: #f0ebe6; color: #bbb; font-family: 'Inter', sans-serif;
-    }
-    .fc-soap-step.done { background: #fff0ec; color: #ff7a30; }
-    .fc-soap-step.active { background: #ff9e73; color: #fff; }
-    .fc-soap-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
-    .fc-soap-field {
-      background: #fff; border: 1px solid #efe8e2; border-radius: 8px; padding: 10px 13px;
-    }
-    .fc-soap-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .fc-soap-label { font-size: 9.5px; font-weight: 700; color: #bbb; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px; font-family: 'Inter', sans-serif; }
-    .fc-soap-value { font-size: 12.5px; color: #2c2c2c; font-family: 'Inter', sans-serif; line-height: 1.4; }
-    .fc-soap-timer { display: flex; align-items: center; gap: 6px; }
-    .fc-soap-timer-badge { font-size: 9.5px; font-weight: 700; background: #edfbf3; color: #0c8a4f; padding: 2px 6px; border-radius: 4px; }
-    .fc-soap-codes { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
-    .fc-soap-code-row {
-      display: flex; align-items: center; gap: 8px;
-      background: #fff; border: 1px solid #efe8e2; border-radius: 7px; padding: 7px 10px;
-      font-family: 'Inter', sans-serif; font-size: 11.5px;
-    }
-    .fc-soap-badge { font-weight: 700; font-size: 10px; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
-    .fc-soap-badge.cpt { background: #fff0ec; color: #ff7a30; }
-    .fc-soap-badge.icd { background: #edfbf3; color: #0c8a4f; }
-    .fc-soap-code-desc { color: #555; flex: 1; }
-    .fc-soap-code-ok { font-weight: 700; color: #0c8a4f; font-size: 10.5px; flex-shrink: 0; }
-
-    /* ── Revenue Tracking dashboard mockup card ── */
-    .fc-revenue {
-      background: #fdf8f5; display: flex; flex-direction: column;
-      padding: 0; overflow: hidden; min-height: 340px;
-    }
-    .fc-revenue-header {
-      background: #fff; border-bottom: 1px solid #f0ebe6;
-      padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
-    }
-    .fc-revenue-title { font-size: 12px; font-weight: 700; color: #0c0a09; font-family: 'Inter', sans-serif; }
-    .fc-revenue-stats { display: flex; gap: 20px; }
-    .fc-revenue-stat { text-align: right; }
-    .fc-revenue-stat-val { font-size: 15px; font-weight: 700; color: #0c0a09; font-family: 'Inter', sans-serif; }
-    .fc-revenue-stat-val.ok { color: #0c8a4f; }
-    .fc-revenue-stat-val.warn { color: #ff7a30; }
-    .fc-revenue-stat-label { font-size: 10px; color: #aaa; font-family: 'Inter', sans-serif; }
-    .fc-revenue-claims { display: flex; flex-direction: column; gap: 0; flex: 1; }
-    .fc-revenue-claim {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 11px 20px; border-bottom: 1px solid #f5efea;
-      font-family: 'Inter', sans-serif;
-    }
-    .fc-revenue-claim:hover { background: #fdf4f0; }
-    .fc-revenue-claim-id { font-size: 10.5px; font-weight: 700; color: #999; margin-bottom: 2px; }
-    .fc-revenue-claim-name { font-size: 12.5px; color: #2c2c2c; }
-    .fc-revenue-claim-right { display: flex; align-items: center; gap: 10px; }
-    .fc-revenue-claim-amt { font-size: 13px; font-weight: 700; color: #0c0a09; }
-    .fc-revenue-status { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
-    .fc-revenue-status.submitted { background: #e6efff; color: #0d5bd7; }
-    .fc-revenue-status.paid { background: #edfbf3; color: #0c8a4f; }
-    .fc-revenue-status.denied { background: #fff0ec; color: #ff7a30; }
-    .fc-revenue-appeal {
-      display: flex; align-items: center; gap: 8px;
-      background: #fff8f4; border-top: 1px solid #f0ebe6;
-      padding: 10px 20px; font-size: 11.5px; color: #ff7a30;
-      font-family: 'Inter', sans-serif; font-weight: 500;
-    }
-
-
-    .fc-ncci {
-      background: #fdf7f4; display: flex; flex-direction: column; justify-content: center;
-      padding: 36px; position: relative; overflow: hidden;
-    }
-    .ncci-demo { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
-    .ncci-row {
-      display: flex; align-items: center; gap: 10px;
-      background: #fff; border: 1px solid #efefef; border-radius: 9px; padding: 10px 14px;
-      font-size: 12.5px;
-    }
-    .ncci-badge { font-weight: 700; font-size: 10.5px; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
-    .ncci-cpt { background: #fff0ec; color: #ff7a52; }
-    .ncci-icd { background: #edfbf3; color: #0c8a4f; }
-    .ncci-desc { color: #555; flex: 1; }
-    .ncci-status { font-size: 10.5px; font-weight: 700; flex-shrink: 0; }
-    .ncci-ok { color: #0c8a4f; }
-    .ncci-check-row {
-      display: flex; align-items: center; gap: 10px;
-      background: #edfbf3; border: 1px solid rgba(12,138,79,0.2); border-radius: 9px; padding: 11px 14px;
-      margin-top: 4px;
-    }
-    .ncci-check-icon { width: 22px; height: 22px; border-radius: 50%; background: #0c8a4f; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .ncci-check-title { font-size: 12px; font-weight: 700; color: #0c8a4f; }
-    .ncci-check-sub { font-size: 11px; color: rgba(12,138,79,0.65); }
-
-    /* ── Althea inline mockup (light card) ── */
-    .fc-althea {
-      background: #fdf7f4; display: flex; flex-direction: column; justify-content: center; padding: 36px;
-    }
-    .fc-althea-chat { display: flex; flex-direction: column; gap: 8px; }
-    .fc-althea-bubble-you {
-      align-self: flex-end; background: linear-gradient(135deg, #ff9e73, #ff8e90);
-      color: #0c0a09; border-radius: 12px 12px 3px 12px; padding: 9px 13px;
-      font-size: 12px; max-width: 80%; font-weight: 500;
-    }
-    .fc-althea-bubble-ai {
-      align-self: flex-start; background: #fff;
-      border: 1px solid #ede5e0;
-      color: #555; border-radius: 12px 12px 12px 3px; padding: 9px 13px;
-      font-size: 12px; max-width: 86%; line-height: 1.5;
-    }
-    .fc-althea-mic {
-      width: 40px; height: 40px; border-radius: 50%; margin: 14px auto 0;
-      background: linear-gradient(135deg, #ff9e73, #ff8e90);
-      display: flex; align-items: center; justify-content: center;
-      animation: mic-pulse 2.5s ease-in-out infinite;
-    }
-
-    .fc-text { padding: 40px; text-align: left; display: flex; flex-direction: column; justify-content: center; font-family: 'Inter', Arial, sans-serif; }
-    .fc-text .section-eyebrow { margin-bottom: 14px; }
-    .fc-text h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 1.9rem; color: #0c0a09; margin: 0 0 12px; }
-    .fc-text p { font-family: 'Instrument Serif', Georgia, serif; color: #666; font-size: 17px; line-height: 1.5; margin: 0; max-width: 340px; }
-    @media (max-width: 800px) {
-      .feature-card, .feature-card.reverse { grid-template-columns: 1fr; }
-      .feature-card.reverse .fc-media { order: 0; }
-      .fc-media { min-height: 260px; }
-    }
-
-    /* ── Statement ── */
-    .statement-section { background: #fff; padding: 100px 24px; text-align: center; }
-    .statement-section h2 {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      font-size: clamp(1.9rem, 4vw, 2.9rem); line-height: 1.3; margin: 0 auto; max-width: 900px;
-    }
-    .statement-section h2 em { font-style: italic; color: #ff8360; }
-
-    /* ── Chart-1995 divider — centered line framed by full-bleed hairlines ── */
-    .chart-section {
-      background: #fff; padding: 90px 24px; text-align: center;
-      border-top: 1px solid #e5e5e5; border-bottom: 1px solid #e5e5e5;
-    }
-    .chart-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 12px auto 0; max-width: 900px;
-    }
-
-    /* ── Problem section — 2x2 light cards + tall featured black card ── */
-    .problem-section { background: #fff; padding: 110px 64px; }
-    .problem-inner { max-width: 1272px; margin: 0 auto; }
-    .problem-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 56px; max-width: 820px;
-    }
-    .problem-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: stretch; }
-    /* Warm orange/yellow ambient shadow on all content cards */
-    .problem-card {
-      box-shadow: 0 4px 24px rgba(255,158,80,0.10), 0 1px 4px rgba(255,120,40,0.08);
-      transition: box-shadow 0.25s ease, transform 0.25s ease;
-    }
-    .problem-card:hover {
-      box-shadow: 0 8px 36px rgba(255,140,60,0.18), 0 2px 8px rgba(255,100,30,0.12);
-      transform: translateY(-2px);
-    }
-    .problem-card, .problem-featured {
-      border-radius: 16px; padding: 36px 32px; display: flex; flex-direction: column;
-    }
-    /* All 6 problem cards — identical base style, same hover */
-    .problem-card, .problem-featured {
-      background: #fff;
-      border: 1px solid #efefef;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-      transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
-    }
-    .problem-card:hover, .problem-featured:hover {
-      box-shadow: 0 8px 32px rgba(255,130,40,0.14), 0 2px 8px rgba(255,100,20,0.08);
-      border-color: #ffd4b8;
-      transform: translateY(-3px);
-    }
-    .problem-card-icon, .problem-featured .problem-card-icon { color: #ff7a30; margin-bottom: 60px; }
-    .problem-card h3, .problem-featured h3 {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
-      font-size: 23px; line-height: 1.3; margin: 0 0 14px; color: #0c0a09;
-    }
-    .problem-card p, .problem-featured p {
-      font-family: 'Instrument Serif', Georgia, serif; font-size: 17px;
-      line-height: 1.5; margin: 0; color: #666;
-    }
-    @media (max-width: 1024px) { .problem-grid { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 640px) {
-      .problem-section { padding: 70px 20px; }
-      .problem-grid { grid-template-columns: 1fr; }
-      .problem-card-icon { margin-bottom: 32px; }
-    }
-
-    /* ── Solution section ── */
-    .solution-section { background: #fff; padding: 110px 64px; }
-    .solution-inner { max-width: 1272px; margin: 0 auto; }
-    .solution-heading {
-      font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; color: #0c0a09;
-      font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.2; margin: 0 0 56px;
-    }
-    .solution-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: stretch; }
-    .solution-card {
-      background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px;
-      display: flex; flex-direction: column;
-      box-shadow: 0 4px 24px rgba(255,150,60,0.09), 0 1px 4px rgba(255,100,30,0.07);
-    }
-    .solution-card h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 23px; color: #0c0a09; margin: 0 0 20px; }
-    .solution-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
-    .solution-tab {
-      font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; font-weight: 400; color: #0c0a09;
-      background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 8px 18px; cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    }
-    .solution-tab:hover { border-color: #c2c2c2; }
-    .solution-tab.active { background: #0c0a09; color: #fff; border-color: #0c0a09; }
-    .solution-text { font-family: 'Instrument Serif', Georgia, serif; font-size: 17px; color: #555; line-height: 1.5; margin: 0 0 32px; min-height: 66px; }
-    .solution-visual { margin-top: auto; border-radius: 14px; overflow: hidden; min-height: 280px; position: relative; }
-    .solution-visual-old {
-      background: #f2f1ee; padding: 28px; display: flex; flex-direction: column; gap: 16px; justify-content: center;
-    }
-    .sv-old-row { display: flex; align-items: center; gap: 10px; }
-    .sv-old-row.offset { margin-left: 36px; }
-    .sv-old-card {
-      flex: 1; background: #fff; border: 1px solid #d9d8d3; border-radius: 10px; padding: 12px 14px;
-      display: flex; flex-direction: column; gap: 6px;
-    }
-    .sv-old-card .sv-old-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: #9a988f; text-transform: uppercase; letter-spacing: 0.05em; }
-    .sv-old-bar { height: 6px; border-radius: 999px; background: #e4e3dd; }
-    .sv-old-bar.short { width: 55%; }
-    .sv-old-warn { color: #c98a3a; flex-shrink: 0; }
-    .sv-old-break { flex-shrink: 0; width: 22px; border-top: 2px dashed #cfcdc4; }
-    .solution-visual-new {
-      background: linear-gradient(160deg, #eef4fb 0%, #ffffff 60%, #eef2f8 100%);
-      padding: 24px 16px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: nowrap;
-    }
-    .sv-new-step { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 22%; min-width: 0; }
-    /* ── Solution section old workflow role visuals ── */
-    .sv-old-visual { display: none; }
-    .sv-old-visual.active { display: flex; flex-direction: column; gap: 10px; }
-    /* Provider: messy freeform note */
-    .sv-old-note { background: #f2f1ee; border-radius: 10px; padding: 16px; }
-    .sv-old-note-line { height: 8px; border-radius: 4px; background: #dddbd5; margin-bottom: 7px; }
-    .sv-old-note-line.short { width: 55%; }
-    .sv-old-note-line.med { width: 75%; }
-    .sv-old-note-tag { display: inline-block; font-size: 9px; font-weight: 700; background: #e8e4de; color: #9a988f; padding: 2px 7px; border-radius: 3px; margin-bottom: 8px; font-family: 'Inter', sans-serif; letter-spacing:.04em; }
-    .sv-old-clock { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #c98a3a; font-family: 'Inter', sans-serif; font-weight: 600; margin-top: 4px; }
-    /* Biller: manual spreadsheet pile */
-    .sv-old-sheet { background: #f2f1ee; border-radius: 10px; padding: 14px; }
-    .sv-old-sheet-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; background: #fff; border: 1px solid #e0ddd7; margin-bottom: 5px; font-family: 'Inter', sans-serif; }
-    .sv-old-sheet-num { font-size: 10px; font-weight: 700; color: #bbb; width: 18px; flex-shrink: 0; }
-    .sv-old-sheet-bar { flex: 1; height: 5px; border-radius: 2px; background: #e0ddd7; }
-    .sv-old-sheet-warn { color: #c98a3a; flex-shrink: 0; }
-    .sv-old-sheet-ok { color: #bbb; font-size: 10px; flex-shrink: 0; }
-    /* Practice owner: blank revenue chart */
-    .sv-old-chart { background: #f2f1ee; border-radius: 10px; padding: 14px; }
-    .sv-old-chart-title { font-size: 9.5px; font-weight: 700; color: #9a988f; font-family: 'Inter', sans-serif; margin-bottom: 10px; letter-spacing:.04em; }
-    .sv-old-bars { display: flex; align-items: flex-end; gap: 6px; height: 60px; }
-    .sv-old-bar-col { flex: 1; background: #dddbd5; border-radius: 3px 3px 0 0; }
-    .sv-old-question { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 8px; font-size: 10px; color: #c98a3a; font-family: 'Inter', sans-serif; font-weight: 600; }
-
-
-    .sv-new-thumb {
-      width: 100%; aspect-ratio: 1 / 0.82; border-radius: 10px; overflow: hidden;
-      border: 1px solid rgba(20,30,60,0.08); box-shadow: 0 6px 16px rgba(20,30,60,0.08);
-      display: flex; flex-direction: column; justify-content: center;
-      padding: 10px; font-family: 'Inter', sans-serif;
-    }
-    .sv-note { background: #fff; }
-    .sv-coding { background: #f8fffe; }
-    .sv-claim { background: #fff; }
-    .sv-submitted { background: #edfbf3; align-items: center; }
-    .svt-label { font-size: 7px; font-weight: 700; letter-spacing: .06em; color: #bbb; text-transform: uppercase; margin-bottom: 3px; }
-    .svt-bar { height: 4px; border-radius: 2px; background: #e8e8e8; }
-    .svt-bar-full { width: 100%; }
-    .svt-bar-80 { width: 80%; }
-    .svt-bar-60 { width: 60%; }
-    .svt-pen { margin-top: 6px; display: flex; justify-content: flex-end; }
-    .svt-code-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
-    .svt-badge-cpt { font-size: 7px; font-weight: 800; background: #fff0ec; color: #ff7a30; padding: 1px 4px; border-radius: 3px; }
-    .svt-badge-icd { font-size: 7px; font-weight: 800; background: #edfbf3; color: #0c8a4f; padding: 1px 4px; border-radius: 3px; }
-    .svt-code-num { font-size: 9px; font-weight: 700; color: #333; }
-    .svt-check-row { display: flex; align-items: center; gap: 3px; margin-top: 4px; font-size: 7.5px; color: #0c8a4f; font-weight: 600; }
-    .svt-status-row { display: flex; align-items: center; gap: 3px; margin-top: 5px; font-size: 7.5px; font-weight: 600; }
-    .svt-check-circle { width: 24px; height: 24px; border-radius: 50%; background: #0c8a4f; display: flex; align-items: center; justify-content: center; }
-    .sv-new-step { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 22%; min-width: 0; }
-    .sv-new-step span { font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; color: #2a2d3a; text-align: center; line-height: 1.3; }
-    .sv-new-arrow { color: #ff9e73; flex-shrink: 0; }
-
-    @media (max-width: 1024px) { .solution-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 640px) {
-      .solution-section { padding: 70px 20px; }
-      .solution-card { padding: 28px; }
-      .sv-new-arrow { transform: rotate(90deg); }
-      .solution-visual-new { flex-direction: column; flex-wrap: wrap; }
-      .sv-new-step { width: 140px; }
-    }
-
-    /* ── Closing CTA ── */
-    .closing-cta {
-      position: relative; padding: 160px 24px 170px; text-align: center; overflow: hidden;
-      background: #fff;
-    }
-    .closing-cta::before {
-      content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-      width: 1100px; height: 600px; max-width: 140vw;
-      background: radial-gradient(ellipse at center, rgba(255,158,115,0.35), rgba(255,142,144,0.12) 55%, transparent 75%);
-      filter: blur(10px); pointer-events: none; z-index: 0;
-    }
-    .closing-cta h2 {
-      position: relative; z-index: 1; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
-      font-size: clamp(2.2rem, 4.6vw, 3.4rem); color: #0c0a09; margin: 0; line-height: 1.2;
-    }
-    .closing-cta p {
-      position: relative; z-index: 1; max-width: none; margin: 20px auto 0; color: #666;
-      font-size: 16px; line-height: 1.6; font-family: 'Inter', sans-serif; white-space: nowrap;
-    }
-    @media (max-width: 640px) { .closing-cta p { white-space: normal; } }
-  </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="/static/karumi-landing.css" />
 </head>
-<body class="flex flex-col">
-
-  <!-- Hero -->
-  <div class="hero-warm-wrap">
-    <header class="hero-nav-row">
-      <a href="/" class="hero-nav-logo">
-        <svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-          <path d="M5,74 L40,16 L75,74" stroke="#14151a" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
-          <line x1="21" y1="49" x2="59" y2="49" stroke="#14151a" stroke-width="8" stroke-linecap="butt"/>
-        </svg>
-        <span>Althais</span>
+<body>
+<div id="karumi-landing">
+<main id="top" class="site-shell">
+  <header class="site-header">
+    <nav class="nav-inner" aria-label="Primary navigation">
+      <a href="#top" class="brand-mark" aria-label="Althais home">
+        <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>ALTHAIS</span>
       </a>
-      <div class="hero-nav-right">
-        <a href="/demo" class="hero-nav-cta">Talk To Sales</a>
-        <button type="button" class="hero-hamburger" id="hero-hamburger-btn" aria-label="Open menu" aria-expanded="false" aria-controls="hero-mobile-menu">
-          <span></span><span></span><span></span>
+      <div class="nav-links">
+        <a href="#product">Product</a>
+        <a href="#althea">Althea</a>
+        <a href="#revenue">Revenue Cycle</a>
+        <a href="#why">Why Althais</a>
+        <a href="#security">Security</a>
+        <a href="#company">Company</a>
+      </div>
+      <div class="nav-actions">
+        <a class="sign-in" href="/login">Sign In</a>
+        <a class="nav-cta" href="#demo">Request Demo <i data-lucide="arrow-down-right" width="15" height="15"></i></a>
+      </div>
+      <div class="mobile-menu">
+        <button type="button" id="mobile-menu-btn" aria-label="Toggle navigation" aria-expanded="false">
+          <i data-lucide="menu" id="mobile-menu-icon"></i>
+          <i data-lucide="x" id="mobile-close-icon" hidden></i>
         </button>
-        <div class="hero-mobile-menu" id="hero-mobile-menu">
-          <a href="/demo">Contact Sales</a>
+        <div class="mobile-pop" id="mobile-pop" hidden>
+          <a href="#product">Product</a>
+          <a href="#althea">Althea</a>
+          <a href="#revenue">Revenue Cycle</a>
+          <a href="#why">Why Althais</a>
+          <a href="#security">Security</a>
+          <a href="#demo">Request Demo</a>
         </div>
       </div>
-    </header>
-    <script>
-      (function () {
-        var btn = document.getElementById('hero-hamburger-btn');
-        var menu = document.getElementById('hero-mobile-menu');
-        if (!btn || !menu) return;
-        btn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var open = menu.classList.toggle('open');
-          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        });
-        document.addEventListener('click', function (e) {
-          if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== btn) {
-            menu.classList.remove('open');
-            btn.setAttribute('aria-expanded', 'false');
-          }
-        });
-      })();
-    </script>
+    </nav>
+  </header>
 
-    <section class="hero-warm-content">
-      <h1 class="hero-warm-headline fade-in fade-in-1">We help clinics<br />turn missed codes into revenue.</h1>
-      <p class="hero-warm-sub fade-in fade-in-2">The AI platform that documents, codes, and submits claims for you, so nothing gets missed on its way to getting paid.</p>
-
-      <div class="hero-benefits fade-in fade-in-3">
-        <span class="hero-benefit"><span class="hero-benefit-dot"></span>AI SOAP Notes</span>
-        <span class="hero-benefit"><span class="hero-benefit-dot"></span>Accurate Coding</span>
-        <span class="hero-benefit"><span class="hero-benefit-dot"></span>Cleaner Claims</span>
-        <span class="hero-benefit"><span class="hero-benefit-dot"></span>Althea Voice AI</span>
-      </div>
-
-      <div class="hero-cta-row fade-in fade-in-4">
-        <a href="/demo" class="lava-btn">Book A Demo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c0a09" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
-        <a href="/videos/althais-in-use.mp4" class="hero-cta-secondary video-demo-trigger">View Live Demo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
-      </div>
-      <p class="hero-small-text fade-in fade-in-5">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#979696" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Book A Demo In Seconds
-      </p>
-    </section>
-  </div>
-
-
-
-  <!-- Gradient showcase strip -->
-  <section class="hero-showcase">
-    <div class="showcase-text">
-      <p class="ps-progress"><span id="ps-num">01</span> / <span id="ps-total">03</span></p>
-      <h2 id="ps-title" class="ps-heading"></h2>
+  <section class="hero section-frame">
+    <div class="hero-gridline left"></div><div class="hero-gridline right"></div>
+    <div class="hero-emblem" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="hero-badge"><span><i data-lucide="heart-pulse" width="12" height="12"></i></span> AI OPERATING SYSTEM FOR HEALTHCARE</div>
+    <h1>From patient encounter<br />to <span class="accent-word">reimbursement.</span></h1>
+    <p>Althais connects documentation, coding, claims, and revenue through<br class="desktop-break" /> one structured encounter and one shared AI reasoning layer.</p>
+    <div class="hero-actions">
+      <a class="primary-cta" href="/demo">Request a Demo <i data-lucide="arrow-right" width="16" height="16"></i></a>
+      <a class="secondary-cta" href="#product">Explore Althais <i data-lucide="arrow-down-right" width="16" height="16"></i></a>
     </div>
-    <div id="ps-stage">
-      <div class="ps-browser ps-side ps-side-left" id="ps-window-prev" aria-hidden="true">
-        <div class="hero-showcase-chrome"><span></span><span></span><span></span></div>
-        <div class="ps-img-frame"><img id="ps-img-prev" src="" alt="" /></div>
+    <div class="cta-note">AI recommendations · Human review · Connected workflow</div>
+
+    <div class="demo-window" aria-label="Althais clinical and revenue workflow example">
+      <div class="window-bar">
+        <div class="window-dots"><i></i><i></i><i></i></div>
+        <div class="browser-address">app.althais.com / encounter / demo-2048</div>
+        <div class="window-live"><span></span> ENCOUNTER ACTIVE</div>
       </div>
-      <div class="ps-browser ps-center" id="ps-window-center">
-        <div class="hero-showcase-chrome"><span></span><span></span><span></span></div>
-        <div class="ps-img-frame">
-          <img id="ps-img" src="" alt="" />
-          <div class="ps-note-mock" id="ps-note-mock">
-            <div class="note-mock-topbar">
-              <span class="nm-title">Virtual SOAP</span>
-              <div class="note-mock-tabs">
-                <span>1 Patient</span><span class="nm-chev">&rsaquo;</span>
-                <span class="active">2 Note</span><span class="nm-chev">&rsaquo;</span>
-                <span>3 AI Coding</span><span class="nm-chev">&rsaquo;</span>
-                <span>4 Review</span>
-              </div>
+      <div class="demo-body">
+        <aside class="demo-sidebar">
+          <div class="mini-logo"><span>A</span></div>
+          <div class="side-icon active"><i data-lucide="heart-pulse" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="file-text" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="clipboard-check" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="receipt-text" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="chart-column" width="14" height="14"></i></div>
+        </aside>
+        <div class="demo-canvas">
+          <div class="canvas-top">
+            <div><small>DEMO PATIENT · TODAY, 10:24 AM</small><strong>Patient encounter</strong></div>
+            <span><i data-lucide="mic" width="11" height="11"></i> Recording</span>
+          </div>
+          <div class="workflow-rail" aria-label="Encounter to reimbursement workflow">
+            <div class="rail-step"><span>01</span><b>encounter</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step"><span>02</span><b>AI documentation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step"><span>03</span><b>Medical coding</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step current"><span>04</span><b>Claim validation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step"><span>05</span><b>Reimbursement</b></div>
+          </div>
+          <div class="clinical-grid">
+            <div class="note-panel">
+              <div class="panel-label"><span>SOAP NOTE</span><span class="draft">AI DRAFT</span></div>
+              <h4>Assessment &amp; plan</h4>
+              <p>Patient reports improved symptoms since the prior visit. Continue current care plan and schedule follow-up.</p>
+              <div class="note-lines"><i></i><i></i><i></i></div>
             </div>
-            <div class="note-mock-body">
-              <div class="nm-record">
-                <div class="nm-record-title">RECORD ENCOUNTER (OPTIONAL)</div>
-                <div class="nm-record-row">
-                  <span class="nm-checkbox"></span>
-                  <span>I confirm the patient has been informed this visit is being recorded to assist with documentation.</span>
-                </div>
-              </div>
-              <div class="nm-row nm-row-2">
-                <div>
-                  <div class="nm-label">Chief Complaint</div>
-                  <div class="nm-field">Chest pain and shortness of breath for 2 days</div>
-                </div>
-                <div>
-                  <div class="nm-label">Vitals</div>
-                  <div class="nm-vitals-grid">
-                    <div><div class="nm-label">BP</div><div class="nm-field">148/92</div></div>
-                    <div><div class="nm-label">HR</div><div class="nm-field">88</div></div>
-                    <div><div class="nm-label">Temp</div><div class="nm-field">98.4</div></div>
-                  </div>
-                </div>
-              </div>
-              <div class="nm-row">
-                <div>
-                  <div class="nm-label">HPI</div>
-                  <div class="nm-field">58-year-old presents with intermittent substernal chest pressure radiating to the left arm, worse with exertion, associated with mild dyspnea.</div>
-                </div>
-              </div>
-              <div class="nm-row nm-row-4">
-                <div><div class="nm-label">Review Of Systems</div><div class="nm-field">Positive for chest pain, dyspnea on exertion.</div></div>
-                <div><div class="nm-label">Past Medical Hx</div><div class="nm-field">Type 2 diabetes, hypertension</div></div>
-                <div><div class="nm-label">Past Surgical Hx</div><div class="nm-field">Appendectomy 2004</div></div>
-                <div><div class="nm-label">Family History</div><div class="nm-field">Father with MI at age 60</div></div>
-              </div>
-              <div class="nm-row nm-row-2">
-                <div>
-                  <div class="nm-label">Assessment</div>
-                  <div class="nm-field">Chest pain, likely cardiac etiology given risk factors — rule out ACS.</div>
-                </div>
-                <div>
-                  <div class="nm-label">Plan</div>
-                  <div class="nm-field nm-plan-field"><span class="nm-plan-text" id="note-mock-text"></span><span class="nm-cursor"></span></div>
-                </div>
-              </div>
+            <div class="code-panel">
+              <div class="panel-label"><span>RECOMMENDED CODES</span><span>2 FOUND</span></div>
+              <div class="code-row"><span>CPT</span><b>99213</b><small>Office visit</small><i data-lucide="circle-check-big" width="14" height="14"></i></div>
+              <div class="code-row"><span>ICD-10</span><b>I10</b><small>Primary diagnosis</small><i data-lucide="circle-check-big" width="14" height="14"></i></div>
             </div>
           </div>
+          <div class="validation-bar"><i data-lucide="shield-check" width="16" height="16"></i><div><b>Claim validation complete</b><small>No blocking issues found in this demo claim.</small></div><span>READY FOR REVIEW</span></div>
+        </div>
+        <div class="agent-panel">
+          <div class="agent-head"><i data-lucide="brain-circuit" width="15" height="15"></i><span>ALTHEA</span><i></i></div>
+          <div class="agent-copy"><b>Clinical context, ready when you need it.</b><p>Ask about prior visits, open follow-ups, or supporting documentation.</p></div>
+          <div class="althea-mini-question">Summarize the previous visit.</div>
+          <div class="althea-mini-answer"><span class="spark-icon" aria-hidden="true">✦</span> Symptoms improved after the care plan update. Follow-up remained due in four weeks.</div>
+          <div class="agent-foot"><span>Based on demo chart</span><i data-lucide="arrow-right" width="13" height="13"></i></div>
+        </div>
+      </div>
+      <div class="floating-note note-one"><span><i data-lucide="file-check-2" width="13" height="13"></i></span><b>Documentation structured</b><small>Ready for provider review</small></div>
+      <div class="floating-note note-two"><i data-lucide="badge-check" width="17" height="17"></i><b>Claim checks passed</b></div>
+    </div>
+  </section>
 
-          <!-- Slide 2 — live claim assembly mockup -->
-          <div class="claim-mock" id="claim-mock">
-            <div class="claim-mock-topbar">
+  <section class="ruled-section use-cases" id="product">
+    <div class="section-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">BUILT FOR THE WORK BETWEEN CARE AND PAYMENT</span><h2>Find the workflow<br />that fits the moment.</h2></div>
+
+      <div class="use-case-shell">
+        <div class="case-tabs" role="tablist" aria-label="Healthcare workflows">
+          <button type="button" role="tab" aria-selected="true" class="active" data-case-index="0"><span>01</span>Clinical Documentation<i data-lucide="chevron-right"></i></button>
+          <button type="button" role="tab" aria-selected="false" data-case-index="1"><span>02</span>Medical Coding<i data-lucide="chevron-right"></i></button>
+          <button type="button" role="tab" aria-selected="false" data-case-index="2"><span>03</span>Revenue Cycle<i data-lucide="chevron-right"></i></button>
+        </div>
+        <div class="case-body">
+          <div class="case-copy" data-case-panel="0">
+            <span class="case-index">01</span>
+            <h3>Turn the encounter into structured clinical documentation.</h3>
+            <p>Capture the visit, organize patient information, and prepare an AI-generated note for provider review.</p>
+            <ul>
+              <li><i data-lucide="check" width="13" height="13"></i>Encounter capture</li>
+              <li><i data-lucide="check" width="13" height="13"></i>AI-generated SOAP notes</li>
+              <li><i data-lucide="check" width="13" height="13"></i>Structured patient information</li>
+              <li><i data-lucide="check" width="13" height="13"></i>Provider review</li>
+            </ul>
+          </div>
+          <div class="case-copy" data-case-panel="1" hidden>
+            <span class="case-index">02</span>
+            <h3>Turn documentation into coding recommendations.</h3>
+            <p>Althais evaluates the note, suggests ICD-10 and CPT codes, and surfaces documentation gaps before review.</p>
+            <ul>
+              <li><i data-lucide="check" width="13" height="13"></i>ICD-10 recommendations</li>
+              <li><i data-lucide="check" width="13" height="13"></i>CPT recommendations</li>
+              <li><i data-lucide="check" width="13" height="13"></i>Documentation completeness</li>
+              <li><i data-lucide="check" width="13" height="13"></i>Potential coding conflicts</li>
+            </ul>
+          </div>
+          <div class="case-copy" data-case-panel="2" hidden>
+            <span class="case-index">03</span>
+            <h3>Connect the encounter to claims and reimbursement.</h3>
+            <p>Prepare and validate claims, focus attention on exceptions, and follow reimbursement from one shared workflow.</p>
+            <ul>
+              <li><i data-lucide="check" width="13" height="13"></i>Claim preparation</li>
+              <li><i data-lucide="check" width="13" height="13"></i>Claim validation</li>
+              <li><i data-lucide="check" width="13" height="13"></i>Issues requiring attention</li>
+              <li><i data-lucide="check" width="13" height="13"></i>Reimbursement visibility</li>
+            </ul>
+          </div>
+
+          <div class="case-ui note-ui" data-case-panel="0" aria-label="Clinical documentation demo interface">
+            <div class="ui-top"><span>VIRTUAL SOAP · DEMO PATIENT</span><b>AI DRAFT</b></div>
+            <div class="audio-wave">
+              <i style="--h:20%"></i><i style="--h:37%"></i><i style="--h:54%"></i><i style="--h:71%"></i><i style="--h:88%"></i><i style="--h:35%"></i><i style="--h:52%"></i><i style="--h:69%"></i><i style="--h:86%"></i><i style="--h:33%"></i><i style="--h:50%"></i><i style="--h:67%"></i><i style="--h:84%"></i><i style="--h:31%"></i><i style="--h:48%"></i><i style="--h:65%"></i><i style="--h:82%"></i><i style="--h:29%"></i><i style="--h:46%"></i><i style="--h:63%"></i><i style="--h:80%"></i><i style="--h:27%"></i>
+            </div>
+            <div class="note-columns">
               <div>
-                <div class="cm-title">Claim Preview</div>
-                <div class="cm-subtitle">CMS-1500 (Health Insurance Claim Form) summary &middot; generated from AI-coded note</div>
+                <small>SUBJECTIVE</small>
+                <b>Chief complaint</b><p>Persistent cough and mild fatigue over the last five days.</p>
+                <b>History</b><p>Symptoms improving. No shortness of breath reported.</p>
               </div>
-              <div class="cm-actions">
-                <span class="cm-btn">&larr; Back</span>
-                <span class="cm-btn">Print</span>
-                <span class="cm-btn">Download</span>
-                <span class="cm-btn cm-btn-primary">Next &rarr;</span>
-              </div>
-            </div>
-            <div class="claim-mock-body">
-              <div class="nm-row nm-row-2" style="margin-bottom:12px">
-                <div><div class="nm-label">Patient's Name</div><div class="nm-field">Smith, John</div></div>
-                <div><div class="nm-label">Insured's Name</div><div class="nm-field">Smith, John</div></div>
-              </div>
-              <div class="nm-row nm-row-4" style="margin-bottom:14px">
-                <div><div class="nm-label">Dx A</div><div class="nm-field cm-dx">E11.9</div></div>
-                <div><div class="nm-label">Dx B</div><div class="nm-field cm-dx">I10</div></div>
-                <div><div class="nm-label">Dx C</div><div class="nm-field cm-dx">N18.2</div></div>
-                <div><div class="nm-label">Dx D</div><div class="nm-field cm-dx">&mdash;</div></div>
-              </div>
-              <div class="cm-table">
-                <div class="cm-table-header">
-                  <span>Date Of Service</span><span>CPT Code</span><span>Dx Pointer</span><span>Charges</span>
-                </div>
-                <div class="cm-table-rows" id="cm-table-rows"></div>
-              </div>
-              <div class="cm-total" id="cm-total">
-                <span>Total Charge</span><span id="cm-total-amount">&mdash;</span>
+              <div>
+                <small>OBJECTIVE</small>
+                <span>BP <b>122/78</b></span>
+                <span>HR <b>76</b></span>
+                <span>TEMP <b>98.4°</b></span>
+                <div class="review-stamp"><i data-lucide="user-check" width="15" height="15"></i> Ready for provider review</div>
               </div>
             </div>
           </div>
-
-          <!-- Slide 3 — live "claim gets paid" mockup -->
-          <div class="payment-mock" id="payment-mock">
-            <div class="pm-navbar">
-              <span class="pm-brand">ALTHAIS</span>
-              <span>Overview</span><span class="pm-nav-active">EMR</span><span>Revenue</span><span>Staff</span>
+          <div class="case-ui coding-ui" data-case-panel="1" hidden aria-label="Medical coding demo interface">
+            <div class="ui-top"><span>AI CODING · DEMO NOTE</span><b>3 SUGGESTIONS</b></div>
+            <div class="coding-table">
+              <div><small>TYPE</small><small>CODE</small><small>CONFIDENCE</small><small>STATUS</small></div>
+              <div><em>CPT</em><b>99213</b><span>94%</span><mark>Recommended</mark></div>
+              <div><em>ICD-10</em><b>R05.9</b><span>91%</span><mark>Supported</mark></div>
+              <div><em>ICD-10</em><b>R53.83</b><span>86%</span><mark>Review</mark></div>
             </div>
-            <div class="pm-subnav">
-              <span class="pm-brand-small">ALTHAIS</span>
-              <span class="pm-subnav-text">Patient Chart &mdash; Smith, John &nbsp;&middot;&nbsp; M / 58</span>
+            <div class="completeness"><span>Documentation completeness</span><b>92%</b><i><u></u></i></div>
+            <div class="issue-row"><span>!</span><div><b>Potential coding conflict</b><small>Review modifier selection before approval.</small></div><i data-lucide="chevron-right" width="15" height="15"></i></div>
+          </div>
+          <div class="case-ui revenue-ui" data-case-panel="2" hidden aria-label="Revenue cycle demo interface">
+            <div class="ui-top"><span>CLAIMS OVERVIEW · DEMO DATA</span><b>THIS MONTH</b></div>
+            <div class="metric-row"><div><small>Claims prepared</small><b>248</b></div><div><small>Ready for review</small><b>31</b></div><div><small>Needs attention</small><b>12</b></div></div>
+            <div class="claim-list">
+              <div><span class="status good"></span><b>CHC-0412</b><small>Validated</small><em>Ready</em></div>
+              <div><span class="status warn"></span><b>CHC-0413</b><small>Documentation</small><em>Review</em></div>
+              <div><span class="status good"></span><b>CHC-0414</b><small>Reimbursed</small><em>Paid</em></div>
             </div>
-            <div class="pm-body">
-              <div class="pm-heading-row">
-                <span class="pm-heading">Claims Overview</span>
-                <div class="pm-filters">
-                  <span>All</span><span>Pending</span><span>Denied</span><span class="active">Paid</span>
-                </div>
-              </div>
-              <div class="pm-table">
-                <div class="pm-table-header">
-                  <span>Patient</span><span>CPT</span><span>Payer</span><span>Amount</span><span>Status</span>
-                </div>
-                <div class="pm-table-rows" id="pm-table-rows"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="ps-browser ps-side ps-side-right" id="ps-window-next" aria-hidden="true">
-        <div class="hero-showcase-chrome"><span></span><span></span><span></span></div>
-        <div class="ps-img-frame"><img id="ps-img-next" src="" alt="" /></div>
-      </div>
-    </div>
-    <div class="ps-dots" id="ps-dots"></div>
-  </section>
-
-  <!-- Problem -->
-  <section class="problem-section">
-    <div class="problem-inner">
-      <p class="section-eyebrow">The Problem</p>
-      <h2 class="problem-heading">We hear this from<br />clinics like yours...</h2>
-      <div class="problem-grid">
-        <div class="problem-card">
-          <div class="problem-card-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
-          </div>
-          <h3>Documentation consumes the day.</h3>
-          <p>Providers spend hours finishing notes after appointments, taking time away from patients and their personal lives.</p>
-        </div>
-        <div class="problem-card">
-          <div class="problem-card-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
-          </div>
-          <h3>Missed codes mean missed revenue.</h3>
-          <p>Incomplete documentation and overlooked codes cause clinics to leave earned reimbursement behind on every claim.</p>
-        </div>
-        <div class="problem-featured">
-          <div class="problem-card-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v2M12 16v2M9 15a3 3 0 0 0 3 2c1.7 0 3-1 3-2.2 0-1.5-1.3-2-3-2.3-1.7-.3-3-.8-3-2.3C9 9 10.3 8 12 8a3 3 0 0 1 3 2"/></svg>
-          </div>
-          <h3>Every missed code is lost revenue.</h3>
-          <p>When documentation, coding, and claims operate separately, clinics lose time and money at every step.</p>
-        </div>
-        <div class="problem-card">
-          <div class="problem-card-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M6 9v6M8.5 10.5L15.5 10.5M8.5 13.5L15.5 13.5" stroke-dasharray="2 2"/></svg>
-          </div>
-          <h3>Clinical and billing teams are disconnected.</h3>
-          <p>Important encounter information gets lost as it moves between providers, coders, billers, and payers.</p>
-        </div>
-        <div class="problem-card">
-          <div class="problem-card-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-          </div>
-          <h3>Denials are caught too late.</h3>
-          <p>Many claim errors are discovered only after submission, creating rework, payment delays, and preventable appeals.</p>
-        </div>
-        <div class="problem-featured">
-          <div class="problem-card-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 15 14"/></svg>
-          </div>
-          <h3>A denied claim is frozen revenue.</h3>
-          <p>Once a claim is denied, that money sits stuck until someone catches it, fixes it, and resubmits manually.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Solution -->
-  <section class="solution-section">
-    <div class="solution-inner">
-      <p class="section-eyebrow">The Solution</p>
-      <h2 class="solution-heading">With Althais, go from<br />documentation chaos to<br />paid claims.</h2>
-      <div class="solution-grid">
-        <div class="solution-card">
-          <h3>The Old Workflow</h3>
-          <div class="solution-tabs" data-solution-tabs>
-            <button type="button" class="solution-tab active" data-role="provider">Provider</button>
-            <button type="button" class="solution-tab" data-role="biller">Biller</button>
-            <button type="button" class="solution-tab" data-role="owner">Practice Owner</button>
-          </div>
-          <p class="solution-text" data-role="provider">I finish notes after hours, while billing still has to contact me for missing information.</p>
-          <p class="solution-text" data-role="biller" hidden>I manually review documentation, search for codes, and repeatedly follow up with providers before submitting a claim.</p>
-          <p class="solution-text" data-role="owner" hidden>I cannot easily see where revenue is being delayed, denied, or lost across the practice.</p>
-          <!-- Provider: messy late-night note writing -->
-          <div class="sv-old-visual active" data-role-visual="provider">
-            <div class="sv-old-note">
-              <div class="sv-old-note-tag">ENCOUNTER NOTE — DRAFT</div>
-              <div class="sv-old-note-line"></div>
-              <div class="sv-old-note-line med"></div>
-              <div class="sv-old-note-line short"></div>
-              <div class="sv-old-note-line med"></div>
-              <div class="sv-old-note-line short"></div>
-            </div>
-            <div class="sv-old-clock">
-              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Still charting at 10:47 PM
-            </div>
-          </div>
-          <!-- Biller: spreadsheet with manual lookups and warnings -->
-          <div class="sv-old-visual" data-role-visual="biller">
-            <div class="sv-old-sheet">
-              <div class="sv-old-sheet-row">
-                <span class="sv-old-sheet-num">01</span>
-                <div class="sv-old-sheet-bar" style="width:90%"></div>
-                <svg class="sv-old-sheet-warn" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-              </div>
-              <div class="sv-old-sheet-row">
-                <span class="sv-old-sheet-num">02</span>
-                <div class="sv-old-sheet-bar" style="width:60%"></div>
-                <svg class="sv-old-sheet-warn" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-              </div>
-              <div class="sv-old-sheet-row">
-                <span class="sv-old-sheet-num">03</span>
-                <div class="sv-old-sheet-bar" style="width:75%"></div>
-                <span class="sv-old-sheet-ok">Pending</span>
-              </div>
-              <div class="sv-old-sheet-row">
-                <span class="sv-old-sheet-num">04</span>
-                <div class="sv-old-sheet-bar" style="width:40%"></div>
-                <svg class="sv-old-sheet-warn" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-              </div>
-            </div>
-          </div>
-          <!-- Practice owner: blank chart, no visibility -->
-          <div class="sv-old-visual" data-role-visual="owner">
-            <div class="sv-old-chart">
-              <div class="sv-old-chart-title">REVENUE THIS MONTH</div>
-              <div class="sv-old-bars">
-                <div class="sv-old-bar-col" style="height:40%"></div>
-                <div class="sv-old-bar-col" style="height:65%"></div>
-                <div class="sv-old-bar-col" style="height:30%"></div>
-                <div class="sv-old-bar-col" style="height:55%"></div>
-                <div class="sv-old-bar-col" style="height:20%"></div>
-                <div class="sv-old-bar-col" style="height:45%"></div>
-                <div class="sv-old-bar-col" style="height:35%"></div>
-              </div>
-              <div class="sv-old-question">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-                Where is revenue being lost?
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="solution-card">
-          <h3>With Althais</h3>
-          <div class="solution-tabs" data-solution-tabs>
-            <button type="button" class="solution-tab active" data-role="provider">Provider</button>
-            <button type="button" class="solution-tab" data-role="biller">Biller</button>
-            <button type="button" class="solution-tab" data-role="owner">Practice Owner</button>
-          </div>
-          <p class="solution-text" data-role="provider">Althais structures my note, suggests codes, and flags missing details before I sign the encounter.</p>
-          <p class="solution-text" data-role="biller" hidden>I receive a complete, coded claim with payer-specific issues identified before submission.</p>
-          <p class="solution-text" data-role="owner" hidden>I can monitor claims, denials, reimbursements, and revenue leakage from one clear dashboard.</p>
-          <div class="solution-visual solution-visual-new">
-            <!-- Step 1: Clinical Note -->
-            <div class="sv-new-step">
-              <div class="sv-new-thumb sv-note">
-                <div class="svt-label">CHIEF COMPLAINT</div>
-                <div class="svt-bar svt-bar-full"></div>
-                <div class="svt-label" style="margin-top:6px">ASSESSMENT</div>
-                <div class="svt-bar svt-bar-80"></div>
-                <div class="svt-label" style="margin-top:6px">PLAN</div>
-                <div class="svt-bar svt-bar-60"></div>
-                <div class="svt-pen">
-                  <svg width="10" height="10" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </div>
-              </div>
-              <span>Clinical Note</span>
-            </div>
-            <svg class="sv-new-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff9e73" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            <!-- Step 2: AI Coding -->
-            <div class="sv-new-step">
-              <div class="sv-new-thumb sv-coding">
-                <div class="svt-code-row"><span class="svt-badge-cpt">CPT</span><span class="svt-code-num">99285</span></div>
-                <div class="svt-code-row"><span class="svt-badge-icd">ICD</span><span class="svt-code-num">R07.9</span></div>
-                <div class="svt-check-row">
-                  <svg width="9" height="9" fill="none" stroke="#0c8a4f" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
-                  <span>CMS verified</span>
-                </div>
-              </div>
-              <span>AI Coding</span>
-            </div>
-            <svg class="sv-new-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff9e73" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            <!-- Step 3: Validated Claim -->
-            <div class="sv-new-step">
-              <div class="sv-new-thumb sv-claim">
-                <div class="svt-label">CLAIM #CHC-0412</div>
-                <div class="svt-bar svt-bar-full"></div>
-                <div class="svt-bar svt-bar-80" style="margin-top:3px"></div>
-                <div class="svt-status-row">
-                  <svg width="9" height="9" fill="none" stroke="#0c8a4f" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
-                  <span style="color:#0c8a4f">Ready</span>
-                </div>
-              </div>
-              <span>Validated Claim</span>
-            </div>
-            <svg class="sv-new-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff9e73" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            <!-- Step 4: Submitted -->
-            <div class="sv-new-step">
-              <div class="sv-new-thumb sv-submitted">
-                <div class="svt-check-circle">
-                  <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
-                </div>
-                <div class="svt-label" style="color:#0c8a4f;margin-top:6px">Transmitted</div>
-                <div class="svt-bar svt-bar-60" style="background:#d8f5e3;margin-top:4px"></div>
-              </div>
-              <span>Payer Submission</span>
+            <div class="mini-trend">
+              <i style="--h:42%"></i><i style="--h:55%"></i><i style="--h:48%"></i><i style="--h:68%"></i><i style="--h:62%"></i><i style="--h:77%"></i><i style="--h:72%"></i><i style="--h:88%"></i><i style="--h:82%"></i><i style="--h:96%"></i>
             </div>
           </div>
         </div>
@@ -1352,632 +216,336 @@
     </div>
   </section>
 
-  <!-- Chart-1995 divider -->
-  <section class="chart-section">
-    <p class="section-eyebrow">What Althais Can Do For You</p>
-    <h2 class="chart-heading">Don't Chart Like It's 1995.</h2>
-  </section>
+  <section class="ruled-section how-section" id="how-it-works">
+    <div class="section-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">FROM ENCOUNTER TO OUTCOME</span><h2>How Althais works.</h2><p>A single structured workflow keeps clinical context connected as work moves forward.</p></div>
 
-  <div style="background:#fff;">
-  <!-- Product overview -->
-  <section class="product-section">
-    <div class="product-inner">
-      <p class="section-eyebrow">The Product</p>
-      <h2 class="product-heading">Meet Althais: Your Healthcare Intelligence Platform</h2>
-    </div>
-  </section>
-
-  <div class="feature-cards">
-    <!-- Card 1: AI Documentation — inline SOAP mockup -->
-    <div class="feature-card">
-      <div class="fc-soap">
-        <div class="fc-soap-header">
-          <div class="fc-soap-steps">
-            <span class="fc-soap-step done">1 Patient</span>
-            <span class="fc-soap-step done">2 Note</span>
-            <span class="fc-soap-step active">3 AI Coding</span>
-            <span class="fc-soap-step">4 Review</span>
-          </div>
+      <div class="how-shell">
+        <div class="how-tabs">
+          <button type="button" class="active" data-how-index="0"><span>01</span><div><b>Capture the encounter</b><p>The provider records or dictates the patient encounter.</p></div><i data-lucide="chevron-right"></i></button>
+          <button type="button" data-how-index="1"><span>02</span><div><b>Structure the record</b><p>Althais turns the encounter into organized clinical documentation.</p></div><i data-lucide="chevron-right"></i></button>
+          <button type="button" data-how-index="2"><span>03</span><div><b>Code + validate</b><p>The documentation is analyzed for coding recommendations and potential claim issues.</p></div><i data-lucide="chevron-right"></i></button>
+          <button type="button" data-how-index="3"><span>04</span><div><b>Review + move forward</b><p>The appropriate team member reviews the recommendation before the workflow continues.</p></div><i data-lucide="chevron-right"></i></button>
         </div>
-        <div class="fc-soap-body">
-          <div class="fc-soap-field">
-            <div class="fc-soap-label">Chief Complaint</div>
-            <div class="fc-soap-value">Chest pain, shortness of breath, 2hr onset</div>
-          </div>
-          <div class="fc-soap-field">
-            <div class="fc-soap-label">Assessment</div>
-            <div class="fc-soap-value">Acute chest pain, r/o ACS. Stable vitals.</div>
-          </div>
-          <div class="fc-soap-row2">
-            <div class="fc-soap-field">
-              <div class="fc-soap-label">Visit Type</div>
-              <div class="fc-soap-value">Emergency Dept</div>
-            </div>
-            <div class="fc-soap-field">
-              <div class="fc-soap-label">Duration (timer)</div>
-              <div class="fc-soap-value fc-soap-timer">47 min <span class="fc-soap-timer-badge">verified</span></div>
+        <div class="how-sticky">
+          <div class="how-visual" data-how-panel="0">
+            <div class="how-screen capture-screen">
+              <div class="encounter-patient"><span>DM</span><div><small>DEMO PATIENT</small><b>Daniel M. · Follow-up</b></div></div>
+              <div class="record-orb"><i data-lucide="mic" width="28" height="28"></i><i></i><i></i></div>
+              <strong>Encounter recording</strong><small>00:08:42 · Consent confirmed</small>
+              <div class="transcript-line"><i></i><i></i><i></i></div>
             </div>
           </div>
-          <div class="fc-soap-field">
-            <div class="fc-soap-label">Plan</div>
-            <div class="fc-soap-value">EKG ordered, troponin labs, cardiology consult if elevated.</div>
-          </div>
-          <div class="fc-soap-codes">
-            <div class="fc-soap-code-row">
-              <span class="fc-soap-badge cpt">CPT</span>
-              <span class="fc-soap-code-desc">99285 · ED Visit, high complexity</span>
-              <span class="fc-soap-code-ok">✓ CMS verified</span>
+          <div class="how-visual" data-how-panel="1" hidden>
+            <div class="how-screen structure-screen">
+              <div class="raw-note"><small>RAW ENCOUNTER</small><p>&ldquo;Patient says symptoms have improved since last visit…&rdquo;</p></div>
+              <i data-lucide="arrow-down-right"></i>
+              <div class="structured-note">
+                <small>STRUCTURED NOTE</small>
+                <div><b>Subjective</b><span>Symptoms improving</span></div>
+                <div><b>Assessment</b><span>Stable on current plan</span></div>
+                <div><b>Plan</b><span>Continue and follow up</span></div>
+              </div>
             </div>
-            <div class="fc-soap-code-row">
-              <span class="fc-soap-badge icd">ICD-10</span>
-              <span class="fc-soap-code-desc">R07.9 · Chest pain</span>
-              <span class="fc-soap-code-ok">94%</span>
+          </div>
+          <div class="how-visual" data-how-panel="2" hidden>
+            <div class="how-screen validate-screen">
+              <div class="confidence"><span>94</span><small>CLAIM CONFIDENCE</small></div>
+              <div class="validation-stack">
+                <div><span>CPT</span><b>99213</b><i data-lucide="circle-check-big"></i></div>
+                <div><span>ICD-10</span><b>I10</b><i data-lucide="circle-check-big"></i></div>
+                <div><span>DOCS</span><b>Complete</b><i data-lucide="circle-check-big"></i></div>
+                <div><span>NCCI</span><b>Check passed</b><i data-lucide="circle-check-big"></i></div>
+              </div>
+            </div>
+          </div>
+          <div class="how-visual" data-how-panel="3" hidden>
+            <div class="how-screen onward-screen">
+              <div class="workflow-rail">
+                <div class="rail-step"><span>01</span><b>encounter</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+                <div class="rail-step"><span>02</span><b>AI documentation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+                <div class="rail-step"><span>03</span><b>Medical coding</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+                <div class="rail-step current"><span>04</span><b>Claim validation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+                <div class="rail-step"><span>05</span><b>Reimbursement</b></div>
+              </div>
+              <div class="approval-card"><i data-lucide="user-check"></i><div><small>HUMAN REVIEW</small><b>Approved to move forward</b></div><span>APPROVED</span></div>
+              <div class="cycle-line"><i></i><i></i><i></i><i></i><i></i></div>
+              <small>Submission workflow → reimbursement monitoring</small>
             </div>
           </div>
         </div>
       </div>
-      <div class="fc-text">
-        <p class="section-eyebrow">AI Documentation</p>
-        <h3>Virtual SOAP: 15 structured fields, done in minutes</h3>
-        <p>Providers document visits through a structured clinical note workflow. The AI reads what you wrote, not a free-text box it has to guess from.</p>
-      </div>
     </div>
+  </section>
 
-    <!-- Card 2: NCCI — inline mockup, no screenshot needed -->
-    <div class="feature-card reverse">
-      <div class="fc-ncci">
-        <p class="section-eyebrow" style="margin-bottom:10px;">NCCI Edit Checking</p>
-        <div class="ncci-demo">
-          <div class="ncci-row">
-            <span class="ncci-badge ncci-cpt">CPT</span>
-            <span class="ncci-desc">99285 · ED Visit, high complexity</span>
-            <span class="ncci-status ncci-ok">✓ CMS verified</span>
-          </div>
-          <div class="ncci-row">
-            <span class="ncci-badge ncci-icd">ICD-10</span>
-            <span class="ncci-desc">R07.9 · Chest pain, unspecified</span>
-            <span class="ncci-status ncci-ok">94% conf.</span>
-          </div>
-          <div class="ncci-row">
-            <span class="ncci-badge ncci-icd">ICD-10</span>
-            <span class="ncci-desc">R06.00 · Dyspnea, unspecified</span>
-            <span class="ncci-status ncci-ok">91% conf.</span>
-          </div>
-          <div class="ncci-check-row">
-            <div class="ncci-check-icon">
-              <svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
-            </div>
+  <section class="ruled-section knowledge-section" id="althea">
+    <div class="section-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">CLINICAL INTELLIGENCE</span><h2>Your clinical second brain.<br /><em>This is Althea.</em></h2><p>Althea is the AI intelligence layer inside Althais. It helps providers retrieve and understand relevant patient information without searching disconnected records.</p></div>
+
+      <div class="knowledge-stage">
+        <div class="knowledge-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="knowledge-panel">
+          <div class="assistant-top"><div><span class="althea-orb"><span class="spark-icon" aria-hidden="true">✦</span></span><p><b>Althea</b><small>Clinical intelligence · demo chart</small></p></div><span class="context-pill"><i></i> CONTEXT READY</span></div>
+          <div class="knowledge-patient"><span>DM</span><div><small>DEMO PATIENT</small><b>Daniel M. · 54</b></div><em>6 sources</em></div>
+          <div class="question-bubble">Summarize this patient&apos;s previous visits.</div>
+          <div class="answer-bubble">
+            <span class="spark-icon" aria-hidden="true">✦</span>
             <div>
-              <div class="ncci-check-title">NCCI edit check passed: 0 bundling conflicts</div>
-              <div class="ncci-check-sub">Checked against CMS PTP edit table before submission</div>
+              <b>Demo clinical summary</b>
+              <p>Across four visits, blood pressure improved after the care plan changed. The most recent note reports better adherence and no new symptoms. A follow-up remains open.</p>
+              <div class="answer-sources"><span>Mar 12 visit</span><span>Jun 04 visit</span><span>Current plan</span></div>
             </div>
           </div>
+          <div class="source-tabs">
+            <button type="button" class="active"><span>01</span>Previous visits</button>
+            <button type="button"><span>02</span>Clinical history</button>
+            <button type="button"><span>03</span>Medications</button>
+            <button type="button"><span>04</span>Relevant notes</button>
+            <button type="button"><span>05</span>Follow-ups</button>
+            <button type="button"><span>06</span>Recent encounter</button>
+          </div>
         </div>
-      </div>
-      <div class="fc-text">
-        <p class="section-eyebrow">Claims Intelligence</p>
-        <h3>Real NCCI checks, not AI guesses</h3>
-        <p>Every claim is checked against the CMS procedure-to-procedure edit table before submission. Bundling errors caught before a denial, not after.</p>
       </div>
     </div>
+  </section>
 
-    <!-- Card 3: Althea — inline chat mockup -->
-    <div class="feature-card">
-      <div class="fc-althea">
-        <div class="fc-althea-chat">
-          <div class="fc-althea-bubble-you">"Which claims are at risk today?"</div>
-          <div class="fc-althea-bubble-ai">3 claims flagged. CHC-00412 has low confidence on the 99291 critical care code. The 30-minute CMS threshold needs to be documented explicitly. Want me to open it?</div>
-          <div class="fc-althea-bubble-you">"Open it"</div>
-          <div class="fc-althea-bubble-ai">Opening CHC-00412 now.</div>
-        </div>
-        <div class="fc-althea-mic">
-          <svg width="17" height="17" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </div>
-      </div>
-      <div class="fc-text">
-        <p class="section-eyebrow">Althea Voice AI</p>
-        <h3>Your practice answers you back</h3>
-        <p>Ask Althea about your schedule, a patient's medications, at-risk claims, or prior auth status, hands-free, mid-visit, without touching the keyboard.</p>
+  <section class="ruled-section platform-section">
+    <div class="section-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">ONE PLATFORM</span><h2>One encounter.<br />One source of truth.</h2><p>Information created during the encounter flows through the rest of the workflow instead of being repeatedly re-entered.</p></div>
+      <div class="platform-grid">
+        <article class="platform-card">
+          <div class="platform-card-head"><span><i data-lucide="file-text" width="15" height="15"></i>VIRTUAL SOAP</span><b>Clinical Documentation</b><i data-lucide="chevron-right" width="16" height="16"></i></div>
+          <div class="platform-mock">
+            <div class="mini-window-top"><i></i><i></i><i></i><span>ALTHAIS · DEMO</span></div>
+            <div class="pm-note"><small>ASSESSMENT &amp; PLAN</small><b>Structured SOAP note</b><i></i><i></i><i></i><span>Ready for review</span></div>
+          </div>
+        </article>
+        <article class="platform-card">
+          <div class="platform-card-head"><span><i data-lucide="brain-circuit" width="15" height="15"></i>CLINICAL AI</span><b>Althea</b><i data-lucide="chevron-right" width="16" height="16"></i></div>
+          <div class="platform-mock dark-mock">
+            <div class="mini-window-top"><i></i><i></i><i></i><span>ALTHAIS · DEMO</span></div>
+            <div class="pm-chat"><span>Summarize recent visits.</span><p><span class="spark-icon" aria-hidden="true">✦</span> Symptoms improved across the last two encounters…</p></div>
+          </div>
+        </article>
+        <article class="platform-card">
+          <div class="platform-card-head"><span><i data-lucide="clipboard-check" width="15" height="15"></i>AI CODING</span><b>Medical Coding</b><i data-lucide="chevron-right" width="16" height="16"></i></div>
+          <div class="platform-mock">
+            <div class="mini-window-top"><i></i><i></i><i></i><span>ALTHAIS · DEMO</span></div>
+            <div class="pm-codes"><div><span>CPT</span><b>99213</b><em>94%</em></div><div><span>ICD-10</span><b>I10</b><em>91%</em></div><small>Documentation complete</small></div>
+          </div>
+        </article>
+        <article class="platform-card">
+          <div class="platform-card-head"><span><i data-lucide="receipt-text" width="15" height="15"></i>CLAIMS INTELLIGENCE</span><b>Claims</b><i data-lucide="chevron-right" width="16" height="16"></i></div>
+          <div class="platform-mock">
+            <div class="mini-window-top"><i></i><i></i><i></i><span>ALTHAIS · DEMO</span></div>
+            <div class="pm-claim"><span>CHC-0412</span><b>Ready for review</b><div><i data-lucide="check"></i> NCCI check passed</div><div><i data-lucide="check"></i> Required fields present</div></div>
+          </div>
+        </article>
+        <article class="platform-card">
+          <div class="platform-card-head"><span><i data-lucide="trending-up" width="15" height="15"></i>REVENUE TRACKING</span><b>Revenue Monitoring</b><i data-lucide="chevron-right" width="16" height="16"></i></div>
+          <div class="platform-mock">
+            <div class="mini-window-top"><i></i><i></i><i></i><span>ALTHAIS · DEMO</span></div>
+            <div class="pm-bars"><i style="--h:45%"></i><i style="--h:68%"></i><i style="--h:54%"></i><i style="--h:79%"></i><i style="--h:72%"></i><i style="--h:92%"></i></div>
+            <div class="pm-total"><small>REIMBURSEMENT · DEMO</small><b>$284,620</b></div>
+          </div>
+        </article>
+        <article class="platform-card">
+          <div class="platform-card-head"><span><i data-lucide="inbox" width="15" height="15"></i>ACTION CENTER</span><b>AI Inbox</b><i data-lucide="chevron-right" width="16" height="16"></i></div>
+          <div class="platform-mock">
+            <div class="mini-window-top"><i></i><i></i><i></i><span>ALTHAIS · DEMO</span></div>
+            <div class="pm-inbox"><div><i></i>Missing documentation <b>3</b></div><div><i></i>Coding review <b>7</b></div><div><i></i>Claim attention <b>2</b></div></div>
+          </div>
+        </article>
       </div>
     </div>
+  </section>
 
-    <!-- Card 4: Revenue Tracking — inline claims dashboard mockup -->
-    <div class="feature-card reverse">
-      <div class="fc-revenue">
-        <div class="fc-revenue-header">
-          <span class="fc-revenue-title">Claims Overview</span>
-          <div class="fc-revenue-stats">
-            <div class="fc-revenue-stat">
-              <div class="fc-revenue-stat-val ok">94%</div>
-              <div class="fc-revenue-stat-label">Clean rate</div>
-            </div>
-            <div class="fc-revenue-stat">
-              <div class="fc-revenue-stat-val">$48,210</div>
-              <div class="fc-revenue-stat-label">Pending</div>
-            </div>
-            <div class="fc-revenue-stat">
-              <div class="fc-revenue-stat-val warn">3</div>
-              <div class="fc-revenue-stat-label">Denied</div>
-            </div>
-          </div>
-        </div>
-        <div class="fc-revenue-claims">
-          <div class="fc-revenue-claim">
-            <div class="fc-revenue-claim-info">
-              <div class="fc-revenue-claim-id">CHC-2026-00412</div>
-              <div class="fc-revenue-claim-name">Smith, John · 99291</div>
-            </div>
-            <div class="fc-revenue-claim-right">
-              <span class="fc-revenue-claim-amt">$1,240</span>
-              <span class="fc-revenue-status submitted">Submitted</span>
-            </div>
-          </div>
-          <div class="fc-revenue-claim">
-            <div class="fc-revenue-claim-info">
-              <div class="fc-revenue-claim-id">CHC-2026-00411</div>
-              <div class="fc-revenue-claim-name">Patel, R. · 99285</div>
-            </div>
-            <div class="fc-revenue-claim-right">
-              <span class="fc-revenue-claim-amt">$680</span>
-              <span class="fc-revenue-status paid">Paid</span>
-            </div>
-          </div>
-          <div class="fc-revenue-claim">
-            <div class="fc-revenue-claim-info">
-              <div class="fc-revenue-claim-id">CHC-2026-00409</div>
-              <div class="fc-revenue-claim-name">Torres, M. · 99283</div>
-            </div>
-            <div class="fc-revenue-claim-right">
-              <span class="fc-revenue-claim-amt">$340</span>
-              <span class="fc-revenue-status denied">Denied</span>
-            </div>
-          </div>
-          <div class="fc-revenue-claim">
-            <div class="fc-revenue-claim-info">
-              <div class="fc-revenue-claim-id">CHC-2026-00408</div>
-              <div class="fc-revenue-claim-name">Kim, S. · 99284</div>
-            </div>
-            <div class="fc-revenue-claim-right">
-              <span class="fc-revenue-claim-amt">$520</span>
-              <span class="fc-revenue-status paid">Paid</span>
-            </div>
-          </div>
-        </div>
-        <div class="fc-revenue-appeal">
-          <svg width="14" height="14" fill="none" stroke="#ff7a30" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Appeal letter generated for CHC-2026-00409
-        </div>
-      </div>
-      <div class="fc-text">
-        <p class="section-eyebrow">Revenue Tracking</p>
-        <h3>Every claim, start to finish</h3>
-        <p>Track every visit from documentation to reimbursement. Denied claims surface automatically with appeal letter generation built in.</p>
+  <section class="workflow-section" id="revenue">
+    <div class="section-frame dark-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">CONNECTED WORKFLOW</span><h2>From encounter<br />to reimbursement.</h2><p>The same clinical context moves from the first word of the encounter to the final reimbursement view.</p></div>
+      <div class="loop-stage">
+        <div class="loop-track"><span class="flow-dot"></span><span class="flow-dot second"></span></div>
+        <div class="loop-center"><span class="brand-symbol"><i></i><i></i><i></i></span><b>One encounter</b><small>Shared clinical context</small></div>
+        <div class="loop-node loop-0"><span>01</span><b>Encounter</b><i data-lucide="arrow-right"></i></div>
+        <div class="loop-node loop-1"><span>02</span><b>Documentation</b><i data-lucide="arrow-right"></i></div>
+        <div class="loop-node loop-2"><span>03</span><b>Coding</b><i data-lucide="arrow-right"></i></div>
+        <div class="loop-node loop-3"><span>04</span><b>Validation</b><i data-lucide="arrow-right"></i></div>
+        <div class="loop-node loop-4"><span>05</span><b>Submission</b><i data-lucide="arrow-right"></i></div>
+        <div class="loop-node loop-5"><span>06</span><b>Reimbursement</b><i data-lucide="arrow-right"></i></div>
+        <div class="loop-node loop-6"><span>07</span><b>Monitoring</b><i data-lucide="check"></i></div>
       </div>
     </div>
-  </div>
-  </div>
+  </section>
 
-  <!-- Althea deep-dive section -->
-  <div class="althea-section">
-    <div class="althea-inner">
-      <div class="althea-left">
-        <p class="section-eyebrow">Althea Voice AI</p>
-        <h2 class="althea-heading">17 clinical intents.<br />All hands-free.</h2>
-        <p class="althea-sub">Althea is a voice-powered AI built into Althais. It understands your practice, your patients, and your claims and can surface any of it in seconds without breaking your clinical flow.</p>
-        <div class="althea-intents">
-          <div class="althea-intent">
-            <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-            "What's my schedule today?"
-          </div>
-          <div class="althea-intent">
-            <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
-            "Which claims are at risk?"
-          </div>
-          <div class="althea-intent">
-            <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V7l4-4h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2z"/></svg></div>
-            "What are Martinez's medications?"
-          </div>
-          <div class="althea-intent">
-            <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
-            "Any pending prior auths?"
-          </div>
-          <div class="althea-intent">
-            <div class="althea-intent-icon"><svg width="14" height="14" fill="none" stroke="#ff9e73" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
-            "Stop the visit timer"
-          </div>
+  <section class="ruled-section implementation-section" id="why">
+    <div class="section-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">IMPLEMENTATION</span><h2>A connected workflow,<br />built around your team.</h2><p>Althais is configured around the people, responsibilities, and review points already inside the practice.</p></div>
+      <div class="implementation-steps">
+        <article class="active"><span>01</span><h3>Understand the practice</h3><p>Map the current documentation, coding, claims, and review workflow.</p><i></i></article>
+        <article><span>02</span><h3>Configure the workflow</h3><p>Shape Althais around the practice's roles, specialties, and decision points.</p><i></i></article>
+        <article><span>03</span><h3>Connect the experience</h3><p>Bring the appropriate clinical and revenue workflow into one shared operating layer.</p><i></i></article>
+        <article><span>04</span><h3>Launch with the team</h3><p>Introduce the experience with clear ownership and human review at every important step.</p><i></i></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="demo-cta-section" id="demo">
+    <div class="section-frame demo-cta-inner">
+      <div class="demo-cta-copy">
+        <span class="eyebrow light">PRODUCT DEMO</span>
+        <h2>See Althais<br /><em>in action.</em></h2>
+        <p>See how one encounter moves through clinical documentation, coding, claims, and revenue.</p>
+        <a href="/demo">Request a Demo <i data-lucide="arrow-right" width="17" height="17"></i></a>
+      </div>
+      <div class="demo-cta-visual">
+        <div class="demo-cycle">
+          <div><span>01</span><b>Encounter</b><i data-lucide="chevron-right"></i></div>
+          <div><span>02</span><b>SOAP note</b><i data-lucide="chevron-right"></i></div>
+          <div class="active"><span>03</span><b>AI coding</b><i data-lucide="chevron-right"></i></div>
+          <div><span>04</span><b>Claim review</b><i data-lucide="chevron-right"></i></div>
+          <div><span>05</span><b>Revenue</b></div>
+        </div>
+        <div class="demo-focus-card">
+          <small>AI CODING · DEMO</small>
+          <div><span>CPT</span><b>99213</b><em>94% confidence</em></div>
+          <div><span>ICD-10</span><b>I10</b><em>Supported</em></div>
+          <p><i data-lucide="shield-check"></i> NCCI edit check passed</p>
+          <strong><i data-lucide="user-check"></i> Ready for review</strong>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="ruled-section human-section" id="review">
+    <div class="section-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">HUMAN IN THE LOOP</span><h2>AI assists.<br />Your team stays in control.</h2><p>Althais surfaces recommendations and supporting context. The people responsible for care and billing make the important decisions.</p></div>
+      <div class="review-architecture">
+        <div class="review-flow">
+          <div><i data-lucide="brain-circuit"></i><small>01 · AI ANALYSIS</small><b>Recommendation</b></div>
+          <i data-lucide="chevron-right"></i>
+          <div><i data-lucide="activity"></i><small>02 · EVIDENCE</small><b>Confidence + reasoning</b></div>
+          <i data-lucide="chevron-right"></i>
+          <div><i data-lucide="user-check"></i><small>03 · HUMAN</small><b>Provider or staff review</b></div>
+          <i data-lucide="chevron-right"></i>
+          <div><i data-lucide="circle-check-big"></i><small>04 · APPROVED</small><b>Workflow continues</b></div>
+        </div>
+        <div class="review-cards">
+          <div><span><i data-lucide="file-text" width="15" height="15"></i></span><small>Documentation</small><b>Ready for review</b><em>Review</em></div>
+          <div><span><i data-lucide="clipboard-check" width="15" height="15"></i></span><small>Coding</small><b>Recommendation</b><em>Review</em></div>
+          <div><span><i data-lucide="shield-check" width="15" height="15"></i></span><small>Claim</small><b>Potential issue</b><em>Attention</em></div>
+          <div><span><i data-lucide="receipt-text" width="15" height="15"></i></span><small>Workflow</small><b>Ready for review</b><em>Review</em></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="security-section" id="security">
+    <div class="section-frame dark-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">BUILT FOR HEALTHCARE</span><h2>Secure, controlled, and designed<br />for healthcare workflows.</h2><p>Security, traceability, and clear approval points are considered throughout the clinical and revenue workflow.</p></div>
+      <div class="security-layout">
+        <div class="security-art">
+          <div class="security-rings"><i data-lucide="lock-keyhole"></i><i></i><i></i><i></i></div>
+          <div class="access-log">
+            <small>WORKFLOW ACTIVITY · DEMO</small>
+            <span><i data-lucide="check"></i> Documentation reviewed <em>10:42</em></span>
+            <span><i data-lucide="check"></i> Coding approved <em>10:48</em></span>
+            <span><i data-lucide="check"></i> Claim moved forward <em>10:51</em></span>
+          </div>
+        </div>
+        <div class="security-list">
+          <div><span>01</span><b>Role-based access</b><i data-lucide="chevron-right"></i></div>
+          <div><span>02</span><b>Data protection</b><i data-lucide="chevron-right"></i></div>
+          <div><span>03</span><b>Auditability</b><i data-lucide="chevron-right"></i></div>
+          <div><span>04</span><b>Controlled AI workflows</b><i data-lucide="chevron-right"></i></div>
+          <div><span>05</span><b>Human review</b><i data-lucide="chevron-right"></i></div>
+          <div><span>06</span><b>Privacy-first architecture</b><i data-lucide="chevron-right"></i></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ruled-section principles-section" id="company">
+    <div class="section-frame">
+      <div class="below-head" data-reveal><span class="eyebrow">BUILT AROUND REAL HEALTHCARE WORKFLOWS</span><h2>What clinicians and<br />advisors say.</h2></div>
+      <div class="testimonial-shell">
+        <div class="testimonial-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected="true" class="active" data-testimonial-index="0"><span>DJ</span><div><b>Dr. James Tarin</b><small>Tarin Health DPC · Pecos, TX</small></div></button>
+          <button type="button" role="tab" aria-selected="false" data-testimonial-index="1"><span>BC</span><div><b>Bryan Cox</b><small>Director, Revenue Cycle · MCH Odessa, TX</small></div></button>
+          <button type="button" role="tab" aria-selected="false" data-testimonial-index="2"><span>DA</span><div><b>Dr. Ashish Gupta, MD MBA</b><small>Deputy CMO · Hamilton Health Box</small></div></button>
+        </div>
+        <blockquote data-testimonial-panel="0">
+          <span>&ldquo;</span>
+          <p>The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you've already moved on.</p>
+          <footer><b>Dr. James Tarin</b><small>Tarin Health DPC · Pecos, TX</small></footer>
+        </blockquote>
+        <blockquote data-testimonial-panel="1" hidden>
+          <span>&ldquo;</span>
+          <p>NCCI real-time checking is something I've been asking vendors to build for years. Most practices don't find out about bundling conflicts until after the rejection.</p>
+          <footer><b>Bryan Cox</b><small>Director, Revenue Cycle · MCH Odessa, TX</small></footer>
+        </blockquote>
+        <blockquote data-testimonial-panel="2" hidden>
+          <span>&ldquo;</span>
+          <p>Small clinics running lean can't afford a billing department. Althais is built for exactly that setting, and the Althea voice layer is something I haven't seen anywhere else.</p>
+          <footer><b>Dr. Ashish Gupta, MD MBA</b><small>Deputy CMO · Hamilton Health Box</small></footer>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing section-frame">
+    <div class="closing-grid"></div>
+    <span class="eyebrow light">THE CONNECTED REVENUE LOOP</span>
+    <h2>From encounter<br /><em>to reimbursement.</em></h2>
+    <p>Althais connects documentation, coding, claims, and revenue into one intelligent workflow.</p>
+    <div class="closing-actions">
+      <a href="/demo">Request a Demo <i data-lucide="arrow-right"></i></a>
+      <a href="#product">Explore Althais <i data-lucide="arrow-down-right"></i></a>
+    </div>
+  </section>
+
+  <footer class="footer section-frame">
+    <div class="footer-top">
       <div>
-        <div class="althea-chat-wrap">
-          <div class="althea-chat-label">Althea: Clinical AI</div>
-          <div class="chat-row">
-            <div class="chat-who">You</div>
-            <div class="bubble-you">"What claims are at risk right now?"</div>
-          </div>
-          <div class="chat-row">
-            <div class="chat-who">Althea</div>
-            <div class="bubble-ai">3 claims flagged this morning. CHC-2026-00412 shows low AI confidence on the 99291 critical care code; the 30-minute threshold is not documented explicitly. CHC-2026-00389 is missing a medical decision complexity note. Want me to open either one?</div>
-          </div>
-          <div class="chat-row">
-            <div class="chat-who">You</div>
-            <div class="bubble-you">"Open the first one"</div>
-          </div>
-          <div class="chat-row">
-            <div class="chat-who">Althea</div>
-            <div class="bubble-ai">Opening CHC-2026-00412. You'll need to add the total critical care time to the note before submitting. The CMS threshold is 30 minutes for the first unit of 99291.</div>
-          </div>
-          <div class="althea-mic">
-            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Testimonials -->
-  <section class="testimonials-section">
-    <div class="testimonials-inner">
-      <p class="section-eyebrow">Testimonials</p>
-      <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;color:#0c0a09;font-size:clamp(2.2rem,4.6vw,3.4rem);line-height:1.2;">What clinicians and advisors say</h2>
-      <div class="testimonials-grid">
-        <div class="t-card">
-          <div class="t-stars">
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          </div>
-          <p class="t-text">"The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you've already moved on."</p>
-          <div class="t-person">
-            <div class="t-avatar">JT</div>
-            <div><div class="t-name">Dr. James Tarin</div><div class="t-role">Tarin Health DPC, Pecos TX</div></div>
-          </div>
-        </div>
-        <div class="t-card">
-          <div class="t-stars">
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          </div>
-          <p class="t-text">"NCCI real-time checking is something I've been asking vendors to build for years. Most practices don't find out about bundling conflicts until after the rejection."</p>
-          <div class="t-person">
-            <div class="t-avatar">BC</div>
-            <div><div class="t-name">Bryan Cox</div><div class="t-role">Director, Revenue Cycle, MCH Odessa TX</div></div>
-          </div>
-        </div>
-        <div class="t-card">
-          <div class="t-stars">
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <svg width="14" height="14" fill="#ff9e73" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          </div>
-          <p class="t-text">"Small clinics running lean can't afford a billing department. Althais is built for exactly that setting, and the Althea voice layer is something I haven't seen anywhere else."</p>
-          <div class="t-person">
-            <div class="t-avatar">AG</div>
-            <div><div class="t-name">Dr. Ashish Gupta, MD MBA</div><div class="t-role">Deputy CMO, Hamilton Health Box</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Closing CTA -->
-  <section class="closing-cta">
-    <h2>Ready to turn documentation<br />into measurable outcomes?</h2>
-    <p style="font-family:'Instrument Serif', Georgia, serif; font-size:19px;">Book a demo to see how Althais helps your team capture and get paid faster.</p>
-    <div class="hero-cta-row" style="position:relative; z-index:1; margin-top:32px;">
-      <a href="/demo" class="lava-btn" style="font-size:16px;padding:17px 32px;">Book A Demo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c0a09" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer id="site-footer-bar">
-    <div class="footer-inner">
-      <div class="footer-col footer-brand">
-        <a href="/" class="footer-logo">
-          <svg width="22" height="22" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-            <path d="M5,74 L40,16 L75,74" stroke="#0c0a09" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
-            <line x1="21" y1="49" x2="59" y2="49" stroke="#0c0a09" stroke-width="8" stroke-linecap="butt"/>
-          </svg>
-          <span>Althais</span>
+        <a href="#top" class="brand-mark" aria-label="Althais home">
+          <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>ALTHAIS</span>
         </a>
+        <p>AI-assisted medical documentation, coding,<br />claims, and revenue intelligence.</p>
       </div>
-      <div class="footer-col">
-        <p class="footer-col-title">Product</p>
-        <a href="/">Overview</a>
-        <a href="/demo">Book A Demo</a>
-        <a href="https://app.althais.com">Live App</a>
-        <a href="/login">Login</a>
-      </div>
-      <div class="footer-col">
-        <p class="footer-col-title">Company</p>
-        <a href="/about">About</a>
-        <a href="/contact">Contact</a>
-      </div>
-      <div class="footer-col">
-        <p class="footer-col-title">Legal</p>
-        <a href="/legal/privacy">Privacy Policy</a>
-        <a href="/legal/terms">Terms Of Service</a>
-        <a href="/legal/hipaa">HIPAA Notice</a>
+      <div class="footer-links">
+        <div>
+          <small>PLATFORM</small>
+          <a href="#product">Product</a>
+          <a href="#althea">Althea</a>
+          <a href="#revenue">Revenue Cycle</a>
+          <a href="/pricing">Pricing</a>
+        </div>
+        <div>
+          <small>WHY ALTHAIS</small>
+          <a href="#how-it-works">How it works</a>
+          <a href="#review">Human review</a>
+          <a href="#security">Security</a>
+        </div>
+        <div>
+          <small>CONTACT</small>
+          <a href="/contact">Contact Us</a>
+          <a href="/demo">Request Demo</a>
+          <a href="#top">Back to top</a>
+        </div>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 Althais Health, Inc. All rights reserved.</p>
+      <div class="footer-bottom-left">
+        <span>© 2026 Althais Health, Inc.</span>
+        <a href="/legal/privacy">Privacy</a>
+        <a href="/legal/terms">Terms</a>
+      </div>
+      <span>AI-assisted decisions. Human accountability.</span>
     </div>
   </footer>
-
-  <!-- Book Demo modal — unchanged from Kevin's version -->
-  <div id="video-demo-modal" style="position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:#fff;padding:24px">
-    <div style="position:relative;width:100%;max-width:900px">
-      <button onclick="closeVideoDemoModal()" aria-label="Close" style="position:absolute;top:-44px;right:0;color:#0c0a09;font-size:14px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif">Close ✕</button>
-      <video id="video-demo-player" src="/videos/althais-in-use.mp4" controls style="width:100%;max-height:80vh;background:#fff;border-radius:8px;display:block"></video>
-    </div>
-  </div>
-
-  <div id="book-demo-modal" style="position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(4,8,16,0.85);backdrop-filter:blur(8px);padding:24px">
-    <div style="position:relative;width:100%;max-width:440px">
-      <button onclick="closeBookDemoModal()" aria-label="Close" style="position:absolute;top:-44px;right:0;color:#fff;font-size:14px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif">Close ✕</button>
-      <div style="background:transparent;border:1px solid rgba(255,255,255,0.14);border-radius:0;padding:36px 32px;font-family:'Inter',sans-serif;max-height:86vh;overflow-y:auto">
-        <div id="book-demo-success" style="display:none;text-align:center;padding:24px 0">
-          <div style="width:56px;height:56px;background:rgba(12,138,79,0.18);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#5ed99a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <h3 style="font-size:18px;font-weight:600;color:#fff;margin-bottom:8px">Request received</h3>
-          <p style="font-size:13.5px;color:rgba(255,255,255,0.62);line-height:1.6">Thanks! We'll be in touch within 1 business day to schedule your demo.</p>
-        </div>
-        <div id="book-demo-form-wrap">
-          <p style="font-size:11px;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:#fff;margin-bottom:10px">Book a demo</p>
-          <h2 style="font-size:20px;font-weight:600;color:#fff;margin-bottom:6px">See Althais in Action</h2>
-          <p style="font-size:13px;color:rgba(255,255,255,0.62);margin-bottom:22px">Fill in your details and we'll be in touch.</p>
-          <div id="book-demo-msg" style="display:none;margin-bottom:14px;font-size:12.5px;border-radius:0;padding:8px 12px;background:rgba(200,56,56,0.18);color:#ff8080"></div>
-          <form id="book-demo-form" novalidate>
-            <div style="margin-bottom:14px">
-              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Full Name</label>
-              <input id="bd_full_name" type="text" autocomplete="name" required style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff" placeholder="Dr. Jane Smith" />
-            </div>
-            <div style="margin-bottom:14px">
-              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Work Email</label>
-              <input id="bd_email" type="email" autocomplete="email" required style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff" placeholder="jane@practice.com" />
-            </div>
-            <div style="margin-bottom:14px">
-              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Practice Name</label>
-              <input id="bd_practice_name" type="text" required style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff" placeholder="Mercy Urgent Care" />
-            </div>
-            <div style="margin-bottom:20px">
-              <label style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px">Phone Number</label>
-              <input id="bd_phone" type="tel" autocomplete="tel" style="width:100%;font-size:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:0;padding:10px 12px;color:#fff" placeholder="+1 (555) 000-0000" />
-            </div>
-            <button id="bd_btn" type="submit" style="width:100%;font-size:13px;font-weight:600;letter-spacing:0.08em;color:#0a0a0a;background:#fff;border:none;border-radius:0;padding:13px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">
-              Request Demo →
-            </button>
-            <p style="font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-top:12px">No commitment required. We'll reach out to schedule.</p>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-    </script>
-
-  <script>
-    (function () {
-      var slides = [
-        { title: 'Capture The Notes As Written', img: '/static/screenshots/provider-note.png', alt: 'Virtual SOAP note entry screen in Althais' },
-        { title: 'AI Turns It Into A Claim', img: '/static/screenshots/claim-assembly.png', alt: 'CMS-1500 claim form assembled automatically from approved codes' },
-        { title: 'Get Paid, Faster', img: '/static/screenshots/payment.png', alt: 'Claims filtered to Paid status showing posted payment amounts' },
-      ];
-      var numEl = document.getElementById('ps-num');
-      var totalEl = document.getElementById('ps-total');
-      var titleEl = document.getElementById('ps-title');
-      var imgEl = document.getElementById('ps-img');
-      var imgPrevEl = document.getElementById('ps-img-prev');
-      var imgNextEl = document.getElementById('ps-img-next');
-      var windowPrevEl = document.getElementById('ps-window-prev');
-      var windowNextEl = document.getElementById('ps-window-next');
-      var dotsEl = document.getElementById('ps-dots');
-      var noteMockEl = document.getElementById('ps-note-mock');
-      var noteTextEl = document.getElementById('note-mock-text');
-      var claimMockEl = document.getElementById('claim-mock');
-      var cmRowsEl = document.getElementById('cm-table-rows');
-      var cmTotalEl = document.getElementById('cm-total');
-      var cmTotalAmountEl = document.getElementById('cm-total-amount');
-      var paymentMockEl = document.getElementById('payment-mock');
-      var pmRowsEl = document.getElementById('pm-table-rows');
-      totalEl.textContent = String(slides.length).padStart(2, '0');
-      dotsEl.innerHTML = slides.map(function (s, i) {
-        return '<button type="button" class="ps-dot" data-index="' + i + '">' + String(i + 1).padStart(2, '0') + '</button>';
-      }).join('');
-      var dots = dotsEl.querySelectorAll('.ps-dot');
-      var current = 0;
-      var activeTimers = [];
-      function clearActiveTimers() { activeTimers.forEach(clearTimeout); activeTimers = []; }
-
-      // ── Slide 1: typewriter loop for the "Capture The Notes" slide —
-      // replaces the static screenshot with a live-looking note so it reads
-      // as an in-progress visit instead of a finished document.
-      var NOTE_SCRIPT = 'Serial troponins, EKG monitoring, cardiology consult, aspirin 81mg, admit for observation.';
-      function startTyping() {
-        var i = 0;
-        noteTextEl.textContent = '';
-        (function tick() {
-          if (i < NOTE_SCRIPT.length) {
-            i++;
-            noteTextEl.textContent = NOTE_SCRIPT.slice(0, i);
-            var lastChar = NOTE_SCRIPT[i - 1];
-            var delay = 24 + Math.random() * 34;
-            if (lastChar === ',') delay += 160;
-            if (lastChar === '.') delay += 380;
-            activeTimers.push(setTimeout(tick, delay));
-          } else {
-            activeTimers.push(setTimeout(startTyping, 2400));
-          }
-        })();
-      }
-
-      // ── Slide 2: claim service lines appear one at a time, as if AI is
-      // assembling the CMS-1500 from the note that was just typed.
-      var CM_ROWS = [
-        { date: '06/26/2026', code: '99213', dx: 'A,B,C', charge: '$142.50' },
-        { date: '06/26/2026', code: '93000', dx: 'A,B,C', charge: '$142.50' }
-      ];
-      function startClaimAssembly() {
-        cmRowsEl.innerHTML = '';
-        cmTotalEl.classList.remove('show');
-        cmTotalAmountEl.textContent = '—';
-        function addRow(i) {
-          if (i >= CM_ROWS.length) {
-            activeTimers.push(setTimeout(function () {
-              cmTotalAmountEl.textContent = '$285.00';
-              cmTotalEl.classList.add('show');
-              activeTimers.push(setTimeout(startClaimAssembly, 2600));
-            }, 250));
-            return;
-          }
-          var r = CM_ROWS[i];
-          var row = document.createElement('div');
-          row.className = 'cm-row';
-          row.innerHTML = '<span>' + r.date + '</span><span class="cm-code">' + r.code + '</span><span>' + r.dx + '</span><span>' + r.charge + '</span>';
-          cmRowsEl.appendChild(row);
-          activeTimers.push(setTimeout(function () { addRow(i + 1); }, 750));
-        }
-        activeTimers.push(setTimeout(function () { addRow(0); }, 400));
-      }
-
-      // ── Slide 3: claim rows flip from Pending to Paid one at a time,
-      // dramatizing claims actually getting paid.
-      var PM_ROWS = [
-        { patient: 'Smith, John', cpt: '99213', payer: 'UnitedHealthcare', amount: '$285.00' },
-        { patient: 'Williams, Robert', cpt: '99215', payer: 'Medicare', amount: '$445.00' },
-        { patient: 'Davis, Sarah', cpt: '99213', payer: 'Aetna', amount: '$265.00' }
-      ];
-      function startPaymentFlip() {
-        pmRowsEl.innerHTML = PM_ROWS.map(function (r) {
-          return '<div class="pm-row"><span>' + r.patient + '</span><span>' + r.cpt + '</span><span>' + r.payer + '</span><span>' + r.amount +
-            '</span><span class="pm-badge">Pending</span></div>';
-        }).join('');
-        var rowEls = pmRowsEl.querySelectorAll('.pm-row');
-        function payRow(i) {
-          if (i >= rowEls.length) {
-            activeTimers.push(setTimeout(startPaymentFlip, 2600));
-            return;
-          }
-          var row = rowEls[i];
-          var badge = row.querySelector('.pm-badge');
-          row.classList.add('flash');
-          badge.textContent = '✓ Paid';
-          badge.classList.add('paid');
-          activeTimers.push(setTimeout(function () { row.classList.remove('flash'); }, 600));
-          activeTimers.push(setTimeout(function () { payRow(i + 1); }, 550));
-        }
-        activeTimers.push(setTimeout(function () { payRow(0); }, 500));
-      }
-
-      function render(index) {
-        current = (index + slides.length) % slides.length;
-        var s = slides[current];
-        var prev = slides[(current - 1 + slides.length) % slides.length];
-        var next = slides[(current + 1) % slides.length];
-        numEl.textContent = String(current + 1).padStart(2, '0');
-        titleEl.textContent = s.title;
-        imgPrevEl.src = prev.img; imgPrevEl.alt = prev.alt;
-        imgNextEl.src = next.img; imgNextEl.alt = next.alt;
-
-        clearActiveTimers();
-        imgEl.style.display = 'none';
-        noteMockEl.style.display = 'none';
-        claimMockEl.style.display = 'none';
-        paymentMockEl.style.display = 'none';
-
-        if (current === 0) {
-          noteMockEl.style.display = 'flex';
-          startTyping();
-        } else if (current === 1) {
-          claimMockEl.style.display = 'flex';
-          startClaimAssembly();
-        } else if (current === 2) {
-          paymentMockEl.style.display = 'flex';
-          startPaymentFlip();
-        } else {
-          imgEl.style.display = 'block';
-          imgEl.src = s.img; imgEl.alt = s.alt;
-        }
-        dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
-      }
-      windowPrevEl.addEventListener('click', function () { render(current - 1); });
-      windowNextEl.addEventListener('click', function () { render(current + 1); });
-      dots.forEach(function (d) { d.addEventListener('click', function () { render(parseInt(d.getAttribute('data-index'), 10)); }); });
-      render(0);
-    })();
-  </script>
-
-  <script>
-    var bookModal = document.getElementById('book-demo-modal');
-    document.querySelectorAll('.book-demo-trigger, [href="/demo"]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) { e.preventDefault(); bookModal.style.display = 'flex'; });
-    });
-    function closeBookDemoModal() { bookModal.style.display = 'none'; }
-    bookModal.addEventListener('click', function (e) { if (e.target === bookModal) closeBookDemoModal(); });
-
-    var videoModal = document.getElementById('video-demo-modal');
-    var videoPlayer = document.getElementById('video-demo-player');
-    document.querySelectorAll('.video-demo-trigger').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        videoModal.style.display = 'flex';
-        videoPlayer.play();
-      });
-    });
-    function closeVideoDemoModal() { videoModal.style.display = 'none'; videoPlayer.pause(); }
-    videoModal.addEventListener('click', function (e) { if (e.target === videoModal) closeVideoDemoModal(); });
-
-    document.querySelectorAll('.solution-tab').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var role = btn.getAttribute('data-role');
-        document.querySelectorAll('.solution-tab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-role') === role); });
-        document.querySelectorAll('.solution-text').forEach(function (p) { p.hidden = p.getAttribute('data-role') !== role; });
-        // Switch old workflow role visuals
-        document.querySelectorAll('.sv-old-visual').forEach(function (v) {
-          v.classList.toggle('active', v.getAttribute('data-role-visual') === role);
-        });
-      });
-    });
-
-    var bdMsg = document.getElementById('book-demo-msg');
-    function showBookDemoMsg(text) { bdMsg.textContent = text; bdMsg.style.display = 'block'; }
-    document.getElementById('book-demo-form').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var name = document.getElementById('bd_full_name').value.trim();
-      var email = document.getElementById('bd_email').value.trim();
-      var practice = document.getElementById('bd_practice_name').value.trim();
-      if (!name || !email || !practice) { showBookDemoMsg('Please fill in all required fields.'); return; }
-      if (!email.includes('@')) { showBookDemoMsg('Enter a valid email address.'); return; }
-      var btn = document.getElementById('bd_btn');
-      btn.disabled = true; btn.textContent = 'Sending…';
-      var body = new URLSearchParams();
-      body.set('full_name', name); body.set('email', email); body.set('practice_name', practice);
-      body.set('phone', document.getElementById('bd_phone').value.trim());
-      try {
-        var res = await fetch('/request-demo', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body.toString() });
-        var data = await res.json().catch(function () { return {}; });
-        if (res.ok && data.ok) {
-          document.getElementById('book-demo-form-wrap').style.display = 'none';
-          document.getElementById('book-demo-success').style.display = 'block';
-        } else {
-          showBookDemoMsg(data.error || 'Something went wrong. Please try again.');
-          btn.disabled = false; btn.textContent = 'Request Demo →';
-        }
-      } catch (err) {
-        showBookDemoMsg('Network error. Please try again.');
-        btn.disabled = false; btn.textContent = 'Request Demo →';
-      }
-    });
-  </script>
-
-
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.js"></script>
+<script src="/static/karumi-landing.js"></script>
 </body>
 </html>
