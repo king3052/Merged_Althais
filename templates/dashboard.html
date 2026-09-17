@@ -1699,31 +1699,31 @@
 
             <h3 style="font-size:14px;font-weight:600;color:#0f1116;margin-bottom:6px;">Coding Intelligence</h3>
             <div class="s-card" style="padding:0 22px;">
-              <div class="s-row"><div><div class="s-row-label">Auto ICD-10 Suggestions</div><div class="s-row-sub">Streamed in real-time as you write the note.</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">CPT Generation</div><div class="s-row-sub">E&amp;M, procedural, modifiers — based on documented work.</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Modifier Recommendations</div><div class="s-row-sub">25, 59, RT/LT, 76 — context-aware suggestions.</div></div><div class="toggle on"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Auto ICD-10 Suggestions</div><div class="s-row-sub">Streamed in real-time as you write the note.</div></div><div class="toggle on" data-setting="auto_icd10"></div></div>
+              <div class="s-row"><div><div class="s-row-label">CPT Generation</div><div class="s-row-sub">E&amp;M, procedural, modifiers — based on documented work.</div></div><div class="toggle on" data-setting="cpt_generation"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Modifier Recommendations</div><div class="s-row-sub">25, 59, RT/LT, 76 — context-aware suggestions.</div></div><div class="toggle on" data-setting="modifier_recs"></div></div>
               <div class="s-row">
                 <div><div class="s-row-label">Confidence Threshold</div><div class="s-row-sub">Codes below this are surfaced for review instead of auto-applied.</div></div>
                 <div style="display:flex;align-items:center;gap:10px;width:280px;">
-                  <input type="range" min="50" max="99" value="85" style="flex:1;accent-color:#4f8cff;" />
-                  <span class="num" style="color:#1a1d24;font-weight:600;width:36px;text-align:right;">85%</span>
+                  <input type="range" min="50" max="99" value="85" data-setting="confidence_threshold" id="ai-confidence-slider" style="flex:1;accent-color:#4f8cff;" />
+                  <span class="num" id="ai-confidence-value" style="color:#1a1d24;font-weight:600;width:36px;text-align:right;">85%</span>
                 </div>
               </div>
-              <div class="s-row"><div><div class="s-row-label">Auto-Submit Clean Claims</div><div class="s-row-sub">Claims with readiness ≥ 95% submit without review.</div></div><div class="toggle"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Denial Prediction Alerts</div><div class="s-row-sub">Flag patterns matching past denials for this payer.</div></div><div class="toggle on"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Auto-Submit Clean Claims</div><div class="s-row-sub">Claims with readiness ≥ 95% submit without review.</div></div><div class="toggle" data-setting="auto_submit_clean"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Denial Prediction Alerts</div><div class="s-row-sub">Flag patterns matching past denials for this payer.</div></div><div class="toggle on" data-setting="denial_alerts"></div></div>
             </div>
 
             <div class="s-divider"></div>
 
             <h3 style="font-size:14px;font-weight:600;color:#0f1116;margin-bottom:6px;">Documentation AI</h3>
             <div class="s-card" style="padding:0 22px;">
-              <div class="s-row"><div><div class="s-row-label">SOAP Note Formatting</div><div class="s-row-sub">Auto-structures dictation into Subjective / Objective / Assessment / Plan.</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Voice Dictation</div><div class="s-row-sub">Hands-free narration with speaker recognition.</div></div><div class="toggle on"></div></div>
+              <div class="s-row"><div><div class="s-row-label">SOAP Note Formatting</div><div class="s-row-sub">Auto-structures dictation into Subjective / Objective / Assessment / Plan.</div></div><div class="toggle on" data-setting="soap_formatting"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Voice Dictation</div><div class="s-row-sub">Hands-free narration with speaker recognition.</div></div><div class="toggle on" data-setting="voice_dictation"></div></div>
               <div class="s-row">
                 <div><div class="s-row-label">Voice Model</div><div class="s-row-sub">Choose between latency and accuracy.</div></div>
-                <select class="s-input" style="width:200px;"><option>Balanced (default)</option><option>Highest Accuracy</option><option>Lowest Latency</option></select>
+                <select class="s-input" data-setting="voice_model" style="width:200px;"><option>Balanced (default)</option><option>Highest Accuracy</option><option>Lowest Latency</option></select>
               </div>
-              <div class="s-row"><div><div class="s-row-label">Smart Summaries</div><div class="s-row-sub">Auto-generated patient-facing visit summaries.</div></div><div class="toggle"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Smart Summaries</div><div class="s-row-sub">Auto-generated patient-facing visit summaries.</div></div><div class="toggle" data-setting="smart_summaries"></div></div>
             </div>
           </section>
 
@@ -1736,15 +1736,15 @@
             <div class="s-divider"></div>
 
             <div class="grid grid-cols-2 gap-3">
-              <div class="s-card glow" style="padding:18px;">
+              <div class="s-card" style="padding:18px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                   <div>
-                    <div style="font-size:13px;font-weight:600;color:#0f1116;">Change Healthcare</div>
+                    <div style="font-size:13px;font-weight:600;color:#0f1116;">Claim.MD</div>
                     <div class="s-row-sub">Primary Clearinghouse</div>
                   </div>
-                  <span class="s-pill s-pill-ok">Connected</span>
+                  <span class="s-pill s-pill-warn">Test Mode</span>
                 </div>
-                <div style="margin-top:12px;font-size:11.5px;color:#6b7280;" class="mono">EDI Submitter ID: ALT-2026-0001 · last sync 12s ago</div>
+                <div style="margin-top:12px;font-size:11.5px;color:#6b7280;" class="mono">Sandbox credentials · production activation pending BAA</div>
               </div>
               <div class="s-card" style="padding:18px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -1752,15 +1752,16 @@
                     <div style="font-size:13px;font-weight:600;color:#0f1116;">ERA / EFT</div>
                     <div class="s-row-sub">Electronic Remittance + Funds Transfer</div>
                   </div>
-                  <span class="s-pill s-pill-ok">Active · 6 payers</span>
+                  <span class="s-pill s-pill-muted">Not yet active</span>
                 </div>
-                <div style="margin-top:12px;font-size:11.5px;color:#6b7280;" class="mono">Bank ending in •••• 4471 · ACH</div>
+                <div style="margin-top:12px;font-size:11.5px;color:#6b7280;" class="mono">Enables automatically once a bank account is linked</div>
               </div>
             </div>
 
             <div class="s-divider"></div>
 
-            <h3 style="font-size:14px;font-weight:600;color:#0f1116;margin-bottom:6px;">Smart Payer Intelligence</h3>
+            <h3 style="font-size:14px;font-weight:600;color:#0f1116;margin-bottom:2px;">Smart Payer Intelligence <span class="s-pill s-pill-info" style="margin-left:6px;font-size:10px;">Preview</span></h3>
+            <p class="s-row-sub" style="margin-bottom:10px;">Example of what this surfaces once your practice has enough claims history to analyze.</p>
             <div class="grid grid-cols-2 gap-3">
               <div class="s-card" style="padding:16px;">
                 <div class="s-pill s-pill-info" style="margin-bottom:8px;">UnitedHealthcare</div>
@@ -1802,10 +1803,10 @@
 
             <h3 style="font-size:14px;font-weight:600;color:#0f1116;margin-bottom:6px;">Scrubber rules</h3>
             <div class="s-card" style="padding:0 22px;">
-              <div class="s-row"><div><div class="s-row-label">Block On Missing Modifier 25</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Require Referring Provider For Imaging</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Auto-Apply Correct POS By Encounter Type</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Reject Incompatible ICD-CPT Pairs</div></div><div class="toggle on"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Block On Missing Modifier 25</div></div><div class="toggle on" data-setting="block_missing_mod25"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Require Referring Provider For Imaging</div></div><div class="toggle on" data-setting="require_referring_provider"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Auto-Apply Correct POS By Encounter Type</div></div><div class="toggle on" data-setting="auto_pos"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Reject Incompatible ICD-CPT Pairs</div></div><div class="toggle on" data-setting="reject_incompatible_pairs"></div></div>
             </div>
           </section>
 
@@ -1826,6 +1827,9 @@
             <div>
               <h2 class="s-section-title">Notifications</h2>
               <p class="s-section-sub">Choose what to get pinged about — and where.</p>
+            </div>
+            <div class="s-card" style="padding:10px 14px;background:#fff7e6;border-color:#ffe0a3;margin-top:12px;margin-bottom:4px;">
+              <span style="font-size:12px;color:#92600a;">In-App is live today. Email and SMS delivery are not yet connected to a provider — those toggles save your preference now so it's ready the moment delivery is turned on.</span>
             </div>
             <div class="s-divider"></div>
 
@@ -1851,13 +1855,16 @@
               <h2 class="s-section-title">Patient Communication</h2>
               <p class="s-section-sub">Appointment reminders, intake forms, and outreach automation.</p>
             </div>
+            <div class="s-card" style="padding:10px 14px;background:#fff7e6;border-color:#ffe0a3;margin-top:12px;margin-bottom:4px;">
+              <span style="font-size:12px;color:#92600a;">These preferences save now so they're ready to go — actual SMS/email delivery isn't connected to a provider yet.</span>
+            </div>
             <div class="s-divider"></div>
             <div class="s-card" style="padding:0 22px;">
-              <div class="s-row"><div><div class="s-row-label">Appointment Reminders</div><div class="s-row-sub">Auto-send 24h before · SMS + email</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Digital Intake Forms</div><div class="s-row-sub">Sent on booking · auto-pre-fill chart</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Post-Visit Summaries</div><div class="s-row-sub">AI-generated patient-friendly visit recap</div></div><div class="toggle"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Balance Reminders</div><div class="s-row-sub">Send 7 days after EOB · with one-click pay link</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Recall &amp; Preventive Outreach</div><div class="s-row-sub">Annual exams, A1C follow-ups, etc.</div></div><div class="toggle on"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Appointment Reminders</div><div class="s-row-sub">Auto-send 24h before · SMS + email</div></div><div class="toggle on" data-setting="appt_reminders"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Digital Intake Forms</div><div class="s-row-sub">Sent on booking · auto-pre-fill chart</div></div><div class="toggle on" data-setting="digital_intake"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Post-Visit Summaries</div><div class="s-row-sub">AI-generated patient-friendly visit recap</div></div><div class="toggle" data-setting="post_visit_summaries"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Balance Reminders</div><div class="s-row-sub">Send 7 days after EOB · with one-click pay link</div></div><div class="toggle on" data-setting="balance_reminders"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Recall &amp; Preventive Outreach</div><div class="s-row-sub">Annual exams, A1C follow-ups, etc.</div></div><div class="toggle on" data-setting="recall_outreach"></div></div>
             </div>
           </section>
 
@@ -1880,13 +1887,13 @@
               </div>
               <div class="s-card" style="padding:18px;">
                 <div class="s-label">HIPAA Compliance</div>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#1a1d24;font-weight:500;"><span class="s-pill s-pill-ok">Compliant</span></div>
-                <div class="s-row-sub" style="margin-top:8px;">BAAs on file · last audit 2026-04</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#1a1d24;font-weight:500;"><span class="s-pill s-pill-warn">In progress</span></div>
+                <div class="s-row-sub" style="margin-top:8px;">BAAs pending — designed for HIPAA-eligible hosting, not yet activated</div>
               </div>
               <div class="s-card" style="padding:18px;">
                 <div class="s-label">Encryption</div>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#1a1d24;font-weight:500;">AES-256 at rest · TLS 1.3 in transit</div>
-                <div class="s-row-sub" style="margin-top:8px;">Keys rotated 14 days ago</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#1a1d24;font-weight:500;">TLS in transit</div>
+                <div class="s-row-sub" style="margin-top:8px;">Standard for all traffic to this app</div>
               </div>
             </div>
 
@@ -1933,11 +1940,11 @@
             <div class="s-divider"></div>
 
             <div class="s-card" style="padding:0 22px;">
-              <div class="s-row"><div><div class="s-row-label">Enforce 2FA Org-Wide</div><div class="s-row-sub">Authenticator app or hardware key.</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Session Timeout</div><div class="s-row-sub">Auto sign-out after inactivity.</div></div><select class="s-input" style="width:140px;"><option>15 min</option><option>30 min</option><option>1 hr</option><option>4 hr</option></select></div>
-              <div class="s-row"><div><div class="s-row-label">Device Management</div><div class="s-row-sub">Approve new devices manually.</div></div><div class="toggle on"></div></div>
-              <div class="s-row"><div><div class="s-row-label">Audit Log Retention</div><div class="s-row-sub">Required minimum: 6 years (HIPAA).</div></div><select class="s-input" style="width:140px;"><option>7 years</option><option>10 years</option><option>Forever</option></select></div>
-              <div class="s-row"><div><div class="s-row-label">Backup Status</div><div class="s-row-sub">Encrypted snapshots · 4× daily.</div></div><span class="s-pill s-pill-ok">Healthy · 2 min ago</span></div>
+              <div class="s-row"><div><div class="s-row-label">Enforce 2FA Org-Wide</div><div class="s-row-sub">Not built yet — coming in a future release.</div></div><div class="toggle" style="opacity:0.4;pointer-events:none;"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Session Timeout</div><div class="s-row-sub">Auto sign-out after inactivity.</div></div><select class="s-input" data-setting="session_timeout" style="width:140px;"><option>15 min</option><option>30 min</option><option>1 hr</option><option>4 hr</option></select></div>
+              <div class="s-row"><div><div class="s-row-label">Device Management</div><div class="s-row-sub">Not built yet — coming in a future release.</div></div><div class="toggle" style="opacity:0.4;pointer-events:none;"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Audit Log Retention</div><div class="s-row-sub">Required minimum: 6 years (HIPAA).</div></div><select class="s-input" data-setting="audit_retention" style="width:140px;"><option>7 years</option><option>10 years</option><option>Forever</option></select></div>
+              <div class="s-row"><div><div class="s-row-label">Backup Status</div><div class="s-row-sub">Not yet configured — hosting migration pending.</div></div><span class="s-pill s-pill-muted">Not configured</span></div>
             </div>
           </section>
 
@@ -1998,22 +2005,19 @@
               <div class="flex items-center justify-between" style="margin-bottom:10px;">
                 <div>
                   <div style="font-size:13px;font-weight:600;color:#0f1116;">Production API Key</div>
-                  <div class="s-row-sub">Use for server-to-server calls.</div>
+                  <div class="s-row-sub">Server-to-server access — not yet available.</div>
                 </div>
-                <button id="api-regenerate" class="s-btn s-btn-ghost">Regenerate</button>
+                <span class="s-pill s-pill-muted">Coming soon</span>
               </div>
-              <div class="mono" style="background:#f7f9fc; border:1px solid #e4e6eb; padding: 10px 14px; border-radius: 6px; font-size: 12px; color: #4a505c; display: flex; justify-content: space-between; align-items: center;">
-                <span id="api-key-display">alt_live_••••••••••••••••••••••••••2c4f</span>
-                <button id="api-copy" class="s-btn s-btn-ghost" style="padding:3px 10px;font-size:11px;">Copy</button>
-              </div>
+              <div class="s-row-sub" style="margin-top:4px;">Public API access is on the roadmap. Reach out if your practice needs this and we'll prioritize it.</div>
             </div>
 
             <div class="s-divider"></div>
 
             <div class="s-card" style="padding:0 22px;">
-              <div class="s-row"><div><div class="s-row-label">Webhook URL</div><div class="s-row-sub">Receive claim, denial, and patient events.</div></div><input class="s-input mono" style="width:340px;" value="https://api.mercy.health/webhooks/althais" /></div>
-              <div class="s-row"><div><div class="s-row-label">FHIR R4 Endpoint</div><div class="s-row-sub">Read-only access to charts and claims.</div></div><span class="s-pill s-pill-ok">Live</span></div>
-              <div class="s-row"><div><div class="s-row-label">Sandbox Mode</div><div class="s-row-sub">Send test payloads without affecting production data.</div></div><div class="toggle"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Webhook URL</div><div class="s-row-sub">Receive claim, denial, and patient events.</div></div><span class="s-pill s-pill-muted">Not yet available</span></div>
+              <div class="s-row"><div><div class="s-row-label">FHIR R4 Endpoint</div><div class="s-row-sub">Read-only access to charts and claims.</div></div><span class="s-pill s-pill-muted">Not yet available</span></div>
+              <div class="s-row"><div><div class="s-row-label">Sandbox Mode</div><div class="s-row-sub">Send test payloads without affecting production data.</div></div><span class="s-pill s-pill-muted">Not yet available</span></div>
             </div>
           </section>
 
@@ -3658,39 +3662,173 @@
         t.addEventListener('click', () => t.classList.toggle('on'));
       });
 
+      // ===========================================================
+      // ORG SETTINGS SYNC ENGINE
+      // ===========================================================
+      // Any element inside a #settings-view [data-section="X"] block that
+      // carries a `data-setting="key"` attribute is persisted server-side
+      // under settings category X, shared across every teammate's login —
+      // not just the browser that made the change. Each section's data is
+      // lazily loaded the first time its tab is opened, and any tracked
+      // control auto-saves (debounced) on change.
+      (function orgSettingsSync() {
+        const SYNCED_CATEGORIES = ['ai', 'billing', 'comms', 'security'];
+        const loadedOnce = new Set();
+
+        function collectSection(category) {
+          const root = document.querySelector(`#settings-view [data-section="${category}"]`);
+          if (!root) return {};
+          const out = {};
+          root.querySelectorAll('[data-setting]').forEach(el => {
+            const key = el.getAttribute('data-setting');
+            if (el.classList.contains('toggle')) {
+              out[key] = el.classList.contains('on');
+            } else if (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && el.type !== 'range')) {
+              out[key] = el.value;
+            } else if (el.tagName === 'INPUT' && el.type === 'range') {
+              out[key] = Number(el.value);
+            }
+          });
+          return out;
+        }
+
+        function applySection(category, data) {
+          const root = document.querySelector(`#settings-view [data-section="${category}"]`);
+          if (!root || !data) return;
+          Object.keys(data).forEach(key => {
+            const el = root.querySelector(`[data-setting="${CSS.escape(key)}"]`);
+            if (!el) return;
+            const val = data[key];
+            if (el.classList.contains('toggle')) {
+              el.classList.toggle('on', !!val);
+            } else if (el.tagName === 'INPUT' && el.type === 'range') {
+              el.value = val;
+              el.dispatchEvent(new Event('input'));
+            } else if (el.tagName === 'SELECT' || el.tagName === 'INPUT') {
+              el.value = val;
+            }
+          });
+        }
+
+        function loadSection(category) {
+          fetch(`/api/org/settings/${category}`, { credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : null)
+            .then(json => { if (json && json.data) applySection(category, json.data); })
+            .catch(() => {});
+        }
+
+        let saveTimer = null;
+        function saveSectionDebounced(category) {
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => {
+            fetch(`/api/org/settings/${category}`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin', body: JSON.stringify(collectSection(category)),
+            }).catch(() => {});
+          }, 350);
+        }
+
+        // Lazy-load each tracked category's settings the first time its tab opens
+        document.querySelectorAll('#settings-view [data-settings-tab]').forEach(tabEl => {
+          tabEl.addEventListener('click', () => {
+            const cat = tabEl.getAttribute('data-settings-tab');
+            if (SYNCED_CATEGORIES.includes(cat) && !loadedOnce.has(cat)) {
+              loadedOnce.add(cat);
+              loadSection(cat);
+            }
+          });
+        });
+        // Load the initially-active tab's settings on page load too
+        const initialTab = document.querySelector('#settings-view [data-settings-tab].active');
+        if (initialTab) {
+          const cat = initialTab.getAttribute('data-settings-tab');
+          if (SYNCED_CATEGORIES.includes(cat)) { loadedOnce.add(cat); loadSection(cat); }
+        }
+
+        // Auto-save on any tracked control's change
+        document.addEventListener('click', (e) => {
+          const toggle = e.target.closest('#settings-view .toggle[data-setting]');
+          if (!toggle) return;
+          const section = toggle.closest('[data-section]');
+          if (section && SYNCED_CATEGORIES.includes(section.getAttribute('data-section'))) {
+            saveSectionDebounced(section.getAttribute('data-section'));
+          }
+        });
+        document.querySelectorAll('#settings-view [data-section] [data-setting]').forEach(el => {
+          if (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && el.type !== 'checkbox')) {
+            el.addEventListener('change', () => {
+              const section = el.closest('[data-section]');
+              if (section && SYNCED_CATEGORIES.includes(section.getAttribute('data-section'))) {
+                saveSectionDebounced(section.getAttribute('data-section'));
+              }
+            });
+          }
+        });
+
+        // Live-update the confidence % label as the AI slider moves
+        const confSlider = document.getElementById('ai-confidence-slider');
+        const confValue = document.getElementById('ai-confidence-value');
+        if (confSlider && confValue) {
+          confSlider.addEventListener('input', () => { confValue.textContent = confSlider.value + '%'; });
+        }
+      })();
+
       // ---- Populate Integrations grid ----
       (function buildIntegrations() {
         const grid = document.getElementById('integration-grid');
         if (!grid) return;
         const items = [
-          { name: 'Epic',           tag: 'EHR',       letter: 'E', color: '#ef4444', status: 'connected', synced: '5 min ago' },
-          { name: 'Athenahealth',   tag: 'EHR',       letter: 'A', color: '#a855f7', status: 'connected', synced: '12 min ago' },
-          { name: 'Cerner',         tag: 'EHR',       letter: 'C', color: '#0ea5e9', status: 'disconnected' },
-          { name: 'Stripe',         tag: 'Payments',  letter: 'S', color: '#635bff', status: 'connected', synced: '2 min ago' },
-          { name: 'Google Calendar',tag: 'Schedule',  letter: 'G', color: '#4f8cff', status: 'connected', synced: '1 hr ago' },
-          { name: 'Outlook',        tag: 'Schedule',  letter: 'O', color: '#0078d4', status: 'disconnected' },
-          { name: 'Quest Diagnostics', tag: 'Labs',   letter: 'Q', color: '#22c55e', status: 'connected', synced: '8 min ago' },
-          { name: 'CVS · Pharmacy', tag: 'Pharmacies',letter: 'C', color: '#ef4444', status: 'connected', synced: '24 min ago' },
-          { name: 'Concord Fax',    tag: 'Fax',       letter: 'F', color: '#f59e0b', status: 'connected', synced: '4 hr ago' }
+          { key: 'epic',      name: 'Epic',              tag: 'EHR',        letter: 'E', color: '#ef4444' },
+          { key: 'athena',    name: 'Athenahealth',      tag: 'EHR',        letter: 'A', color: '#a855f7' },
+          { key: 'cerner',    name: 'Cerner',            tag: 'EHR',        letter: 'C', color: '#0ea5e9' },
+          { key: 'elation',   name: 'Elation Health',    tag: 'EHR',        letter: 'E', color: '#14b8a6' },
+          { key: 'stripe',    name: 'Stripe',            tag: 'Payments',   letter: 'S', color: '#635bff' },
+          { key: 'gcal',      name: 'Google Calendar',   tag: 'Schedule',   letter: 'G', color: '#4f8cff' },
+          { key: 'outlook',   name: 'Outlook',           tag: 'Schedule',   letter: 'O', color: '#0078d4' },
+          { key: 'quest',     name: 'Quest Diagnostics', tag: 'Labs',       letter: 'Q', color: '#22c55e' },
+          { key: 'concordfax',name: 'Concord Fax',       tag: 'Fax',        letter: 'F', color: '#f59e0b' },
         ];
-        grid.innerHTML = items.map(it => {
-          const ok = it.status === 'connected';
-          return `
-          <div class="s-card" style="padding:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-              <div style="width:32px;height:32px;border-radius:8px;background:${it.color};display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff;font-size:14px;">${it.letter}</div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:13px;font-weight:600;color:#0f1116;">${it.name}</div>
-                <div class="s-row-sub" style="margin-top:0;">${it.tag}</div>
+        let requested = {};
+        function render() {
+          grid.innerHTML = items.map(it => {
+            const asked = !!requested[it.key];
+            return `
+            <div class="s-card" style="padding:16px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <div style="width:32px;height:32px;border-radius:8px;background:${it.color};display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff;font-size:14px;">${it.letter}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:600;color:#0f1116;">${it.name}</div>
+                  <div class="s-row-sub" style="margin-top:0;">${it.tag}</div>
+                </div>
+                <span class="s-pill ${asked ? 's-pill-info' : 's-pill-muted'}">${asked ? 'Requested' : 'Not connected'}</span>
               </div>
-              <span class="s-pill ${ok ? 's-pill-ok' : 's-pill-muted'}">${ok ? 'Connected' : 'Disconnected'}</span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span class="s-row-sub">${ok ? 'Last synced ' + it.synced : 'Not connected yet'}</span>
-              <button class="s-btn s-btn-ghost" style="padding:5px 10px;font-size:11.5px;">${ok ? 'Configure' : 'Connect'}</button>
-            </div>
-          </div>`;
-        }).join('');
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="s-row-sub">${asked ? "We'll reach out once it's ready" : 'Not built yet'}</span>
+                <button class="s-btn ${asked ? 's-btn-ghost' : 's-btn-primary'}" data-integration-key="${it.key}" style="padding:5px 10px;font-size:11.5px;" ${asked ? 'disabled' : ''}>${asked ? 'Requested ✓' : 'Request early access'}</button>
+              </div>
+            </div>`;
+          }).join('');
+          grid.querySelectorAll('[data-integration-key]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const key = btn.getAttribute('data-integration-key');
+              btn.disabled = true; btn.textContent = 'Sending…';
+              requested[key] = true;
+              try {
+                await fetch('/api/org/settings/integration_interest', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  credentials: 'same-origin', body: JSON.stringify(requested),
+                });
+              } catch (e) {}
+              render();
+            });
+          });
+        }
+        render();
+        // Load any previously requested integrations for this org
+        fetch('/api/org/settings/integration_interest', { credentials: 'same-origin' })
+          .then(r => r.ok ? r.json() : null)
+          .then(json => { if (json && json.data) { requested = json.data; render(); } })
+          .catch(() => {});
       })();
 
       // ---- Populate Notifications matrix ----
@@ -3698,23 +3836,46 @@
         const tbody = document.getElementById('notif-tbody');
         if (!tbody) return;
         const events = [
-          ['Claim denials',         [1,1,1,1]],
-          ['Unsigned charts',       [1,0,1,1]],
-          ['Prior auth issues',     [1,1,1,1]],
-          ['Payments received',     [1,0,0,1]],
-          ['AI warnings',           [0,0,1,1]],
-          ['Critical alerts',       [1,1,1,1]]
+          ['claim_denials',      'Claim denials',      [1,1,1,1]],
+          ['unsigned_charts',    'Unsigned charts',    [1,0,1,1]],
+          ['prior_auth_issues',  'Prior auth issues',  [1,1,1,1]],
+          ['payments_received',  'Payments received',  [1,0,0,1]],
+          ['ai_warnings',        'AI warnings',         [0,0,1,1]],
+          ['critical_alerts',    'Critical alerts',     [1,1,1,1]]
         ];
-        tbody.innerHTML = events.map(([label, vals]) => {
-          return `<tr style="border-top:1px solid #eceef2;">
-            <td style="padding:14px 18px;color:#1a1d24;font-weight:500;">${label}</td>
-            ${vals.map(v => `<td style="padding:14px;text-align:center;"><div class="toggle ${v ? 'on' : ''}" style="margin:0 auto;"></div></td>`).join('')}
-          </tr>`;
-        }).join('');
-        // Re-wire newly-injected toggles
-        tbody.querySelectorAll('.toggle').forEach(t => {
-          t.addEventListener('click', () => t.classList.toggle('on'));
-        });
+        function render(saved) {
+          tbody.innerHTML = events.map(([key, label, defaults]) => {
+            const vals = (saved && saved[key]) ? saved[key] : defaults;
+            return `<tr style="border-top:1px solid #eceef2;">
+              <td style="padding:14px 18px;color:#1a1d24;font-weight:500;">${label}</td>
+              ${vals.map((v, i) => `<td style="padding:14px;text-align:center;"><div class="toggle ${v ? 'on' : ''}" data-notif-key="${key}" data-notif-col="${i}" style="margin:0 auto;"></div></td>`).join('')}
+            </tr>`;
+          }).join('');
+          tbody.querySelectorAll('.toggle').forEach(t => {
+            t.addEventListener('click', () => {
+              t.classList.toggle('on');
+              saveNotifs();
+            });
+          });
+        }
+        function saveNotifs() {
+          const out = {};
+          events.forEach(([key]) => { out[key] = [0,0,0,0]; });
+          tbody.querySelectorAll('.toggle').forEach(t => {
+            const key = t.getAttribute('data-notif-key');
+            const col = Number(t.getAttribute('data-notif-col'));
+            out[key][col] = t.classList.contains('on') ? 1 : 0;
+          });
+          fetch('/api/org/settings/notifications', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin', body: JSON.stringify(out),
+          }).catch(() => {});
+        }
+        render(null);
+        fetch('/api/org/settings/notifications', { credentials: 'same-origin' })
+          .then(r => r.ok ? r.json() : null)
+          .then(json => { if (json && json.data && Object.keys(json.data).length) render(json.data); })
+          .catch(() => {});
       })();
 
       // (URL-hash auto-scroll on load disabled — refresh always starts at top.)
@@ -4984,7 +5145,7 @@
         const claimIdEl = document.getElementById('soap-edi-success-claim-id');
         if (claimIdEl) claimIdEl.textContent = '#' + soapEdiClaimId;
         const payerEl2 = document.getElementById('soap-edi-detail-payer');
-        if (payerEl2) payerEl2.textContent = payer + ' via Change Healthcare';
+        if (payerEl2) payerEl2.textContent = payer + ' via Claim.MD';
       }
 
       function startSoapEdiTransmission(snap, ctx) {
@@ -5004,7 +5165,7 @@
 
         const steps = [
           { title: 'Preparing EDI Transaction', subtitle: 'Generating ANSI X12 837P format...', pct: 25, delay: 80 },
-          { title: 'Connecting to Clearinghouse', subtitle: 'Establishing secure connection to Change Healthcare Network...', pct: 50, delay: 1580 },
+          { title: 'Connecting to Clearinghouse', subtitle: 'Establishing secure connection to Claim.MD...', pct: 50, delay: 1580 },
           { title: 'Routing to Payer Gateway', subtitle: 'Transmitting to ' + payer + ' EDI gateway — encrypting with TLS 1.3...', pct: 75, delay: 3080 },
           { title: 'Awaiting Acknowledgment', subtitle: 'Waiting for 999 functional acknowledgment from clearinghouse...', pct: 100, delay: 4580 }
         ];
@@ -5020,7 +5181,7 @@
         if (!host) return;
         const toast = document.createElement('div');
         toast.className = 'claim-toast pointer-events-auto';
-        toast.textContent = 'Claim #' + claimId + ' transmitted to ' + payer + ' via Change Healthcare';
+        toast.textContent = 'Claim #' + claimId + ' transmitted to ' + payer + ' via Claim.MD';
         host.appendChild(toast);
         requestAnimationFrame(() => toast.classList.add('claim-toast-visible'));
         setTimeout(() => {
@@ -5039,7 +5200,7 @@
           'Patient:           ' + snap.patient,
           'MRN:               ' + snap.mrn,
           'Payer:             ' + payer,
-          'Clearinghouse:     Change Healthcare Network',
+          'Clearinghouse:     Claim.MD',
           'Format:            ANSI X12 837P',
           'Security:          TLS 1.3',
           'Acknowledgment:    999 Functional ACK Pending (24-48 hrs)',
@@ -6399,14 +6560,14 @@
         });
 
         function runEdiAnimation(claim) {
-          const payer = (claim.payer || claim.snap?.payer || 'Payer') + ' via Change Healthcare';
+          const payer = (claim.payer || claim.snap?.payer || 'Payer') + ' via Claim.MD';
           if (ediOverlay) ediOverlay.classList.remove('hidden');
           if (ediLoading) ediLoading.classList.remove('hidden');
           if (ediSuccess) ediSuccess.classList.add('hidden');
           if (ediProgress) ediProgress.style.width = '0%';
           const steps = [
             { title:'Preparing EDI Transaction', sub:'Generating ANSI X12 837P format...', pct:25, delay:100 },
-            { title:'Connecting to Clearinghouse', sub:'Establishing secure connection to Change Healthcare...', pct:50, delay:1600 },
+            { title:'Connecting to Clearinghouse', sub:'Establishing secure connection to Claim.MD...', pct:50, delay:1600 },
             { title:'Routing to Payer Gateway', sub:'Transmitting — encrypting with TLS 1.3...', pct:75, delay:3100 },
             { title:'Awaiting Acknowledgment', sub:'Waiting for 999 functional ACK...', pct:100, delay:4600 }
           ];
@@ -7847,6 +8008,54 @@
           body[data-theme-resolved="dark"] .text-ink-400 { color: #6b7280 !important; }
           body[data-theme-resolved="dark"] .text-ink-300 { color: #525866 !important; }
           body[data-theme-resolved="dark"] .table-head { background: #14181f !important; color: #aab0bf !important; }
+
+          /* ── Status pills / badges ──────────────────────────────────
+             These are generated with inline light-mode colors (pale bg +
+             saturated text) so they read cleanly on white. On dark
+             backgrounds those pale fills look like glowing blocks —
+             override by matching the known inline-style combos and
+             replacing with muted, desaturated dark-mode equivalents
+             (tinted-dark background, softer text), the same pattern
+             GitHub/Linear use for dark-mode labels. */
+          body[data-theme-resolved="dark"] .pill[style*="background:#d8f5e3"],
+          body[data-theme-resolved="dark"] .s-pill-ok {
+            background: #123423 !important; color: #5fd398 !important;
+          }
+          body[data-theme-resolved="dark"] .pill[style*="background:#e6efff"],
+          body[data-theme-resolved="dark"] .s-pill-info {
+            background: #182740 !important; color: #7fa8f0 !important;
+          }
+          body[data-theme-resolved="dark"] .pill[style*="background:#dbeafe"] {
+            background: #16273f !important; color: #6fa2f5 !important;
+          }
+          body[data-theme-resolved="dark"] .pill[style*="background:#fff0d6"],
+          body[data-theme-resolved="dark"] .s-pill-warn {
+            background: #3a2c10 !important; color: #e8b158 !important;
+          }
+          body[data-theme-resolved="dark"] .pill[style*="background:#ffe1e1"] {
+            background: #3a1616 !important; color: #f0918f !important;
+          }
+          body[data-theme-resolved="dark"] .pill[style*="background:#eceef2"],
+          body[data-theme-resolved="dark"] .s-pill-muted {
+            background: #22262e !important; color: #9aa0ac !important;
+          }
+          /* Fee-schedule / risk badges reuse the same green/amber/red hexes
+             directly as text or backgrounds in a few places */
+          body[data-theme-resolved="dark"] [style*="color:#0c8a4f"] { color: #5fd398 !important; }
+          body[data-theme-resolved="dark"] [style*="color:#0a47b0"] { color: #7fa8f0 !important; }
+          body[data-theme-resolved="dark"] [style*="color:#b86a00"] { color: #e8b158 !important; }
+          body[data-theme-resolved="dark"] [style*="color:#c83838"] { color: #f0918f !important; }
+          body[data-theme-resolved="dark"] [style*="color:#4a505c"] { color: #9aa0ac !important; }
+          body[data-theme-resolved="dark"] [style*="background:#d8f5e3"] { background: #123423 !important; }
+          body[data-theme-resolved="dark"] [style*="background:#fff0d6"] { background: #3a2c10 !important; }
+          body[data-theme-resolved="dark"] [style*="background:#ffe1e1"] { background: #3a1616 !important; }
+          body[data-theme-resolved="dark"] [style*="background:#e6efff"] { background: #182740 !important; }
+          body[data-theme-resolved="dark"] [style*="background:#eceef2"] { background: #22262e !important; }
+          body[data-theme-resolved="dark"] [style*="background:#fef3c7"] { background: #3a2c10 !important; }
+          body[data-theme-resolved="dark"] [style*="color:#92400e"] { color: #e8b158 !important; }
+          body[data-theme-resolved="dark"] [style*="background:#f3f4f6"] { background: #22262e !important; }
+          body[data-theme-resolved="dark"] [style*="color:#374151"] { color: #9aa0ac !important; }
+
           body[data-theme-resolved="dark"] .row-hover:hover { background: #20242c !important; }
           body[data-theme-resolved="dark"] .focus-row { background: #1a2436 !important; }
           body[data-theme-resolved="dark"] .focus-row:hover { background: #1f2c45 !important; }
@@ -8573,14 +8782,35 @@
               <td style="padding:12px 16px;color:#6b7280;font-size:12px">${fmtDate(u.created_at)}</td>
               <td style="padding:12px 16px;text-align:right">
                 ${isAdmin && u.email !== (window.__ALTHAIS_EMAIL__ || '') ? `
-                  <select data-uid="${u.id}" class="team-role-select" style="font-size:12px;border:1px solid #e4e6eb;border-radius:4px;padding:4px 8px;color:#0f1116;background:#fff;cursor:pointer">
-                    <option value="admin"   ${u.role==='admin'   ?'selected':''}>Admin</option>
-                    <option value="biller"  ${u.role==='biller'  ?'selected':''}>Biller</option>
-                    <option value="provider"${u.role==='provider'?'selected':''}>Provider</option>
-                    <option value="viewer"  ${u.role==='viewer'  ?'selected':''}>Viewer</option>
-                  </select>` : '<span style="color:#9ca3af;font-size:12px">—</span>'}
+                  <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+                    <select data-uid="${u.id}" class="team-role-select" style="font-size:12px;border:1px solid #e4e6eb;border-radius:4px;padding:4px 8px;color:#0f1116;background:#fff;cursor:pointer">
+                      <option value="admin"   ${u.role==='admin'   ?'selected':''}>Admin</option>
+                      <option value="biller"  ${u.role==='biller'  ?'selected':''}>Biller</option>
+                      <option value="provider"${u.role==='provider'?'selected':''}>Provider</option>
+                      <option value="viewer"  ${u.role==='viewer'  ?'selected':''}>Viewer</option>
+                    </select>
+                    <button data-remove-uid="${u.id}" data-remove-name="${escapeHtml(u.full_name || u.email)}" class="team-remove-btn" title="Remove from team" style="background:none;border:none;cursor:pointer;color:#c83838;padding:4px;display:flex;align-items:center;">
+                      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z"/></svg>
+                    </button>
+                  </div>` : '<span style="color:#9ca3af;font-size:12px">—</span>'}
               </td>
             </tr>`).join('');
+
+          // Wire remove buttons
+          tbody.querySelectorAll('.team-remove-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const uid = btn.getAttribute('data-remove-uid');
+              const name = btn.getAttribute('data-remove-name');
+              if (!confirm(`Remove ${name} from the team? They will lose access immediately.`)) return;
+              btn.disabled = true;
+              try {
+                const res = await fetch(`/api/org/users/${uid}`, { method: 'DELETE', credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) { alert(data.detail || 'Failed to remove team member.'); btn.disabled = false; }
+                else { await loadTeam(); }
+              } catch { alert('Network error.'); btn.disabled = false; }
+            });
+          });
 
           // Wire role change dropdowns
           tbody.querySelectorAll('.team-role-select').forEach(sel => {
@@ -8715,44 +8945,6 @@
         });
       })();
 
-      // ===========================================================
-      // API key — Copy + Regenerate
-      // ===========================================================
-      const apiCopyBtn = document.getElementById('api-copy');
-      const apiKeyEl = document.getElementById('api-key-display');
-      const apiRegenBtn = document.getElementById('api-regenerate');
-      function randomKey() {
-        const cs = 'abcdef0123456789';
-        let s = '';
-        for (let i = 0; i < 32; i++) s += cs[Math.floor(Math.random() * cs.length)];
-        return 'alt_live_' + s;
-      }
-      if (apiCopyBtn && apiKeyEl) {
-        apiCopyBtn.addEventListener('click', () => {
-          const real = apiKeyEl.dataset.realKey || apiKeyEl.textContent;
-          if (navigator.clipboard) {
-            navigator.clipboard.writeText(real).then(() => {
-              apiCopyBtn.textContent = 'Copied ✓';
-              setTimeout(() => { apiCopyBtn.textContent = 'Copy'; }, 1200);
-            });
-          } else {
-            const ta = document.createElement('textarea');
-            ta.value = real; document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); apiCopyBtn.textContent = 'Copied ✓'; } catch (e) {}
-            ta.remove();
-            setTimeout(() => { apiCopyBtn.textContent = 'Copy'; }, 1200);
-          }
-        });
-      }
-      if (apiRegenBtn && apiKeyEl) {
-        apiRegenBtn.addEventListener('click', () => {
-          if (!confirm('Regenerate API key? Existing integrations will need to be updated.')) return;
-          const k = randomKey();
-          apiKeyEl.dataset.realKey = k;
-          apiKeyEl.textContent = k.slice(0, 9) + '••••••••••••••••••••••••••' + k.slice(-4);
-          if (typeof logActivity === 'function') logActivity('warn', 'API key regenerated', 'Production');
-        });
-      }
 
       // ===========================================================
       // Generic select / range / input persistence
