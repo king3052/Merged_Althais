@@ -93,6 +93,22 @@
         sourceButtons.forEach(function (b) { b.classList.toggle("active", b === btn); });
       });
     });
+
+    // Hero headline word rotator ("...to reimbursement." cycles through related words)
+    var rotatingWord = landing.querySelector("#hero-rotating-word");
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (rotatingWord && !reduceMotion) {
+      var words = ["reimbursement", "revenue", "clarity", "outcomes", "confidence"];
+      var wordIndex = 0;
+      setInterval(function () {
+        rotatingWord.style.opacity = "0";
+        setTimeout(function () {
+          wordIndex = (wordIndex + 1) % words.length;
+          rotatingWord.textContent = words[wordIndex];
+          rotatingWord.style.opacity = "1";
+        }, 350);
+      }, 2400);
+    }
   }
 
   if (document.readyState === "loading") {
