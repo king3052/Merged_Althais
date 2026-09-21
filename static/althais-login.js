@@ -28,7 +28,7 @@
     $("form-sub").textContent = reg ? "Set up access for your practice." : "Enter your details to continue.";
     label.textContent = reg ? "Create Account" : "Sign In";
     $("toggle-prompt").textContent = reg ? "Already have an account?" : "New to Althais?";
-    $("toggle-mode").textContent = reg ? "Sign in" : "Create an account";
+    $("toggle-mode").textContent = reg ? "Sign In" : "Create An Account";
     $("f-password").setAttribute("autocomplete", reg ? "new-password" : "current-password");
     $("f-password").placeholder = reg ? "Choose a password" : "Enter your password";
     document.title = (reg ? "Create Account" : "Sign In") + " | Althais";
