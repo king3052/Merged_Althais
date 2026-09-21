@@ -1,19 +1,23 @@
 /* Book-a-demo page — extends the landing page design system (althais-landing.css). */
 
-.demo-grid { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 80px; align-items: start; padding-block: 88px 104px; }
-.demo-copy h1.display { font-size: clamp(46px, 5.6vw, 80px); margin-top: 20px; }
+.demo-grid { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 80px; align-items: stretch; padding-block: 88px 104px; }
+.demo-copy { display: flex; flex-direction: column; justify-content: space-between; gap: 44px; }
+.demo-copy h1.display { font-size: clamp(42px, 4.4vw, 62px); margin-top: 20px; }
 .demo-copy .lede { margin-top: 28px; max-width: 540px; font-size: 19px; line-height: 1.65; color: var(--muted); }
 
-.dm-block { margin-top: 52px; max-width: 540px; }
+.dm-block { max-width: 540px; }
 .dm-list { list-style: none; margin: 16px 0 0; padding: 0; border-top: 1px solid var(--line); }
 .dm-list li { display: grid; grid-template-columns: 44px 1fr; gap: 6px; padding: 18px 0; border-bottom: 1px solid var(--line); }
 .dm-list i { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--accent); padding-top: 4px; }
 .dm-list b { display: block; font-weight: 500; font-size: 16px; }
 .dm-list span { display: block; margin-top: 3px; font-size: 14.5px; color: var(--muted); line-height: 1.55; }
-.dm-next { margin-top: 26px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
 
 /* form card */
-.form-card { padding: 34px 34px 30px; }
+.form-card { padding: 34px 34px 30px; display: flex; flex-direction: column; }
+#form-wrap { display: flex; flex-direction: column; flex: 1; }
+#demo-form { display: flex; flex-direction: column; flex: 1; }
+.fields { flex: 0 0 auto; }
+.form-actions { margin-top: auto; padding-top: 10px; }
 .form-title { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.05; letter-spacing: -.01em; margin: 12px 0 26px; }
 .field { margin-bottom: 18px; }
 .field label { display: block; margin-bottom: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
@@ -28,16 +32,17 @@
 .submit { width: 100%; justify-content: center; height: 48px; margin-top: 8px; font-size: 15px; }
 .submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 .fine { margin: 16px 0 0; font-size: 12.5px; color: var(--faint); line-height: 1.6; text-align: center; }
+.fine .dot { display: inline-block; margin-right: 6px; transform: translateY(-1px); }
 .fine a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 .fine a:hover { color: var(--ink); }
 
-.success { text-align: center; padding: 26px 8px 14px; }
+.success { text-align: center; padding: 26px 8px 14px; margin: auto 0; }
 .ok-ico { width: 60px; height: 60px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto 22px; }
 .success h2 { font-family: var(--serif); font-weight: 400; font-size: 38px; line-height: 1.05; margin: 0; }
 .success p { margin: 14px auto 28px; max-width: 340px; font-size: 16px; line-height: 1.65; color: var(--muted); }
 
 @media (max-width: 960px) {
   .demo-grid { grid-template-columns: 1fr; gap: 48px; padding-block: 48px 72px; }
+  .demo-copy { gap: 36px; }
   .form-card { padding: 26px 22px 24px; }
-  .dm-block { margin-top: 40px; }
 }

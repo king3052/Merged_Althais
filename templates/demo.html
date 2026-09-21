@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Book a demo — Althais</title>
-  <meta name="description" content="See Althais on your own visits: a live encounter from dictated note to coded, checked claim. Request a demo and we will be in touch within one business day." />
+  <title>Book A Demo — Althais</title>
+  <meta name="description" content="Watch a visit become a clean claim. Book an Althais demo: a live encounter from dictation to a coded, checked claim. We reply within one business day." />
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png" />
@@ -23,7 +23,7 @@
     <nav class="nav-links" aria-label="Primary">
       <a href="/" class="btn btn-ghost">
         <svg class="arr" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg>
-        Back to home
+        Return To Home
       </a>
     </nav>
   </div>
@@ -33,21 +33,20 @@
   <div class="wrap demo-grid">
 
     <div class="demo-copy">
-      <div class="eyebrow">Book a demo</div>
-      <h1 class="display">See Althais on<br /><span class="em">your own visits.</span></h1>
-      <p class="lede">Tell us a little about your practice. We will walk you through a live encounter, from the dictated note to a coded, checked claim, and answer questions about your workflow.</p>
-
-      <div class="dm-block">
-        <div class="eyebrow">What the demo covers</div>
-        <ol class="dm-list">
-          <li><i>01</i><div><b>A live encounter</b><span>Dictated, then structured into a full SOAP note.</span></div></li>
-          <li><i>02</i><div><b>Codes with confidence</b><span>ICD-10 and CPT suggestions you accept, reject or edit.</span></div></li>
-          <li><i>03</i><div><b>The NCCI check</b><span>Claims compared against the CMS procedure-to-procedure edit table.</span></div></li>
-          <li><i>04</i><div><b>Review, tracking and Althea</b><span>Approve every claim, follow it to payment, and ask Althea about it.</span></div></li>
-        </ol>
+      <div class="top">
+        <div class="eyebrow">Book A Demo</div>
+        <h1 class="display">Watch a visit become<br /><span class="em">a clean claim.</span></h1>
+        <p class="lede">We will take a typical encounter from dictation to a coded, checked claim, live, then answer whatever you want to know about fitting Althais into your workflow.</p>
       </div>
 
-      <div class="dm-next"><span class="dot"></span> We reply within one business day to schedule your demo.</div>
+      <div class="dm-block">
+        <div class="eyebrow">What you will see</div>
+        <ol class="dm-list">
+          <li><i>01</i><div><b>A visit, dictated</b><span>Spoken aloud and structured into a full SOAP note.</span></div></li>
+          <li><i>02</i><div><b>Codes, checked</b><span>ICD-10 and CPT suggestions with confidence, then the CMS NCCI edit check.</span></div></li>
+          <li><i>03</i><div><b>Review and Althea</b><span>Approve each claim, follow it to payment, and ask Althea about it.</span></div></li>
+        </ol>
+      </div>
     </div>
 
     <div class="card form-card" id="form-card">
@@ -56,39 +55,43 @@
         <div class="ok-ico" aria-hidden="true">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
         </div>
-        <h2>Request received.</h2>
-        <p>Thanks. We will be in touch within one business day to schedule your demo, and you will get a confirmation email shortly.</p>
-        <a href="/" class="btn btn-dark btn-lg">Back to home</a>
+        <h2>Demo requested.</h2>
+        <p>Thank you. We will email you within one business day to find a time that works, and a confirmation is on its way to your inbox.</p>
+        <a href="/" class="btn btn-dark btn-lg">Return To Home</a>
       </div>
 
       <div id="form-wrap">
-        <div class="eyebrow">Request a demo</div>
-        <h2 class="form-title">Tell us about your practice.</h2>
+        <div class="eyebrow">Your details</div>
+        <h2 class="form-title">Where should we reach you?</h2>
 
         <div id="msg" class="msg-err" role="alert" hidden></div>
 
         <form id="demo-form" novalidate>
-          <div class="field">
-            <label for="full_name">Full name</label>
-            <input id="full_name" name="full_name" type="text" autocomplete="name" required placeholder="Dr. Jane Smith" />
+          <div class="fields">
+            <div class="field">
+              <label for="full_name">Your name</label>
+              <input id="full_name" name="full_name" type="text" autocomplete="name" required placeholder="Dr. Jane Smith" />
+            </div>
+            <div class="field">
+              <label for="email">Work email</label>
+              <input id="email" name="email" type="email" autocomplete="email" required placeholder="jane@practice.com" />
+            </div>
+            <div class="field">
+              <label for="practice_name">Practice name</label>
+              <input id="practice_name" name="practice_name" type="text" autocomplete="organization" required placeholder="Mercy Cardiology" />
+            </div>
+            <div class="field">
+              <label for="phone">Phone <span class="opt">optional</span></label>
+              <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+1 (555) 000-0000" />
+            </div>
           </div>
-          <div class="field">
-            <label for="email">Work email</label>
-            <input id="email" name="email" type="email" autocomplete="email" required placeholder="jane@practice.com" />
+          <div class="form-actions">
+            <button id="btn" type="submit" class="btn btn-dark btn-lg submit">
+              <span id="btn-label">Book A Demo</span>
+              <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </button>
+            <p class="fine"><span class="dot"></span> We reply within one business day. Your details are only used to schedule your demo &mdash; see our <a href="/legal/privacy">privacy policy</a>.</p>
           </div>
-          <div class="field">
-            <label for="practice_name">Practice name</label>
-            <input id="practice_name" name="practice_name" type="text" autocomplete="organization" required placeholder="Mercy Cardiology" />
-          </div>
-          <div class="field">
-            <label for="phone">Phone number <span class="opt">optional</span></label>
-            <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+1 (555) 000-0000" />
-          </div>
-          <button id="btn" type="submit" class="btn btn-dark btn-lg submit">
-            <span id="btn-label">Request a demo</span>
-            <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-          </button>
-          <p class="fine">We only use this to schedule your demo. See our <a href="/legal/privacy">privacy policy</a>.</p>
         </form>
       </div>
     </div>

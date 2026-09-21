@@ -19,7 +19,7 @@
   }
   function setBusy(busy) {
     btn.disabled = busy;
-    label.textContent = busy ? "Sending…" : "Request a demo";
+    label.textContent = busy ? "Sending…" : "Book A Demo";
   }
 
   fields.forEach(function (id) { $(id).addEventListener("input", function () { $(id).classList.remove("bad"); }); });
@@ -37,8 +37,8 @@
     if (!name) missing.push("full_name");
     if (!email) missing.push("email");
     if (!practice) missing.push("practice_name");
-    if (missing.length) { showMsg("Please fill in all required fields.", missing); $(missing[0]).focus(); return; }
-    if (email.indexOf("@") === -1) { showMsg("Enter a valid email address.", ["email"]); $("email").focus(); return; }
+    if (missing.length) { showMsg("Add your name, work email and practice name to continue.", missing); $(missing[0]).focus(); return; }
+    if (email.indexOf("@") === -1) { showMsg("That email address does not look right. Please check it.", ["email"]); $("email").focus(); return; }
 
     setBusy(true);
     var body = new URLSearchParams();
@@ -59,11 +59,11 @@
         $("success").hidden = false;
         $("form-card").scrollIntoView({ block: "nearest", behavior: "smooth" });
       } else {
-        showMsg((r.data && (r.data.error || r.data.detail)) && typeof (r.data.error || r.data.detail) === "string" ? (r.data.error || r.data.detail) : "Something went wrong. Please try again.");
+        showMsg((r.data && (r.data.error || r.data.detail)) && typeof (r.data.error || r.data.detail) === "string" ? (r.data.error || r.data.detail) : "Something went wrong on our end. Please try again.");
         setBusy(false);
       }
     }).catch(function () {
-      showMsg("Network error. Please try again.");
+      showMsg("We could not reach the server. Check your connection and try again.");
       setBusy(false);
     });
   });
