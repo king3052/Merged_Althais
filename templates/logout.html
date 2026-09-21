@@ -3,123 +3,89 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Althais | Signed out</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Space+Mono:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased;
-      color: rgba(255,255,255,0.88); min-height: 100vh;
-      position: relative; overflow-x: hidden;
-    }
-    #bg-video-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; }
-    #bg-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    #bg-overlay { position: fixed; inset: 0; z-index: 1; background: rgba(0,0,0,0.55); }
-    @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .fade-up { animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-  </style>
+  <title>Signed Out | Althais</title>
+  <meta name="robots" content="noindex" />
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon/althais-tab.svg" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon/althais-tab-48.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon/android-chrome-192x192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-touch-blue-180.png" />
   <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <link rel="stylesheet" href="/static/althais-landing.css" />
+  <link rel="stylesheet" href="/static/althais-signout.css" />
 </head>
-<body class="min-h-screen flex items-center justify-center px-6 py-16">
+<body class="login-page">
 
-  <div id="bg-video-wrap">
-    <video id="bg-video" autoplay muted loop playsinline preload="auto">
-      <source src="/videos/city.mp4" type="video/mp4" />
-    </video>
-  </div>
-  <div id="bg-overlay"></div>
+<div class="lg-bg" aria-hidden="true"></div>
 
-  <div class="fade-up" style="position:relative;z-index:2;width:100%;max-width:400px">
+<div class="lg-shell">
+  <section class="lg-left">
+    <header class="lg-top">
+      <a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+    </header>
 
-    <a href="/" class="flex items-center" style="gap:12px;margin-bottom:32px;justify-content:center">
-      <svg width="24" height="24" viewBox="0 0 80 80" fill="none">
-        <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/>
-        <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8" stroke-linecap="butt"/>
-      </svg>
-      <span style="font-family:'Josefin Sans',sans-serif;font-size:15px;font-weight:600;letter-spacing:0.35em;color:#fff;text-transform:uppercase;padding-left:0.35em">ALTHAIS</span>
-    </a>
-
-    <div style="background:rgba(4,8,16,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.14);border-radius:0;overflow:hidden">
-
-      <!-- Signed-out confirmation header -->
-      <div style="padding:24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,0.12)">
-        <div style="width:36px;height:36px;border-radius:50%;background:rgba(63,217,145,0.16);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path d="M4.5 10.5l4 4 7-8" stroke="#3fd991" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+    <main class="lg-main">
+      <div class="lg-form lo-card">
+        <div class="lo-ico" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
         </div>
-        <div>
-          <div style="font-size:14px;font-weight:600;color:#fff">You've been signed out</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-top:2px">Your session has ended securely.</div>
+        <div class="lg-head">
+          <div class="eyebrow">Signed Out</div>
+          <h1 class="lg-title">You have been<br /><span class="em">signed out.</span></h1>
+          <p class="lg-sub">Your session has ended. If you are on a shared device, close this tab.</p>
+        </div>
+
+        <div class="lo-actions">
+          <a href="/login" class="btn btn-dark btn-lg lg-submit">
+            Sign In Again
+            <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+          <a href="/" class="btn btn-ghost btn-lg lo-home">Return To Home</a>
+        </div>
+
+        <div class="lo-count" id="lo-count">
+          <div class="lo-bar" aria-hidden="true"><i id="lo-bar"></i></div>
+          <p>Taking you to sign in in <b id="countdown">30</b>s. <button type="button" id="lo-cancel" class="lg-link">Stay here</button></p>
         </div>
       </div>
+    </main>
 
-      <!-- Actions -->
-      <div style="padding:24px;display:flex;flex-direction:column;gap:12px">
-        <a href="/login"
-           style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-size:13px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#0a0a0a;background:#fff;border-radius:0;padding:13px;transition:background 0.2s"
-           onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">
-          Sign In to Your Account
-        </a>
-        <a href="/"
-           style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-size:13px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#fff;background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:0;padding:12px;transition:background 0.2s, border-color 0.2s"
-           onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.borderColor='#fff'" onmouseout="this.style.background='transparent';this.style.borderColor='rgba(255,255,255,0.3)'">
-          Go to Homepage
-        </a>
-      </div>
+    <footer class="lg-foot">&copy; 2026 Althais Health, Inc.</footer>
+  </section>
+</div>
 
-      <!-- Footer note -->
-      <div style="padding:0 24px 22px">
-        <p style="font-size:11.5px;color:rgba(255,255,255,0.45);text-align:center;line-height:1.6">
-          For security, close this tab if you're on a shared device.
-        </p>
-      </div>
+<script>
+  // On sign-out we clear the session but keep each organization's namespaced data,
+  // so when the same person signs back in their claims and patients are still there.
+  // Only the old un-namespaced legacy keys are removed.
+  try {
+    Object.keys(localStorage).forEach(function (k) {
+      // old un-namespaced keys (from before data isolation)
+      if (k.indexOf('althais.') === 0 || k === 'althais_active') localStorage.removeItem(k);
+      // local:: fallback keys (used when there was no auth)
+      if (k.indexOf('local::') === 0) localStorage.removeItem(k);
+      // org_xxx:: keys are kept on purpose so each org's data survives sign-out and sign-in
+    });
+  } catch (e) {}
 
-    </div>
-
-    <!-- Auto-redirect notice -->
-    <p style="text-align:center;font-size:11.5px;color:rgba(255,255,255,0.45);margin-top:20px">
-      Redirecting to sign-in in <span id="countdown">30</span>s…
-      <button onclick="clearInterval(window._t); this.parentElement.classList.add('hidden')"
-              style="color:#fff;text-decoration:underline;background:none;border:none;cursor:pointer;font-size:11.5px;margin-left:4px">cancel</button>
-    </p>
-
-  </div>
-
-  <script>
-    // On logout we clear the session but preserve each org's namespaced data
-    // so when the same user logs back in their claims/patients are still there.
-    // We only remove old un-namespaced legacy keys.
-    try {
-      Object.keys(localStorage).forEach(k => {
-        // Remove old un-namespaced keys (legacy from before data isolation)
-        if (k.startsWith('althais.') || k === 'althais_active') {
-          localStorage.removeItem(k);
-        }
-        // Remove local:: fallback keys (used when no auth was present)
-        if (k.startsWith('local::')) {
-          localStorage.removeItem(k);
-        }
-        // NOTE: we intentionally keep org_xxx:: keys so each org's data
-        // persists across logout/login cycles
-      });
-    } catch (e) {}
-
-    // Countdown → /login
-    let s = 30;
-    window._t = setInterval(() => {
-      s--;
-      const el = document.getElementById('countdown');
-      if (el) el.textContent = s;
-      if (s <= 0) { clearInterval(window._t); window.location.href = '/login'; }
+  // Countdown to the sign-in page, with a progress bar and a way to stay.
+  (function () {
+    var s = 30, el = document.getElementById('countdown'), bar = document.getElementById('lo-bar');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (bar && !reduce) { bar.style.transition = 'width 30s linear'; requestAnimationFrame(function () { requestAnimationFrame(function () { bar.style.width = '0%'; }); }); }
+    var t = setInterval(function () {
+      s--; if (el) el.textContent = s;
+      if (s <= 0) { clearInterval(t); window.location.href = '/login'; }
     }, 1000);
-  </script>
+    document.getElementById('lo-cancel').addEventListener('click', function () {
+      clearInterval(t);
+      document.getElementById('lo-count').hidden = true;
+    });
+  })();
+</script>
 </body>
 </html>
