@@ -1,4 +1,4 @@
-/* Althais landing page — editorial layout: warm off-white canvas, serif display
+/* Althais landing page - editorial layout: warm off-white canvas, serif display
    headlines with an italic blue accent, mono micro-labels, soft-shadow cards. */
 
 :root {
@@ -379,3 +379,6 @@ section.block { padding: 120px 0 0; }
 .roll .dgs { display: block; transition: transform 1.9s cubic-bezier(.16, .84, .24, 1); will-change: transform; }
 .roll .dgs i { display: block; height: 1.3em; font-style: normal; }
 .roll .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Althea section: lift the chat card so its top lines up with the scenario pills (wide desktop only, so it never crowds the pills) */
+@media (min-width: 1140px) { .scn .chat { margin-top: -87px; } }
