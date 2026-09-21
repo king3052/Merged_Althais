@@ -25,11 +25,19 @@
       if (document.hidden) return;
       rot.classList.add("out");
       setTimeout(function () {
+        if (document.hidden) return;
         wi = (wi + 1) % words.length;
         rot.textContent = words[wi];
         rot.classList.remove("out");
       }, 350);
     }, 2600);
+    /* leaving the tab always resets the headline to "reimbursement", so coming back never lands mid-rotation on another word */
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) return;
+      wi = 0;
+      rot.textContent = words[0];
+      rot.classList.remove("out");
+    });
   }
 
   /* ---------- how it works: sticky step tracker ---------- */
