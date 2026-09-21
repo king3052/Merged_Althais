@@ -33,7 +33,7 @@
     staff: "/staff/team", team: "/staff/team"
   };
   /* these need the patient chart, so the EMR page carries them out */
-  var HANDOFF = { open_patient: 1, start_visit: 1, check_claim_readiness: 1, read_allergies: 1, read_medications: 1, read_labs: 1, start_visit_timer: 1, stop_visit_timer: 1, claims_denial_scan: 1 };
+  var HANDOFF = { new_patient: 1, dictate_visit_note: 1, open_patient: 1, start_visit: 1, check_claim_readiness: 1, read_allergies: 1, read_medications: 1, read_labs: 1, start_visit_timer: 1, stop_visit_timer: 1, claims_denial_scan: 1 };
 
   function $(id) { return document.getElementById(id); }
   function load(key, fallback) { try { var raw = localStorage.getItem(key); if (!raw) return fallback; var v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; } }
@@ -60,8 +60,11 @@
   }
   function showStop(on) { stopBtn.classList.toggle("hidden", !on); }
   function speaking() { try { return !!(window.speechSynthesis && window.speechSynthesis.speaking); } catch (e) { return false; } }
+  /* Althea only talks back when you talked to her: a spoken command (or the mic) gets a spoken answer;
+     typing a command or clicking a suggestion gets a written one, in silence. */
+  var voiceTurn = false;
   function speak(text) {
-    if (!text) return;
+    if (!text || !voiceTurn) return;
     try {
       if (!("speechSynthesis" in window)) return;
       var u = new SpeechSynthesisUtterance(text); u.rate = 1.02;
@@ -135,7 +138,7 @@
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     if (recognition) { try { recognition.stop(); } catch (e) {} recognition = null; }
     var text = finalTranscript.trim(); finalTranscript = "";
-    if (submit && text) run(text);
+    if (submit && text) { voiceTurn = true; run(text); }
   }
   /* after an answer (and after Althea has finished speaking it), listen again while the conversation is on */
   function maybeResume() {
@@ -147,6 +150,7 @@
     }, 300);
   }
   micBtn.addEventListener("click", function () {
+    voiceTurn = true;                                                  /* using the mic means you are talking to her */
     if (listening) { conversation = false; stopListening(true); }      /* end the conversation, sending anything already heard */
     else { conversation = true; startListening(false); }
   });
@@ -161,7 +165,7 @@
   textSend.addEventListener("click", function () { var v = textInput.value.trim(); if (!v) return; textInput.value = ""; ask(v); });
   textInput.addEventListener("keydown", function (e) { if (e.key === "Enter") textSend.click(); });
   $("althea-chips").addEventListener("click", function (e) { var b = e.target.closest("button[data-q]"); if (b) ask(b.getAttribute("data-q")); });
-  function ask(text) { transcriptEl.textContent = '"' + text + '"'; run(text); }
+  function ask(text) { voiceTurn = false; transcriptEl.textContent = '"' + text + '"'; run(text); }   /* typed or clicked: answer in writing only */
 
   /* ---------- ask the backend which request this is, then answer from local data ---------- */
   function run(transcript) {
@@ -188,7 +192,7 @@
 
     if (HANDOFF[intent]) {
       /* needs the patient chart: the EMR page picks the request up and runs it */
-      try { sessionStorage.setItem("althea:pending", JSON.stringify({ transcript: transcript, ts: Date.now() })); } catch (e) {}
+      try { sessionStorage.setItem("althea:pending", JSON.stringify({ transcript: transcript, ts: Date.now(), voice: voiceTurn })); } catch (e) {}
       text = "That one runs in the EMR. Opening it now…"; spoken = spoken || "Opening the EMR.";
       responseEl.textContent = text; statusEl.textContent = "Opening the EMR…"; speak(spoken);
       setTimeout(function () { window.location.href = "/emr"; }, 900);

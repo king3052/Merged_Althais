@@ -313,7 +313,7 @@
        The interface (launcher card, chat panel, mic) is shared with every
        other page: static/js/althea-ui.js. The behaviour is below. -->
   <script src="/static/js/althea-ui.js"></script>
-  <script>AltheaUI.mount({ chips: ["What's my schedule today?", "Summarize my claims", "Which claims are at risk?", "Start the visit timer", "Any documentation gaps?"] });</script>
+  <script>AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Dictate a visit note", "Which claims are at risk?", "Summarize my claims"] });</script>
 
   <!-- =================== TOP BLUE HEADER =================== -->
   <header class="bg-med-600 text-white">
@@ -4025,8 +4025,11 @@
           // Fall back to any US English voice, then any English voice, then whatever's first
           return _altheaVoices.find(v => v.lang === 'en-US') || _altheaVoices.find(v => v.lang.startsWith('en')) || _altheaVoices[0];
         }
+        // Althea only talks back when you talked to her: a spoken command (or the mic) gets a
+        // spoken answer; typing a command or clicking a suggestion gets a written one, in silence.
+        let altheaVoiceTurn = false;
         function speak(text) {
-          if (!text) return;
+          if (!text || !altheaVoiceTurn) return;
           try {
             if (!('speechSynthesis' in window)) return;
             const utter = new SpeechSynthesisUtterance(text);
@@ -4451,7 +4454,7 @@
             micBtn.setAttribute('aria-pressed', String(on));
             micBtn.setAttribute('aria-label', on ? 'Stop listening' : 'Talk to Althea');
           }
-          if (statusEl2) statusEl2.textContent = on ? 'Listening… tap the mic to stop' : 'Ask anything or tap the mic';
+          if (statusEl2) statusEl2.textContent = on ? (altheaDictation ? 'Listening… say “done” when finished' : 'Listening… tap the mic to stop') : 'Ask anything or tap the mic';
         }
 
         function openAlthea() {
@@ -4460,6 +4463,8 @@
         }
         function closeAlthea() {
           altheaConversation = false;
+          altheaDictation = null;
+          altheaSetDictationUI(false);
           stopListening(false);
           altheaStop(); // don't let speech or a pending request keep running after close
           panel.classList.add('hidden');
@@ -4478,7 +4483,12 @@
         });
         // Mic: one tap starts a conversation, another tap ends it (sending anything already heard).
         if (micBtn) micBtn.addEventListener('click', () => {
-          if (listening) { altheaConversation = false; stopListening(true); }
+          altheaVoiceTurn = true; // using the mic means you are talking to her
+          if (listening && altheaDictation) {
+            const heard = finalTranscript.trim();
+            if (heard) { altheaDictation.finishAfter = true; altheaConversation = false; stopListening(true); }
+            else { altheaEndDictation(); }
+          } else if (listening) { altheaConversation = false; stopListening(true); }
           else { altheaConversation = true; startListening(false); }
         });
         // After an answer (and once Althea has finished speaking it) listen again, while the conversation is on.
@@ -4495,12 +4505,134 @@
             }
           }, 300);
         }
+        // ── Dictation: Althea listens and fills in the New Patient form or a visit note ──────
+        // Althea only COPIES what was said into the matching fields (the /api/althea/extract
+        // endpoint is instructed never to add, infer or interpret anything, and to treat the
+        // speech purely as data). Every field she fills is highlighted until you edit it, and she
+        // never saves: you review the form and press Save yourself.
+        let altheaDictation = null; // { target, count, finishAfter }
+        const ALTHEA_SOAP_FIELDS = {
+          chief_complaint: ['soap-cc', 'Chief complaint', false], hpi: ['soap-hpi', 'HPI', true], pmh: ['soap-pmh', 'Past medical history', true],
+          psh: ['soap-psh', 'Past surgical history', true], fh: ['soap-fh', 'Family history', true], sh: ['soap-sh', 'Social history', true],
+          allergies: ['soap-allergies', 'Allergies', true], medications: ['soap-meds', 'Medications', true], labs: ['soap-labs', 'Labs', true],
+          ros: ['soap-ros', 'Review of systems', true], bp: ['soap-bp', 'Blood pressure', false], hr: ['soap-hr', 'Heart rate', false],
+          rr: ['soap-rr', 'Respiratory rate', false], temp: ['soap-temp', 'Temperature', false], spo2: ['soap-spo2', 'SpO2', false],
+          exam: ['soap-exam', 'Exam', true], assessment: ['soap-assessment', 'Assessment', true], plan: ['soap-plan', 'Plan', true]
+        };
+        const ALTHEA_NP_FIELDS = {
+          name: ['np-name', 'Name', false], member_id: ['np-member', 'Member ID', false], allergies: ['np-allergies', 'Allergies', true],
+          street: ['np-street', 'Street', false], city: ['np-city', 'City', false], state: ['np-state', 'State', false],
+          zip: ['np-zip', 'ZIP', false], phone: ['np-phone', 'Phone', false]
+        };
+        // Highlight a field Althea filled; the mark goes away as soon as you touch it.
+        function altheaMark(el) {
+          el.classList.add('althea-filled');
+          const clear = () => { el.classList.remove('althea-filled'); el.removeEventListener('input', clear); el.removeEventListener('change', clear); };
+          el.addEventListener('input', clear); el.addEventListener('change', clear);
+        }
+        function altheaNotify(el) {
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        // Plain text only (.value), never HTML. Narrative fields append to what is already there.
+        function altheaSetField(id, value, append) {
+          const el = document.getElementById(id);
+          if (!el || !value) return false;
+          const cur = (el.value || '').trim();
+          // Inputs are comma lists (the New Patient form splits allergies on commas); text areas get a new line.
+          el.value = (append && cur) ? cur + (el.tagName === 'TEXTAREA' ? '\n' : ', ') + value : value;
+          altheaNotify(el); altheaMark(el);
+          return true;
+        }
+        function altheaSetSelect(id, value) {
+          const el = document.getElementById(id);
+          if (!el || !value) return false;
+          const opt = Array.from(el.options).find(o => o.value.toLowerCase() === value.toLowerCase() || o.textContent.trim().toLowerCase() === value.toLowerCase());
+          if (!opt) return false;
+          el.value = opt.value; altheaNotify(el); altheaMark(el);
+          return true;
+        }
+        function altheaApplyFields(target, f) {
+          const filled = [];
+          if (target === 'new_patient') {
+            Object.keys(ALTHEA_NP_FIELDS).forEach(k => { const [id, label, app] = ALTHEA_NP_FIELDS[k]; if (f[k] && altheaSetField(id, f[k], app)) filled.push(label); });
+            if (f.sex && altheaSetSelect('np-sex', f.sex)) filled.push('Sex');
+            if (f.payer && altheaSetSelect('np-payer', f.payer)) filled.push('Insurance');
+            let dob = 0;
+            if (f.dob_month && altheaSetSelect('np-dob-month', f.dob_month)) dob++;
+            if (f.dob_day && altheaSetSelect('np-dob-day', f.dob_day)) dob++;
+            if (f.dob_year && altheaSetSelect('np-dob-year', f.dob_year)) dob++;
+            if (dob) filled.push('Date of birth');
+          } else {
+            Object.keys(ALTHEA_SOAP_FIELDS).forEach(k => { const [id, label, app] = ALTHEA_SOAP_FIELDS[k]; if (f[k] && altheaSetField(id, f[k], app)) filled.push(label); });
+          }
+          return filled;
+        }
+        function altheaSetDictationUI(on) {
+          const p = document.getElementById('althea-panel');
+          if (p) p.classList.toggle('is-dictating', on);
+        }
+        function altheaBeginDictation(target, intro) {
+          altheaDictation = { target, count: 0, finishAfter: false };
+          altheaConversation = true;
+          altheaSetDictationUI(true);
+          if (responseEl) responseEl.textContent = intro;
+          if (statusEl2) statusEl2.textContent = 'Ready to listen';
+        }
+        function altheaEndDictation() {
+          const dct = altheaDictation;
+          altheaDictation = null; altheaConversation = false;
+          altheaSetDictationUI(false);
+          stopListening(false);
+          const n = dct ? dct.count : 0;
+          const said = !dct ? 'Okay.' : (n
+            ? 'All set. I filled in ' + n + ' field' + (n === 1 ? '' : 's') + '. Look it over, then press Save yourself. I never save for you.'
+            : 'Okay, stopped. Nothing was filled in.');
+          if (responseEl) responseEl.textContent = said;
+          if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
+          speak(said);
+        }
+        // "done", "that's all", "finished" ... end the dictation.
+        const ALTHEA_DONE_RE = /^\s*(?:ok(?:ay)?[, ]+)?(?:that(?:'|’)?s (?:all|it|everything)|that is (?:all|it)|i(?:'|’)?m (?:done|finished)|we(?:'|’)?re (?:done|finished)|all done|done|finished?|finish(?: up)?|stop(?: dictating| dictation)?|end dictation)[.!?\s]*$/i;
+        async function altheaDictationChunk(text) {
+          const dct = altheaDictation;
+          if (!dct) return;
+          if (ALTHEA_DONE_RE.test(text)) { altheaEndDictation(); return; }
+          if (statusEl2) statusEl2.textContent = 'Filling it in…';
+          altheaShowStopButton(true);
+          try {
+            const res = await fetch('/api/althea/extract', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ target: dct.target, text }), credentials: 'same-origin'
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) throw new Error(data.error || 'failed');
+            if (!altheaDictation) return; // dictation was ended while this was in flight
+            const filled = altheaApplyFields(dct.target, data.fields || {});
+            dct.count += filled.length;
+            if (filled.length) {
+              if (responseEl) responseEl.innerHTML = '<div><b>Filled in:</b> ' + filled.map(escapeHtml).join(', ') + '</div><div style="color:#9aa0ac;">Keep going, or say “done”.</div>';
+              speak('Got it.');
+            } else {
+              if (responseEl) responseEl.textContent = 'I didn’t hear any details for the form in that. Keep going, or say “done”.';
+            }
+          } catch (e) {
+            if (responseEl) responseEl.textContent = (e && e.message && e.message !== 'failed') ? e.message : 'Sorry, I couldn’t read that just now. Say it again, or say “done”.';
+          } finally {
+            altheaShowStopButton(false);
+          }
+          if (dct.finishAfter && altheaDictation === dct) { altheaEndDictation(); return; }
+          if (statusEl2 && !listening) statusEl2.textContent = 'Ask anything or tap the mic';
+          altheaMaybeResume();
+        }
+
         // Suggestion chips
         if (chipsEl) chipsEl.addEventListener('click', (e) => {
           const chip = e.target.closest('button[data-q]');
           if (!chip) return;
           const q = chip.getAttribute('data-q');
           if (transcriptEl) transcriptEl.textContent = '"' + q + '"';
+          altheaVoiceTurn = false; // a click, so answer in writing only
           handleCommand(q);
         });
 
@@ -4542,7 +4674,7 @@
             // Reset the silence timer on every bit of speech — only auto-submit
             // after ~2s of actual silence, so pauses mid-sentence don't cut it off.
             if (silenceTimer) clearTimeout(silenceTimer);
-            silenceTimer = setTimeout(() => { stopListening(true); }, 2000);
+            silenceTimer = setTimeout(() => { stopListening(true); }, altheaDictation ? 4000 : 2000); // dictation waits longer for you to think
           };
           recognition.onerror = (ev) => {
             if (ev.error === 'no-speech') return; // keep waiting
@@ -4564,10 +4696,11 @@
           stopAudioMeter();
           if (recognition) { try { recognition.stop(); } catch (e) {} recognition = null; }
           const text = finalTranscript.trim();
-          if (submit && text) handleCommand(text);
+          if (submit && text) { altheaVoiceTurn = true; handleCommand(text); }
         }
 
         async function handleCommand(transcript) {
+          if (altheaDictation) { await altheaDictationChunk(transcript); return; }
           if (statusEl2) statusEl2.textContent = 'Thinking…';
           altheaAbortController = new AbortController();
           altheaShowStopButton(true);
@@ -4926,6 +5059,29 @@
             await altheaDenialScan();
             spoken = ''; // altheaDenialScan speaks its own result
 
+          } else if (intent === 'new_patient') {
+            if (typeof openNewPatientModal !== 'function') {
+              spoken = spoken || 'I can\u2019t open the new patient form from here.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else {
+              openNewPatientModal();
+              altheaBeginDictation('new_patient', 'The New Patient form is open. Tell me about the patient: name, date of birth, insurance, allergies, address, phone. Say \u201cdone\u201d when finished.');
+              spoken = 'Okay, tell me about the new patient.';
+            }
+
+          } else if (intent === 'dictate_visit_note') {
+            const p = resolveAltheaPatient(params);
+            if (!p) {
+              spoken = 'Which patient is this note for? Say their name.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else if (typeof openSoap === 'function') {
+              altheaRememberPatient(p.mrn);
+              openSoap(p.mrn);
+              if (typeof soapShowStep === 'function') soapShowStep(2); // the note fields
+              altheaBeginDictation('soap_note', 'The visit note for ' + p.name + ' is open. Dictate it: chief complaint, history, vitals, exam, assessment, plan. Say \u201cdone\u201d when finished.');
+              spoken = 'Ready. Go ahead with the note for ' + spokenName(p.name) + '.';
+            }
+
           } else if (intent === 'open_section') {
             const section = params.section;
             if (section === 'claims') {
@@ -4968,6 +5124,7 @@
           if (!val) return;
           if (transcriptEl) transcriptEl.textContent = '"' + val + '"';
           textInput.value = '';
+          altheaVoiceTurn = false; // typed, so answer in writing only
           handleCommand(val);
         });
         if (textInput) textInput.addEventListener('keydown', (e) => {
@@ -4985,6 +5142,7 @@
               window.addEventListener('load', () => setTimeout(() => {
                 panel.classList.remove('hidden');
                 if (transcriptEl) transcriptEl.textContent = '"' + pending.transcript + '"';
+                altheaVoiceTurn = !!pending.voice; // stay silent if it was typed on the other page
                 handleCommand(pending.transcript);
               }, 900));
             }

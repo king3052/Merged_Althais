@@ -8,7 +8,7 @@
   var SEND = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg>';
   var CLOSE = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>';
   var MIC = '<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0M10 15.5V18"/></svg>';
-  var DEFAULT_CHIPS = ["What's my schedule today?", "Summarize my claims", "Which claims are at risk?", "Any documentation gaps?"];
+  var DEFAULT_CHIPS = ["What's my schedule today?", "Add a new patient", "Summarize my claims", "Which claims are at risk?"];
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -51,7 +51,7 @@
             '<span class="alt-mic-wrap"><span id="althea-ring" class="alt-ring"></span><button id="althea-mic" class="alt-mic" type="button" aria-label="Talk to Althea" aria-pressed="false" title="Talk to Althea">' + MIC + "</button></span>" +
             '<button id="althea-text-send" class="alt-send" type="button" aria-label="Send">' + SEND + "</button>" +
           "</div>" +
-          '<p class="alt-note">Tap the mic to talk. Althea keeps listening until you tap it again.</p>' +
+          '<p class="alt-note">Tap the mic to talk. Althea keeps listening until you tap it again, and only speaks when you talk to her.</p>' +
         "</footer>" +
       "</section>";
     (document.body || document.documentElement).appendChild(fab);

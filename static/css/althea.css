@@ -78,3 +78,11 @@
 }
 @media (prefers-reduced-motion: reduce) { .alt-launch, .alt-go, .alt-ring, .alt-wave span, .alt-timer i { transition: none; animation: none; } }
 @media (max-width: 480px) { #althea-fab { right: 12px; bottom: 12px; } .alt-launch { width: 280px; } .alt-panel { width: calc(100vw - 24px); max-width: none; max-height: calc(100vh - 24px); } }
+
+/* fields Althea filled from dictation stay highlighted until you edit them */
+.althea-filled { border-color: #0d5bd7 !important; box-shadow: 0 0 0 3px rgba(13, 91, 215, .18) !important; background-color: #f5f9ff !important; }
+
+/* while dictating into a form, keep the panel small so the form stays visible */
+.alt-panel.is-dictating { max-height: 300px; }
+.alt-panel.is-dictating .alt-chips, .alt-panel.is-dictating .alt-note, .alt-panel.is-dictating #althea-hello { display: none; }
+.alt-panel.is-dictating .alt-body { min-height: 60px; }
