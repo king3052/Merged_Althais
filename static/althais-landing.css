@@ -319,8 +319,8 @@ section.block { padding: 120px 0 0; }
 .ask { position: fixed; right: 20px; bottom: 20px; z-index: 60; display: flex; align-items: center; gap: 12px; width: 296px; max-width: calc(100vw - 32px); padding: 10px 12px 10px 10px; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 36px rgba(30, 24, 16, .14), 0 1px 6px rgba(30, 24, 16, .06); color: var(--ink); text-decoration: none; font: inherit; text-align: left; cursor: pointer; opacity: 0; transform: translateY(14px); pointer-events: none; transition: opacity .5s ease, transform .5s ease, box-shadow .2s ease; }
 .ask.show { opacity: 1; transform: none; pointer-events: auto; }
 .ask.show:hover { transform: translateY(-2px); box-shadow: 0 16px 42px rgba(30, 24, 16, .18), 0 1px 6px rgba(30, 24, 16, .06); }
-.ask-av { width: 42px; height: 42px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; flex: none; }
-.ask-av svg { width: 20px; height: 20px; }
+.ask-av { width: 42px; height: 42px; display: grid; place-items: center; flex: none; }
+.ask-av svg { width: 38px; height: 38px; }
 .ask-tx { flex: 1; min-width: 0; line-height: 1.3; }
 .ask-tx b { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
 .ask-tx span { display: block; margin-top: 1px; font-size: 13px; color: var(--muted); }
@@ -334,7 +334,8 @@ section.block { padding: 120px 0 0; }
 .ap { position: fixed; right: 20px; bottom: 20px; z-index: 61; width: 372px; max-width: calc(100vw - 32px); height: min(600px, calc(100vh - 40px)); height: min(600px, calc(100dvh - 40px)); display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 28px 80px rgba(30, 24, 16, .22), 0 2px 10px rgba(30, 24, 16, .06); overflow: hidden; opacity: 0; visibility: hidden; transform: translateY(18px) scale(.98); transform-origin: bottom right; transition: opacity .3s ease, transform .3s ease, visibility 0s linear .3s; }
 .ap.open { opacity: 1; visibility: visible; transform: none; transition: opacity .3s ease, transform .3s ease; }
 .ap-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 14px 18px; border-bottom: 1px solid var(--line); flex: none; }
-.ap-av { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; flex: none; }
+.ap-av { width: 40px; height: 40px; display: grid; place-items: center; flex: none; }
+.ap-av svg { width: 36px; height: 36px; }
 .ap-id { flex: 1; min-width: 0; line-height: 1.3; }
 .ap-id b { display: block; font-size: 16px; font-weight: 600; }
 .ap-id span { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
