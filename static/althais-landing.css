@@ -253,22 +253,6 @@ section.block { padding: 120px 0 0; }
 .cmp-row .a { color: var(--accent); }
 .foot-note { margin-top: 16px; font-size: 12.5px; color: var(--faint); }
 
-/* faq */
-.faq { margin-top: 110px; padding: 64px 24px 0; }
-.faq::before { content: ""; display: block; height: 1px; background: var(--line); margin: -64px 0 64px; }
-.faq-toggle { margin-top: 22px; display: inline-flex; align-items: center; gap: 14px; height: 42px; padding: 0 20px; border: 1px solid var(--line); background: #fff; border-radius: 999px; font-size: 15px; }
-.faq-toggle svg { transition: transform .2s; }
-.faq-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.faq-list { margin-top: 18px; max-width: 760px; }
-.faq-list[hidden] { display: none; }
-details { border-bottom: 1px solid var(--line); }
-summary { list-style: none; cursor: pointer; padding: 18px 0; font-size: 17px; display: flex; justify-content: space-between; gap: 20px; }
-summary::-webkit-details-marker { display: none; }
-summary::after { content: "+"; font-family: var(--mono); color: var(--faint); }
-details[open] summary::after { content: "–"; }
-details p { padding: 0 0 20px; color: var(--muted); font-size: 15.5px; line-height: 1.7; max-width: 660px; }
-details p a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-
 /* final cta + footer */
 .cta { margin: 100px 16px 0; background: var(--dark); color: #fff; border-radius: 32px; padding: 130px 0 120px; text-align: center; }
 .cta .eyebrow { color: var(--accent-dark); }

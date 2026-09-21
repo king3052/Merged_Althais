@@ -93,7 +93,7 @@
   var SCN = [
     {
       share: [["g", "Complaint", "Chest pain, SOB, 2 hr"], ["g", "Assessment", "Rule out ACS"], ["g", "Visit type", "Emergency Dept"], ["g", "Duration", "47 min, documented"], ["o", "Vitals", "BP 148/92, HR 88"], ["o", "Labs", "Troponin pending"]],
-      note: "Green is what the code actually rests on. Everything else in the note was read and left out.",
+      note: "Blue is what the code actually rests on. Everything else in the note was read and left out.",
       who: ["ED", "Emergency visit, demo patient", "Ready for review"], title: "Chest pain, ED visit",
       body: ['Documented <mark>chest pain with shortness of breath</mark> and an ACS rule-out workup, with <mark>47 minutes</mark> of provider time.',
              'The setting and the level of decision-making support <mark>CPT 99285</mark>, with <mark>R07.9</mark> as the primary diagnosis.',
@@ -173,15 +173,5 @@
       }, { threshold: 0.25 });
       cObs.observe(cmp);
     }
-  }
-
-  /* ---------- FAQ ---------- */
-  var ft = $("#faq-toggle"), fl = $("#faq-list");
-  if (ft && fl) {
-    ft.addEventListener("click", function () {
-      var open = ft.getAttribute("aria-expanded") === "true";
-      ft.setAttribute("aria-expanded", String(!open));
-      fl.hidden = open;
-    });
   }
 })();
