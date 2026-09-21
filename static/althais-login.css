@@ -1,0 +1,69 @@
+/* Sign-in page: a single centred card, extends the landing page design system (althais-landing.css). */
+
+.login-page { min-height: 100vh; }
+.lg-shell { min-height: 100vh; min-height: 100dvh; }
+
+/* ---------- left: the form ---------- */
+.lg-left { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding: 0 28px; }
+.lg-top { display: flex; align-items: center; justify-content: space-between; height: 88px; flex: none; }
+.lg-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 0 40px; }
+.lg-form { width: 100%; max-width: 456px; padding: 40px 38px 36px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
+.lg-foot { flex: none; padding: 0 0 28px; font-size: 13px; color: var(--faint); }
+
+.lg-title { margin: 16px 0 0; font-family: var(--serif); font-weight: 400; font-size: clamp(38px, 4vw, 46px); line-height: 1.02; letter-spacing: -.015em; }
+.lg-sub { margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--muted); }
+
+.lg-msg { margin-top: 24px; padding: 11px 14px; border-radius: 10px; background: #fbeeea; border: 1px solid #f0d0c7; color: var(--red); font-size: 14px; line-height: 1.5; }
+.lg-msg.ok { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.lg-msg[hidden], #reg-fields[hidden], .lg-hint[hidden], .eye-on[hidden], .eye-off[hidden], .lg-forgot[hidden], .lg-pilot[hidden] { display: none; }
+
+#auth-form { margin-top: 30px; }
+.field { margin-bottom: 18px; }
+.field label { display: block; margin-bottom: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.field-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.field-row label { margin-bottom: 0; }
+.field input { width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font: 400 16px var(--sans); color: var(--ink); transition: border-color .15s, box-shadow .15s; }
+.field input::placeholder { color: #b7b7b7; }
+.field input:hover { border-color: #cfcfcf; }
+.field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field input.bad { border-color: var(--red); box-shadow: 0 0 0 3px #f7e3de; }
+
+.pw { position: relative; }
+.pw input { padding-right: 48px; }
+.pw-toggle { position: absolute; top: 0; right: 0; width: 48px; height: 48px; display: grid; place-items: center; border: 0; background: transparent; color: var(--faint); cursor: pointer; border-radius: 0 10px 10px 0; transition: color .15s; }
+.pw-toggle:hover { color: var(--ink); }
+.pw-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.lg-forgot { font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #cfcfcf; transition: color .15s, text-decoration-color .15s; }
+.lg-forgot:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.lg-hint { margin: 8px 0 0; font-size: 13px; color: var(--faint); }
+
+.lg-submit { width: 100%; justify-content: center; height: 50px; margin-top: 10px; font-size: 15px; }
+.lg-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+.lg-switch { margin: 26px 0 0; text-align: center; font-size: 14.5px; color: var(--muted); }
+.lg-link { margin-left: 4px; padding: 0; border: 0; background: none; font: inherit; font-weight: 500; color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #cfcfcf; transition: color .15s, text-decoration-color .15s; }
+.lg-link:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.lg-pilot { margin: 14px 0 0; text-align: center; font-size: 13.5px; color: var(--faint); }
+.lg-pilot a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #cfcfcf; }
+.lg-pilot a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lg-form { animation: fadeUp .6s ease both; }
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 640px) {
+  .lg-left { padding: 0 16px; }
+  .lg-top { height: 72px; }
+  .lg-main { align-items: flex-start; padding-top: 8px; }
+  .lg-form { padding: 28px 22px 26px; }
+}
+@media (max-height: 800px) and (min-width: 641px) {
+  .lg-top { height: 72px; }
+  .lg-form { padding-block: 32px 28px; }
+  .lg-title { font-size: 38px; }
+  .lg-sub { margin-top: 10px; }
+  #auth-form { margin-top: 22px; }
+  .field { margin-bottom: 14px; }
+}
