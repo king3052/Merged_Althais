@@ -412,7 +412,7 @@ def register(
         ),
     )
 
-    resp = JSONResponse({"ok": True, "redirect": "/overview"})
+    resp = JSONResponse({"ok": True, "redirect": "/onboarding"})   # new accounts land on the welcome page first
     _set_session_cookie(resp, user.id)
     return resp
 

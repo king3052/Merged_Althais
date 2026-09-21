@@ -1,95 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  {% include "_head.html" %}
-  <title>Althais — Welcome</title>
-  <style>
-    body { background: #eceef2; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-    .card { background: #fff; border: 1px solid #dde0e6; border-radius: 6px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 440px; padding: 40px 40px 36px; }
-    .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #0f1116; margin-bottom: 28px; }
-    h1 { font-size: 22px; font-weight: 700; color: #0f1116; margin: 0 0 6px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; line-height: 1.5; }
-    label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #2c313b; margin-bottom: 5px; margin-top: 16px; }
-    label:first-of-type { margin-top: 0; }
-    input[type=text] { width: 100%; box-sizing: border-box; border: 1px solid #dde0e6; border-radius: 5px; padding: 9px 12px; font-size: 13px; color: #0f1116; outline: none; transition: border-color .15s; }
-    input[type=text]:focus { border-color: #0d5bd7; }
-    .hint { font-size: 11.5px; color: #9aa0ac; margin-top: 4px; line-height: 1.45; }
-    .role-badge { display: inline-block; background: #e6efff; color: #0a47b0; font-size: 11px; font-weight: 600; border-radius: 4px; padding: 2px 8px; margin-bottom: 18px; }
-    .btn { display: block; width: 100%; margin-top: 24px; padding: 11px; background: #0d5bd7; color: #fff; font-size: 13.5px; font-weight: 700; border: none; border-radius: 5px; cursor: pointer; transition: background .15s; }
-    .btn:hover { background: #0a47b0; }
-    .btn:disabled { opacity: .6; cursor: not-allowed; }
-    .skip { text-align: center; margin-top: 14px; font-size: 12px; color: #9aa0ac; }
-    .skip a { color: #6b7280; text-decoration: underline; cursor: pointer; }
-    #msg { display: none; margin-top: 14px; padding: 10px 12px; border-radius: 5px; font-size: 12.5px; }
-    #msg.ok { background: #d8f5e3; color: #0c6e40; }
-    #msg.err { background: #ffe1e1; color: #c83838; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome | Althais</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon/althais-tab.svg" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon/althais-tab-48.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon/android-chrome-192x192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <link rel="stylesheet" href="/static/althais-landing.css" />
+  <link rel="stylesheet" href="/static/althais-auth.css" />
 </head>
-<body>
-  <div class="card">
-    <div class="logo">Althais</div>
-    <h1>Welcome, {{ user.full_name or "there" }} 👋</h1>
-    <p class="sub">Just a few quick details before you get started — this takes about 30 seconds.</p>
+<body class="login-page">
 
-    <div class="role-badge">{{ (user.role or "provider") | capitalize }}</div>
+<div class="lg-shell">
+  <section class="lg-left">
+    <header class="lg-top">
+      <a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+    </header>
 
-    <div id="msg"></div>
+    <main class="lg-main">
+      <div class="lg-form">
+        <div class="lg-head">
+          <div class="eyebrow">Welcome</div>
+          <h1 class="lg-title">What should we<br /><span class="em">call you?</span></h1>
+          <p class="lg-sub">This is how you will appear in Althais.</p>
+        </div>
 
-    <label for="full-name">Your full name</label>
-    <input type="text" id="full-name" autocomplete="name" placeholder="Dr. Jane Smith"
-      value="{{ user.full_name or '' }}" />
+        <div id="auth-msg" class="lg-msg" role="alert" hidden></div>
 
-    <label for="provider-name">Your provider name <span style="color:#9aa0ac;font-weight:400;text-transform:none;font-size:10.5px;">(as it appears on appointments &amp; claims)</span></label>
-    <input type="text" id="provider-name" autocomplete="off" placeholder="Dr. J. Smith" />
-    <div class="hint">This links your login to your schedule and claims so you see only your own data. Leave blank if you're not a billing provider (e.g. admin or office staff).</div>
+        <form id="auth-form" novalidate>
+          <div class="field">
+            <label for="f-name">Your name</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" required placeholder="Dr. Jane Smith" value="{{ user.full_name or '' }}" />
+          </div>
+          <div class="field">
+            <label for="f-provider">Provider name (optional)</label>
+            <input id="f-provider" name="provider" type="text" autocomplete="off" placeholder="Dr. J. Smith" />
+            <p class="lg-hint">Shown on appointments and claims. Leave blank if you are not a billing provider.</p>
+          </div>
+          <button id="submit-btn" type="submit" class="btn btn-dark btn-lg lg-submit">
+            <span id="submit-label">Get Started</span>
+            <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </button>
+        </form>
 
-    <button class="btn" id="save-btn" type="button">Get started →</button>
-    <div class="skip">
-      <a id="skip-link">Skip for now</a>
-    </div>
-  </div>
+        <p class="lg-switch">Not now? <button id="skip-link" type="button" class="lg-link">Skip For Now</button></p>
+      </div>
+    </main>
 
-  <script>
-    const saveBtn = document.getElementById('save-btn');
-    const skipLink = document.getElementById('skip-link');
-    const msg = document.getElementById('msg');
+    <footer class="lg-foot">&copy; 2026 Althais Health, Inc.</footer>
+  </section>
+</div>
 
-    function showMsg(text, ok) {
-      msg.textContent = text;
-      msg.className = ok ? 'ok' : 'err';
-      msg.style.display = '';
-    }
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+  var msg = $("auth-msg"), btn = $("submit-btn"), label = $("submit-label"), nameInput = $("f-name"), provInput = $("f-provider"), skip = $("skip-link");
+  var IDLE = label.textContent;
 
-    async function submit(skip) {
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving…';
-      const body = new URLSearchParams();
-      body.set('full_name', skip ? '' : (document.getElementById('full-name').value || ''));
-      body.set('provider_name', skip ? '' : (document.getElementById('provider-name').value || ''));
-      try {
-        const res = await fetch('/api/me/complete-onboarding', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body.toString(),
-          credentials: 'same-origin'
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.ok) {
-          window.location.href = data.redirect || '/overview';
-        } else {
-          showMsg(data.detail || data.error || 'Something went wrong — please try again.', false);
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Get started →';
-        }
-      } catch (e) {
-        showMsg('Network error — please check your connection and try again.', false);
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Get started →';
-      }
-    }
+  function showMsg(text) { msg.textContent = text; msg.hidden = false; }
+  function clearMsg() { msg.hidden = true; nameInput.classList.remove("bad"); }
+  nameInput.addEventListener("input", function () { nameInput.classList.remove("bad"); });
 
-    saveBtn.addEventListener('click', () => submit(false));
-    skipLink.addEventListener('click', () => submit(true));
-  </script>
+  function busy(on, text) { btn.disabled = on; skip.disabled = on; btn.classList.toggle("is-busy", on); label.textContent = on ? text : IDLE; }
+
+  /* the backend takes URL-encoded form fields; a skip sends both blank */
+  function save(isSkip) {
+    clearMsg();
+    var name = nameInput.value.trim();
+    if (!isSkip && !name) { showMsg("Please enter your name, or skip for now."); nameInput.classList.add("bad"); nameInput.focus(); return; }
+    busy(true, isSkip ? "Skipping…" : "Saving…");
+    var body = new URLSearchParams();
+    body.set("full_name", isSkip ? "" : name);
+    body.set("provider_name", isSkip ? "" : provInput.value.trim());
+    fetch("/api/me/complete-onboarding", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString(), credentials: "same-origin" })
+      .then(function (res) { return res.json().catch(function () { return {}; }).then(function (d) { return { ok: res.ok, d: d }; }); })
+      .then(function (r) {
+        if (r.ok && r.d && r.d.ok) { label.textContent = "Redirecting…"; window.location.href = r.d.redirect || "/overview"; return; }
+        var err = r.d && (typeof r.d.detail === "string" ? r.d.detail : (typeof r.d.error === "string" ? r.d.error : ""));
+        showMsg(err || "Something went wrong. Please try again."); busy(false);
+      })
+      .catch(function () { showMsg("We could not reach the server. Check your connection and try again."); busy(false); });
+  }
+
+  $("auth-form").addEventListener("submit", function (e) { e.preventDefault(); save(false); });
+  skip.addEventListener("click", function () { save(true); });
+
+  if (window.matchMedia && window.matchMedia("(pointer: fine)").matches) { nameInput.focus(); nameInput.select(); }
+})();
+</script>
 </body>
 </html>
