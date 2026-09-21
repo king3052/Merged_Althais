@@ -146,6 +146,12 @@ async def demo_page():
         return HTMLResponse(content=f.read())
 
 
+@app.get("/pilot")
+async def pilot_page():
+    with open("templates/pilot.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
 # ── Admin pages ──────────────────────────────────────────────────────────────
 @app.get("/admin/login")
 async def admin_login_page():

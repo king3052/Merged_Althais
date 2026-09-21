@@ -6,6 +6,8 @@
 
   function $(id) { return document.getElementById(id); }
   var msg = $("msg"), btn = $("btn"), label = $("btn-label");
+  var idleLabel = label.textContent;
+  var endpoint = form.getAttribute("data-endpoint") || "/request-demo";
   var fields = ["full_name", "email", "practice_name", "phone"];
 
   function showMsg(text, badIds) {
@@ -19,7 +21,7 @@
   }
   function setBusy(busy) {
     btn.disabled = busy;
-    label.textContent = busy ? "Sending…" : "Book A Demo";
+    label.textContent = busy ? "Sending…" : idleLabel;
   }
 
   fields.forEach(function (id) { $(id).addEventListener("input", function () { $(id).classList.remove("bad"); }); });
@@ -47,7 +49,7 @@
     body.set("practice_name", practice);
     body.set("phone", phone);
 
-    fetch("/request-demo", {
+    fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString()

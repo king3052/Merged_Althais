@@ -970,6 +970,76 @@ def request_demo(
     return JSONResponse({"ok": True})
 
 
+class PilotRequest(Base):
+    """Sign-ups from the public "Join the Pilot" page. Kept separate from
+    demo_requests so the existing demo flow and its table are untouched."""
+    __tablename__ = "pilot_requests"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    full_name: Mapped[str] = mapped_column(String(255))
+    email: Mapped[str] = mapped_column(String(255))
+    practice_name: Mapped[str] = mapped_column(String(255))
+    phone: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime, default=lambda: dt.datetime.now(timezone.utc)
+    )
+
+Base.metadata.create_all(engine)   # creates pilot_requests if it doesn't exist
+
+
+@router.post("/request-pilot")
+def request_pilot(
+    full_name: str = Form(...),
+    email: str = Form(...),
+    practice_name: str = Form(...),
+    phone: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    import html as _html
+    full_name, email = full_name.strip()[:255], email.strip().lower()[:255]
+    practice_name, phone = practice_name.strip()[:255], phone.strip()[:64]
+    if not full_name or not practice_name or "@" not in email or "." not in email.split("@")[-1]:
+        return JSONResponse({"ok": False, "error": "Please check your name, email and practice name."}, status_code=400)
+
+    # 1. Save to database (always works even if email fails)
+    db.add(PilotRequest(full_name=full_name, email=email, practice_name=practice_name, phone=phone))
+    db.commit()
+
+    # Values go into HTML emails, so escape them first.
+    n, e, pr, ph = (_html.escape(v) for v in (full_name, email, practice_name, phone))
+
+    # 2. Notify the team
+    send_email(
+        "kevinqu@althais.com",
+        f"New pilot request: {practice_name}",
+        _email_html(
+            "New pilot request",
+            f"""
+            <strong>Name:</strong> {n}<br>
+            <strong>Email:</strong> {e}<br>
+            <strong>Practice:</strong> {pr}<br>
+            <strong>Phone:</strong> {ph or '-'}<br><br>
+            Reply directly to this email to follow up.
+            """,
+            f"mailto:{e}",
+            f"Reply to {n}",
+        ),
+    )
+
+    # 3. Confirm to the requester
+    send_email(
+        email,
+        "We received your Althais pilot request",
+        _email_html(
+            "Thanks for your interest in Althais",
+            f"Hi {n}, we received your request to join the Althais pilot for <strong>{pr}</strong>. Someone from our team will reach out within 1 business day.",
+            "https://althais.com",
+            "Visit Althais",
+        ),
+    )
+
+    return JSONResponse({"ok": True})
+
+
 class NewsletterSubscriber(Base):
     __tablename__ = "newsletter_subscribers"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

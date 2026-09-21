@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join the Pilot | Althais</title>
+  <meta name="description" content="Join the Althais pilot. Tell us about your practice and we will be in touch within one business day about trying Althais on your own visits." />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon/althais-tab.svg" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon/althais-tab-48.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon/android-chrome-192x192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <link rel="stylesheet" href="/static/althais-landing.css" />
+  <link rel="stylesheet" href="/static/althais-demo.css" />
+</head>
+<body class="demo-page">
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/" class="btn btn-ghost">
+        <svg class="arr" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg>
+        Return To Home
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap demo-grid">
+
+    <div class="demo-copy">
+      <div class="top">
+        <div class="eyebrow">The Pilot</div>
+        <h1 class="display">Try Althais on<br /><span class="em">your own visits.</span></h1>
+        <p class="lede">Tell us about your practice and we will be in touch about joining the pilot. We will talk through how Althais would fit the way you already work.</p>
+      </div>
+
+      <div class="dm-block">
+        <div class="eyebrow">How it works</div>
+        <ol class="dm-list">
+          <li><i>01</i><div><b>Tell us about your practice</b><span>A few details so we know who we are talking to.</span></div></li>
+          <li><i>02</i><div><b>We reach out</b><span>We reply within one business day to talk about the pilot.</span></div></li>
+          <li><i>03</i><div><b>Talk it through</b><span>We go over how Althais would fit your workflow and what taking part involves.</span></div></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card form-card" id="form-card">
+
+      <div id="success" class="success" hidden>
+        <div class="ok-ico" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h2>Request received.</h2>
+        <p>Thank you. We will email you within one business day to talk about the pilot, and a confirmation is on its way to your inbox.</p>
+        <a href="/" class="btn btn-dark btn-lg">Return To Home</a>
+      </div>
+
+      <div id="form-wrap">
+        <div class="eyebrow">Your details</div>
+        <h2 class="form-title">Tell us about your practice.</h2>
+
+        <div id="msg" class="msg-err" role="alert" hidden></div>
+
+        <form id="demo-form" data-endpoint="/request-pilot" novalidate>
+          <div class="fields">
+            <div class="field">
+              <label for="full_name">Your name</label>
+              <input id="full_name" name="full_name" type="text" autocomplete="name" required placeholder="Dr. Jane Smith" />
+            </div>
+            <div class="field">
+              <label for="email">Work email</label>
+              <input id="email" name="email" type="email" autocomplete="email" required placeholder="jane@practice.com" />
+            </div>
+            <div class="field">
+              <label for="practice_name">Practice name</label>
+              <input id="practice_name" name="practice_name" type="text" autocomplete="organization" required placeholder="Mercy Cardiology" />
+            </div>
+            <div class="field">
+              <label for="phone">Phone <span class="opt">optional</span></label>
+              <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+1 (555) 000-0000" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="btn" type="submit" class="btn btn-dark btn-lg submit">
+              <span id="btn-label">Join the Pilot</span>
+              <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </button>
+            <p class="fine"><span class="dot"></span> We reply within one business day. Your details are only used to get in touch about the pilot. See our <a href="/legal/privacy">privacy policy</a>.</p>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="l"><a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a><span>© 2026 Althais Health, Inc.</span></div>
+  </div>
+</footer>
+
+<script src="/static/althais-demo.js"></script>
+</body>
+</html>
