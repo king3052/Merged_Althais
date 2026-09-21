@@ -1,0 +1,105 @@
+/* Dark mode for the public pages (landing, demo, pilot, sign in and friends).
+   Switched from Althea on the landing page; the choice is shared with the workspace via /static/js/theme.js.
+   Everything hangs off <html data-theme-resolved="dark">. */
+
+html[data-theme-resolved="dark"] {
+  color-scheme: dark;
+  --bg: #000;
+  --ink: #eef0f5;
+  --ink-2: #cfd3dc;
+  --muted: #9aa2b2;
+  --faint: #7a8292;
+  --line: #22262f;
+  --card: #0f1218;
+  --accent: oklch(0.74 0.14 258);
+  --accent-dark: oklch(0.8 0.11 255);
+  --accent-soft: oklch(0.3 0.06 258);
+  --accent-bar: oklch(0.55 0.12 255);
+  --dark: #10151f;
+  --amber: #e0a460;
+  --red: #f08c78;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+
+  /* things that were pure white */
+  .btn-dark { background: #eef0f5; color: #0b0e14; }
+  .btn-dark:hover { background: #fff; }
+  .btn-ghost, .badge, .tarea, .chip-btn, .board, .pill, .field input, .ap-x, .ap-chips button, .ap-form, .ask, .ap { background: var(--card); }
+  .chip-btn.on, .tab.on, .msg.u { background: #eef0f5; color: #0b0e14; border-color: #eef0f5; }
+  .chip-btn:hover { border-color: #4a5263; }
+  .btn-pill, .chip, .kv-lock, .bar-row .track { background: #1a2030; }
+  .card.soft { background: #0a0c10; }
+  .card.soft .eyebrow { color: #6b7383; }
+  .kv + .kv, .row + .row, .code-line + .code-line { border-top-color: #232936; }
+  .g2 { color: #7a8292; }
+  .timeline li::before, .timeline li::after { background: #2c3342; }
+  .timeline li i { color: #5b6476; }
+  .tag.n { background: #232936; }
+  .tag.w { background: #3a2c17; }
+  .tag.b { background: #3a1f1a; }
+  .qdot, .cmp-bars .b { background: #3a4152; }
+  .msg.a, .ap-typing { background: #1d2431; }
+  .ap-typing i { background: #6b7590; }
+
+  /* the dark bands keep their look but sit a little apart from the page */
+  .dark, .cta { border: 1px solid #1c2331; }
+  .scn-tab.on { background: #eef0f5; color: #0b0e14; border-color: #eef0f5; }
+  .chat { background: var(--card); color: var(--ink); box-shadow: 0 30px 80px rgba(0, 0, 0, .55); }
+  .chat-head .spark { color: #0b0e14; }
+
+  /* Althea on the landing page */
+  .ask { border-color: var(--line); box-shadow: 0 12px 36px rgba(0, 0, 0, .5), 0 1px 6px rgba(0, 0, 0, .3); }
+  .ask.show:hover { box-shadow: 0 16px 42px rgba(0, 0, 0, .6), 0 1px 6px rgba(0, 0, 0, .3); }
+  .ap { border-color: var(--line); box-shadow: 0 28px 80px rgba(0, 0, 0, .62), 0 2px 10px rgba(0, 0, 0, .35); }
+  .ap-x:hover { border-color: #4a5263; }
+  .ap-cta { background: #eef0f5; color: #0b0e14; }
+  .ap-cta:hover { background: #fff; }
+  .ap-chips button:hover { background: #182740; }
+  .ap-form input { color: var(--ink); }
+  .ap-form input::placeholder, .field input::placeholder { color: #6b7383; }
+  .ask-go, .ap-send, .spark { color: #0b0e14; }
+
+  /* sign in, create account, reset, sign out, and the demo and pilot forms */
+  .field input { color: var(--ink); }
+  .field input:hover { border-color: #3a4152; }
+  .field input.bad { box-shadow: 0 0 0 3px rgba(240, 140, 120, .22); }
+  .field .opt { color: #6b7383; }
+  .lg-msg, .msg-err { background: #2a1714; border-color: #4a2a24; color: var(--red); }
+  .lg-msg.ok { background: var(--accent-soft); color: var(--accent-dark); }
+  .lg-forgot, .lg-link { text-decoration-color: #3a4152; }
+  .lo-bar { background: #232936; }
+
+  /* the "Return To Home" ghost buttons, nav blur and text selection */
+  ::selection { background: #2b4a8a; color: #fff; }
+}
+
+/* "Meet Althea" band: in dark mode the page is dark, so this band goes the other way, white, with the chat window dark */
+html[data-theme-resolved="dark"] .dark {
+  background: #f6f7fa; color: #171717; border-color: #e1e4ec;
+
+  .eyebrow { color: oklch(0.5 0.19 258); }
+  h2.display { color: #171717; }
+  .em-dark { color: oklch(0.52 0.19 258); }
+  .lede2 { color: #5b6270; }
+  .scn-tab { border-color: #d3d7e0; color: #3d3d3d; }
+  .scn-tab:hover { border-color: #9aa0ac; }
+  .scn-tab.on { background: #171717; color: #fff; border-color: #171717; }
+  .share .eyebrow, .share-row .k, .share .note { color: #6f7685; }
+  .share-row { border-bottom-color: #dde0e8; }
+  .share-row:first-of-type { border-top-color: #dde0e8; }
+  .share-row .d { background: oklch(0.56 0.19 258); }
+  .share-row .d.o { background: #b8bdc8; }
+  .share-row .val { color: #171717; }
+  .share-row .val.dimv { color: #7a8090; }
+  .chat { background: #141922; color: #eef0f5; border: 1px solid #262c38; box-shadow: 0 30px 80px rgba(20, 30, 60, .28); }
+}
+
+/* "The last step" band: white in dark mode too, with a dark button */
+html[data-theme-resolved="dark"] .cta {
+  background: #f6f7fa; color: #171717; border-color: #e1e4ec;
+
+  .eyebrow { color: oklch(0.5 0.19 258); }
+  h2 { color: #171717; }
+  p { color: #5b6270; }
+  .btn-pill { background: #171717; color: #fff; border-color: #171717; }
+  .btn-pill:hover { background: #000; }
+}

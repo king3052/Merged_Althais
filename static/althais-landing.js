@@ -297,11 +297,41 @@
       }
       scrollDown();
     }
+    /* appearance: Althea can switch the whole site (this page, sign in and the rest) between light and dark */
+    var TH = window.AlthaisTheme;
+    var MOON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    var SUN = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+    function isDark() { return !!TH && TH.resolved() === "dark"; }
     function renderChips() {
-      apChips.innerHTML = ORDER.filter(function (k) { return !asked[k]; }).map(function (k) {
+      var qs = ORDER.filter(function (k) { return !asked[k]; }).map(function (k) {
         return '<button type="button" data-k="' + k + '">' + esc(KB[k].chip) + "</button>";
       }).join("");
+      var mode = TH ? '<button type="button" class="ap-mode" data-mode="1">' + (isDark() ? SUN + "Light Mode" : MOON + "Dark Mode") + "</button>" : "";
+      apChips.innerHTML = mode + qs;
     }
+    var THEME_RE = /\b(?:turn|switch|set|change|go|put|make)\b.*\b(dark|light|night|day)\b(?:\s*(?:mode|theme))?|\b(dark|light|night)\s*(?:mode|theme)\b/i;
+    function themeCommand(text) {
+      var m = TH && THEME_RE.exec(text || ""); if (!m) return null;
+      var word = (m[1] || m[2] || "").toLowerCase(), dark = word === "dark" || word === "night";
+      if (/\b(off|disable|stop)\b/i.test(text)) dark = !dark;
+      return dark;
+    }
+    function setMode(dark, said) {
+      TH.set(dark ? "dark" : "light");
+      if (said !== undefined) {
+        addMsg("u", said);
+        addMsg("a", dark ? "Dark mode is on. It applies across the whole site, including the sign in page, and I will remember it next time." : "Light mode is on. It applies across the whole site, including the sign in page.");
+      }
+      renderChips();
+    }
+    function syncTheme() {
+      var b = document.getElementById("ap-theme"); if (!b) return;
+      var d = isDark(); b.setAttribute("aria-pressed", String(d)); b.setAttribute("aria-label", d ? "Switch to light mode" : "Switch to dark mode"); b.title = d ? "Switch to light mode" : "Switch to dark mode";
+      if (greeted) renderChips();
+    }
+    window.addEventListener("althais-theme", syncTheme);
+    var themeBtn = document.getElementById("ap-theme");
+    if (themeBtn) { if (TH) { themeBtn.addEventListener("click", function () { TH.toggle(); }); syncTheme(); } else themeBtn.hidden = true; }
     var hist = [];
     function plain(html) { var t = document.createElement("div"); t.innerHTML = html; return t.textContent; }
     function finish(typing, ans) {
@@ -382,6 +412,8 @@
     $("#ap-x").addEventListener("click", closePanel);
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && isOpen) closePanel(); });
     apChips.addEventListener("click", function (e) {
+      var mb = e.target.closest("button[data-mode]");
+      if (mb) { var to = !isDark(); setMode(to, to ? "Switch to dark mode" : "Switch to light mode"); return; }
       var b = e.target.closest("button[data-k]");
       if (b) ask_(b.getAttribute("data-k"));
     });
@@ -390,6 +422,8 @@
       var t = apIn.value.trim();
       if (!t || busy) return;
       apIn.value = "";
+      var wantDark = themeCommand(t);
+      if (wantDark !== null) { setMode(wantDark, t); return; }          /* no model needed to change the look */
       askLive(t);
     });
 

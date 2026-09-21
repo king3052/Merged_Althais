@@ -15,8 +15,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <script src="/static/js/theme.js"></script>
   <link rel="stylesheet" href="/static/althais-landing.css" />
   <link rel="stylesheet" href="/static/althais-auth.css" />
+  <link rel="stylesheet" href="/static/althais-dark.css" />
 </head>
 <body class="login-page">
 
@@ -60,6 +62,8 @@
   try {
     Object.keys(localStorage).forEach(function (k) {
       // old un-namespaced keys (from before data isolation)
+      // (the light/dark choice is a preference of this browser, not data: it stays)
+      if (k === 'althais.theme.v1') return;
       if (k.indexOf('althais.') === 0 || k === 'althais_active') localStorage.removeItem(k);
       // local:: fallback keys (used when there was no auth)
       if (k.indexOf('local::') === 0) localStorage.removeItem(k);

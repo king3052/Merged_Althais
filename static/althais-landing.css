@@ -343,6 +343,12 @@ section.block { padding: 120px 0 0; }
 .ap-live { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); flex: none; }
 .ap-x { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: color .15s, border-color .15s; }
 .ap-x:hover { color: var(--ink); border-color: #c9c9c9; }
+.ap-theme .t-sun { display: none; }
+html[data-theme-resolved="dark"] .ap-theme .t-sun { display: block; }
+html[data-theme-resolved="dark"] .ap-theme .t-moon { display: none; }
+.ap-head .ap-theme { margin-right: -4px; }
+.ap-chips button.ap-mode { display: inline-flex; align-items: center; gap: 7px; }
+.ap-chips button.ap-mode svg { flex: none; }
 .ap-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 20px 18px 8px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
 .ap .msg { max-width: 88%; padding: 10px 14px; font-size: 14.5px; line-height: 1.58; }
 .ap .srcs { padding-top: 2px; margin-top: -4px; }
