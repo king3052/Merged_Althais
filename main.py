@@ -18,7 +18,21 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 GROQ_MODEL = "openai/gpt-oss-120b"
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+class NoCacheStaticFiles(StaticFiles):
+    """Static files that browsers must revalidate on every load.
+
+    With no Cache-Control header, browsers guess how long to reuse a stylesheet or
+    script, so a deploy could sit behind a stale copy for hours (and Safari holds on
+    much longer). "no-cache" still lets the browser keep the file, but it must ask
+    the server first: a 304 when nothing changed (via the ETag), the new file when
+    it did."""
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
 app.mount("/videos", StaticFiles(directory="public/videos"), name="videos")
 
 templates = Jinja2Templates(directory="templates")
