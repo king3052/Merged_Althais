@@ -38,6 +38,16 @@
       window.lucide.createIcons();
     }
 
+    // Header starts transparent over the hero photo, solidifies once scrolled
+    var siteHeader = landing.querySelector(".site-header");
+    if (siteHeader) {
+      var updateHeaderScrolled = function () {
+        siteHeader.classList.toggle("scrolled", window.scrollY > 40);
+      };
+      updateHeaderScrolled();
+      window.addEventListener("scroll", updateHeaderScrolled, { passive: true });
+    }
+
     // Mobile nav toggle
     var menuBtn = landing.querySelector("#mobile-menu-btn");
     var menuPop = landing.querySelector("#mobile-pop");
