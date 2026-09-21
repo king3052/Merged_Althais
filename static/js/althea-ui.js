@@ -73,13 +73,21 @@
   }
 
   /* ---------- move, resize and minimize ---------- */
-  var KEY = "althea.ui.v1", MIN_W = 300, MIN_H = 200;
+  var KEY = "althea.ui.v1", MIN_W = 340, MIN_BODY = 110;   /* the smallest width, and the least room for the conversation itself */
   function readState() { try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { return {}; } }
   function writeState(patch) { try { var s = readState(); for (var k in patch) s[k] = patch[k]; localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
   function setupWindow(panel) {
     var head = document.getElementById("althea-head"), minBtn = document.getElementById("althea-min"), grip = document.getElementById("althea-resize");
+    var foot = panel.querySelector(".alt-foot");
+    /* the panel can never be smaller than its own controls: header + chips/buttons/input + a little conversation */
+    function minH() { return head.offsetHeight + foot.offsetHeight + MIN_BODY; }
+    function applySize(w, h, maxW, maxH) {               /* set the width first: the chips wrap, so the footer's height depends on it */
+      w = clamp(w, MIN_W, Math.max(MIN_W, maxW)); panel.style.width = w + "px";
+      var lo = minH(); h = clamp(h, lo, Math.max(lo, maxH)); panel.style.height = h + "px";
+      return { w: w, h: h };
+    }
     var free = false;                                    /* true once the panel has its own left/top (it was moved or resized) */
     var small = function () { return window.innerWidth <= 480; };       /* phones: the panel is already full width, so no dragging */
 
@@ -108,9 +116,9 @@
       panel.classList.toggle("is-min", !!s.min); minBtn.setAttribute("aria-pressed", String(!!s.min));
       minBtn.setAttribute("aria-label", s.min ? "Expand Althea" : "Minimize Althea"); minBtn.title = s.min ? "Expand" : "Minimize";
       if (small() || typeof s.x !== "number" || typeof s.y !== "number") return;
-      var w = clamp(s.w || 372, MIN_W, window.innerWidth - 16), h = clamp(s.h || 480, MIN_H, window.innerHeight - 16);
       panel.style.position = "fixed"; panel.style.right = "auto"; panel.style.bottom = "auto"; panel.style.maxHeight = "none";
-      panel.style.width = w + "px"; panel.style.height = h + "px"; free = true;
+      if (!s.min) applySize(s.w || 372, s.h || 480, window.innerWidth - 16, window.innerHeight - 16); else panel.style.width = clamp(s.w || 372, MIN_W, window.innerWidth - 16) + "px";
+      free = true;
       place(s.x, s.y);
     }
     restore();
@@ -158,17 +166,16 @@
     grip.addEventListener("pointermove", function (e) {
       if (!rs) return;
       if (!rs.moved) { if (Math.abs(e.clientX - rs.x) + Math.abs(e.clientY - rs.y) < 4) return; rs.moved = true; freeUp(); panel.classList.add("is-moving"); }
-      var w = clamp(rs.w - (e.clientX - rs.x), MIN_W, Math.min(720, rs.right)), h = clamp(rs.h - (e.clientY - rs.y), MIN_H, Math.min(900, rs.bottom));
-      panel.style.width = w + "px"; panel.style.height = h + "px"; panel.style.left = (rs.right - w) + "px"; panel.style.top = (rs.bottom - h) + "px";
+      var z = applySize(rs.w - (e.clientX - rs.x), rs.h - (e.clientY - rs.y), Math.min(720, rs.right), Math.min(900, rs.bottom));
+      panel.style.left = (rs.right - z.w) + "px"; panel.style.top = (rs.bottom - z.h) + "px";
     });
     function endResize() { if (!rs) return; var moved = rs.moved; rs = null; panel.classList.remove("is-moving"); if (moved) save(); }
     grip.addEventListener("pointerup", endResize); grip.addEventListener("pointercancel", endResize);
     grip.addEventListener("keydown", function (e) {                    /* Shift + arrows resize from the keyboard */
       if (small() || !e.shiftKey || ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].indexOf(e.key) < 0) return;
       e.preventDefault(); freeUp(); var r = panel.getBoundingClientRect(), d = 30;
-      var w = clamp(r.width + (e.key === "ArrowLeft" ? d : e.key === "ArrowRight" ? -d : 0), MIN_W, Math.min(720, r.right));
-      var h = clamp(r.height + (e.key === "ArrowUp" ? d : e.key === "ArrowDown" ? -d : 0), MIN_H, Math.min(900, r.bottom));
-      panel.style.width = w + "px"; panel.style.height = h + "px"; panel.style.left = (r.right - w) + "px"; panel.style.top = (r.bottom - h) + "px"; save();
+      var z = applySize(r.width + (e.key === "ArrowLeft" ? d : e.key === "ArrowRight" ? -d : 0), r.height + (e.key === "ArrowUp" ? d : e.key === "ArrowDown" ? -d : 0), Math.min(720, r.right), Math.min(900, r.bottom));
+      panel.style.left = (r.right - z.w) + "px"; panel.style.top = (r.bottom - z.h) + "px"; save();
     });
     grip.addEventListener("dblclick", function () { reset(); });         /* double-click the corner: back to the default size and place */
 
@@ -183,7 +190,7 @@
         else writeState({ min: true });
       } else {
         writeState({ min: false });
-        if (free) { var s = readState(); panel.style.height = clamp(s.h || 480, MIN_H, window.innerHeight - 16) + "px"; panel.style.width = clamp(s.w || 372, MIN_W, window.innerWidth - 16) + "px"; place(parseFloat(panel.style.left) || 8, parseFloat(panel.style.top) || 8); }
+        if (free) { var s = readState(); applySize(s.w || 372, s.h || 480, window.innerWidth - 16, window.innerHeight - 16); place(parseFloat(panel.style.left) || 8, parseFloat(panel.style.top) || 8); }
       }
     }
     minBtn.addEventListener("click", function () { setMin(!panel.classList.contains("is-min")); });
@@ -199,10 +206,18 @@
       if (small()) { if (free) reset(); return; }
       if (!free) return;
       var r = panel.getBoundingClientRect();
-      var w = Math.min(r.width, window.innerWidth - 16), h = Math.min(r.height, window.innerHeight - 16);
-      if (!panel.classList.contains("is-min")) { panel.style.width = w + "px"; panel.style.height = h + "px"; }
+      if (!panel.classList.contains("is-min")) applySize(Math.min(r.width, window.innerWidth - 16), Math.min(r.height, window.innerHeight - 16), window.innerWidth - 16, window.innerHeight - 16);
       place(r.left, r.top);
     });
+
+    /* if something appears in the panel that needs room (next-step buttons, a longer status), grow it upward rather than cut it off */
+    function ensureFits() {
+      if (!free || small() || panel.classList.contains("is-min") || panel.classList.contains("hidden")) return;
+      var r = panel.getBoundingClientRect(), need = minH();
+      if (r.height >= need - 1) return;
+      panel.style.height = need + "px"; place(r.left, r.bottom - need); save();
+    }
+    if (window.ResizeObserver) { var ro = new ResizeObserver(ensureFits); ro.observe(foot); ro.observe(head); }
   }
 
   window.AltheaUI = { mount: mount, supportsVoice: !!SR, SR: SR };

@@ -29,7 +29,7 @@
   var SECTIONS = {
     overview: "/overview", inbox: "/overview/inbox", activity: "/overview/activity",
     claims: "/revenue/claims", revenue: "/revenue/claims",
-    scheduler: "/emr/schedule", patients: "/emr/patients", soap: "/emr", emr: "/emr", settings: "/emr#settings",
+    scheduler: "/emr/schedule", patients: "/emr/patients", soap: "/emr", emr: "/emr", settings: "/settings",
     staff: "/staff/team", team: "/staff/team"
   };
   /* these need the patient chart, so the EMR page carries them out */

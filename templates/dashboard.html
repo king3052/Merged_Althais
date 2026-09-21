@@ -21,6 +21,7 @@
   <script>
     window.__ALTHAIS_NS__ = "{{ORG_NS}}";   // replaced by the server on every page load
   </script>
+  <script src="/static/js/theme.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -302,6 +303,7 @@
     .panel-collapsible.is-collapsed .panel-chevron svg { transform: rotate(-90deg); }
 
   </style>
+  <link rel="stylesheet" href="/static/css/dark.css" />
   <link rel="stylesheet" href="/static/css/althea.css" />
 </head>
 <body class="bg-shell text-ink-800">
@@ -3454,6 +3456,7 @@
       // browser auto-restore the previous scroll position, and drop any URL
       // hash that would trigger an auto-jump to a section.
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      const initialHash = (location.hash || '').replace('#', '');
       if (location.hash) {
         try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
       }
@@ -3543,6 +3546,14 @@
           if (filter) applyFilter(filter);
         });
       });
+
+      // ---- Deep links: /settings, and /emr#claims, /emr#denials-view ... from other pages ----
+      (function openFromLink() {
+        const byHash = { 'settings': 'settings', 'patients-view': 'patients', 'claims': 'claims', 'payer-view': 'payer-intelligence', 'denials-view': 'denials', 'documents-view': 'documents' };
+        const want = location.pathname.replace(/\/+$/, '') === '/settings' ? 'settings' : byHash[initialHash];
+        const tab = want && document.querySelector('.nav-tab[data-tab="' + want + '"]');
+        if (tab) setTimeout(() => tab.click(), 0);   // after the rest of the page's script has run
+      })();
 
       // ---- Settings inner-sidebar nav ----
       const sTabs = document.querySelectorAll('#settings-view [data-settings-tab]');
@@ -8687,7 +8698,10 @@
           : mode;
         document.body.setAttribute('data-theme', mode);
         document.body.setAttribute('data-theme-resolved', resolved);
+        document.documentElement.setAttribute('data-theme', mode);
+        document.documentElement.setAttribute('data-theme-resolved', resolved);
         try { localStorage.setItem(STORAGE_THEME, mode); } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('althais-theme', { detail: { mode: mode, resolved: resolved } })); } catch (e) {}
         document.querySelectorAll('[data-theme-btn]').forEach(b => {
           const isActive = b.getAttribute('data-theme-btn') === mode;
           b.style.cssText = isActive

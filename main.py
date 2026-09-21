@@ -367,6 +367,14 @@ async def emr(request: Request, user=Depends(current_user)):
     return _render_emr(user)
 
 
+@app.get("/settings")
+async def settings_page(request: Request, user=Depends(current_user)):
+    """Settings live in the same app shell as the EMR, but have their own address: this opens straight to them."""
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    return _render_emr(user)
+
+
 # ── Workspace pages (two-level nav: Overview / EMR / Revenue / Staff) ──────────
 # Every workspace sub-page is a simple auth-gated template render, so a single
 # factory registers them all instead of repeating the same handler by hand.
