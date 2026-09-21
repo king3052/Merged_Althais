@@ -4,7 +4,7 @@
   var mode = "login"; // "login" | "register"
   function $(id) { return document.getElementById(id); }
   var msg = $("auth-msg"), btn = $("submit-btn"), label = $("submit-label");
-  var fields = ["f-name", "f-email", "f-password"];
+  var fields = ["f-email", "f-password"];
 
   function showMsg(text, kind, badIds) {
     msg.textContent = text;
@@ -88,7 +88,6 @@
     body.set("email", email);
     body.set("password", password);
     if (mode === "register") {
-      body.set("full_name", $("f-name").value.trim());
       body.set("organization", $("f-org").value.trim());
     }
 

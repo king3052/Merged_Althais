@@ -68,7 +68,7 @@
 .lg-left.is-register .lg-top { height: 72px; }
 .lg-left.is-register .lg-main { padding: 4px 0 12px; }
 .lg-left.is-register .lg-foot { padding-bottom: 20px; }
-.lg-left.is-register .lg-form { max-width: 528px; padding: 30px 40px 26px; }
+.lg-left.is-register .lg-form { padding: 30px 40px 26px; }
 .lg-left.is-register .lg-title { margin-top: 12px; font-size: clamp(34px, 3.4vw, 38px); }
 .lg-left.is-register .lg-sub { margin-top: 10px; }
 .lg-left.is-register #auth-form { margin-top: 22px; }
@@ -80,10 +80,7 @@
 .lg-left.is-register .lg-hint { margin-top: 8px; }
 .lg-left.is-register .lg-submit { height: 46px; margin-top: 6px; }
 .lg-left.is-register .lg-switch { margin-top: 20px; }
-.field-pair { display: block; }
-.lg-left.is-register .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 @media (max-width: 640px) {
-  .lg-left.is-register .field-pair { display: block; }
   .lg-left.is-register .lg-form { padding: 26px 20px 22px; }
 }
 
