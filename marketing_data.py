@@ -1,4 +1,4 @@
-"""Static content for the Solutions page — one entry per customer segment.
+"""Static content for the Solutions page: one entry per customer segment.
 
 Kept out of main.py because it's page copy, not routing logic.
 """
@@ -21,7 +21,7 @@ SOLUTION_SEGMENTS = [
         "solution": [
             "Specialty-tuned AI coding deploys system-wide, not department by department.",
             "One claims pipeline standardizes assembly and submission across every facility.",
-            "Payer intelligence is shared system-wide — a denial pattern learned in one facility protects every other.",
+            "Payer intelligence is shared system-wide. A denial pattern learned in one facility protects every other.",
         ],
         "roi": [
             {"value": 4.2, "decimals": 1, "prefix": "$", "suffix": "M+", "label": "Denial revenue recovered / yr"},
@@ -43,7 +43,7 @@ SOLUTION_SEGMENTS = [
     {
         "id": "multi-specialty-groups",
         "label": "Large Multi-Specialty Groups",
-        "headline": "Give every specialty its own coding logic — without fifteen different workflows.",
+        "headline": "Give every specialty its own coding logic, without fifteen different workflows.",
         "problems": [
             "Each specialty codes differently, and cross-specialty claims get denied for medical necessity mismatches.",
             "A central billing office tries to apply one process to fifteen very different specialties.",
@@ -81,7 +81,7 @@ SOLUTION_SEGMENTS = [
         "label": "Private Practices",
         "headline": "Get a full coding and billing team's output without hiring one.",
         "problems": [
-            "There's no dedicated coding staff — the provider or office manager handles it after hours.",
+            "There's no dedicated coding staff. The provider or office manager handles it after hours.",
             "Denials often get written off entirely because there's no bandwidth to appeal.",
             "Billing knowledge lives in one person's head, which is a single point of failure.",
         ],
@@ -91,7 +91,7 @@ SOLUTION_SEGMENTS = [
             "Denials pile up in a folder that rarely gets revisited.",
         ],
         "solution": [
-            "AI does first-pass coding the moment the note is finished — no after-hours catch-up.",
+            "AI does first-pass coding the moment the note is finished, with no after-hours catch-up.",
             "Appeal letters draft themselves from the denial reason and clinical note.",
             "A simple review queue fits into five minutes between patients, not an evening.",
         ],
@@ -128,7 +128,7 @@ SOLUTION_SEGMENTS = [
         ],
         "solution": [
             "E/M levels are suggested in real time with documentation-based justification.",
-            "The system scales instantly with volume — a flu-season spike doesn't slow it down.",
+            "The system scales instantly with volume. A flu-season spike doesn't slow it down.",
             "Coding logic stays consistent regardless of who's staffing the front desk.",
         ],
         "roi": [
@@ -151,7 +151,7 @@ SOLUTION_SEGMENTS = [
     {
         "id": "fqhc",
         "label": "FQHCs",
-        "headline": "Bill the way FQHCs actually get paid — PPS, wraparound, and all.",
+        "headline": "Bill the way FQHCs actually get paid: PPS, wraparound, and all.",
         "problems": [
             "Sliding-fee and wraparound billing rules are complex and payer-specific.",
             "A small billing team serves a very high patient volume with thin margins.",
@@ -271,7 +271,7 @@ SOLUTION_SEGMENTS = [
             "Claim status is tracked by logging into six different payer portals.",
         ],
         "solution": [
-            "Approved codes flow directly into claims — zero re-entry, zero transcription errors.",
+            "Approved codes flow directly into claims, with zero re-entry and zero transcription errors.",
             "AI drafts a complete, payer-ready appeal letter in seconds.",
             "One dashboard tracks status across every payer, not six separate logins.",
         ],
@@ -355,7 +355,7 @@ RESOURCE_ARTICLES = [
         "id": "ai-where-it-helps",
         "category": "ai-healthcare",
         "category_label": "AI in Healthcare",
-        "title": "Where AI Actually Helps in Medical Coding — and Where It Doesn't",
+        "title": "Where AI Actually Helps in Medical Coding, and Where It Doesn't",
         "excerpt": "AI coding tools are good at pattern recognition across huge volumes of documentation. They're not good at judgment calls with clinical ambiguity. Knowing the difference matters.",
         "meta": "9 min read · AI in Healthcare",
     },
@@ -372,7 +372,7 @@ RESOURCE_ARTICLES = [
         "category": "ai-healthcare",
         "category_label": "AI in Healthcare",
         "title": "The Case for Keeping a Human in the Loop on Every Claim",
-        "excerpt": "Full automation sounds appealing until you're the one explaining a claim to a payer auditor. Why provider review isn't a bottleneck — it's the safeguard.",
+        "excerpt": "Full automation sounds appealing until you're the one explaining a claim to a payer auditor. Why provider review isn't a bottleneck, it's the safeguard.",
         "meta": "6 min read · AI in Healthcare",
     },
     {
@@ -380,7 +380,7 @@ RESOURCE_ARTICLES = [
         "category": "rcm-guides",
         "category_label": "Revenue Cycle Guide",
         "title": "A Practical Guide to Reducing Denial Rate Below 5%",
-        "excerpt": "Most practices plateau around 8-10% denial rate. The path below 5% isn't one big fix — it's five specific, compounding changes.",
+        "excerpt": "Most practices plateau around 8-10% denial rate. The path below 5% isn't one big fix, it's five specific, compounding changes.",
         "meta": "10 min read · RCM Guide",
     },
     {
@@ -396,7 +396,7 @@ RESOURCE_ARTICLES = [
         "category": "rcm-guides",
         "category_label": "Industry Insight",
         "title": "Days in A/R: Benchmarks by Practice Size",
-        "excerpt": "What's actually normal for a 3-provider practice versus a 40-provider group — and the point at which slow A/R starts signaling a deeper process problem.",
+        "excerpt": "What's actually normal for a 3-provider practice versus a 40-provider group, and the point at which slow A/R starts signaling a deeper process problem.",
         "meta": "6 min read · Industry Insight",
     },
     {
@@ -412,7 +412,7 @@ RESOURCE_ARTICLES = [
         "category": "white-papers",
         "category_label": "White Paper",
         "title": "The True Cost of Claim Denials in Multi-Specialty Groups",
-        "excerpt": "A deep-dive analysis of direct and hidden denial costs — rework hours, delayed revenue, and write-off decisions — across a 40-provider group.",
+        "excerpt": "A deep-dive analysis of direct and hidden denial costs (rework hours, delayed revenue, and write-off decisions) across a 40-provider group.",
         "meta": "18 page report · White Paper",
         "gated": True,
     },
@@ -446,7 +446,7 @@ RESOURCE_ARTICLES = [
         "category": "docs",
         "category_label": "Documentation",
         "title": "Getting Started with the Althais API",
-        "excerpt": "An overview of how Enterprise integrations connect to Althais — coding suggestions, claim status, and analytics as structured data.",
+        "excerpt": "An overview of how Enterprise integrations connect to Althais: coding suggestions, claim status, and analytics as structured data.",
         "meta": "Documentation",
     },
     {

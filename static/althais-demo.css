@@ -1,4 +1,4 @@
-/* Book-a-demo page — extends the landing page design system (althais-landing.css). */
+/* Book-a-demo page - extends the landing page design system (althais-landing.css). */
 
 .demo-grid { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 80px; align-items: stretch; padding-block: 88px 104px; }
 .demo-copy { display: flex; flex-direction: column; justify-content: space-between; gap: 44px; }

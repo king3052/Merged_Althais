@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Pricing — Althais for Health Systems, Groups & Practices{% endblock %}
-{% block meta_description %}Althais pricing scales from small practices to full health systems. Starter, Professional, and Enterprise tiers — talk to sales for a quote built around your claim volume.{% endblock %}
+{% block title %}Pricing | Althais for Health Systems, Groups & Practices{% endblock %}
+{% block meta_description %}Althais pricing scales from small practices to full health systems. Starter, Professional, and Enterprise tiers. Talk to sales for a quote built around your claim volume.{% endblock %}
 {% block canonical %}https://althais.com/pricing{% endblock %}
 
 {% block content %}
@@ -27,7 +27,7 @@
         <div class="tag-pill" style="margin-bottom:18px">Small Practices</div>
         <h3 style="font-size:22px;font-weight:700;color:var(--heading);font-family:'Josefin Sans',sans-serif">Starter</h3>
         <p style="font-size:13.5px;color:var(--charcoal-soft);margin-top:8px;line-height:1.55">For independent practices getting AI coding and claims in place for the first time.</p>
-        <a href="#" class="btn-secondary" style="width:100%;margin-top:24px" data-open-demo-modal data-modal-title="Talk to Sales — Starter" data-modal-sub="Tell us about your practice and we'll follow up with pricing.">Contact Sales</a>
+        <a href="#" class="btn-secondary" style="width:100%;margin-top:24px" data-open-demo-modal data-modal-title="Talk to Sales: Starter" data-modal-sub="Tell us about your practice and we'll follow up with pricing.">Contact Sales</a>
         <div style="height:1px;background:var(--cream-line);margin:26px 0"></div>
         <div class="pricing-feature">{% include "_check.html" %} AI medical coding (ICD-10 + CPT)</div>
         <div class="pricing-feature">{% include "_check.html" %} Claims builder</div>
@@ -41,7 +41,7 @@
         <div class="tag-pill" style="margin-bottom:18px">Growing Organizations</div>
         <h3 style="font-size:22px;font-weight:700;color:var(--heading);font-family:'Josefin Sans',sans-serif">Professional</h3>
         <p style="font-size:13.5px;color:var(--charcoal-soft);margin-top:8px;line-height:1.55">For multi-provider groups that need payer intelligence and prior auth support built in.</p>
-        <a href="#" class="btn-primary" style="width:100%;margin-top:24px" data-open-demo-modal data-modal-title="Schedule a Demo — Professional" data-modal-sub="See Professional-tier features live before you talk pricing.">Schedule Demo</a>
+        <a href="#" class="btn-primary" style="width:100%;margin-top:24px" data-open-demo-modal data-modal-title="Schedule a Demo: Professional" data-modal-sub="See Professional-tier features live before you talk pricing.">Schedule Demo</a>
         <div style="height:1px;background:var(--cream-line);margin:26px 0"></div>
         <div class="pricing-feature" style="font-weight:600;color:var(--heading)">Everything in Starter, plus:</div>
         <div class="pricing-feature">{% include "_check.html" %} Payer intelligence engine</div>
@@ -75,7 +75,7 @@
     <div style="text-align:center;margin-bottom:44px">
       <span class="eyebrow reveal">ROI Calculator</span>
       <h2 class="section-heading reveal" style="font-size:clamp(1.8rem,3.2vw,2.4rem);margin-top:16px">What are denials currently costing you?</h2>
-      <p class="section-lede reveal" style="margin-top:14px">A rough monthly snapshot — the demo builds the precise version for your payer mix.</p>
+      <p class="section-lede reveal" style="margin-top:14px">A rough monthly snapshot. The demo builds the precise version for your payer mix.</p>
     </div>
     <div class="glass-panel reveal" style="padding:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px">
       <div style="display:flex;flex-direction:column;gap:22px">
@@ -114,11 +114,11 @@
     </div>
     <div class="reveal">
       {% for q, a in [
-        ("How is pricing structured?", "Pricing is based on claim volume and provider count, not a flat per-seat fee. Every tier includes implementation, training, and support — talk to sales for a quote scoped to your organization."),
+        ("How is pricing structured?", "Pricing is based on claim volume and provider count, not a flat per-seat fee. Every tier includes implementation, training, and support. Talk to sales for a quote scoped to your organization."),
         ("How long does implementation take?", "Most organizations are live within 30–60 days: EHR and clearinghouse integration in week one, specialty model tuning over the following two to three weeks, then a provider pilot before full rollout."),
-        ("Does Althais integrate with our EHR and clearinghouse?", "Yes. Althais connects to the clearinghouse you already use — no new vendor relationship — and integrates with major EHRs. Enterprise plans include custom integration work for less common systems."),
-        ("Who's liable if the AI suggests the wrong code?", "The rendering provider approves every code before it ever reaches a claim — Althais surfaces suggestions with confidence scores and source justification, but nothing bills without an explicit human decision."),
-        ("Is our data secure and HIPAA-compliant?", "Yes — see the Security section below for details on encryption, infrastructure, and compliance posture."),
+        ("Does Althais integrate with our EHR and clearinghouse?", "Yes. Althais connects to the clearinghouse you already use, with no new vendor relationship, and integrates with major EHRs. Enterprise plans include custom integration work for less common systems."),
+        ("Who's liable if the AI suggests the wrong code?", "The rendering provider approves every code before it ever reaches a claim. Althais surfaces suggestions with confidence scores and source justification, but nothing bills without an explicit human decision."),
+        ("Is our data secure and HIPAA-compliant?", "Yes. See the Security section below for details on encryption, infrastructure, and compliance posture."),
         ("Can we start with a pilot before rolling out organization-wide?", "Yes. Every implementation includes a provider pilot phase before full rollout, so your team can validate accuracy on real documentation first."),
       ] %}
       <div class="faq-item" data-accordion-exclusive>
@@ -159,7 +159,7 @@
 <section class="section-cream" style="padding:100px 24px;text-align:center">
   <div class="reveal" style="max-width:600px;margin:0 auto">
     <h2 class="section-heading" style="font-size:clamp(1.8rem,3.4vw,2.6rem)">Let's scope a quote for your organization</h2>
-    <p class="section-lede" style="margin-top:16px;font-size:16px">Tell us your claim volume and specialty mix — we'll do the rest.</p>
+    <p class="section-lede" style="margin-top:16px;font-size:16px">Tell us your claim volume and specialty mix, and we'll do the rest.</p>
     <a href="#" class="btn-primary" style="margin-top:32px" data-open-demo-modal data-modal-title="Talk to Sales" data-modal-sub="Fill in your details and we'll be in touch.">Contact Sales</a>
   </div>
 </section>

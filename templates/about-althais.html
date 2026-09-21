@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}About Althais{% endblock %}
-{% block meta_description %}What Althais does, why it exists, and how it works — coding, claims, and payer intelligence in one platform.{% endblock %}
+{% block meta_description %}What Althais does, why it exists, and how it works: coding, claims, and payer intelligence in one platform.{% endblock %}
 {% block canonical %}https://althais.com/about-althais{% endblock %}
 
 {% block extra_head %}
 <style>
-  /* Disable elastic overscroll bounce entirely (same as landing.html) —
+  /* Disable elastic overscroll bounce entirely (same as landing.html) -
      stops any background/sticky-hero flash at the very top or bottom
      of the page, rather than trying to color-match what it reveals. */
   html, body.app-body { overscroll-behavior-y: none; }
   body.app-body { background: linear-gradient(#2c3947, #000); }
   /* Swap the shared multi-column #site-footer for the compact bar used
-     on the landing page instead — same markup/styling as landing.html's
+     on the landing page instead - same markup/styling as landing.html's
      #site-footer-bar. */
   #site-footer { display: none; }
   #site-footer-bar {
@@ -30,7 +30,7 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
-     Product Showcase — moved here from the landing page. This is now
+     Product Showcase - moved here from the landing page. This is now
      the whole page's content: hero + a short "What We Do" blurb under
      the buttons. No sliding/sticky behavior, no separate topic shell.
      ══════════════════════════════════════════════════════════════ */
@@ -120,7 +120,7 @@
 
   /* Hero is dark again (city video + dark wash), so the shared
      design-system.css nav styling (light-on-transparent → dark
-     frosted on scroll) mostly applies as-is — except the scrolled
+     frosted on scroll) mostly applies as-is - except the scrolled
      state's navy frosted pill, which we keep transparent instead. */
   #site-nav.scrolled {
     background: transparent;
@@ -137,7 +137,7 @@
 
 {% block content %}
 
-<!-- Product Showcase — moved from the landing page, now this page's hero -->
+<!-- Product Showcase - moved from the landing page, now this page's hero -->
 <section id="showcase">
   <div class="showcase-bg-wrap">
     <img src="/static/backgrounds/wave-blue.png" alt="" />
@@ -176,7 +176,7 @@
   </div>
 </section>
 
-<!-- Compact footer bar, same as landing.html — #site-footer (the shared
+<!-- Compact footer bar, same as landing.html - #site-footer (the shared
      multi-column one) is hidden on this page. -->
 <footer id="site-footer-bar">
   <p>© 2026 Althais Health, Inc.</p>
@@ -191,7 +191,7 @@
 
 {% block extra_scripts %}
 <script>
-  // Product Showcase slideshow — headline+desc left, screenshot right,
+  // Product Showcase slideshow - headline+desc left, screenshot right,
   // next-slide thumbnail peek, dots + top-right prev/next arrows.
   (function () {
     var slides = [

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════
-   Althais — shared site behavior (nav, reveal-on-scroll, modal, accordions,
+   Althais - shared site behavior (nav, reveal-on-scroll, modal, accordions,
    tabs, count-up, feature-card expand, newsletter/demo forms).
    Loaded on every marketing/product page via base.html.
    ══════════════════════════════════════════════════════════════════════ */
@@ -234,7 +234,7 @@
           btn.disabled = false; btn.textContent = originalText;
         }
       } catch (err) {
-        if (msg) { msg.textContent = 'Network error — please try again.'; msg.style.display = 'block'; msg.style.color = '#c23b3b'; }
+        if (msg) { msg.textContent = 'Network error. Please try again.'; msg.style.display = 'block'; msg.style.color = '#c23b3b'; }
         btn.disabled = false; btn.textContent = originalText;
       }
     });

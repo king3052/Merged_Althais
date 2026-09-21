@@ -993,6 +993,7 @@ What Althais is: software that turns a patient visit into a claim ready for revi
 Rules:
 - Be concise: at most 3 short sentences, plain language, no markdown, no lists, no emojis.
 - Answer only what was asked, in plain sentences. No brackets, no quotes around phrases, no bold, and no trailing keywords.
+- Never use em dashes or en dashes. Use commas, periods or colons instead.
 - Never give diagnoses, treatment, medication or clinical advice. If asked, say you only help with questions about Althais.
 - Never invent prices, customers, testimonials, statistics, integrations (including with any specific EMR), certifications, HIPAA or security claims, or features not listed above. If you do not know, say so and suggest booking a demo.
 - Do not claim to see any real patient, chart or claim. You have no access to any.
@@ -1034,6 +1035,8 @@ def althea_public(request: Request, payload: dict):
         return JSONResponse({"error": "Althea is unavailable right now."}, status_code=502)
     if not reply:
         return JSONResponse({"error": "Althea is unavailable right now."}, status_code=502)
+    # belt and braces: the model occasionally emits em/en dashes despite the prompt
+    reply = reply.replace(" \u2014 ", ", ").replace(" \u2013 ", ", ").replace("\u2014", ", ").replace("\u2013", "-")
     return JSONResponse({"reply": reply[:900]})
 
 
