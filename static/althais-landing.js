@@ -343,10 +343,7 @@
       askLive(t);
     });
 
-    window.addEventListener("scroll", function () {
-      var s = window.scrollY > 320;
-      if (s !== scrolled) { scrolled = s; sync(); }
-    }, { passive: true });
+    setTimeout(function () { scrolled = true; sync(); }, reduce ? 0 : 900);
     var alt = document.getElementById("althea");
     if (alt && "IntersectionObserver" in window) {
       new IntersectionObserver(function (es) { inAlthea = es[0].isIntersecting; sync(); }, { threshold: 0.3 }).observe(alt);
