@@ -195,6 +195,36 @@
     }
   }
 
+  /* ---------- savings figures: digits roll in like an odometer ---------- */
+  var save = $(".save");
+  if (save && !reduce && "IntersectionObserver" in window) {
+    var strips = [];
+    $$(".roll", save).forEach(function (el, k) {
+      var txt = el.textContent, out = "", n = 0;
+      for (var i = 0; i < txt.length; i++) {
+        var ch = txt.charAt(i);
+        if (ch >= "0" && ch <= "9") {
+          var items = "";
+          for (var d = 0; d < 20; d++) items += "<i>" + (d % 10) + "</i>";
+          out += '<span class="dg"><span class="dgs" data-d="' + ch + '">' + items + "</span></span>";
+        } else { out += esc(ch); }
+      }
+      el.innerHTML = '<span class="sr">' + esc(txt) + '</span><span aria-hidden="true">' + out + "</span>";
+      $$(".dgs", el).forEach(function (s, idx) { strips.push({ s: s, delay: k * 0.28 + idx * 0.11 }); });
+    });
+    var rollObs = new IntersectionObserver(function (es) {
+      if (!es[0].isIntersecting) return;
+      rollObs.disconnect();
+      requestAnimationFrame(function () { requestAnimationFrame(function () {
+        strips.forEach(function (x) {
+          x.s.style.transitionDelay = x.delay + "s";
+          x.s.style.transform = "translateY(" + (-(+x.s.getAttribute("data-d") + 10) * 1.3) + "em)";
+        });
+      }); });
+    }, { threshold: 0.4 });
+    rollObs.observe(save);
+  }
+
   /* ---------- Ask Althea: launcher + scripted demo chat panel ---------- */
   var ask = document.getElementById("ask"), ap = document.getElementById("ap");
   if (ask && ap) {

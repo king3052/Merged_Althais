@@ -372,3 +372,10 @@ section.block { padding: 120px 0 0; }
 
 /* hero result card: labels keep the Title Case written in the markup instead of forcing caps */
 .result .eyebrow, .result .kv .k { text-transform: none; letter-spacing: .12em; }
+
+/* rolling digits (savings figures) */
+.roll { line-height: 1.3; }
+.roll .dg { display: inline-block; height: 1.3em; overflow: hidden; vertical-align: top; }
+.roll .dgs { display: block; transition: transform 1.9s cubic-bezier(.16, .84, .24, 1); will-change: transform; }
+.roll .dgs i { display: block; height: 1.3em; font-style: normal; }
+.roll .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
