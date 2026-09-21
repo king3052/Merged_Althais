@@ -362,11 +362,29 @@
   </div>
 </footer>
 
-<a href="#althea" class="ask" id="ask" aria-label="Ask Althea, our AI assistant">
+<button type="button" class="ask" id="ask" aria-haspopup="dialog" aria-expanded="false" aria-controls="ap" aria-label="Chat with Althea, our AI assistant">
   <span class="ask-av"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></span>
   <span class="ask-tx"><b>Althea, ready to help!</b><span>Ask anything.</span></span>
   <span class="ask-go" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
-</a>
+</button>
+
+<section class="ap" id="ap" role="dialog" aria-label="Chat with Althea" aria-hidden="true">
+  <header class="ap-head">
+    <span class="ap-av"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></span>
+    <div class="ap-id"><b>Althea</b><span><i class="ap-live"></i>Clinical AI &middot; sample chart</span></div>
+    <button type="button" class="ap-x" id="ap-x" aria-label="Close chat"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l10 10M13 3L3 13"/></svg></button>
+  </header>
+  <div class="ap-body" id="ap-body" aria-live="polite"></div>
+  <div class="ap-foot">
+    <div class="ap-chips" id="ap-chips"></div>
+    <form class="ap-form" id="ap-form" autocomplete="off">
+      <input id="ap-in" type="text" placeholder="Ask Althea about this visit&hellip;" aria-label="Message Althea" maxlength="200" />
+      <button type="submit" class="ap-send" aria-label="Send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button>
+    </form>
+    <p class="ap-note">A demo on a sample chart, not real patient data. <a href="/demo">Book A Demo</a> to see it on yours.</p>
+  </div>
+</section>
+
 
 <script src="/static/althais-landing.js"></script>
 </body>

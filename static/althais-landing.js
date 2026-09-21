@@ -195,21 +195,161 @@
     }
   }
 
-  /* Ask Althea launcher: appears once the visitor scrolls, hides while the Althea section is on screen */
-  var ask = document.getElementById("ask");
-  var alt = document.getElementById("althea");
-  if (ask) {
-    var scrolled = false, inAlthea = false;
-    function syncAsk() { ask.classList.toggle("show", scrolled && !inAlthea); }
+  /* ---------- Ask Althea: launcher + scripted demo chat panel ---------- */
+  var ask = document.getElementById("ask"), ap = document.getElementById("ap");
+  if (ask && ap) {
+    var apBody = $("#ap-body"), apChips = $("#ap-chips"), apForm = $("#ap-form"), apIn = $("#ap-in"), apSend = $(".ap-send", ap);
+    var isOpen = false, scrolled = false, inAlthea = false, busy = false, greeted = false, asked = {};
+
+    var KB = {
+      code:     { chip: "Summarize and code this visit", q: "Summarize this visit and code it.", a: SCN[0].msgs[1][1], src: SCN[0].src },
+      bundle:   { chip: "Any bundling issues?", q: "Any bundling issues?", a: SCN[0].msgs[3][1], src: ["CMS PTP table", "CPT 99285"] },
+      risk:     { chip: "Which claims are at risk?", q: "Which claims are at risk today?", a: SCN[2].msgs[1][1], src: SCN[2].src },
+      followup: { chip: "Code a follow-up visit", q: "What is the code for this follow-up?", a: SCN[1].msgs[1][1], src: SCN[1].src },
+      start:    { chip: "How do I get started?", q: "How do I get started?", a: 'Book a demo and we will walk through a visit on <mark>your own workflow</mark>. We reply within one business day.', cta: true }
+    };
+    var ORDER = ["code", "bundle", "risk", "followup", "start"];
+    var FALLBACK = { a: 'I can only answer from this sample chart here. Try one of the questions below, or book a demo to ask about <mark>your own visits</mark>.', cta: true };
+
+    function match(t) {
+      t = t.toLowerCase();
+      if (/demo|start|price|pricing|cost|trial|sign ?up|book|buy|try/.test(t)) return "start";
+      if (/bundl|ncci|ptp|conflict|edit/.test(t)) return "bundle";
+      if (/risk|flag|denial|denied|reject|claims?\b/.test(t)) return "risk";
+      if (/follow|bronch|cough|established/.test(t)) return "followup";
+      if (/code|coding|summar|visit|note|cpt|icd|chest|bill/.test(t)) return "code";
+      return null;
+    }
+
+    function scrollDown() { apBody.scrollTop = apBody.scrollHeight; }
+    function addMsg(kind, html, delay) {
+      var d = document.createElement("div");
+      d.className = "msg " + kind;
+      if (delay) d.style.animationDelay = delay + "s";
+      d.innerHTML = kind === "u" ? esc(html) : html;
+      apBody.appendChild(d);
+      scrollDown();
+      return d;
+    }
+    function addAnswer(ans) {
+      addMsg("a", ans.a);
+      if (ans.src) {
+        var s = document.createElement("div");
+        s.className = "srcs";
+        s.innerHTML = ans.src.map(function (x) { return "<span>" + esc(x) + "</span>"; }).join("");
+        apBody.appendChild(s);
+      }
+      if (ans.cta) {
+        var l = document.createElement("a");
+        l.className = "ap-cta"; l.href = "/demo";
+        l.innerHTML = 'Book A Demo <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+        apBody.appendChild(l);
+      }
+      scrollDown();
+    }
+    function renderChips() {
+      apChips.innerHTML = ORDER.filter(function (k) { return !asked[k]; }).map(function (k) {
+        return '<button type="button" data-k="' + k + '">' + esc(KB[k].chip) + "</button>";
+      }).join("");
+    }
+    var hist = [];
+    function plain(html) { var t = document.createElement("div"); t.innerHTML = html; return t.textContent; }
+    function finish(typing, ans) {
+      typing.remove();
+      addAnswer(ans);
+      busy = false; apSend.disabled = false;
+      if (isOpen && window.innerWidth > 640) apIn.focus();
+    }
+    function liveHtml(reply) { return esc(reply).replace(/\[\[(.+?)\]\]/g, "<mark>$1</mark>"); }
+
+    /* chip questions: scripted, instant answers with sources */
+    function ask_(key) {
+      if (busy) return;
+      busy = true; apSend.disabled = true;
+      asked[key] = true;
+      renderChips();
+      addMsg("u", KB[key].q);
+      hist.push({ role: "user", content: KB[key].q });
+      var typing = document.createElement("div");
+      typing.className = "ap-typing"; typing.innerHTML = "<i></i><i></i><i></i>";
+      apBody.appendChild(typing); scrollDown();
+      setTimeout(function () {
+        hist.push({ role: "assistant", content: plain(KB[key].a) });
+        finish(typing, KB[key]);
+      }, reduce ? 0 : 750);
+    }
+
+    /* typed questions: live answer from the server, scripted fallback if it is unavailable */
+    function askLive(text) {
+      if (busy) return;
+      busy = true; apSend.disabled = true;
+      addMsg("u", text);
+      hist.push({ role: "user", content: text });
+      var typing = document.createElement("div");
+      typing.className = "ap-typing"; typing.innerHTML = "<i></i><i></i><i></i>";
+      apBody.appendChild(typing); scrollDown();
+      var ctl = window.AbortController ? new AbortController() : null;
+      var timer = ctl ? setTimeout(function () { ctl.abort(); }, 20000) : null;
+      fetch("/api/althea-public", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: hist.slice(-6) }),
+        signal: ctl ? ctl.signal : undefined
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; });
+      }).then(function (r) {
+        if (r.ok && r.d && typeof r.d.reply === "string" && r.d.reply) {
+          hist.push({ role: "assistant", content: r.d.reply.replace(/\[\[|\]\]/g, "") });
+          finish(typing, { a: liveHtml(r.d.reply) });
+        } else { throw new Error(r.d && r.d.error || "unavailable"); }
+      }).catch(function () {
+        var k = match(text), ans = k ? KB[k] : FALLBACK;
+        if (k) asked[k] = true;
+        renderChips();
+        hist.push({ role: "assistant", content: plain(ans.a) });
+        finish(typing, ans);
+      }).then(function () { if (timer) clearTimeout(timer); });
+    }
+
+    function sync() {
+      ap.classList.toggle("open", isOpen);
+      ap.setAttribute("aria-hidden", String(!isOpen));
+      ask.setAttribute("aria-expanded", String(isOpen));
+      ask.classList.toggle("show", scrolled && !inAlthea && !isOpen);
+    }
+    function openPanel() {
+      isOpen = true; sync();
+      if (!greeted) {
+        greeted = true;
+        addMsg("a", "Hi, I&rsquo;m <mark>Althea</mark>. I am reading a sample chest pain visit. Ask me anything about it, or pick a question below.");
+        renderChips();
+      }
+      setTimeout(function () { if (window.innerWidth > 640) apIn.focus(); }, 320);
+    }
+    function closePanel() { isOpen = false; sync(); ask.focus({ preventScroll: true }); }
+
+    ask.addEventListener("click", openPanel);
+    $("#ap-x").addEventListener("click", closePanel);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && isOpen) closePanel(); });
+    apChips.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-k]");
+      if (b) ask_(b.getAttribute("data-k"));
+    });
+    apForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var t = apIn.value.trim();
+      if (!t || busy) return;
+      apIn.value = "";
+      askLive(t);
+    });
+
     window.addEventListener("scroll", function () {
       var s = window.scrollY > 320;
-      if (s !== scrolled) { scrolled = s; syncAsk(); }
+      if (s !== scrolled) { scrolled = s; sync(); }
     }, { passive: true });
+    var alt = document.getElementById("althea");
     if (alt && "IntersectionObserver" in window) {
-      new IntersectionObserver(function (es) { inAlthea = es[0].isIntersecting; syncAsk(); }, { threshold: 0.3 }).observe(alt);
+      new IntersectionObserver(function (es) { inAlthea = es[0].isIntersecting; sync(); }, { threshold: 0.3 }).observe(alt);
     }
-    ask.addEventListener("click", function (e) {
-      if (alt) { e.preventDefault(); alt.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
-    });
   }
 })();
