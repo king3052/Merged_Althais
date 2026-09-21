@@ -38,16 +38,6 @@
       window.lucide.createIcons();
     }
 
-    // Header starts transparent over the hero photo, solidifies once scrolled
-    var siteHeader = landing.querySelector(".site-header");
-    if (siteHeader) {
-      var updateHeaderScrolled = function () {
-        siteHeader.classList.toggle("scrolled", window.scrollY > 40);
-      };
-      updateHeaderScrolled();
-      window.addEventListener("scroll", updateHeaderScrolled, { passive: true });
-    }
-
     // Mobile nav toggle
     var menuBtn = landing.querySelector("#mobile-menu-btn");
     var menuPop = landing.querySelector("#mobile-pop");
@@ -108,7 +98,7 @@
     var rotatingWord = landing.querySelector("#hero-rotating-word");
     var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (rotatingWord && !reduceMotion) {
-      var words = ["revenue", "reimbursement", "cash flow", "profit", "clarity"];
+      var words = ["reimbursement", "revenue", "clarity", "outcomes", "confidence"];
       var wordIndex = 0;
       setInterval(function () {
         rotatingWord.style.opacity = "0";

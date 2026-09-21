@@ -15,29 +15,111 @@
   <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
   <link rel="stylesheet" href="/static/karumi-landing.css" />
 </head>
 <body>
 <div id="karumi-landing">
-<div class="hero-photo-layer" aria-hidden="true"></div>
 <header class="site-header" id="top">
-    <nav class="nav-inner nav-inner-minimal" aria-label="Primary navigation">
+    <nav class="nav-inner" aria-label="Primary navigation">
       <a href="#top" class="brand-mark" aria-label="Althais home">
         <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span>
         <span>ALTHAIS</span>
       </a>
-      <a class="sign-in" href="/login">Login</a>
+      <div class="nav-links">
+        <a href="#product">Product</a>
+        <a href="#why">Why Althais</a>
+        <a href="#security">Security</a>
+        <a href="#company">Company</a>
+      </div>
+      <div class="nav-actions">
+        <a class="sign-in" href="/login">Sign In</a>
+        <a class="nav-cta" href="/demo">Request Demo <i data-lucide="arrow-down-right" width="15" height="15"></i></a>
+      </div>
+      <div class="mobile-menu">
+        <button type="button" id="mobile-menu-btn" aria-label="Toggle navigation" aria-expanded="false">
+          <i data-lucide="menu" id="mobile-menu-icon"></i>
+          <i data-lucide="x" id="mobile-close-icon" hidden></i>
+        </button>
+        <div class="mobile-pop" id="mobile-pop" hidden>
+          <a href="#product">Product</a>
+          <a href="#why">Why Althais</a>
+          <a href="#security">Security</a>
+          <a href="/demo">Request Demo</a>
+        </div>
+      </div>
     </nav>
 </header>
 <main class="site-shell">
-  <section class="hero hero-photo">
-    <div class="hero-photo-content">
-      <h1>We help clinics turn<br />missed codes into <span class="accent-word" id="hero-rotating-word">revenue</span>.</h1>
-      <p>The AI platform that documents, codes, and submits claims for you, so nothing gets missed on its way to getting paid.</p>
-      <div class="hero-actions">
-        <a class="primary-cta" href="/demo">Request a Demo</a>
+  <section class="hero section-frame">
+    <div class="hero-emblem" aria-hidden="true"><i></i><i></i><i></i></div>
+    <h1>From patient encounter<br />to <span class="accent-word" id="hero-rotating-word">reimbursement</span>.</h1>
+    <div class="hero-actions">
+      <a class="primary-cta" href="/demo">Request a Demo <i data-lucide="arrow-right" width="20" height="20"></i></a>
+    </div>
+
+    <div class="demo-window" aria-label="Althais clinical and revenue workflow example">
+      <div class="window-bar">
+        <div class="window-dots"><i></i><i></i><i></i></div>
+        <div class="browser-address">app.althais.com / encounter / demo-2048</div>
+        <div class="window-live"><span></span> ENCOUNTER ACTIVE</div>
       </div>
+      <div class="demo-body">
+        <aside class="demo-sidebar">
+          <div class="mini-logo"><span>A</span></div>
+          <div class="side-icon active"><i data-lucide="heart-pulse" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="file-text" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="clipboard-check" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="receipt-text" width="14" height="14"></i></div>
+          <div class="side-icon"><i data-lucide="chart-column" width="14" height="14"></i></div>
+        </aside>
+        <div class="demo-canvas">
+          <div class="canvas-top">
+            <div><small>DEMO PATIENT · TODAY, 10:24 AM</small><strong>Patient encounter</strong></div>
+            <span><i data-lucide="mic" width="11" height="11"></i> Recording</span>
+          </div>
+          <div class="workflow-rail" aria-label="Encounter to reimbursement workflow">
+            <div class="rail-step"><span>01</span><b>encounter</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step"><span>02</span><b>AI documentation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step"><span>03</span><b>Medical coding</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step current"><span>04</span><b>Claim validation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
+            <div class="rail-step"><span>05</span><b>Reimbursement</b></div>
+          </div>
+          <div class="clinical-grid">
+            <div class="note-panel">
+              <div class="panel-label"><span>SOAP NOTE</span><span class="draft">AI DRAFT</span></div>
+              <h4>Assessment &amp; plan</h4>
+              <p>Patient reports improved symptoms since the prior visit. Continue current care plan and schedule follow-up.</p>
+              <div class="note-lines"><i></i><i></i><i></i></div>
+            </div>
+            <div class="code-panel">
+              <div class="panel-label"><span>RECOMMENDED CODES</span><span>2 FOUND</span></div>
+              <div class="code-row"><span>CPT</span><b>99213</b><small>Office visit</small><i data-lucide="circle-check-big" width="14" height="14"></i></div>
+              <div class="code-row"><span>ICD-10</span><b>I10</b><small>Primary diagnosis</small><i data-lucide="circle-check-big" width="14" height="14"></i></div>
+            </div>
+          </div>
+          <div class="validation-bar"><i data-lucide="shield-check" width="16" height="16"></i><div><b>Claim validation complete</b><small>No blocking issues found in this demo claim.</small></div><span>READY FOR REVIEW</span></div>
+        </div>
+        <div class="agent-panel">
+          <div class="agent-head"><i data-lucide="brain-circuit" width="15" height="15"></i><span>ALTHEA</span><i></i></div>
+          <div class="agent-copy"><b>Clinical context, ready when you need it.</b><p>Ask about prior visits, open follow-ups, or supporting documentation.</p></div>
+          <div class="agent-prompts">
+            <span>Prior visits</span>
+            <span>Open follow-ups</span>
+            <span>Medications</span>
+          </div>
+          <div class="althea-mini-question">Summarize the previous visit.</div>
+          <div class="althea-mini-answer"><span class="spark-icon" aria-hidden="true">✦</span> Symptoms improved after the care plan update. Follow-up remained due in four weeks.</div>
+          <div class="agent-sources">
+            <span>Mar 12 visit</span>
+            <span>Jun 04 visit</span>
+            <span>Current plan</span>
+          </div>
+          <div class="agent-foot"><span>Based on demo chart</span><i data-lucide="arrow-right" width="13" height="13"></i></div>
+        </div>
+      </div>
+      <div class="floating-note note-one"><span><i data-lucide="file-check-2" width="13" height="13"></i></span><b>Documentation structured</b><small>Ready for provider review</small></div>
+      <div class="floating-note note-two"><i data-lucide="badge-check" width="17" height="17"></i><b>Claim checks passed</b></div>
     </div>
   </section>
 
