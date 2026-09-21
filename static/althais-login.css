@@ -1,16 +1,16 @@
-/* Sign-in page: extends the landing page design system (althais-landing.css). */
+/* Sign-in page: a single centred card, extends the landing page design system (althais-landing.css). */
 
 .login-page { min-height: 100vh; }
-.lg-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); min-height: 100vh; min-height: 100dvh; }
+.lg-shell { min-height: 100vh; min-height: 100dvh; }
 
 /* ---------- left: the form ---------- */
-.lg-left { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding: 0 clamp(24px, 5vw, 72px); }
+.lg-left { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding: 0 28px; }
 .lg-top { display: flex; align-items: center; justify-content: space-between; height: 88px; flex: none; }
 .lg-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 0 40px; }
-.lg-form { width: 100%; max-width: 408px; }
+.lg-form { width: 100%; max-width: 456px; padding: 40px 38px 36px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
 .lg-foot { flex: none; padding: 0 0 28px; font-size: 13px; color: var(--faint); }
 
-.lg-title { margin: 18px 0 0; font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 4.4vw, 56px); line-height: 1.02; letter-spacing: -.015em; }
+.lg-title { margin: 16px 0 0; font-family: var(--serif); font-weight: 400; font-size: clamp(38px, 4vw, 46px); line-height: 1.02; letter-spacing: -.015em; }
 .lg-sub { margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--muted); }
 
 .lg-msg { margin-top: 24px; padding: 11px 14px; border-radius: 10px; background: #fbeeea; border: 1px solid #f0d0c7; color: var(--red); font-size: 14px; line-height: 1.5; }
@@ -48,39 +48,22 @@
 .lg-pilot a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #cfcfcf; }
 .lg-pilot a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
-/* ---------- right: brand panel ---------- */
-.lg-right { position: relative; margin: 16px 16px 16px 0; padding: 56px clamp(32px, 4.5vw, 72px); overflow: hidden; border-radius: 32px; background: var(--dark); color: #fff; display: flex; align-items: center; }
-.lg-right::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 50% at 88% 4%, oklch(0.56 0.19 258 / .38), transparent 70%), radial-gradient(50% 40% at 0% 100%, oklch(0.56 0.19 258 / .16), transparent 70%); }
-.lg-mark { position: absolute; right: -60px; bottom: -70px; width: 420px; height: 420px; color: #fff; opacity: .05; pointer-events: none; }
-.lg-story { position: relative; width: 100%; max-width: 500px; margin-inline: auto; }
-.lg-story > .eyebrow { color: var(--accent-dark); }
-.lg-hero { margin: 18px 0 0; font-family: var(--serif); font-weight: 400; font-size: clamp(38px, 3.6vw, 56px); line-height: 1.02; letter-spacing: -.015em; color: #fff; }
-.lg-hero .em { color: var(--accent-dark); }
-.lg-card { margin-top: 44px; color: var(--ink); box-shadow: 0 30px 80px rgba(0, 0, 0, .45); border-color: transparent; }
-.lg-points { list-style: none; margin: 34px 0 0; padding: 0; display: grid; gap: 14px; }
-.lg-points li { display: flex; align-items: center; gap: 14px; font-size: 15.5px; color: #cfcfcf; }
-.lg-points i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-dark); flex: none; }
-
 @media (prefers-reduced-motion: no-preference) {
   .lg-form { animation: fadeUp .6s ease both; }
-  .lg-card { animation: fadeUp .8s ease .15s both; }
-  .lg-points li { animation: fadeUp .7s ease both; }
-  .lg-points li:nth-child(1) { animation-delay: .35s; }
-  .lg-points li:nth-child(2) { animation-delay: .45s; }
-  .lg-points li:nth-child(3) { animation-delay: .55s; }
 }
 
-/* ---------- tablet / mobile: form only ---------- */
-@media (max-width: 960px) {
-  .lg-shell { grid-template-columns: 1fr; }
-  .lg-right { display: none; }
-  .lg-left { padding-inline: 24px; }
+/* ---------- phones ---------- */
+@media (max-width: 640px) {
+  .lg-left { padding: 0 16px; }
   .lg-top { height: 72px; }
-  .lg-main { align-items: flex-start; padding-top: 12px; }
+  .lg-main { align-items: flex-start; padding-top: 8px; }
+  .lg-form { padding: 28px 22px 26px; }
 }
-@media (max-height: 760px) and (min-width: 961px) {
-  .lg-title { font-size: 42px; }
-  .lg-sub { margin-top: 12px; }
+@media (max-height: 800px) and (min-width: 641px) {
+  .lg-top { height: 72px; }
+  .lg-form { padding-block: 32px 28px; }
+  .lg-title { font-size: 38px; }
+  .lg-sub { margin-top: 10px; }
   #auth-form { margin-top: 22px; }
   .field { margin-bottom: 14px; }
 }
