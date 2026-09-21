@@ -17,6 +17,21 @@
     rv.forEach(function (el) { el.classList.add("in"); });
   }
 
+  /* ---------- hero word rotator ---------- */
+  var rot = $("#hero-rot");
+  if (rot && !reduce) {
+    var words = ["reimbursement", "revenue", "cash flow", "clarity", "confidence"], wi = 0;
+    setInterval(function () {
+      if (document.hidden) return;
+      rot.classList.add("out");
+      setTimeout(function () {
+        wi = (wi + 1) % words.length;
+        rot.textContent = words[wi];
+        rot.classList.remove("out");
+      }, 350);
+    }, 2600);
+  }
+
   /* ---------- how it works: sticky step tracker ---------- */
   var cards = $$(".step-card");
   var copies = $$(".step-copy");

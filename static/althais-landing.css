@@ -30,6 +30,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 h1, h2, h3, p { margin: 0; }
 .wrap { width: 100%; max-width: 1152px; margin-inline: auto; padding-inline: 24px; }
 .em { font-style: italic; color: var(--accent); }
+.rot { display: inline-block; transition: opacity .35s ease, transform .35s ease; }
+.rot.out { opacity: 0; transform: translateY(6px); }
 .dim { color: var(--muted); }
 .mono { font-family: var(--mono); }
 .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
