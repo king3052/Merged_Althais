@@ -17,6 +17,15 @@
     rv.forEach(function (el) { el.classList.add("in"); });
   }
 
+  /* ---------- Althais logo (header and footer): glide back to the top instead of reloading ---------- */
+  $$("a.logo").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+      if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    });
+  });
+
   /* ---------- hero word rotator ---------- */
   var rot = $("#hero-rot");
   if (rot && !reduce) {
