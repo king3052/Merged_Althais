@@ -218,6 +218,7 @@ section.block { padding: 120px 0 0; }
 .chat-head b { font-size: 15px; font-weight: 600; display: block; line-height: 1.25; }
 .chat-head span { font-size: 13px; color: var(--muted); }
 .chat-head .dot.live { margin-left: auto; box-shadow: 0 0 0 4px var(--accent-soft); }
+.chat-head .spark { color: #fff; }
 .spark { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 17px; flex: none; }
 .chat-body { padding: 26px 24px 8px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
 .msg { max-width: 86%; padding: 12px 16px; border-radius: 16px; font-size: 15.5px; line-height: 1.6; opacity: 0; animation: fadeUp .5s ease forwards; }
