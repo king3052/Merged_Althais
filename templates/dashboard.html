@@ -340,6 +340,8 @@
       0%, 100% { transform: scale(0.9); opacity: 0.45; }
       50%      { transform: scale(1.25); opacity: 0.85; }
     }
+    /* The recording badge only shows while a visit timer is running (an inline display:flex used to override .hidden and keep it on screen). */
+    #althea-timer-badge:not(.hidden) { display: flex; }
     #althea-fab:hover { animation-play-state: paused; }
     /* Also stop drifting while the panel is open, so the open panel doesn't
        gently float around under the cursor. */
@@ -364,12 +366,12 @@
   <div id="althea-fab" style="position:fixed;bottom:24px;right:24px;z-index:250;">
     <div id="althea-glow"></div>
     <div id="althea-ring" style="position:absolute;inset:0;border-radius:9999px;background:radial-gradient(circle,rgba(107,63,160,0.55),rgba(13,91,215,0.35));transform:scale(1);opacity:0;transition:transform 0.06s linear,opacity 0.12s linear;pointer-events:none;"></div>
-    <div id="althea-timer-badge" class="hidden" style="position:absolute;bottom:64px;right:0;background:#0f1116;color:#fff;padding:4px 10px;border-radius:9999px;font-size:11.5px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;gap:5px;">
+    <div id="althea-timer-badge" class="hidden" style="position:absolute;bottom:64px;right:0;background:#0f1116;color:#fff;padding:4px 10px;border-radius:9999px;font-size:11.5px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);align-items:center;gap:5px;">
       <span style="width:6px;height:6px;border-radius:9999px;background:#ff5c5c;animation:althea-timer-blink 1s ease-in-out infinite;"></span>
       <span id="althea-timer-text">0:00</span>
     </div>
     <button id="althea-btn" type="button" title="Ask Althea" style="position:relative;width:56px;height:56px;border-radius:9999px;background:linear-gradient(140deg,#2f7ff0 0%,#0d5bd7 55%,#0a49ad 100%);box-shadow:0 6px 18px rgba(13,91,215,0.45),inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -3px 8px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;color:#fff;">
-      <span id="althea-logo-a" style="font-family:'Poppins','Space Grotesk','Josefin Sans',ui-sans-serif,sans-serif;font-weight:700;font-size:27px;line-height:1;letter-spacing:0.01em;color:#fff;user-select:none;text-shadow:0 1px 3px rgba(0,0,0,0.25);">A</span>
+      <svg id="althea-logo-a" viewBox="161 142 1032 1001" fill="#fff" aria-hidden="true" style="width:29px;height:29px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.22));"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg>
     </button>
     <div id="althea-panel" class="hidden" style="position:absolute;bottom:68px;right:0;width:320px;background:#fff;border:1px solid #d0d3db;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.22);padding:14px;">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
@@ -4992,6 +4994,11 @@
               showView('patients');
               if (typeof renderPatientsView === 'function') renderPatientsView();
               panel.classList.add('hidden');
+            } else {
+              // Sections that live outside the EMR (Overview, Revenue, Staff...) — go there.
+              const ALTHEA_SECTIONS = { overview: '/overview', inbox: '/overview/inbox', activity: '/overview/activity', revenue: '/revenue/claims', staff: '/staff/team', team: '/staff/team' };
+              const dest = ALTHEA_SECTIONS[String(section || '').toLowerCase().trim()];
+              if (dest) setTimeout(() => { window.location.href = dest; }, 500);
             }
             if (responseEl) responseEl.textContent = spoken || 'Done.';
 
@@ -5014,6 +5021,23 @@
         if (textInput) textInput.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' && textSend) textSend.click();
         });
+
+        // A request made to Althea on another page (Overview, Staff...) that needs the
+        // patient chart lands here: run it once the workspace has finished loading.
+        try {
+          const raw = sessionStorage.getItem('althea:pending');
+          if (raw) {
+            sessionStorage.removeItem('althea:pending');
+            const pending = JSON.parse(raw);
+            if (pending && pending.transcript && Date.now() - (pending.ts || 0) < 120000) {
+              window.addEventListener('load', () => setTimeout(() => {
+                panel.classList.remove('hidden');
+                if (transcriptEl) transcriptEl.textContent = '"' + pending.transcript + '"';
+                handleCommand(pending.transcript);
+              }, 900));
+            }
+          }
+        } catch (e) { /* storage blocked: nothing to hand over */ }
       })();
 
       const statusEl = document.getElementById('claim-status');

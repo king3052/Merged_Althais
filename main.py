@@ -1097,7 +1097,7 @@ async def althea_command(request: Request, user=Depends(require_user)):
 - "prior_auth_pending" — list patients with a pending (not yet approved/denied) prior authorization. No params.
 - "coding_complexity_check" — flag providers whose average E/M coding level looks lower than the practice average (a coding-pattern signal, not a clinical judgment). No params.
 - "claims_denial_scan" — check the practice's highest-risk claims for specific missing documentation that could cause a denial. No params.
-- "open_section" — navigate to a named part of the app. Params: {{"section": one of "claims", "scheduler", "settings", "soap", "patients"}}
+- "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "scheduler", "patients", "soap", "settings", "staff"}}
 - "unknown" — the request doesn't match any of the above, OR asks for anything clinical (diagnosis, treatment, medication advice, symptom interpretation) or anything outside this product's own functions.
 
 Important on patient_name: only fill it in when a specific name is actually spoken (e.g. "open John Smith", "what is Maria's allergy"). Whenever the speaker refers to "this patient", "my patient", "the patient", "their ...", "and his/her ... too", or gives no name at all, leave patient_name as an empty string — the app resolves that to whichever patient was just discussed (in the recent conversation below) or whichever chart is currently open, so never guess a name that wasn't said.
