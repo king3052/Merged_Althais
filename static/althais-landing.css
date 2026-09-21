@@ -43,8 +43,9 @@ h1, h2, h3, p { margin: 0; }
 /* ---------- nav ---------- */
 .nav { position: sticky; top: 0; z-index: 50; background: color-mix(in oklab, var(--bg) 55%, transparent); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-bottom: 1px solid var(--line); }
 .nav-in { height: 68px; display: flex; align-items: center; justify-content: space-between; }
-.logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
-.logo svg { width: 16px; height: 16px; }
+.logo { display: inline-flex; align-items: center; gap: 10px; font-family: "Inter", var(--sans); font-weight: 600; font-size: 15px; letter-spacing: .3em; text-transform: uppercase; }
+.logo span { padding-left: .2em; }
+.logo svg { width: 24px; height: 24px; flex: none; }
 .nav-links { display: flex; align-items: center; gap: 30px; font-size: 14px; }
 .nav-links a:hover { color: var(--accent); }
 
