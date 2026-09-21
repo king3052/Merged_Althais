@@ -4,7 +4,7 @@ load_dotenv()  # local dev: read GROQ_API_KEY from a git-ignored .env; real env 
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse
 from groq import Groq
 import json
 from ncci_checker import check_claim_ncci_flags
@@ -283,6 +283,21 @@ def _render_emr(user) -> HTMLResponse:
     html = html.replace('<body class="bg-shell text-ink-800">', '<body class="bg-shell text-ink-800">' + workspace_bar, 1)
 
     return HTMLResponse(content=html)
+
+
+# Browsers and crawlers ask for these at the site root when a page has no <link rel="icon">.
+# Serve the same blue-circle "A" as the linked icons so the tab icon is never the generic default.
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico():
+    return FileResponse("static/favicon/favicon.ico", media_type="image/x-icon",
+                        headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+async def apple_touch_icon():
+    return FileResponse("static/favicon/apple-touch-icon.png", media_type="image/png",
+                        headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/")
