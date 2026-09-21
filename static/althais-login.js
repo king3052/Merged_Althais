@@ -20,17 +20,18 @@
   function setMode(m) {
     mode = m;
     var reg = m === "register";
+    document.querySelector(".lg-left").classList.toggle("is-register", reg);   /* compact layout so the whole card fits on screen */
     $("reg-fields").hidden = !reg;
     $("pw-hint").hidden = !reg;
     $("forgot-link").hidden = reg;
     $("form-eyebrow").textContent = reg ? "Get Started" : "Welcome";
-    $("form-title").innerHTML = reg ? 'Create your<br /><span class="em">account.</span>' : 'Sign in to your<br /><span class="em">Althais workspace.</span>';
+    $("form-title").innerHTML = reg ? 'Create your <span class="em">account.</span>' : 'Sign in to your<br /><span class="em">Althais workspace.</span>';
     $("form-sub").textContent = reg ? "Set up access for your practice." : "Enter your details to continue.";
     label.textContent = reg ? "Create Account" : "Sign In";
     $("toggle-prompt").textContent = reg ? "Already have an account?" : "New to Althais?";
     $("toggle-mode").textContent = reg ? "Sign In" : "Create An Account";
     $("f-password").setAttribute("autocomplete", reg ? "new-password" : "current-password");
-    $("f-password").placeholder = reg ? "Choose a password" : "Enter your password";
+    $("f-password").placeholder = reg ? "Choose A Password" : "Enter Your Password";
     document.title = (reg ? "Create Account" : "Sign In") + " | Althais";
     clearMsg();
   }
