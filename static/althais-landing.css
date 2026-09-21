@@ -275,8 +275,6 @@ section.block { padding: 120px 0 0; }
 .foot-in { height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
 .foot-in .logo { color: var(--ink); }
 .foot-in .l { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
-.foot-in nav { display: flex; gap: 24px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
-.foot-in nav a:hover { color: var(--ink); }
 
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
