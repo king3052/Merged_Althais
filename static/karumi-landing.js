@@ -98,7 +98,7 @@
     var rotatingWord = landing.querySelector("#hero-rotating-word");
     var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (rotatingWord && !reduceMotion) {
-      var words = ["reimbursement", "revenue", "clarity", "outcomes", "confidence"];
+      var words = ["revenue", "reimbursement", "cash flow", "profit", "clarity"];
       var wordIndex = 0;
       setInterval(function () {
         rotatingWord.style.opacity = "0";
