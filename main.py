@@ -319,46 +319,9 @@ async def root(request: Request, user=Depends(current_user)):
 async def login(request: Request, user=Depends(current_user)):
     if user:
         return RedirectResponse(url="/overview", status_code=302)
+    # The "Forgot password?" link and the sign-in / create-account toggle live in the template itself.
     with open("templates/login.html", "r", encoding="utf-8") as f:
-        content = f.read()
-    # Inject forgot password link — works even if the HTML file is an older version
-    forgot_patch = """<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Find the password label and inject "Forgot password?" link next to it
-    var labels = document.querySelectorAll('label');
-    labels.forEach(function(label) {
-      if (label.textContent.trim() === 'Password') {
-        var wrapper = document.createElement('div');
-        wrapper.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;width:100%';
-        label.style.margin = '0';
-        label.parentNode.insertBefore(wrapper, label);
-        wrapper.appendChild(label);
-        var link = document.createElement('a');
-        link.href = '/forgot-password';
-        link.textContent = 'Forgot Password';
-        link.id = 'forgot-link';
-        link.style.cssText = 'font-size:11px;color:#fff;text-decoration:underline;display:none';
-        link.onmouseover = function(){ this.style.textDecoration='underline'; };
-        link.onmouseout  = function(){ this.style.textDecoration='none'; };
-        wrapper.appendChild(link);
-      }
-    });
-    // Show the link only in login mode
-    var origSetMode = window.setMode;
-    if (typeof origSetMode === 'function') {
-      window.setMode = function(m) {
-        origSetMode(m);
-        var fl = document.getElementById('forgot-link');
-        if (fl) fl.style.display = (m === 'login') ? 'inline' : 'none';
-      };
-      // Show on initial load (login mode)
-      var fl = document.getElementById('forgot-link');
-      if (fl) fl.style.display = 'inline';
-    }
-  });
-</script>"""
-    content = content.replace('</body>', forgot_patch + '\n</body>')
-    return HTMLResponse(content=content)
+        return HTMLResponse(content=f.read())
 
 
 def _app_user_json(user) -> str:
