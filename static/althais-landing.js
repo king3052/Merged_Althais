@@ -89,42 +89,47 @@
     });
   });
 
-  /* ---------- in action: scenario tabs ---------- */
+  /* ---------- Althea AI: scenario tabs + chat ---------- */
   var SCN = [
     {
       share: [["g", "Complaint", "Chest pain, SOB, 2 hr"], ["g", "Assessment", "Rule out ACS"], ["g", "Visit type", "Emergency Dept"], ["g", "Duration", "47 min, documented"], ["o", "Vitals", "BP 148/92, HR 88"], ["o", "Labs", "Troponin pending"]],
-      note: "Blue is what the code actually rests on. Everything else in the note was read and left out.",
-      who: ["ED", "Emergency visit, demo patient", "Ready for review"], title: "Chest pain, ED visit",
-      body: ['Documented <mark>chest pain with shortness of breath</mark> and an ACS rule-out workup, with <mark>47 minutes</mark> of provider time.',
-             'The setting and the level of decision-making support <mark>CPT 99285</mark>, with <mark>R07.9</mark> as the primary diagnosis.',
-             'NCCI check: <mark>0 bundling conflicts</mark>. Nothing is filed until you approve it.']
+      note: "Blue is what Althea used. Everything else in the note was read and left out.",
+      msgs: [["u", "Summarize this visit and code it."],
+             ["a", 'Chest pain and shortness of breath for two hours, with an ACS rule-out workup and <mark>47 minutes</mark> of provider time. I would code <mark>CPT 99285</mark> with <mark>R07.9</mark> as the primary diagnosis.'],
+             ["u", "Any bundling issues?"],
+             ["a", '<mark>0 bundling conflicts</mark> against the CMS PTP edit table. It is ready for your review, and nothing is filed until you approve it.']],
+      src: ["Today's note", "CPT 99285", "CMS PTP table"]
     },
     {
       share: [["g", "Complaint", "Cough, fatigue, 5 days"], ["g", "Assessment", "Acute bronchitis, improving"], ["g", "Visit type", "Established patient"], ["o", "Vitals", "BP 122/78, HR 76"], ["o", "Plan", "Supportive care"]],
-      note: "The vitals were normal and the plan was routine. Both were found and left off the claim.",
-      who: ["FU", "Follow-up visit, demo patient", "Ready for review"], title: "Follow-up, established patient",
-      body: ['Documented <mark>acute bronchitis, improving</mark> after five days of cough and mild fatigue in an <mark>established patient</mark>.',
-             'That supports <mark>CPT 99213</mark>, with <mark>J20.9</mark> as the diagnosis.',
-             'NCCI check: <mark>0 bundling conflicts</mark>. One review, then it is on its way.']
+      note: "The vitals were normal and the plan was routine. Althea found both and left them off the claim.",
+      msgs: [["u", "What is the code for this follow-up?"],
+             ["a", 'Acute bronchitis, improving, in an <mark>established patient</mark>. That supports <mark>CPT 99213</mark> with <mark>J20.9</mark>. Vitals were normal and the plan was routine, so I left them off the claim.'],
+             ["u", "Anything to check before it goes?"],
+             ["a", '<mark>0 bundling conflicts.</mark> One review, then it is on its way.']],
+      src: ["Today's note", "CPT 99213", "ICD-10 J20.9"]
     },
     {
       share: [["g", "Claim", "CHC-00412, Smith, John"], ["g", "Coded as", "99291 critical care"], ["g", "CMS rule", "30 minutes required"], ["o", "Time in note", "not stated"]],
       note: "Althea flags this at low confidence and offers to open the claim, so it is fixed before filing rather than after a denial.",
-      who: ["!", "Needs one more line", "Flagged by Althea"], title: "Critical care, missing the time",
-      body: ['This claim was coded <mark>99291 critical care</mark>, but the note does not <mark>document the 30 minutes</mark> CMS requires for that code.',
-             'Adding the time, or choosing the code the note does support, clears it before it is filed.',
-             'Without that line, this is the kind of claim that comes back as a denial two weeks later.']
+      msgs: [["u", "Which claims are at risk today?"],
+             ["a", '3 claims flagged. <mark>CHC-00412</mark> has low confidence on the <mark>99291</mark> critical care code. The <mark>30-minute</mark> CMS threshold needs to be documented explicitly. Want me to open it?'],
+             ["u", "Open it"],
+             ["a", "Opening CHC-00412 now."]],
+      src: ["Claims overview", "CPT 99291", "CMS time rule"]
     }
   ];
-  var scnShare = $("#scn-share"), scnNote = $("#scn-note"), scnPaper = $("#scn-paper");
+  var scnShare = $("#scn-share"), scnNote = $("#scn-note"), chatBody = $("#chat-body");
   function renderScn(i) {
     var s = SCN[i]; if (!s) return;
     scnShare.innerHTML = s.share.map(function (r) {
       return '<div class="share-row"><span class="d ' + (r[0] === "o" ? "o" : "") + '"></span><span class="k">' + esc(r[1]) + '</span><span class="val ' + (r[0] === "o" ? "dimv" : "") + '">' + esc(r[2]) + '</span></div>';
     }).join("");
     scnNote.textContent = s.note;
-    scnPaper.innerHTML = '<div class="who"><span class="avatar">' + esc(s.who[0]) + '</span><div><b>' + esc(s.who[1]) + '</b><span>' + esc(s.who[2]) + '</span></div></div>' +
-      '<h4>' + esc(s.title) + '</h4>' + s.body.map(function (p, idx) { return '<p' + (idx === s.body.length - 1 ? ' class="sign"' : '') + '>' + p + '</p>'; }).join("");
+    chatBody.innerHTML = s.msgs.map(function (m, idx) {
+      var d = reduce ? 0 : idx * 0.28;
+      return '<div class="msg ' + (m[0] === "u" ? "u" : "a") + '" style="animation-delay:' + d + 's">' + (m[0] === "u" ? esc(m[1]) : m[1]) + '</div>';
+    }).join("") + '<div class="srcs" style="animation-delay:' + (reduce ? 0 : s.msgs.length * 0.28) + 's">' + s.src.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join("") + '</div>';
   }
   renderScn(0);
   $$(".scn-tab").forEach(function (t, idx) {
