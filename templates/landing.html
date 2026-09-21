@@ -222,55 +222,59 @@
 
       <div class="how-shell">
         <div class="how-tabs">
-          <button type="button" class="active" data-how-index="0"><span>01</span><div><b>Capture the encounter</b><p>The provider records or dictates the patient encounter.</p></div><i data-lucide="chevron-right"></i></button>
-          <button type="button" data-how-index="1"><span>02</span><div><b>Structure the record</b><p>Althais turns the encounter into organized clinical documentation.</p></div><i data-lucide="chevron-right"></i></button>
-          <button type="button" data-how-index="2"><span>03</span><div><b>Code + validate</b><p>The documentation is analyzed for coding recommendations and potential claim issues.</p></div><i data-lucide="chevron-right"></i></button>
-          <button type="button" data-how-index="3"><span>04</span><div><b>Review + move forward</b><p>The appropriate team member reviews the recommendation before the workflow continues.</p></div><i data-lucide="chevron-right"></i></button>
+          <button type="button" class="active" data-how-index="0"><span>01</span><div><b>AI Documentation</b><p>Virtual SOAP captures a structured note in minutes.</p></div><i data-lucide="chevron-right"></i></button>
+          <button type="button" data-how-index="1"><span>02</span><div><b>Claims Intelligence</b><p>Every code checked against CMS edit tables before submission.</p></div><i data-lucide="chevron-right"></i></button>
+          <button type="button" data-how-index="2"><span>03</span><div><b>Althea Voice AI</b><p>Ask your practice questions and get instant answers.</p></div><i data-lucide="chevron-right"></i></button>
+          <button type="button" data-how-index="3"><span>04</span><div><b>Revenue Tracking</b><p>Every claim tracked from submission to payment.</p></div><i data-lucide="chevron-right"></i></button>
         </div>
         <div class="how-sticky">
           <div class="how-visual" data-how-panel="0">
-            <div class="how-screen capture-screen">
-              <div class="encounter-patient"><span>DM</span><div><small>DEMO PATIENT</small><b>Daniel M. · Follow-up</b></div></div>
-              <div class="record-orb"><i data-lucide="mic" width="28" height="28"></i><i></i><i></i></div>
-              <strong>Encounter recording</strong><small>00:08:42 · Consent confirmed</small>
-              <div class="transcript-line"><i></i><i></i><i></i></div>
+            <div class="how-screen soap-mock">
+              <div class="how-mock-nav"><span class="active">1 Patient</span><i data-lucide="chevron-right"></i><span>2 Note</span><i data-lucide="chevron-right"></i><span>3 AI Coding</span><i data-lucide="chevron-right"></i><span>4 Review</span></div>
+              <div class="soap-field"><small>CHIEF COMPLAINT</small><p>Chest pain, shortness of breath, 2hr onset</p></div>
+              <div class="soap-grid">
+                <div class="soap-field"><small>ASSESSMENT</small><p>Acute chest pain, r/o ACS. Stable vitals.</p></div>
+                <div class="soap-field"><small>VISIT TYPE</small><p>Emergency Dept</p></div>
+                <div class="soap-field"><small>PLAN</small><p>EKG ordered, troponin labs, cardiology consult if elevated.</p></div>
+                <div class="soap-field"><small>DURATION</small><p class="timer-verified"><i data-lucide="check"></i> 47 min · verified</p></div>
+              </div>
+              <div class="soap-footer">
+                <div class="code-chip"><span>CPT</span><b>99285</b><em>ED Visit, high complexity · CMS verified</em></div>
+                <div class="code-chip"><span>ICD-10</span><b>R07.9</b><em>Chest pain</em></div>
+                <div class="soap-confidence"><span>94%</span></div>
+              </div>
             </div>
           </div>
           <div class="how-visual" data-how-panel="1" hidden>
-            <div class="how-screen structure-screen">
-              <div class="raw-note"><small>RAW ENCOUNTER</small><p>&ldquo;Patient says symptoms have improved since last visit…&rdquo;</p></div>
-              <i data-lucide="arrow-down-right"></i>
-              <div class="structured-note">
-                <small>STRUCTURED NOTE</small>
-                <div><b>Subjective</b><span>Symptoms improving</span></div>
-                <div><b>Assessment</b><span>Stable on current plan</span></div>
-                <div><b>Plan</b><span>Continue and follow up</span></div>
-              </div>
+            <div class="how-screen ncci-mock">
+              <div class="ncci-row"><span>CPT</span><b>99285</b><em>ED Visit, high complexity · CMS verified</em></div>
+              <div class="ncci-row"><span>ICD-10</span><b>R07.9</b><em>Chest pain, unspecified · 94% conf.</em></div>
+              <div class="ncci-row"><span>ICD-10</span><b>R06.00</b><em>Dyspnea, unspecified · 91% conf.</em></div>
+              <div class="ncci-pass"><i data-lucide="shield-check"></i><div><b>NCCI edit check passed: 0 bundling conflicts</b><small>Checked against CMS PTP edit table before submission</small></div></div>
             </div>
           </div>
           <div class="how-visual" data-how-panel="2" hidden>
-            <div class="how-screen validate-screen">
-              <div class="confidence"><span>94</span><small>CLAIM CONFIDENCE</small></div>
-              <div class="validation-stack">
-                <div><span>CPT</span><b>99213</b><i data-lucide="circle-check-big"></i></div>
-                <div><span>ICD-10</span><b>I10</b><i data-lucide="circle-check-big"></i></div>
-                <div><span>DOCS</span><b>Complete</b><i data-lucide="circle-check-big"></i></div>
-                <div><span>NCCI</span><b>Check passed</b><i data-lucide="circle-check-big"></i></div>
-              </div>
+            <div class="how-screen althea-chat-mock">
+              <div class="chat-q">Which claims are at risk today?</div>
+              <div class="chat-a"><span class="spark-icon" aria-hidden="true">✦</span> 3 claims flagged. CHC-00412 has low confidence on the 99291 critical care code. The 30-minute CMS threshold needs to be documented explicitly. Want me to open it?</div>
+              <div class="chat-q">Open it</div>
+              <div class="chat-a"><span class="spark-icon" aria-hidden="true">✦</span> Opening CHC-00412 now.</div>
             </div>
           </div>
           <div class="how-visual" data-how-panel="3" hidden>
-            <div class="how-screen onward-screen">
-              <div class="workflow-rail">
-                <div class="rail-step"><span>01</span><b>encounter</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
-                <div class="rail-step"><span>02</span><b>AI documentation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
-                <div class="rail-step"><span>03</span><b>Medical coding</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
-                <div class="rail-step current"><span>04</span><b>Claim validation</b><i data-lucide="chevron-right" width="12" height="12"></i></div>
-                <div class="rail-step"><span>05</span><b>Reimbursement</b></div>
+            <div class="how-screen claims-mock">
+              <div class="claims-stats">
+                <div><small>CLEAN RATE</small><b>94%</b></div>
+                <div><small>PENDING</small><b>$48,210</b></div>
+                <div><small>DENIED</small><b>3</b></div>
               </div>
-              <div class="approval-card"><i data-lucide="user-check"></i><div><small>HUMAN REVIEW</small><b>Approved to move forward</b></div><span>APPROVED</span></div>
-              <div class="cycle-line"><i></i><i></i><i></i><i></i><i></i></div>
-              <small>Submission workflow → reimbursement monitoring</small>
+              <div class="claims-rows">
+                <div><div><b>CHC-2026-00412</b><small>Smith, John · 99291</small></div><span>$1,240</span><em class="submitted">Submitted</em></div>
+                <div><div><b>CHC-2026-00411</b><small>Patel, R. · 99285</small></div><span>$680</span><em class="paid">Paid</em></div>
+                <div><div><b>CHC-2026-00409</b><small>Torres, M. · 99283</small></div><span>$340</span><em class="denied">Denied</em></div>
+                <div><div><b>CHC-2026-00408</b><small>Kim, S. · 99284</small></div><span>$520</span><em class="paid">Paid</em></div>
+              </div>
+              <div class="claims-foot">Appeal letter generated for CHC-2026-00409</div>
             </div>
           </div>
         </div>
