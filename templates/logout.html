@@ -16,40 +16,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
   <link rel="stylesheet" href="/static/althais-landing.css" />
-  <link rel="stylesheet" href="/static/althais-signout.css" />
+  <link rel="stylesheet" href="/static/althais-auth.css" />
 </head>
 <body class="login-page">
-
-<div class="lg-bg" aria-hidden="true"></div>
 
 <div class="lg-shell">
   <section class="lg-left">
     <header class="lg-top">
       <a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+      <a href="/" class="btn btn-ghost">
+        <svg class="arr" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg>
+        Return To Home
+      </a>
     </header>
 
     <main class="lg-main">
-      <div class="lg-form lo-card">
-        <div class="lo-ico" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-        </div>
+      <div class="lg-form">
         <div class="lg-head">
           <div class="eyebrow">Signed Out</div>
           <h1 class="lg-title">You have been<br /><span class="em">signed out.</span></h1>
           <p class="lg-sub">Your session has ended. If you are on a shared device, close this tab.</p>
         </div>
 
-        <div class="lo-actions">
-          <a href="/login" class="btn btn-dark btn-lg lg-submit">
-            Sign In Again
-            <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-          </a>
-          <a href="/" class="btn btn-ghost btn-lg lo-home">Return To Home</a>
+        <div class="lg-actions">
+          <a href="/login" class="btn btn-dark btn-lg lg-submit">Sign In Again <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
         </div>
 
-        <div class="lo-count" id="lo-count">
+        <div id="lo-count">
           <div class="lo-bar" aria-hidden="true"><i id="lo-bar"></i></div>
-          <p>Taking you to sign in in <b id="countdown">30</b>s. <button type="button" id="lo-cancel" class="lg-link">Stay here</button></p>
+          <p class="lg-switch lo-note">Sign in page opens in <span id="countdown">30</span>s <button type="button" id="lo-cancel" class="lg-link">Stay Here</button></p>
         </div>
       </div>
     </main>
@@ -59,7 +54,7 @@
 </div>
 
 <script>
-  // On sign-out we clear the session but keep each organization's namespaced data,
+// On sign-out we clear the session but keep each organization's namespaced data,
   // so when the same person signs back in their claims and patients are still there.
   // Only the old un-namespaced legacy keys are removed.
   try {

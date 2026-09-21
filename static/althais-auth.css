@@ -1,4 +1,4 @@
-/* Sign-in page: a single centred card, extends the landing page design system (althais-landing.css). */
+/* Auth pages (sign in, forgot / reset password, signed out): a single centred card, extends the landing page design system (althais-landing.css). */
 
 .login-page { min-height: 100vh; }
 .lg-shell { min-height: 100vh; min-height: 100dvh; }
@@ -86,3 +86,13 @@
   .lg-left.is-register .field-pair { display: block; }
   .lg-left.is-register .lg-form { padding: 26px 20px 22px; }
 }
+
+/* ---------- shared by forgot / reset / signed-out pages ---------- */
+[hidden] { display: none !important; }
+.lg-email { font-family: var(--mono); text-transform: none; letter-spacing: normal; color: var(--muted); word-break: break-all; }
+.lg-actions { margin-top: 30px; display: grid; gap: 10px; }
+.lg-actions .lg-submit { margin-top: 0; }
+.lo-bar { height: 3px; margin-top: 26px; border-radius: 3px; background: #ececec; overflow: hidden; }
+.lo-bar i { display: block; height: 100%; width: 100%; background: var(--accent); border-radius: 3px; }
+.lo-note { margin-top: 12px; }
+.lo-note #countdown { font-variant-numeric: tabular-nums; }
