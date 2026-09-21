@@ -11,12 +11,11 @@
 .lg-foot { flex: none; padding: 0 0 28px; font-size: 13px; color: var(--faint); }
 
 .lg-title { margin: 16px 0 0; font-family: var(--serif); font-weight: 400; font-size: clamp(38px, 4vw, 46px); line-height: 1.02; letter-spacing: -.015em; }
-.lg-sub { margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--muted); }
+.lg-sub { margin: 16px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; line-height: 1.7; color: var(--faint); }
 
 .lg-msg { margin-top: 24px; padding: 11px 14px; border-radius: 10px; background: #fbeeea; border: 1px solid #f0d0c7; color: var(--red); font-size: 14px; line-height: 1.5; }
 .lg-msg.ok { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
-.lg-msg[hidden], #reg-fields[hidden], .lg-hint[hidden], .eye-on[hidden], .eye-off[hidden], .lg-forgot[hidden], .lg-pilot[hidden] { display: none; }
-
+.lg-msg[hidden], #reg-fields[hidden], .lg-hint[hidden], .eye-on[hidden], .eye-off[hidden], .lg-forgot[hidden] { display: none; }
 #auth-form { margin-top: 30px; }
 .field { margin-bottom: 18px; }
 .field label { display: block; margin-bottom: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
@@ -41,12 +40,9 @@
 .lg-submit { width: 100%; justify-content: center; height: 50px; margin-top: 10px; font-size: 15px; }
 .lg-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-.lg-switch { margin: 26px 0 0; text-align: center; font-size: 14.5px; color: var(--muted); }
-.lg-link { margin-left: 4px; padding: 0; border: 0; background: none; font: inherit; font-weight: 500; color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #cfcfcf; transition: color .15s, text-decoration-color .15s; }
+.lg-switch { margin: 26px 0 0; text-align: center; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; line-height: 1.7; color: var(--faint); }
+.lg-link { margin-left: 4px; padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; font-weight: 500; color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #cfcfcf; transition: color .15s, text-decoration-color .15s; }
 .lg-link:hover { color: var(--accent); text-decoration-color: var(--accent); }
-.lg-pilot { margin: 14px 0 0; text-align: center; font-size: 13.5px; color: var(--faint); }
-.lg-pilot a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #cfcfcf; }
-.lg-pilot a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
 @media (prefers-reduced-motion: no-preference) {
   .lg-form { animation: fadeUp .6s ease both; }
