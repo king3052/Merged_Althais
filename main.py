@@ -302,7 +302,7 @@ async def favicon_ico():
 @app.get("/apple-touch-icon.png", include_in_schema=False)
 @app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
 async def apple_touch_icon():
-    return FileResponse("static/favicon/althais-touch-blue-180.png", media_type="image/png",
+    return FileResponse("static/favicon/althais-tab-180.png", media_type="image/png",
                         headers={"Cache-Control": "public, max-age=86400"})
 
 
