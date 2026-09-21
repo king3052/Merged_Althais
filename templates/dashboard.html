@@ -313,7 +313,7 @@
        The interface (launcher card, chat panel, mic) is shared with every
        other page: static/js/althea-ui.js. The behaviour is below. -->
   <script src="/static/js/althea-ui.js"></script>
-  <script>AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Dictate a visit note", "Which claims are at risk?", "Summarize my claims"] });</script>
+  <script>AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?"] });</script>
 
   <!-- =================== TOP BLUE HEADER =================== -->
   <header class="bg-med-600 text-white">
@@ -4028,8 +4028,10 @@
         // Althea only talks back when you talked to her: a spoken command (or the mic) gets a
         // spoken answer; typing a command or clicking a suggestion gets a written one, in silence.
         let altheaVoiceTurn = false;
+        let altheaWorkflow = null; // the visit workflow: { stage, mrn, name, parts, encounterKnown }
         function speak(text) {
           if (!text || !altheaVoiceTurn) return;
+          if (altheaWorkflow && altheaWorkflow.stage === 'scribing') return; // never talk over a visit (her voice would end up in the note)
           try {
             if (!('speechSynthesis' in window)) return;
             const utter = new SpeechSynthesisUtterance(text);
@@ -4463,8 +4465,12 @@
         }
         function closeAlthea() {
           altheaConversation = false;
+          if (altheaDictation && altheaDictation.watch) altheaDictation.watch.disconnect();
           altheaDictation = null;
+          altheaWorkflow = null; // closing Althea cancels the visit workflow (the raw recording is discarded)
+          altheaSetActions([]);
           altheaSetDictationUI(false);
+          if (panel) panel.classList.remove('is-scribing');
           stopListening(false);
           altheaStop(); // don't let speech or a pending request keep running after close
           panel.classList.add('hidden');
@@ -4484,6 +4490,7 @@
         // Mic: one tap starts a conversation, another tap ends it (sending anything already heard).
         if (micBtn) micBtn.addEventListener('click', () => {
           altheaVoiceTurn = true; // using the mic means you are talking to her
+          if (altheaWorkflow && altheaWorkflow.stage === 'scribing') { altheaFinishScribe(); return; } // tapping the mic ends the visit
           if (listening && altheaDictation) {
             const heard = finalTranscript.trim();
             if (heard) { altheaDictation.finishAfter = true; altheaConversation = false; stopListening(true); }
@@ -4573,7 +4580,27 @@
           if (p) p.classList.toggle('is-dictating', on);
         }
         function altheaBeginDictation(target, intro) {
-          altheaDictation = { target, count: 0, finishAfter: false };
+          altheaDictation = { target, count: 0, finishAfter: false, patientsBefore: (typeof PATIENTS !== 'undefined') ? PATIENTS.length : 0 };
+          const dct = altheaDictation;
+          const modal = document.getElementById(target === 'new_patient' ? 'patient-modal' : 'soap-modal');
+          if (modal) {
+            dct.watch = new MutationObserver(() => {
+              if (!modal.classList.contains('hidden') || altheaDictation !== dct) return;
+              dct.watch.disconnect();
+              const saved = target === 'new_patient' && typeof PATIENTS !== 'undefined' && PATIENTS.length > dct.patientsBefore;
+              altheaDictation = null; altheaConversation = false; altheaSetDictationUI(false); stopListening(false);
+              if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
+              if (saved) {
+                const pt = PATIENTS[PATIENTS.length - 1];
+                altheaJustCreated = pt.mrn; altheaRememberPatient(pt.mrn);
+                altheaShow('<div><b>Saved ' + escapeHtml(pt.name) + '.</b></div><div style="color:#9aa0ac;">When their visit starts I can scribe it, write the note, get the codes and prepare the claim.</div>', true);
+                altheaSetActions([{ key: 'scribe_new', label: 'Scribe the visit', primary: true }]);
+              } else {
+                altheaShow('The form was closed, so I stopped listening.');
+              }
+            });
+            dct.watch.observe(modal, { attributes: true, attributeFilter: ['class'] });
+          }
           altheaConversation = true;
           altheaSetDictationUI(true);
           if (responseEl) responseEl.textContent = intro;
@@ -4581,6 +4608,7 @@
         }
         function altheaEndDictation() {
           const dct = altheaDictation;
+          if (dct && dct.watch) dct.watch.disconnect();
           altheaDictation = null; altheaConversation = false;
           altheaSetDictationUI(false);
           stopListening(false);
@@ -4591,6 +4619,7 @@
           if (responseEl) responseEl.textContent = said;
           if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
           speak(said);
+          if (dct && dct.target === 'new_patient' && n) altheaWatchNewPatientSave();
         }
         // "done", "that's all", "finished" ... end the dictation.
         const ALTHEA_DONE_RE = /^\s*(?:ok(?:ay)?[, ]+)?(?:that(?:'|’)?s (?:all|it|everything)|that is (?:all|it)|i(?:'|’)?m (?:done|finished)|we(?:'|’)?re (?:done|finished)|all done|done|finished?|finish(?: up)?|stop(?: dictating| dictation)?|end dictation)[.!?\s]*$/i;
@@ -4624,6 +4653,303 @@
           if (dct.finishAfter && altheaDictation === dct) { altheaEndDictation(); return; }
           if (statusEl2 && !listening) statusEl2.textContent = 'Ask anything or tap the mic';
           altheaMaybeResume();
+        }
+
+        // ── Visit workflow: scribe the visit -> write the note -> get codes -> prepare the claim ──────
+        // Althea drives the app's own note, coding and claim steps, and keeps the two human sign-offs
+        // with you: (1) coding suggestions are only accepted when YOU say so (the app's existing rule),
+        // (2) the claim is only created after you say you have reviewed the note and codes (that is the
+        // "I have reviewed and approve" box on the last step). The claim is a DRAFT: sending it to the
+        // payer is still your separate step. While scribing she stays completely silent, and the raw
+        // conversation is discarded as soon as the note is written.
+        const actionsEl = document.getElementById('althea-actions');
+        let altheaJustCreated = null; // mrn of a patient added through Althea (their first visit is a new-patient visit)
+        const ALTHEA_END_VISIT_RE = /\b(?:end (?:the |this )?(?:visit|scribing|recording)|stop (?:the )?(?:scribing|recording)|finish (?:up )?(?:the )?(?:note|visit)|that(?:'|’)?s (?:the end of )?the visit|we(?:'|’)?re (?:done|finished) (?:with )?(?:the )?visit)\b/i;
+        const ALTHEA_CANCEL_RE = /^\s*(?:ok(?:ay)?[, ]+)?(?:cancel|never ?mind|forget it|stop|not now|not yet|no|i(?:'|’)?ll (?:review|do it|check)(?: (?:it|them))?(?: myself)?|let me (?:review|check)(?: (?:it|them))?|review (?:it |them )?myself)[.!?\s]*$/i;
+        const ALTHEA_ACCEPT_ALL_RE = /\b(?:accept|approve|take|use|keep) (?:all|them all|all of them|all the codes|everything)\b|^\s*(?:yes|yeah|yep|sure|ok(?:ay)?|accept them|those are fine|looks good)[.!?\s]*$/i;
+        const ALTHEA_APPROVE_RE = /\b(?:reviewed|approve[ds]?|sign(?:ed)? off|looks good)\b/i;
+        const ALTHEA_CREATE_RE = /\b(?:create|make|file|go ahead|proceed|do it|submit)\b/i;
+
+        function altheaSetActions(list) {
+          if (!actionsEl) return;
+          actionsEl.innerHTML = '';
+          (list || []).forEach(a => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.dataset.k = a.key; b.textContent = a.label;
+            if (a.primary) b.className = 'primary';
+            actionsEl.appendChild(b);
+          });
+          actionsEl.classList.toggle('hidden', !(list && list.length));
+        }
+        function altheaShow(html, asHtml) {
+          if (!responseEl) return;
+          if (asHtml) responseEl.innerHTML = html; else responseEl.textContent = html;
+        }
+        function altheaEndWorkflow(message) {
+          altheaWorkflow = null; altheaConversation = false;
+          altheaSetActions([]); altheaSetDictationUI(false);
+          panel.classList.remove('is-scribing');
+          stopListening(false);
+          if (message) altheaShow(message);
+          if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
+          if (message) speak(message);
+        }
+        function altheaScribeShow() {
+          const w = altheaWorkflow;
+          if (!w || !transcriptEl) return;
+          const words = w.parts.join(' ').split(/\s+/).filter(Boolean).length;
+          transcriptEl.textContent = 'Scribing… ' + words + ' words heard';
+        }
+
+        // Closing the note yourself ends the workflow (creating the claim also closes it, so that is excused).
+        function altheaWatchNote() {
+          const m = document.getElementById('soap-modal');
+          if (!m || m.dataset.altheaWatch) return;
+          m.dataset.altheaWatch = '1';
+          new MutationObserver(() => {
+            if (!m.classList.contains('hidden') || !altheaWorkflow || altheaWorkflow.stage === 'creating') return;
+            altheaEndWorkflow('The note was closed, so I stopped. Nothing was created.');
+          }).observe(m, { attributes: true, attributeFilter: ['class'] });
+        }
+        // 1. Scribing ------------------------------------------------------------------
+        function altheaBeginScribe(p) {
+          altheaRememberPatient(p.mrn);
+          openSoap(p.mrn);
+          if (typeof soapShowStep === 'function') soapShowStep(2); // the note fields
+          if (altheaJustCreated === p.mrn) { // a patient added through Althea: this is their new-patient visit
+            const flag = document.getElementById('soap-new-patient-flag');
+            if (flag) { flag.checked = true; altheaMark(flag); }
+          }
+          altheaWorkflow = { stage: 'scribing', mrn: p.mrn, name: p.name, parts: [], encounterKnown: false };
+          altheaWatchNote();
+          altheaConversation = true;
+          altheaSetDictationUI(true); panel.classList.add('is-scribing');
+          altheaSetActions([{ key: 'end_visit', label: 'End visit', primary: true }]);
+          if (transcriptEl) transcriptEl.textContent = '';
+          altheaShow('Scribing the visit for ' + p.name + '. I will stay quiet and listen. Make sure the patient has agreed to this being recorded. Say “end visit”, tap End visit, or tap the mic when it is over.');
+          if (statusEl2) statusEl2.textContent = 'Ready to listen';
+        }
+        async function altheaFinishScribe() {
+          const w = altheaWorkflow;
+          if (!w || w.stage !== 'scribing') return;
+          w.stage = 'drafting';
+          altheaConversation = false; stopListening(false);
+          panel.classList.remove('is-scribing'); altheaSetActions([]);
+          const text = w.parts.join(' ').replace(/\s+/g, ' ').trim();
+          w.parts = []; // the raw conversation is not kept around
+          if (text.split(' ').filter(Boolean).length < 12) {
+            altheaEndWorkflow('I didn’t hear enough of a visit to write a note. The blank note is open if you want to type it.');
+            return;
+          }
+          await altheaDraftNote(w, text);
+        }
+        // 2. The note --------------------------------------------------------------------
+        async function altheaDraftNote(w, text) {
+          w.stage = 'drafting';
+          altheaShow('Writing the note from the visit…');
+          if (statusEl2) statusEl2.textContent = 'Writing the note…';
+          altheaShowStopButton(true);
+          let fields;
+          try {
+            const res = await fetch('/api/althea/extract', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ target: 'soap_scribe', text }), credentials: 'same-origin'
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) throw new Error(data.error || 'failed');
+            fields = data.fields || {};
+          } catch (e) {
+            if (altheaWorkflow !== w) return;
+            w.stage = 'retry'; w.retryText = text; // kept only so you can try again
+            altheaSetActions([{ key: 'retry_note', label: 'Try again', primary: true }, { key: 'cancel', label: 'Cancel' }]);
+            altheaShow((e && e.message && e.message !== 'failed' ? e.message + ' ' : '') + 'I couldn’t write the note just now. Your recording is still here, so you can try again.');
+            if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
+            return;
+          } finally { altheaShowStopButton(false); }
+          if (altheaWorkflow !== w) return;
+          w.retryText = null;
+          const filled = altheaApplyFields('soap_note', fields);
+          if (fields.encounter_type && altheaSetSelect('soap-encounter-type', fields.encounter_type)) { w.encounterKnown = true; filled.push('Encounter type'); }
+          if (!filled.length) { altheaEndWorkflow('I couldn’t find anything to put in the note from that. The blank note is open if you want to type it.'); return; }
+          const empties = ['chief_complaint', 'hpi', 'exam', 'assessment', 'plan'].filter(k => !fields[k]).map(k => ALTHEA_SOAP_FIELDS[k][1]);
+          let html = '<div><b>Note drafted.</b> Filled: ' + filled.map(escapeHtml).join(', ') + '.</div>';
+          if (empties.length) html += '<div style="color:#b86a00;">Not said in the visit, so left empty: ' + empties.map(escapeHtml).join(', ') + '.</div>';
+          html += '<div style="color:#9aa0ac;">Read it over in the note. I only wrote what was said.</div>';
+          altheaShow(html, true);
+          if (!w.encounterKnown) {
+            // The form defaults to "Emergency dept." and that changes which codes are suggested, so never guess it.
+            w.stage = 'awaiting_encounter';
+            responseEl.innerHTML += '<div style="margin-top:6px;"><b>What kind of visit was this?</b> I need it to pick the right codes.</div>';
+            altheaSetActions([{ key: 'enc_office', label: 'Office' }, { key: 'enc_urgent', label: 'Urgent care' }, { key: 'enc_emergency', label: 'Emergency' }]);
+            speak('The note is drafted. What kind of visit was this: office, urgent care, or emergency?');
+            altheaMaybeResume();
+            return;
+          }
+          await altheaCodingStage(w);
+        }
+        // 3. Codes -----------------------------------------------------------------------
+        async function altheaCodingStage(w) {
+          w.stage = 'coding'; altheaSetActions([]);
+          if (statusEl2) statusEl2.textContent = 'Getting codes…';
+          if (responseEl) responseEl.innerHTML += '<div style="margin-top:6px;color:#9aa0ac;">Getting codes…</div>';
+          altheaShowStopButton(true);
+          try {
+            if (typeof soapShowStep === 'function') soapShowStep(3);
+            if (typeof soapRunCoding === 'function') await soapRunCoding();
+          } catch (e) { /* soapRunCoding falls back to offline suggestions itself */ }
+          finally { altheaShowStopButton(false); }
+          if (altheaWorkflow !== w) return;
+          const codes = (typeof soapCodes !== 'undefined') ? soapCodes : [];
+          if (!codes.length) { altheaEndWorkflow('I couldn’t suggest any codes from that note. You can add codes yourself in the coding step.'); return; }
+          w.stage = 'awaiting_codes';
+          const enc = document.getElementById('soap-encounter-type');
+          const encLabel = enc && enc.selectedIndex >= 0 ? enc.options[enc.selectedIndex].text : '';
+          const errEl = document.getElementById('soap-coding-error');
+          const offline = errEl && !errEl.classList.contains('hidden') && /offline/i.test(errEl.textContent || '');
+          let html = '<div><b>Suggested codes</b> for ' + escapeHtml(encLabel) + ':</div>' + codes.map(c =>
+            '<div>' + (c._accepted ? '✓ ' : '') + '<b>' + escapeHtml(c.type + ' ' + c.code) + '</b> ' + escapeHtml(c.desc || '') +
+            ' <span style="color:#9aa0ac;">' + (c.timeVerified ? 'time-verified' : escapeHtml(String(c.conf || '')) + '%') + '</span>' +
+            (c.documentationGap ? ' <span style="color:#b86a00;">⚠ ' + escapeHtml(c.documentationGap) + '</span>' : '') + '</div>').join('');
+          if (offline) html += '<div style="color:#c83838;">These are offline suggestions (the AI coding was unavailable), so check them closely.</div>';
+          html += '<div style="margin-top:6px;">Say “accept all”, name the ones to accept (like “accept ' + escapeHtml(String((codes.find(c => c.type === 'CPT') || codes[0]).code)) + '”), or “I’ll review”. Nothing is accepted until you say so.</div>';
+          altheaShow(html, true);
+          altheaSetActions([{ key: 'accept_all', label: 'Accept all codes', primary: true }, { key: 'review_self', label: 'I’ll review them' }]);
+          if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
+          speak('I have ' + codes.length + ' suggested code' + (codes.length === 1 ? '' : 's') + '. Say accept all, name the ones to accept, or say I’ll review.');
+          altheaMaybeResume();
+        }
+        function altheaAcceptCodes(tokens) {
+          if (typeof soapCodes === 'undefined') return 0;
+          const norm = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+          const wanted = tokens ? tokens.map(norm) : null;
+          let n = 0;
+          soapCodes.forEach(c => {
+            if (wanted ? wanted.includes(norm(c.code)) : !c._rejected) { c._accepted = true; c._rejected = false; n++; }
+          });
+          if (typeof soapRenderCodes === 'function') soapRenderCodes();
+          return n;
+        }
+        // 4. Approval, then the draft claim -----------------------------------------------
+        function altheaApprovalStage(w) {
+          const accepted = (typeof soapAcceptedCodes === 'function') ? soapAcceptedCodes() : [];
+          if (!accepted.length) return false;
+          w.stage = 'awaiting_approval';
+          if (typeof soapShowStep === 'function') soapShowStep(4);
+          if (typeof soapRenderReview === 'function') soapRenderReview();
+          const cpts = accepted.filter(c => c.type === 'CPT');
+          const amount = (typeof calcClaimAmountFromCpts === 'function') ? calcClaimAmountFromCpts(cpts) : null;
+          altheaShow('<div><b>Accepted:</b> ' + accepted.map(c => escapeHtml(c.code)).join(', ') + (amount != null ? ' · billed $' + Number(amount).toFixed(2) : '') + '.</div>' +
+            '<div style="margin-top:6px;">The claim summary is on screen. Once you have read the note and the codes, say “I’ve reviewed it, create the claim”. That is your sign-off; I will not do it for you. The claim is created as a draft, and I never send it to the payer.</div>', true);
+          altheaSetActions([{ key: 'approve_create', label: 'I’ve reviewed it. Create claim', primary: true }, { key: 'not_yet', label: 'Not yet' }]);
+          speak('Codes accepted. When you have reviewed the note and codes, say I’ve reviewed it, create the claim.');
+          altheaMaybeResume();
+          return true;
+        }
+        async function altheaCreateClaim(w) {
+          const chk = document.getElementById('soap-doctor-review');
+          const createBtn = document.getElementById('soap-create-claim');
+          if (!chk || !createBtn || typeof SAVED_CLAIMS === 'undefined') { altheaEndWorkflow('I can’t create the claim from here. The note is open: use Create Claim on the last step.'); return; }
+          if (!soapAcceptedCodes().length) { altheaEndWorkflow('There are no accepted codes, so there is nothing to make a claim from yet.'); return; }
+          const before = SAVED_CLAIMS.length;
+          w.stage = 'creating';
+          chk.checked = true; chk.dispatchEvent(new Event('change', { bubbles: true })); // your review sign-off, given by voice or button
+          createBtn.click();                                                                 // the app's own Create Claim
+          await new Promise(r => setTimeout(r, 500));
+          if (SAVED_CLAIMS.length > before) {
+            const claim = SAVED_CLAIMS[0];
+            altheaEndWorkflow('Claim ' + claim.claimId + ' is created as a draft for ' + claim.patient + (claim.amount ? ' ($' + Number(claim.amount).toFixed(2) + ')' : '') + '. It is in Claims Overview and the claim is open. I have not sent anything to the payer: submitting is your call.');
+          } else {
+            w.stage = 'awaiting_approval';
+            altheaShow('The claim was not created. Check the message on screen, then try again or use Create Claim yourself.');
+          }
+        }
+        // What you say (or tap) at each stage -----------------------------------------------
+        async function altheaWorkflowAction(key) {
+          const w = altheaWorkflow;
+          if (key === 'scribe_new') { // offered right after a new patient is saved
+            const pt = (typeof PATIENTS !== 'undefined') ? PATIENTS.find(x => x.mrn === altheaJustCreated) : null;
+            if (pt && typeof openSoap === 'function') altheaBeginScribe(pt);
+            return;
+          }
+          if (!w) return;
+          if (key === 'end_visit') { await altheaFinishScribe(); return; }
+          if (key === 'retry_note' && w.retryText) { await altheaDraftNote(w, w.retryText); return; }
+          if (key === 'cancel') { altheaEndWorkflow('Okay, cancelled. Nothing was created.'); return; }
+          if (key === 'enc_office' || key === 'enc_urgent' || key === 'enc_emergency') {
+            if (w.stage !== 'awaiting_encounter') return;
+            altheaSetSelect('soap-encounter-type', key === 'enc_office' ? 'office' : key === 'enc_urgent' ? 'urgent_care' : 'emergency');
+            w.encounterKnown = true;
+            await altheaCodingStage(w); return;
+          }
+          if (key === 'accept_all' && w.stage === 'awaiting_codes') { altheaAcceptCodes(null); if (!altheaApprovalStage(w)) altheaShow('There is nothing to accept yet.'); return; }
+          if (key === 'review_self') { altheaEndWorkflow('Okay. The note and the codes are open for you to review. Nothing was accepted or created.'); return; }
+          if (key === 'approve_create' && w.stage === 'awaiting_approval') { await altheaCreateClaim(w); return; }
+          if (key === 'not_yet') { altheaEndWorkflow('Okay. Everything is open for you to review. Nothing was created.'); return; }
+        }
+        async function altheaWorkflowInput(text) {
+          const w = altheaWorkflow;
+          if (!w) return false;
+          const t = String(text || '').trim();
+          if (w.stage === 'scribing') { // typed text joins the conversation; "end visit" finishes
+            if (ALTHEA_END_VISIT_RE.test(t)) await altheaFinishScribe(); else { w.parts.push(t); altheaScribeShow(); }
+            return true;
+          }
+          if (w.stage === 'drafting' || w.stage === 'coding') { altheaShow('One moment, I am still working on it.'); return true; }
+          if (ALTHEA_CANCEL_RE.test(t)) { await altheaWorkflowAction(w.stage === 'awaiting_approval' ? 'not_yet' : (w.stage === 'awaiting_codes' ? 'review_self' : 'cancel')); return true; }
+          if (w.stage === 'retry') { if (/retry|again|yes/i.test(t)) await altheaWorkflowAction('retry_note'); else altheaShow('Say “try again”, or cancel.'); return true; }
+          if (w.stage === 'awaiting_encounter') {
+            const key = /\burgent\b/i.test(t) ? 'enc_urgent' : /\b(?:emergency|e\.?r\.?|e\.?d\.?)\b/i.test(t) ? 'enc_emergency' : /\b(?:office|outpatient|clinic)\b/i.test(t) ? 'enc_office' : null;
+            if (key) await altheaWorkflowAction(key); else altheaShow('Was it an office visit, urgent care, or emergency? (Or say cancel.)');
+            return true;
+          }
+          if (w.stage === 'awaiting_codes') {
+            const named = t.match(/\b(?:accept|approve)\b(.*)/i);
+            const tokens = named ? (named[1].match(/[A-Za-z]\d{2}(?:\.\w+)?|\b\d{5}\b/g) || []) : [];
+            if (tokens.length && !ALTHEA_ACCEPT_ALL_RE.test(t)) {
+              const n = altheaAcceptCodes(tokens);
+              if (!n) { altheaShow('I couldn’t match those to the suggested codes. Say accept all, or a code shown above.'); return true; }
+              if (!altheaApprovalStage(w)) altheaShow('Nothing was accepted.');
+            } else if (ALTHEA_ACCEPT_ALL_RE.test(t)) {
+              altheaAcceptCodes(null);
+              if (!altheaApprovalStage(w)) altheaShow('There is nothing to accept yet.');
+            } else {
+              altheaShow('Say “accept all”, name the codes to accept, or “I’ll review”.');
+            }
+            return true;
+          }
+          if (w.stage === 'awaiting_approval') {
+            if (ALTHEA_APPROVE_RE.test(t) && ALTHEA_CREATE_RE.test(t)) await altheaCreateClaim(w);
+            else if (ALTHEA_CREATE_RE.test(t)) altheaShow('Please confirm you have reviewed the note and codes by saying “I’ve reviewed it, create the claim”, or use the button.');
+            else altheaShow('When you have reviewed it, say “I’ve reviewed it, create the claim”, or say “not yet”.');
+            return true;
+          }
+          return false;
+        }
+        if (actionsEl) actionsEl.addEventListener('click', (e) => {
+          const b = e.target.closest('button[data-k]');
+          if (!b) return;
+          altheaVoiceTurn = false; // a click: written answers
+          altheaWorkflowAction(b.dataset.k);
+        });
+        // After a new patient is saved, offer to scribe their visit.
+        function altheaWatchNewPatientSave() {
+          const modal = document.getElementById('patient-modal');
+          if (!modal || typeof PATIENTS === 'undefined') return;
+          const before = PATIENTS.length;
+          const mo = new MutationObserver(() => {
+            if (!modal.classList.contains('hidden')) return;
+            mo.disconnect();
+            if (PATIENTS.length > before) {
+              const pt = PATIENTS[PATIENTS.length - 1];
+              altheaJustCreated = pt.mrn; altheaRememberPatient(pt.mrn);
+              if (!altheaWorkflow && !panel.classList.contains('hidden')) {
+                altheaShow('<div><b>Saved ' + escapeHtml(pt.name) + '.</b></div><div style="color:#9aa0ac;">When their visit starts I can scribe it, write the note, get the codes and prepare the claim.</div>', true);
+                altheaSetActions([{ key: 'scribe_new', label: 'Scribe the visit', primary: true }]);
+              }
+            }
+          });
+          mo.observe(modal, { attributes: true, attributeFilter: ['class'] });
+          setTimeout(() => mo.disconnect(), 30 * 60 * 1000);
         }
 
         // Suggestion chips
@@ -4664,6 +4990,18 @@
               if (transcriptEl) transcriptEl.textContent = '';
               if (responseEl) responseEl.innerHTML = '';
             }
+            if (altheaWorkflow && altheaWorkflow.stage === 'scribing') {
+              // Scribing: keep the whole conversation, do not treat a pause as the end of a command.
+              for (let i = e.resultIndex; i < e.results.length; i++) {
+                if (!e.results[i].isFinal) continue;
+                const said = e.results[i][0].transcript.trim();
+                if (!said) continue;
+                if (ALTHEA_END_VISIT_RE.test(said)) { altheaVoiceTurn = true; setTimeout(altheaFinishScribe, 0); return; }
+                altheaWorkflow.parts.push(said);
+              }
+              altheaScribeShow();
+              return;
+            }
             let interim = '';
             for (let i = e.resultIndex; i < e.results.length; i++) {
               const chunk = e.results[i][0].transcript;
@@ -4701,6 +5039,7 @@
 
         async function handleCommand(transcript) {
           if (altheaDictation) { await altheaDictationChunk(transcript); return; }
+          if (altheaWorkflow && await altheaWorkflowInput(transcript)) return;
           if (statusEl2) statusEl2.textContent = 'Thinking…';
           altheaAbortController = new AbortController();
           altheaShowStopButton(true);
@@ -5058,6 +5397,19 @@
           } else if (intent === 'claims_denial_scan') {
             await altheaDenialScan();
             spoken = ''; // altheaDenialScan speaks its own result
+
+          } else if (intent === 'scribe_visit') {
+            const p = resolveAltheaPatient(params);
+            if (!p) {
+              spoken = 'Which patient is this visit for? Say their name, or say add a new patient first.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else if (typeof openSoap !== 'function') {
+              spoken = 'I can\u2019t open the visit note from here.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else {
+              altheaBeginScribe(p);
+              spoken = ''; // stay quiet: she is about to listen to the visit
+            }
 
           } else if (intent === 'new_patient') {
             if (typeof openNewPatientModal !== 'function') {

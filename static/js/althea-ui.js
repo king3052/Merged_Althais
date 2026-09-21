@@ -7,8 +7,11 @@
   var ARROW = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
   var SEND = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg>';
   var CLOSE = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>';
+  var MINIMIZE = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 12h10"/></svg>';
+  var EXPAND = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5L8 6l4.5 4.5"/></svg>';
+  var GRIP = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M1.5 10.5l9-9M1.5 6.5l5-5"/></svg>';
   var MIC = '<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0M10 15.5V18"/></svg>';
-  var DEFAULT_CHIPS = ["What's my schedule today?", "Add a new patient", "Summarize my claims", "Which claims are at risk?"];
+  var DEFAULT_CHIPS = ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Which claims are at risk?"];
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -32,10 +35,12 @@
         '<span class="alt-go" aria-hidden="true">' + ARROW + "</span>" +
       "</button>" +
       '<section id="althea-panel" class="alt-panel hidden" role="dialog" aria-label="Althea">' +
-        '<header class="alt-head">' +
+        '<button id="althea-resize" class="alt-resize" type="button" aria-label="Resize Althea (drag, or focus and use Shift + arrow keys)" title="Drag to resize">' + GRIP + "</button>" +
+        '<header id="althea-head" class="alt-head" tabindex="0" aria-label="Althea. Drag to move, or use the arrow keys. Double-click to minimize.">' +
           '<span class="alt-mark">' + MARK + "</span>" +
           '<div class="alt-id"><b>Althea</b><span id="althea-status" class="alt-status" role="status" aria-live="polite">Ask anything or tap the mic</span></div>' +
           '<button id="althea-stop-btn" class="alt-stop hidden" type="button">Stop</button>' +
+          '<button id="althea-min" class="alt-x" type="button" aria-label="Minimize Althea" aria-pressed="false" title="Minimize">' + MINIMIZE + "</button>" +
           '<button id="althea-close" class="alt-x" type="button" aria-label="Close Althea">' + CLOSE + "</button>" +
         "</header>" +
         '<div id="althea-body" class="alt-body">' +
@@ -45,6 +50,7 @@
           '<div id="althea-response" class="alt-msg alt-a" aria-live="polite"></div>' +
         "</div>" +
         '<footer class="alt-foot">' +
+          '<div id="althea-actions" class="alt-actions hidden" role="group" aria-label="Next step"></div>' +
           '<div id="althea-chips" class="alt-chips">' + chips + "</div>" +
           '<div class="alt-form">' +
             '<input id="althea-text-input" type="text" autocomplete="off" placeholder="Type a command…" aria-label="Type a command for Althea">' +
@@ -58,11 +64,145 @@
 
     var panel = document.getElementById("althea-panel");
     if (!SR) panel.classList.add("no-voice");
+    setupWindow(panel);
     /* the greeting only shows until the first exchange */
     var sync = function () { panel.classList.toggle("has-exchange", !!(document.getElementById("althea-transcript").textContent || document.getElementById("althea-response").innerHTML)); };
     var mo = new MutationObserver(sync);
     ["althea-transcript", "althea-response"].forEach(function (id) { mo.observe(document.getElementById(id), { childList: true, characterData: true, subtree: true }); });
     return fab;
+  }
+
+  /* ---------- move, resize and minimize ---------- */
+  var KEY = "althea.ui.v1", MIN_W = 300, MIN_H = 200;
+  function readState() { try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { return {}; } }
+  function writeState(patch) { try { var s = readState(); for (var k in patch) s[k] = patch[k]; localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function setupWindow(panel) {
+    var head = document.getElementById("althea-head"), minBtn = document.getElementById("althea-min"), grip = document.getElementById("althea-resize");
+    var free = false;                                    /* true once the panel has its own left/top (it was moved or resized) */
+    var small = function () { return window.innerWidth <= 480; };       /* phones: the panel is already full width, so no dragging */
+
+    /* switch from "stuck to the bottom-right corner" to explicit coordinates, keeping it exactly where it is */
+    function freeUp() {
+      if (free) return;
+      var r = panel.getBoundingClientRect();
+      panel.style.position = "fixed"; panel.style.left = r.left + "px"; panel.style.top = r.top + "px";
+      panel.style.right = "auto"; panel.style.bottom = "auto"; panel.style.width = r.width + "px"; panel.style.height = r.height + "px"; panel.style.maxHeight = "none";
+      free = true;
+    }
+    function place(x, y) {                               /* keep the WHOLE panel inside the window, so its buttons are always reachable */
+      var r = panel.getBoundingClientRect(), m = 8;
+      panel.style.left = clamp(x, m, Math.max(m, window.innerWidth - r.width - m)) + "px";
+      panel.style.top = clamp(y, m, Math.max(m, window.innerHeight - r.height - m)) + "px";
+    }
+    function save() {
+      var r = panel.getBoundingClientRect(), patch = { x: Math.round(r.left), y: Math.round(r.top) };
+      if (!panel.classList.contains("is-min")) { patch.w = Math.round(r.width); patch.h = Math.round(r.height); }   /* keep the normal size while minimized */
+      writeState(patch);
+    }
+
+    /* restore the saved position and size, and re-fit them if the window is smaller now */
+    function restore() {
+      var s = readState();
+      panel.classList.toggle("is-min", !!s.min); minBtn.setAttribute("aria-pressed", String(!!s.min));
+      minBtn.setAttribute("aria-label", s.min ? "Expand Althea" : "Minimize Althea"); minBtn.title = s.min ? "Expand" : "Minimize";
+      if (small() || typeof s.x !== "number" || typeof s.y !== "number") return;
+      var w = clamp(s.w || 372, MIN_W, window.innerWidth - 16), h = clamp(s.h || 480, MIN_H, window.innerHeight - 16);
+      panel.style.position = "fixed"; panel.style.right = "auto"; panel.style.bottom = "auto"; panel.style.maxHeight = "none";
+      panel.style.width = w + "px"; panel.style.height = h + "px"; free = true;
+      place(s.x, s.y);
+    }
+    restore();
+
+    /* grabbing the logo must move the panel, not start the browser's own "drag this picture" (which cancels our drag) */
+    head.addEventListener("dragstart", function (e) { e.preventDefault(); });
+    grip.addEventListener("dragstart", function (e) { e.preventDefault(); });
+
+    /* drag by the header (mouse, touch or pen) */
+    var drag = null;
+    head.addEventListener("pointerdown", function (e) {
+      if (small() || e.button > 0 || e.target.closest("button")) return;
+      var r = panel.getBoundingClientRect();
+      drag = { sx: e.clientX, sy: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, moved: false };
+      try { head.setPointerCapture(e.pointerId); } catch (x) {}
+      e.preventDefault();                                    /* we are handling this gesture: no browser text-selection or picture-drag on the logo */
+    });
+    head.addEventListener("pointermove", function (e) {
+      if (!drag) return;
+      if (!drag.moved) {                                    /* a plain click (or double-click) is not a drag */
+        if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) < 4) return;
+        drag.moved = true; freeUp(); panel.classList.add("is-moving");
+      }
+      place(e.clientX - drag.dx, e.clientY - drag.dy);
+    });
+    function endDrag() { if (!drag) return; var moved = drag.moved; drag = null; panel.classList.remove("is-moving"); if (moved) save(); }
+    head.addEventListener("pointerup", endDrag); head.addEventListener("pointercancel", endDrag);
+    /* the same with the keyboard: arrow keys move the panel */
+    head.addEventListener("keydown", function (e) {
+      if (small() || e.target !== head) return;
+      var step = e.shiftKey ? 60 : 20, dx = 0, dy = 0;
+      if (e.key === "ArrowLeft") dx = -step; else if (e.key === "ArrowRight") dx = step; else if (e.key === "ArrowUp") dy = -step; else if (e.key === "ArrowDown") dy = step; else return;
+      e.preventDefault(); freeUp(); var r = panel.getBoundingClientRect(); place(r.left + dx, r.top + dy); save();
+    });
+
+    /* resize from the top-left corner (the panel is anchored bottom-right, so that is the natural corner) */
+    var rs = null;
+    grip.addEventListener("pointerdown", function (e) {
+      if (small() || e.button > 0 || panel.classList.contains("is-min")) return;
+      var r = panel.getBoundingClientRect();
+      rs = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height, right: r.right, bottom: r.bottom, moved: false };
+      try { grip.setPointerCapture(e.pointerId); } catch (x) {}
+      e.preventDefault();
+    });
+    grip.addEventListener("pointermove", function (e) {
+      if (!rs) return;
+      if (!rs.moved) { if (Math.abs(e.clientX - rs.x) + Math.abs(e.clientY - rs.y) < 4) return; rs.moved = true; freeUp(); panel.classList.add("is-moving"); }
+      var w = clamp(rs.w - (e.clientX - rs.x), MIN_W, Math.min(720, rs.right)), h = clamp(rs.h - (e.clientY - rs.y), MIN_H, Math.min(900, rs.bottom));
+      panel.style.width = w + "px"; panel.style.height = h + "px"; panel.style.left = (rs.right - w) + "px"; panel.style.top = (rs.bottom - h) + "px";
+    });
+    function endResize() { if (!rs) return; var moved = rs.moved; rs = null; panel.classList.remove("is-moving"); if (moved) save(); }
+    grip.addEventListener("pointerup", endResize); grip.addEventListener("pointercancel", endResize);
+    grip.addEventListener("keydown", function (e) {                    /* Shift + arrows resize from the keyboard */
+      if (small() || !e.shiftKey || ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].indexOf(e.key) < 0) return;
+      e.preventDefault(); freeUp(); var r = panel.getBoundingClientRect(), d = 30;
+      var w = clamp(r.width + (e.key === "ArrowLeft" ? d : e.key === "ArrowRight" ? -d : 0), MIN_W, Math.min(720, r.right));
+      var h = clamp(r.height + (e.key === "ArrowUp" ? d : e.key === "ArrowDown" ? -d : 0), MIN_H, Math.min(900, r.bottom));
+      panel.style.width = w + "px"; panel.style.height = h + "px"; panel.style.left = (r.right - w) + "px"; panel.style.top = (r.bottom - h) + "px"; save();
+    });
+    grip.addEventListener("dblclick", function () { reset(); });         /* double-click the corner: back to the default size and place */
+
+    /* minimize: keeps the header, the next-step buttons and the mic, hides the rest so you can see the page */
+    function setMin(on) {
+      var normal = panel.getBoundingClientRect();          /* measure BEFORE switching styles, so the normal size is what gets remembered */
+      panel.classList.toggle("is-min", on); minBtn.setAttribute("aria-pressed", String(on));
+      minBtn.setAttribute("aria-label", on ? "Expand Althea" : "Minimize Althea"); minBtn.title = on ? "Expand" : "Minimize";
+      minBtn.innerHTML = on ? EXPAND : MINIMIZE;
+      if (on) {
+        if (free) { writeState({ min: true, h: Math.round(normal.height), w: Math.round(normal.width) }); panel.style.height = "auto"; }
+        else writeState({ min: true });
+      } else {
+        writeState({ min: false });
+        if (free) { var s = readState(); panel.style.height = clamp(s.h || 480, MIN_H, window.innerHeight - 16) + "px"; panel.style.width = clamp(s.w || 372, MIN_W, window.innerWidth - 16) + "px"; place(parseFloat(panel.style.left) || 8, parseFloat(panel.style.top) || 8); }
+      }
+    }
+    minBtn.addEventListener("click", function () { setMin(!panel.classList.contains("is-min")); });
+    head.addEventListener("dblclick", function (e) { if (!e.target.closest("button")) setMin(!panel.classList.contains("is-min")); });
+    if (panel.classList.contains("is-min")) minBtn.innerHTML = EXPAND;
+
+    function reset() {
+      free = false; ["position", "left", "top", "right", "bottom", "width", "height", "maxHeight"].forEach(function (k) { panel.style[k] = ""; });
+      try { var s = readState(); delete s.x; delete s.y; delete s.w; delete s.h; localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+    }
+    /* if the window shrinks, pull the panel back into view */
+    window.addEventListener("resize", function () {
+      if (small()) { if (free) reset(); return; }
+      if (!free) return;
+      var r = panel.getBoundingClientRect();
+      var w = Math.min(r.width, window.innerWidth - 16), h = Math.min(r.height, window.innerHeight - 16);
+      if (!panel.classList.contains("is-min")) { panel.style.width = w + "px"; panel.style.height = h + "px"; }
+      place(r.left, r.top);
+    });
   }
 
   window.AltheaUI = { mount: mount, supportsVoice: !!SR, SR: SR };

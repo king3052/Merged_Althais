@@ -33,7 +33,7 @@
     staff: "/staff/team", team: "/staff/team"
   };
   /* these need the patient chart, so the EMR page carries them out */
-  var HANDOFF = { new_patient: 1, dictate_visit_note: 1, open_patient: 1, start_visit: 1, check_claim_readiness: 1, read_allergies: 1, read_medications: 1, read_labs: 1, start_visit_timer: 1, stop_visit_timer: 1, claims_denial_scan: 1 };
+  var HANDOFF = { scribe_visit: 1, new_patient: 1, dictate_visit_note: 1, open_patient: 1, start_visit: 1, check_claim_readiness: 1, read_allergies: 1, read_medications: 1, read_labs: 1, start_visit_timer: 1, stop_visit_timer: 1, claims_denial_scan: 1 };
 
   function $(id) { return document.getElementById(id); }
   function load(key, fallback) { try { var raw = localStorage.getItem(key); if (!raw) return fallback; var v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; } }
