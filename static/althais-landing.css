@@ -49,7 +49,7 @@ h1, h2, h3, p { margin: 0; }
 .logo span { padding-left: .2em; }
 .logo svg { width: 24px; height: 24px; flex: none; }
 .nav-links { display: flex; align-items: center; gap: 30px; font-size: 14px; }
-.nav-links a:hover { color: var(--accent); }
+.nav-links a:not(.btn):hover { color: var(--accent); }
 
 .btn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid transparent; transition: transform .15s ease, background .15s ease; white-space: nowrap; }
 .btn:hover { transform: translateY(-1px); }
