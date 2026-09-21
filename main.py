@@ -289,14 +289,14 @@ def _render_emr(user) -> HTMLResponse:
 # Serve the same blue-circle "A" as the linked icons so the tab icon is never the generic default.
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon_ico():
-    return FileResponse("static/favicon/favicon.ico", media_type="image/x-icon",
+    return FileResponse("static/favicon/althais-mark.ico", media_type="image/x-icon",
                         headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/apple-touch-icon.png", include_in_schema=False)
 @app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
 async def apple_touch_icon():
-    return FileResponse("static/favicon/apple-touch-icon.png", media_type="image/png",
+    return FileResponse("static/favicon/althais-mark-180.png", media_type="image/png",
                         headers={"Cache-Control": "public, max-age=86400"})
 
 
