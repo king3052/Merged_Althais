@@ -1,0 +1,80 @@
+/* Althea: the assistant on every page of the software.
+   Same look as the "Ask Althea" card and chat panel on the landing page. */
+
+#althea-fab { position: fixed; right: 24px; bottom: 24px; z-index: 250; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+#althea-fab *, #althea-fab *::before, #althea-fab *::after { box-sizing: border-box; }
+#althea-fab .hidden { display: none !important; }
+
+/* ---------- launcher card ---------- */
+.alt-launch { display: flex; align-items: center; gap: 12px; width: 296px; max-width: calc(100vw - 32px); padding: 10px 12px 10px 10px; background: #fff; border: 1px solid #e4e6eb; border-radius: 18px; box-shadow: 0 12px 36px rgba(15, 17, 22, .16), 0 1px 6px rgba(15, 17, 22, .06); color: #0f1116; font: inherit; text-align: left; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+.alt-launch:hover { transform: translateY(-2px); box-shadow: 0 16px 42px rgba(15, 17, 22, .2), 0 1px 6px rgba(15, 17, 22, .06); }
+.alt-launch:focus-visible { outline: 2px solid #0d5bd7; outline-offset: 3px; }
+.alt-mark { width: 42px; height: 42px; display: grid; place-items: center; flex: none; }
+.alt-mark svg { width: 38px; height: 38px; display: block; }
+.alt-tx { flex: 1; min-width: 0; line-height: 1.3; }
+.alt-tx b { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
+.alt-tx span { display: block; margin-top: 1px; font-size: 13px; color: #6b7280; }
+.alt-go { width: 34px; height: 34px; border-radius: 50%; background: #0d5bd7; color: #fff; display: grid; place-items: center; flex: none; transition: transform .2s ease; }
+.alt-launch:hover .alt-go { transform: translateX(2px); }
+#althea-fab:has(#althea-panel:not(.hidden)) #althea-btn { display: none; }
+
+/* ---------- panel ---------- */
+.alt-panel { position: absolute; right: 0; bottom: 0; width: 372px; max-width: calc(100vw - 32px); max-height: min(600px, calc(100vh - 48px)); display: flex; flex-direction: column; background: #fff; border: 1px solid #e4e6eb; border-radius: 22px; box-shadow: 0 28px 80px rgba(15, 17, 22, .24), 0 2px 10px rgba(15, 17, 22, .06); overflow: hidden; color: #0f1116; z-index: 3; }
+.alt-head { display: flex; align-items: center; gap: 12px; padding: 14px 14px 12px 16px; border-bottom: 1px solid #e4e6eb; flex: none; }
+.alt-head .alt-mark { width: 40px; height: 40px; }
+.alt-head .alt-mark svg { width: 36px; height: 36px; }
+.alt-id { flex: 1; min-width: 0; line-height: 1.3; }
+.alt-id b { display: block; font-size: 16px; font-weight: 600; }
+.alt-status { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alt-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #0d5bd7; box-shadow: 0 0 0 3px rgba(13, 91, 215, .14); flex: none; }
+.alt-stop { font: 600 11px/1 inherit; font-family: inherit; color: #c83838; background: #ffe1e1; border: 0; border-radius: 999px; padding: 6px 11px; cursor: pointer; }
+.alt-x { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e4e6eb; background: #fff; color: #6b7280; display: grid; place-items: center; cursor: pointer; flex: none; transition: color .15s, border-color .15s; }
+.alt-x:hover { color: #0f1116; border-color: #c9c9c9; }
+
+.alt-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 10px; min-height: 96px; }
+.alt-msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.55; word-wrap: break-word; }
+.alt-msg:empty { display: none; }
+.alt-a { align-self: flex-start; background: #f3f5f9; border-bottom-left-radius: 4px; color: #0f1116; }
+.alt-u { align-self: flex-end; background: #171717; color: #fff; border-bottom-right-radius: 4px; }
+.alt-a div { margin-bottom: 4px; }
+.alt-a div:last-child { margin-bottom: 0; }
+.alt-a .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+.alt-panel.has-exchange #althea-hello { display: none; }
+
+.alt-wave { align-items: center; justify-content: center; gap: 3px; height: 40px; flex: none; }
+.alt-wave span { width: 3px; height: 6px; border-radius: 2px; background: linear-gradient(180deg, #0d5bd7, #6b8ff0); transition: height .06s linear; }
+
+.alt-foot { flex: none; padding: 8px 14px 14px; }
+.alt-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 11px; }
+.alt-chips button { padding: 7px 12px; border: 1px solid #e4e6eb; border-radius: 999px; background: #fff; font: inherit; font-size: 12.5px; color: #0f1116; cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
+.alt-chips button:hover { border-color: #0d5bd7; color: #0d5bd7; background: #eef4ff; }
+.alt-form { display: flex; align-items: center; gap: 6px; padding: 5px 5px 5px 14px; border: 1px solid #e4e6eb; border-radius: 999px; background: #fff; transition: border-color .15s, box-shadow .15s; }
+.alt-form:focus-within { border-color: #0d5bd7; box-shadow: 0 0 0 3px rgba(13, 91, 215, .12); }
+.alt-form input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 400 14px inherit; font-family: inherit; color: #0f1116; height: 34px; }
+.alt-form input::placeholder { color: #a9a9a9; }
+.alt-mic-wrap { position: relative; width: 36px; height: 36px; flex: none; }
+.alt-ring { position: absolute; inset: -7px; border-radius: 50%; background: radial-gradient(circle, rgba(13, 91, 215, .5), rgba(13, 91, 215, .14)); opacity: 0; transform: scale(1); transition: transform .06s linear, opacity .12s linear; pointer-events: none; }
+.alt-mic { position: relative; width: 36px; height: 36px; border-radius: 50%; border: 1px solid #d0d3db; background: #fff; color: #0d5bd7; display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.alt-mic:hover { border-color: #0d5bd7; background: #eef4ff; }
+.alt-mic.is-on { background: #0d5bd7; border-color: #0d5bd7; color: #fff; }
+.alt-send { width: 36px; height: 36px; border-radius: 50%; border: 0; background: #0d5bd7; color: #fff; display: grid; place-items: center; cursor: pointer; flex: none; transition: opacity .15s; }
+.alt-send:hover { opacity: .9; }
+.alt-mic:focus-visible, .alt-send:focus-visible, .alt-x:focus-visible, .alt-stop:focus-visible, .alt-chips button:focus-visible { outline: 2px solid #0d5bd7; outline-offset: 2px; }
+.alt-note { margin: 10px 4px 0; font-size: 11.5px; line-height: 1.5; color: #9aa0ac; text-align: center; }
+.alt-panel.no-voice .alt-mic-wrap { display: none; }
+.alt-panel.no-voice .alt-note { visibility: hidden; }
+
+/* visit timer badge (the EMR shows it while a visit timer is running) */
+.alt-timer { position: absolute; right: 0; bottom: 76px; z-index: 2; display: flex; align-items: center; gap: 6px; background: #0f1116; color: #fff; padding: 5px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.alt-timer.hidden { display: none !important; }
+.alt-timer i { width: 6px; height: 6px; border-radius: 50%; background: #ff5c5c; animation: althea-timer-blink 1s ease-in-out infinite; }
+@keyframes althea-timer-blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .alt-mic.is-on { animation: alt-breathe 1.6s ease-in-out infinite; }
+  @keyframes alt-breathe { 0%, 100% { box-shadow: 0 0 0 3px rgba(13, 91, 215, .28); } 50% { box-shadow: 0 0 0 7px rgba(13, 91, 215, .1); } }
+  .alt-panel { animation: alt-in .25s ease both; }
+  @keyframes alt-in { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+}
+@media (prefers-reduced-motion: reduce) { .alt-launch, .alt-go, .alt-ring, .alt-wave span, .alt-timer i { transition: none; animation: none; } }
+@media (max-width: 480px) { #althea-fab { right: 12px; bottom: 12px; } .alt-launch { width: 280px; } .alt-panel { width: calc(100vw - 24px); max-width: none; max-height: calc(100vh - 24px); } }

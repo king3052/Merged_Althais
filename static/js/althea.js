@@ -1,17 +1,21 @@
 /* Althea, the assistant, on every section of the software.
  *
- * The EMR page (dashboard.html) has its own copy of Althea. This is the same assistant for every
- * other page that uses the shared top bar: Overview, Staff, Patients, Schedule and the rest.
+ * The EMR page (dashboard.html) has its own engine; this is the same assistant for every other page that
+ * uses the shared top bar: Overview, Staff, Patients, Schedule and the rest. Both use the shared interface
+ * (static/js/althea-ui.js).
  *
  * The backend (/api/althea) only decides WHICH request was made. Every answer below is built from the
  * organization's own saved data (the same browser storage keys the EMR and the Overview read), never
- * written freely, and clinical requests are refused by the backend. Requests that need the patient
- * chart (open a patient, start a visit, allergies, timers...) are handed to the EMR page, which runs
- * them there.
+ * written freely, and clinical requests are refused by the backend. Requests that need the patient chart
+ * (open a patient, start a visit, allergies, timers...) are handed to the EMR page, which runs them there.
+ *
+ * Voice: tap the mic once and it becomes a conversation. You speak, Althea answers out loud, then it listens
+ * again, until you tap the mic to stop, so you can give several commands in a row.
  */
 (function () {
   "use strict";
-  if (document.getElementById("althea-fab")) return;   /* the EMR page already has one */
+  if (document.getElementById("althea-fab") || !window.AltheaUI) return;   /* the EMR page mounts its own */
+  AltheaUI.mount();
 
   var user = window.__ALTHAIS_USER__ || {};
   var PROVIDER = window.__ALTHAIS_PROVIDER_NAME__ || user.provider_name || "";
@@ -31,72 +35,31 @@
   /* these need the patient chart, so the EMR page carries them out */
   var HANDOFF = { open_patient: 1, start_visit: 1, check_claim_readiness: 1, read_allergies: 1, read_medications: 1, read_labs: 1, start_visit_timer: 1, stop_visit_timer: 1, claims_denial_scan: 1 };
 
-  var MARK = '<svg viewBox="161 142 1032 1001" fill="#fff" aria-hidden="true" style="width:29px;height:29px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.22));"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg>';
-
+  function $(id) { return document.getElementById(id); }
   function load(key, fallback) { try { var raw = localStorage.getItem(key); if (!raw) return fallback; var v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function todayIso() { return new Date().toISOString().slice(0, 10); }
   function spokenName(name) { var s = String(name || "").trim(), m = s.match(/^([^,]+),\s*(.+)$/); return m ? m[2] + " " + m[1] : s; }   /* "Smith, John" -> "John Smith" for speech */
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
 
-  /* ---------- markup ---------- */
-  var style = document.createElement("style");
-  style.textContent =
-    "#althea-fab[hidden],#althea-panel[hidden],#althea-stop-btn[hidden]{display:none!important}" +
-    "#althea-fab{animation:althea-float 4.5s ease-in-out infinite}" +
-    "@keyframes althea-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}" +
-    "#althea-glow{position:absolute;inset:-6px;border-radius:9999px;z-index:-1;background:radial-gradient(circle,rgba(13,91,215,.55),rgba(13,91,215,0) 70%);animation:althea-halo 3.2s ease-in-out infinite;pointer-events:none}" +
-    "@keyframes althea-halo{0%,100%{transform:scale(.9);opacity:.45}50%{transform:scale(1.25);opacity:.85}}" +
-    "#althea-btn{transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease}" +
-    "#althea-btn:hover{transform:scale(1.09);box-shadow:0 8px 22px rgba(13,91,215,.55),inset 0 1px 0 rgba(255,255,255,.12)}" +
-    "#althea-btn:active{transform:scale(.96)}" +
-    "#althea-btn:focus-visible{outline:2px solid #fff;outline-offset:3px;box-shadow:0 0 0 5px #0d5bd7}" +
-    "#althea-fab:hover,#althea-fab.is-open{animation-play-state:paused}" +
-    "#althea-fab:hover #althea-glow{animation-play-state:paused;opacity:.9;transform:scale(1.15)}" +
-    "#althea-btn.althea-active{animation:althea-breathe 1.6s ease-in-out infinite!important}" +
-    "@keyframes althea-breathe{0%,100%{box-shadow:0 0 0 4px rgba(13,91,215,.30),0 4px 14px rgba(0,0,0,.28)}50%{box-shadow:0 0 0 8px rgba(13,91,215,.14),0 4px 14px rgba(0,0,0,.28)}}" +
-    "#althea-response div{margin-bottom:4px}#althea-response .m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}" +
-    "@media (prefers-reduced-motion:reduce){#althea-fab,#althea-glow,#althea-btn.althea-active{animation:none!important}#althea-btn{transition:none}}" +
-    "@media (max-width:420px){#althea-panel{width:calc(100vw - 32px)!important}}";
-  document.head.appendChild(style);
-
-  var fab = document.createElement("div");
-  fab.id = "althea-fab";
-  fab.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:250;";
-  fab.innerHTML =
-    '<div id="althea-glow"></div>' +
-    '<button id="althea-btn" type="button" title="Ask Althea" aria-label="Ask Althea" aria-expanded="false" aria-controls="althea-panel" style="position:relative;width:56px;height:56px;border-radius:9999px;background:linear-gradient(140deg,#2f7ff0 0%,#0d5bd7 55%,#0a49ad 100%);box-shadow:0 6px 18px rgba(13,91,215,.45),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -3px 8px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;color:#fff;">' + MARK + '</button>' +
-    '<div id="althea-panel" role="dialog" aria-label="Althea" hidden style="position:absolute;bottom:68px;right:0;width:320px;background:#fff;border:1px solid #d0d3db;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:14px;font-family:Inter,system-ui,sans-serif;">' +
-      '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">' +
-        '<span style="font-weight:700;font-size:13.5px;color:#0f1116;">Althea</span>' +
-        '<span id="althea-status" role="status" style="font-size:11px;color:#9aa0ac;">Tap the mic and ask</span>' +
-        '<button id="althea-stop-btn" type="button" hidden style="margin-left:auto;font-size:10.5px;font-weight:600;color:#c83838;background:#ffe1e1;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;">Stop</button>' +
-      '</div>' +
-      '<div id="althea-transcript" style="font-size:12px;color:#6b7280;font-style:italic;min-height:16px;margin-bottom:6px;"></div>' +
-      '<div id="althea-response" aria-live="polite" style="font-size:12.5px;color:#0f1116;line-height:1.5;"></div>' +
-      '<div style="display:flex;gap:6px;margin-top:10px;">' +
-        '<input id="althea-text-input" type="text" autocomplete="off" placeholder="Or type a command…" aria-label="Type a command for Althea" style="flex:1;min-width:0;font-size:12px;border:1px solid #d0d3db;border-radius:6px;padding:6px 8px;color:#0f1116;background:#fff;">' +
-        '<button id="althea-text-send" type="button" style="font-size:12px;background:#0d5bd7;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;">Go</button>' +
-      '</div>' +
-    '</div>';
-  (document.body || document.documentElement).appendChild(fab);
-
-  var btn = document.getElementById("althea-btn"), panel = document.getElementById("althea-panel");
-  var statusEl = document.getElementById("althea-status"), transcriptEl = document.getElementById("althea-transcript"), responseEl = document.getElementById("althea-response");
-  var textInput = document.getElementById("althea-text-input"), textSend = document.getElementById("althea-text-send"), stopBtn = document.getElementById("althea-stop-btn");
-  var IDLE = "Tap the mic and ask";
-
-  /* ---------- speech ---------- */
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition, recognition = null, listening = false, finalTranscript = "", silenceTimer = null;
+  var fab = $("althea-fab"), btn = $("althea-btn"), panel = $("althea-panel");
+  var statusEl = $("althea-status"), transcriptEl = $("althea-transcript"), responseEl = $("althea-response");
+  var textInput = $("althea-text-input"), textSend = $("althea-text-send"), stopBtn = $("althea-stop-btn"), micBtn = $("althea-mic"), closeBtn = $("althea-close");
+  var wave = $("althea-wave"), ring = $("althea-ring"), bars = wave.querySelectorAll(".althea-wave-bar");
+  var IDLE = "Ask anything or tap the mic";
+  var SR = AltheaUI.SR, recognition = null, listening = false, conversation = false, finalTranscript = "", silenceTimer = null, clearOnSpeech = false;
   var history = [], abortCtl = null;
+  var audioSession = 0, audioCtx = null, micStream = null, levelRAF = null;
 
+  /* ---------- speaking ---------- */
   function pickVoice() {
     try {
       var vs = window.speechSynthesis.getVoices().filter(function (v) { return /^en(-|_)/i.test(v.lang); });
       return vs.filter(function (v) { return /samantha|karen|moira|serena|google us english|jenny|aria/i.test(v.name); })[0] || vs[0] || null;
     } catch (e) { return null; }
   }
-  function showStop(on) { stopBtn.hidden = !on; }
+  function showStop(on) { stopBtn.classList.toggle("hidden", !on); }
+  function speaking() { try { return !!(window.speechSynthesis && window.speechSynthesis.speaking); } catch (e) { return false; } }
   function speak(text) {
     if (!text) return;
     try {
@@ -111,41 +74,94 @@
     try { window.speechSynthesis.cancel(); } catch (e) {}
     if (abortCtl) { abortCtl.abort(); abortCtl = null; }
     showStop(false); statusEl.textContent = "Stopped";
-    setTimeout(function () { if (statusEl.textContent === "Stopped") statusEl.textContent = IDLE; }, 1500);
+    setTimeout(function () { if (statusEl.textContent === "Stopped") statusEl.textContent = listening ? "Listening… tap the mic to stop" : IDLE; }, 1200);
   }
-  function setListeningUI(on) { listening = on; btn.classList.toggle("althea-active", on); statusEl.textContent = on ? "Listening…" : IDLE; }
-  function startListening() {
-    if (!SR) { statusEl.textContent = "Voice not supported here, type a command instead"; textInput.focus(); return; }
-    finalTranscript = ""; transcriptEl.textContent = ""; responseEl.innerHTML = "";
+
+  /* ---------- listening (the mic keeps a conversation going) ---------- */
+  function setListeningUI(on) {
+    listening = on;
+    micBtn.classList.toggle("is-on", on); micBtn.setAttribute("aria-pressed", String(on)); micBtn.setAttribute("aria-label", on ? "Stop listening" : "Talk to Althea");
+    statusEl.textContent = on ? "Listening… tap the mic to stop" : IDLE;
+  }
+  function startMeter() {
+    var session = ++audioSession; wave.style.display = "flex";
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      if (session !== audioSession) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }   /* stopped while waiting for permission */
+      micStream = stream; audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var an = audioCtx.createAnalyser(); an.fftSize = 128; audioCtx.createMediaStreamSource(stream).connect(an);
+      var n = an.frequencyBinCount, data = new Uint8Array(n);
+      (function loop() {
+        if (session !== audioSession) return;
+        an.getByteFrequencyData(data);
+        var sum = 0; for (var i = 0; i < n; i++) sum += data[i];
+        var avg = sum / n;
+        ring.style.transform = "scale(" + (1 + Math.min(avg / 90, 1) * 0.5).toFixed(3) + ")"; ring.style.opacity = (0.25 + Math.min(avg / 90, 1) * 0.55).toFixed(2);
+        var step = Math.floor(n / bars.length) || 1;
+        for (var b = 0; b < bars.length; b++) bars[b].style.height = (4 + ((data[b * step] || 0) / 255) * 34).toFixed(1) + "px";
+        levelRAF = requestAnimationFrame(loop);
+      })();
+    }).catch(function () { /* mic permission denied: the wave just stays flat */ });
+  }
+  function stopMeter() {
+    audioSession++; if (levelRAF) { cancelAnimationFrame(levelRAF); levelRAF = null; }
+    ring.style.transform = "scale(1)"; ring.style.opacity = "0";
+    for (var i = 0; i < bars.length; i++) bars[i].style.height = "6px";
+    wave.style.display = "none";
+    if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; }
+    if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+  }
+  function startListening(resume) {
+    if (!SR) { statusEl.textContent = "Voice isn’t supported here, type a command instead"; textInput.focus(); return; }
+    finalTranscript = "";
+    if (resume) { clearOnSpeech = true; }                       /* keep the last answer readable until you speak again */
+    else { clearOnSpeech = false; transcriptEl.textContent = ""; responseEl.innerHTML = ""; }
     recognition = new SR(); recognition.lang = "en-US"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 1;
     recognition.onresult = function (e) {
+      if (clearOnSpeech) { clearOnSpeech = false; transcriptEl.textContent = ""; responseEl.innerHTML = ""; }
       var interim = "";
       for (var i = e.resultIndex; i < e.results.length; i++) { var chunk = e.results[i][0].transcript; if (e.results[i].isFinal) finalTranscript += chunk + " "; else interim += chunk; }
       transcriptEl.textContent = '"' + (finalTranscript + interim).trim() + '"';
       if (silenceTimer) clearTimeout(silenceTimer);
       silenceTimer = setTimeout(function () { stopListening(true); }, 2000);   /* submit after ~2s of silence */
     };
-    recognition.onerror = function (ev) { if (ev.error === "no-speech") return; statusEl.textContent = "Didn't catch that, try again or type below"; };
+    recognition.onerror = function (ev) { if (ev.error === "no-speech") return; statusEl.textContent = "Didn’t catch that, try again or type below"; };
     recognition.onend = function () { if (listening) { try { recognition.start(); } catch (e) {} } };
     try { recognition.start(); } catch (e) {}
-    setListeningUI(true);
+    setListeningUI(true); startMeter();
   }
   function stopListening(submit) {
-    setListeningUI(false);
+    setListeningUI(false); stopMeter();
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     if (recognition) { try { recognition.stop(); } catch (e) {} recognition = null; }
-    var text = finalTranscript.trim();
+    var text = finalTranscript.trim(); finalTranscript = "";
     if (submit && text) run(text);
   }
+  /* after an answer (and after Althea has finished speaking it), listen again while the conversation is on */
+  function maybeResume() {
+    if (!conversation || panel.classList.contains("hidden")) return;
+    var tries = 0, t = setInterval(function () {
+      tries++;
+      if (!conversation || panel.classList.contains("hidden") || tries > 100) { clearInterval(t); return; }
+      if (!speaking()) { clearInterval(t); setTimeout(function () { if (conversation && !listening && !panel.classList.contains("hidden")) startListening(true); }, 350); }
+    }, 300);
+  }
+  micBtn.addEventListener("click", function () {
+    if (listening) { conversation = false; stopListening(true); }      /* end the conversation, sending anything already heard */
+    else { conversation = true; startListening(false); }
+  });
 
   /* ---------- open / close ---------- */
-  function openPanel() { panel.hidden = false; fab.classList.add("is-open"); btn.setAttribute("aria-expanded", "true"); }
-  function closePanel() { stopListening(false); stopAll(); panel.hidden = true; fab.classList.remove("is-open"); btn.setAttribute("aria-expanded", "false"); }
-  btn.addEventListener("click", function () { if (panel.hidden) { openPanel(); startListening(); } else { closePanel(); } });
+  function openPanel() { panel.classList.remove("hidden"); btn.setAttribute("aria-expanded", "true"); }
+  function closePanel() { conversation = false; stopListening(false); stopAll(); panel.classList.add("hidden"); btn.setAttribute("aria-expanded", "false"); }
+  btn.addEventListener("click", function () { openPanel(); if (window.matchMedia && window.matchMedia("(pointer: fine)").matches) textInput.focus(); });
+  closeBtn.addEventListener("click", function () { closePanel(); btn.focus(); });
   stopBtn.addEventListener("click", stopAll);
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) { closePanel(); btn.focus(); } });
-  textSend.addEventListener("click", function () { var v = textInput.value.trim(); if (!v) return; transcriptEl.textContent = '"' + v + '"'; textInput.value = ""; run(v); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.classList.contains("hidden")) { closePanel(); btn.focus(); } });
+  textSend.addEventListener("click", function () { var v = textInput.value.trim(); if (!v) return; textInput.value = ""; ask(v); });
   textInput.addEventListener("keydown", function (e) { if (e.key === "Enter") textSend.click(); });
+  $("althea-chips").addEventListener("click", function (e) { var b = e.target.closest("button[data-q]"); if (b) ask(b.getAttribute("data-q")); });
+  function ask(text) { transcriptEl.textContent = '"' + text + '"'; run(text); }
 
   /* ---------- ask the backend which request this is, then answer from local data ---------- */
   function run(transcript) {
@@ -160,9 +176,9 @@
       })
       .catch(function (e) {
         if (e && e.name === "AbortError") return;
-        responseEl.textContent = "Sorry, something went wrong reaching Althea."; statusEl.textContent = IDLE;
+        responseEl.textContent = "Sorry, something went wrong reaching Althea."; statusEl.textContent = IDLE; maybeResume();
       })
-      .then(function () { abortCtl = null; if (!(window.speechSynthesis && window.speechSynthesis.speaking)) showStop(false); });
+      .then(function () { abortCtl = null; if (!speaking()) showStop(false); });
   }
 
   function filterProvider(list) { return PROVIDER ? list.filter(function (x) { return x.provider === PROVIDER; }) : list; }
@@ -262,5 +278,6 @@
     if (html != null) responseEl.innerHTML = html; else responseEl.textContent = text || spoken || "Done.";
     statusEl.textContent = IDLE;
     speak(spoken);
+    maybeResume();
   }
 })();

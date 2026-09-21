@@ -301,119 +301,19 @@
     .panel-collapsible.is-collapsed .panel-body { display: none; }
     .panel-collapsible.is-collapsed .panel-chevron svg { transform: rotate(-90deg); }
 
-    /* Althea listening state — steady ambient glow (complements the live
-       audio-reactive ring, which only pulses when it actually hears sound) */
-    #althea-btn.althea-active {
-      box-shadow: 0 0 0 4px rgba(107,63,160,0.35), 0 4px 14px rgba(0,0,0,0.28);
-      animation: althea-breathe 1.6s ease-in-out infinite !important;
-    }
-    @keyframes althea-breathe {
-      0%, 100% { box-shadow: 0 0 0 4px rgba(107,63,160,0.30), 0 4px 14px rgba(0,0,0,0.28); }
-      50%      { box-shadow: 0 0 0 7px rgba(107,63,160,0.15), 0 4px 14px rgba(0,0,0,0.28); }
-    }
-    @keyframes althea-timer-blink {
-      0%, 100% { opacity: 1; }
-      50%      { opacity: 0.25; }
-    }
-
-    /* Idle "come click me" treatment: the button gently floats up and down,
-       and a soft colored halo slowly pulses behind it — enough motion to
-       draw the eye without being annoying. Both pause on hover, replaced by
-       a lift + brighter glow that rewards the interaction. */
-    #althea-fab { animation: althea-float 4.5s ease-in-out infinite; }
-    @keyframes althea-float {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-7px); }
-    }
-    #althea-btn {
-      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
-    }
-    /* Ambient halo — a second glow ring that lives behind the button and
-       breathes on its own even when idle, so the button never looks "dead". */
-    #althea-glow {
-      position: absolute; inset: -6px; border-radius: 9999px; z-index: -1;
-      background: radial-gradient(circle, rgba(107,63,160,0.55), rgba(13,91,215,0.0) 70%);
-      animation: althea-halo 3.2s ease-in-out infinite;
-      pointer-events: none;
-    }
-    @keyframes althea-halo {
-      0%, 100% { transform: scale(0.9); opacity: 0.45; }
-      50%      { transform: scale(1.25); opacity: 0.85; }
-    }
-    /* The recording badge only shows while a visit timer is running (an inline display:flex used to override .hidden and keep it on screen). */
-    #althea-timer-badge:not(.hidden) { display: flex; }
-    #althea-fab:hover { animation-play-state: paused; }
-    /* Also stop drifting while the panel is open, so the open panel doesn't
-       gently float around under the cursor. */
-    #althea-fab:has(#althea-panel:not(.hidden)) { animation-play-state: paused; }
-    #althea-fab:hover #althea-glow { animation-play-state: paused; opacity: 0.9; transform: scale(1.15); }
-    #althea-btn:hover {
-      transform: scale(1.09);
-      box-shadow: 0 8px 22px rgba(107,63,160,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
-    }
-    #althea-btn:active { transform: scale(0.96); }
-    @media (prefers-reduced-motion: reduce) {
-      #althea-fab, #althea-glow { animation: none; }
-    }
   </style>
+  <link rel="stylesheet" href="/static/css/althea.css" />
 </head>
 <body class="bg-shell text-ink-800">
 
   <!-- ============== ALTHEA — voice command assistant ==============
        Scoped strictly to this product's own functions: schedule, claims
        summary, opening a patient chart, navigating sections. Not a
-       clinical assistant — see /api/althea in main.py for the boundary. -->
-  <div id="althea-fab" style="position:fixed;bottom:24px;right:24px;z-index:250;">
-    <div id="althea-glow"></div>
-    <div id="althea-ring" style="position:absolute;inset:0;border-radius:9999px;background:radial-gradient(circle,rgba(107,63,160,0.55),rgba(13,91,215,0.35));transform:scale(1);opacity:0;transition:transform 0.06s linear,opacity 0.12s linear;pointer-events:none;"></div>
-    <div id="althea-timer-badge" class="hidden" style="position:absolute;bottom:64px;right:0;background:#0f1116;color:#fff;padding:4px 10px;border-radius:9999px;font-size:11.5px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);align-items:center;gap:5px;">
-      <span style="width:6px;height:6px;border-radius:9999px;background:#ff5c5c;animation:althea-timer-blink 1s ease-in-out infinite;"></span>
-      <span id="althea-timer-text">0:00</span>
-    </div>
-    <button id="althea-btn" type="button" title="Ask Althea" style="position:relative;width:56px;height:56px;border-radius:9999px;background:linear-gradient(140deg,#2f7ff0 0%,#0d5bd7 55%,#0a49ad 100%);box-shadow:0 6px 18px rgba(13,91,215,0.45),inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -3px 8px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;color:#fff;">
-      <svg id="althea-logo-a" viewBox="161 142 1032 1001" fill="#fff" aria-hidden="true" style="width:29px;height:29px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.22));"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg>
-    </button>
-    <div id="althea-panel" class="hidden" style="position:absolute;bottom:68px;right:0;width:320px;background:#fff;border:1px solid #d0d3db;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.22);padding:14px;">
-      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
-        <span style="font-weight:700;font-size:13.5px;color:#0f1116;">Althea</span>
-        <span id="althea-status" style="font-size:11px;color:#9aa0ac;">Tap the mic and ask</span>
-        <button id="althea-stop-btn" type="button" class="hidden" style="margin-left:auto;font-size:10.5px;font-weight:600;color:#c83838;background:#ffe1e1;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;">Stop</button>
-      </div>
-      <div id="althea-wave" style="display:none;align-items:center;justify-content:center;gap:3px;height:40px;margin:4px 0 10px;">
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-        <span class="althea-wave-bar" style="width:3px;height:6px;background:linear-gradient(180deg,#0d5bd7,#6b3fa0);border-radius:2px;transition:height 0.06s linear;"></span>
-      </div>
-      <div id="althea-transcript" style="font-size:12px;color:#6b7280;font-style:italic;min-height:16px;margin-bottom:6px;"></div>
-      <div id="althea-response" style="font-size:12.5px;color:#0f1116;line-height:1.5;"></div>
-      <div style="margin-top:10px;display:flex;gap:6px;">
-        <input id="althea-text-input" type="text" autocomplete="off" placeholder="Or type a command…" style="flex:1;font-size:12px;border:1px solid #d0d3db;border-radius:6px;padding:6px 8px;outline:none;" />
-        <button id="althea-text-send" type="button" style="font-size:12px;background:#0d5bd7;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;">Go</button>
-      </div>
-      <div style="margin-top:8px;font-size:10.5px;color:#b0b5bf;">Schedule, claims risk, documentation gaps, prior auths, coding patterns, visit timer, starting a visit, or navigation only — not clinical advice.</div>
-    </div>
-  </div>
+       clinical assistant — see /api/althea in main.py for the boundary.
+       The interface (launcher card, chat panel, mic) is shared with every
+       other page: static/js/althea-ui.js. The behaviour is below. -->
+  <script src="/static/js/althea-ui.js"></script>
+  <script>AltheaUI.mount({ chips: ["What's my schedule today?", "Summarize my claims", "Which claims are at risk?", "Start the visit timer", "Any documentation gaps?"] });</script>
 
   <!-- =================== TOP BLUE HEADER =================== -->
   <header class="bg-med-600 text-white">
@@ -4025,6 +3925,9 @@
         const responseEl = document.getElementById('althea-response');
         const textInput = document.getElementById('althea-text-input');
         const textSend = document.getElementById('althea-text-send');
+        const micBtn = document.getElementById('althea-mic');
+        const closeBtn = document.getElementById('althea-close');
+        const chipsEl = document.getElementById('althea-chips');
         if (!btn || !panel) return;
 
         const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -4087,6 +3990,10 @@
         }
         let silenceTimer = null;
         let listening = false;
+        // Conversation mode: tapping the mic keeps Althea listening between commands
+        // (speak, hear the answer, speak again) until the mic is tapped to stop.
+        let altheaConversation = false;
+        let altheaClearOnSpeech = false;
 
         // ── Voice selection ──────────────────────────────────────────────
         // Browsers expose a list of installed TTS voices, but load it
@@ -4147,7 +4054,7 @@
           if (altheaAbortController) { altheaAbortController.abort(); altheaAbortController = null; }
           altheaShowStopButton(false);
           if (statusEl2) statusEl2.textContent = 'Stopped';
-          setTimeout(() => { if (statusEl2 && statusEl2.textContent === 'Stopped') statusEl2.textContent = 'Tap the mic and ask'; }, 1500);
+          setTimeout(() => { if (statusEl2 && statusEl2.textContent === 'Stopped') statusEl2.textContent = 'Ask anything or tap the mic'; }, 1500);
         }
         (function wireAltheaStop() {
           const btn = document.getElementById('althea-stop-btn');
@@ -4539,40 +4446,78 @@
 
         function setListeningUI(on) {
           listening = on;
-          const btnEl = document.getElementById('althea-btn');
-          if (btnEl) btnEl.classList.toggle('althea-active', on);
-          if (statusEl2) statusEl2.textContent = on ? 'Listening… tap mic to stop' : 'Tap the mic and ask';
+          if (micBtn) {
+            micBtn.classList.toggle('is-on', on);
+            micBtn.setAttribute('aria-pressed', String(on));
+            micBtn.setAttribute('aria-label', on ? 'Stop listening' : 'Talk to Althea');
+          }
+          if (statusEl2) statusEl2.textContent = on ? 'Listening… tap the mic to stop' : 'Ask anything or tap the mic';
         }
 
+        function openAlthea() {
+          panel.classList.remove('hidden');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+        function closeAlthea() {
+          altheaConversation = false;
+          stopListening(false);
+          altheaStop(); // don't let speech or a pending request keep running after close
+          panel.classList.add('hidden');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+        // The launcher card only opens the panel now; the mic inside it does the listening,
+        // so you can talk, or type, or use the suggestion chips.
         btn.addEventListener('click', () => {
-          const isOpen = !panel.classList.contains('hidden');
-          if (!isOpen) {
-            // Closed → open the panel and start listening.
-            panel.classList.remove('hidden');
-            startListening();
-          } else {
-            // Open (whether actively listening or idle) → always closes.
-            // This used to be a 3-state cycle where clicking mid-listen only
-            // stopped+submitted, leaving the panel open and requiring a
-            // second click to actually close — which is exactly what read as
-            // "the button doesn't close." Now one click always closes it;
-            // natural pauses in speech still auto-submit on their own via
-            // the silence timer, so nothing is lost by not submitting here.
-            stopListening(false);
-            altheaStop(); // don't let speech or a pending request keep running after close
-            panel.classList.add('hidden');
-          }
+          if (panel.classList.contains('hidden')) altheaConversation = false;
+          openAlthea();
+          if (window.matchMedia && window.matchMedia('(pointer: fine)').matches && textInput) textInput.focus();
+        });
+        if (closeBtn) closeBtn.addEventListener('click', () => { closeAlthea(); btn.focus(); });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !panel.classList.contains('hidden')) { closeAlthea(); btn.focus(); }
+        });
+        // Mic: one tap starts a conversation, another tap ends it (sending anything already heard).
+        if (micBtn) micBtn.addEventListener('click', () => {
+          if (listening) { altheaConversation = false; stopListening(true); }
+          else { altheaConversation = true; startListening(false); }
+        });
+        // After an answer (and once Althea has finished speaking it) listen again, while the conversation is on.
+        function altheaMaybeResume() {
+          if (!altheaConversation || panel.classList.contains('hidden')) return;
+          let tries = 0;
+          const t = setInterval(() => {
+            tries++;
+            if (!altheaConversation || panel.classList.contains('hidden') || tries > 100) { clearInterval(t); return; }
+            const speaking = !!(window.speechSynthesis && window.speechSynthesis.speaking);
+            if (!speaking) {
+              clearInterval(t);
+              setTimeout(() => { if (altheaConversation && !listening && !panel.classList.contains('hidden')) startListening(true); }, 350);
+            }
+          }, 300);
+        }
+        // Suggestion chips
+        if (chipsEl) chipsEl.addEventListener('click', (e) => {
+          const chip = e.target.closest('button[data-q]');
+          if (!chip) return;
+          const q = chip.getAttribute('data-q');
+          if (transcriptEl) transcriptEl.textContent = '"' + q + '"';
+          handleCommand(q);
         });
 
-        function startListening() {
+        function startListening(resume) {
           if (!SpeechRecognitionCtor) {
             if (statusEl2) statusEl2.textContent = 'Voice not supported here — type a command instead';
             if (textInput) textInput.focus();
             return;
           }
           finalTranscript = '';
-          if (transcriptEl) transcriptEl.textContent = '';
-          if (responseEl) responseEl.innerHTML = '';
+          if (resume) {
+            altheaClearOnSpeech = true; // keep the last answer readable until you speak again
+          } else {
+            altheaClearOnSpeech = false;
+            if (transcriptEl) transcriptEl.textContent = '';
+            if (responseEl) responseEl.innerHTML = '';
+          }
           recognition = new SpeechRecognitionCtor();
           recognition.lang = 'en-US';
           // continuous + interim keeps it running through natural pauses
@@ -4582,6 +4527,11 @@
           recognition.maxAlternatives = 1;
 
           recognition.onresult = (e) => {
+            if (altheaClearOnSpeech) {
+              altheaClearOnSpeech = false;
+              if (transcriptEl) transcriptEl.textContent = '';
+              if (responseEl) responseEl.innerHTML = '';
+            }
             let interim = '';
             for (let i = e.resultIndex; i < e.results.length; i++) {
               const chunk = e.results[i][0].transcript;
@@ -4638,7 +4588,8 @@
           } catch (e) {
             if (e.name === 'AbortError') return; // user hit Stop — altheaStop() already reset the UI
             if (responseEl) responseEl.textContent = 'Sorry, something went wrong reaching Althea.';
-            if (statusEl2) statusEl2.textContent = 'Tap the mic and ask';
+            if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
+            altheaMaybeResume();
           } finally {
             altheaAbortController = null;
             // Leave the stop button showing if speech is about to start —
@@ -5007,8 +4958,9 @@
             if (responseEl) responseEl.textContent = spoken;
           }
 
-          if (statusEl2) statusEl2.textContent = 'Tap the mic and ask';
+          if (statusEl2) statusEl2.textContent = 'Ask anything or tap the mic';
           speak(spoken);
+          altheaMaybeResume();
         }
 
         if (textSend) textSend.addEventListener('click', () => {
