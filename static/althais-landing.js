@@ -202,22 +202,25 @@
     var isOpen = false, scrolled = false, inAlthea = false, busy = false, greeted = false, asked = {};
 
     var KB = {
-      code:     { chip: "Summarize and code this visit", q: "Summarize this visit and code it.", a: SCN[0].msgs[1][1], src: SCN[0].src },
-      bundle:   { chip: "Any bundling issues?", q: "Any bundling issues?", a: SCN[0].msgs[3][1], src: ["CMS PTP table", "CPT 99285"] },
-      risk:     { chip: "Which claims are at risk?", q: "Which claims are at risk today?", a: SCN[2].msgs[1][1], src: SCN[2].src },
-      followup: { chip: "Code a follow-up visit", q: "What is the code for this follow-up?", a: SCN[1].msgs[1][1], src: SCN[1].src },
-      start:    { chip: "How do I get started?", q: "How do I get started?", a: 'Book a demo and we will walk through a visit on <mark>your own workflow</mark>. We reply within one business day.', cta: true }
+      what:  { chip: "What does Althais do?", q: "What does Althais do?", a: 'Althais turns a visit into a claim. You dictate or type it, and it writes the <mark>SOAP note</mark>, suggests the <mark>ICD-10 and CPT codes</mark>, checks them against <mark>CMS edits</mark>, and hands you a claim ready for your review.', src: ["How Althais works"] },
+      code:  { chip: "How does the coding work?", q: "How does the coding work?", a: 'Every ICD-10 and CPT suggestion comes with a <mark>confidence score</mark>, so you see at a glance what is solid and what deserves a second look. You can accept, reject, or add your own.', src: ["Step two"] },
+      check: { chip: "What is the CMS edit check?", q: "What is the CMS edit check?", a: 'Each claim is compared against the <mark>CMS procedure-to-procedure edit table</mark> before it is filed, so bundling errors are caught before a denial, not weeks after the fact. <mark>Nothing is submitted</mark> without a person approving it.', src: ["Step three", "Step four"] },
+      who:   { chip: "Who is it for?", q: "Who is Althais for?", a: 'Practices of all kinds: <mark>independent practices</mark>, urgent care, primary care, direct primary care, specialty groups, rural clinics, physician groups and emergency departments.', src: ["Built for practices like"] },
+      time:  { chip: "How much time does it save?", q: "How much time does it save?", a: 'The page shows an <mark>illustrative estimate</mark>: a batch of 100 claims is about 20 hours by hand, versus about 1 hr 30 min with Althais, most of it reading each claim before it is filed. It is an example, and your numbers will differ.', src: ["What it saves you"] },
+      start: { chip: "How do I get started?", q: "How do I get started?", a: 'The quickest way is to book a demo. We will walk through a visit on <mark>your own workflow</mark> and reply within one business day. Pricing is on the <a href="/pricing">pricing page</a>.', cta: true }
     };
-    var ORDER = ["code", "bundle", "risk", "followup", "start"];
-    var FALLBACK = { a: 'I can only answer from this sample chart here. Try one of the questions below, or book a demo to ask about <mark>your own visits</mark>.', cta: true };
+    var ORDER = ["what", "code", "check", "who", "time", "start"];
+    var FALLBACK = { a: 'I can only help with questions about Althais. Try one of the questions below, or book a demo to talk it through with the team.', cta: true };
 
+    /* keyword fallback for typed questions when the live model is unavailable */
     function match(t) {
       t = t.toLowerCase();
-      if (/demo|start|price|pricing|cost|trial|sign ?up|book|buy|try/.test(t)) return "start";
-      if (/bundl|ncci|ptp|conflict|edit/.test(t)) return "bundle";
-      if (/risk|flag|denial|denied|reject|claims?\b/.test(t)) return "risk";
-      if (/follow|bronch|cough|established/.test(t)) return "followup";
-      if (/code|coding|summar|visit|note|cpt|icd|chest|bill/.test(t)) return "code";
+      if (/demo|start|book|sign ?up|trial|price|pricing|cost|buy|try|contact/.test(t)) return "start";
+      if (/time|save|hour|faster|roi|efficien|minute|worth/.test(t)) return "time";
+      if (/who|practice|clinic|specialt|urgent|rural|size|kind of/.test(t)) return "who";
+      if (/cms|ncci|bundl|edit|denial|conflict|check|approv/.test(t)) return "check";
+      if (/cod|icd|cpt|confidence|modifier|score/.test(t)) return "code";
+      if (/althais|althea|soap|note|dictat|voice|work|product|software|tool|platform|feature/.test(t)) return "what";
       return null;
     }
 
@@ -321,7 +324,7 @@
       isOpen = true; sync();
       if (!greeted) {
         greeted = true;
-        addMsg("a", "Hi, I&rsquo;m <mark>Althea</mark>. I am reading a sample chest pain visit. Ask me anything about it, or pick a question below.");
+        addMsg("a", "Hi, I&rsquo;m <mark>Althea</mark>. Ask me anything about Althais, or pick a question below.");
         renderChips();
       }
       setTimeout(function () { if (window.innerWidth > 640) apIn.focus(); }, 320);

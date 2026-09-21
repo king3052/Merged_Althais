@@ -369,3 +369,6 @@ section.block { padding: 120px 0 0; }
 .ap-note a:hover { color: var(--ink); }
 @media (max-width: 640px) { .ap { right: 12px; left: 12px; bottom: 12px; width: auto; max-width: none; height: min(620px, calc(100vh - 24px)); height: min(620px, calc(100dvh - 24px)); } .ap-form input { font-size: 16px; } }
 @media (prefers-reduced-motion: reduce) { .ap, .ap.open { transition: none; } .ap-body { scroll-behavior: auto; } .ap-typing i { animation: none; opacity: .7; } .ap-cta { opacity: 1; animation: none; } }
+
+/* hero result card: labels keep the Title Case written in the markup instead of forcing caps */
+.result .eyebrow, .result .kv .k { text-transform: none; letter-spacing: .12em; }
