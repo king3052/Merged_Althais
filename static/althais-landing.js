@@ -194,4 +194,22 @@
       cObs.observe(cmp);
     }
   }
+
+  /* Ask Althea launcher: appears once the visitor scrolls, hides while the Althea section is on screen */
+  var ask = document.getElementById("ask");
+  var alt = document.getElementById("althea");
+  if (ask) {
+    var scrolled = false, inAlthea = false;
+    function syncAsk() { ask.classList.toggle("show", scrolled && !inAlthea); }
+    window.addEventListener("scroll", function () {
+      var s = window.scrollY > 320;
+      if (s !== scrolled) { scrolled = s; syncAsk(); }
+    }, { passive: true });
+    if (alt && "IntersectionObserver" in window) {
+      new IntersectionObserver(function (es) { inAlthea = es[0].isIntersecting; syncAsk(); }, { threshold: 0.3 }).observe(alt);
+    }
+    ask.addEventListener("click", function (e) {
+      if (alt) { e.preventDefault(); alt.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
+    });
+  }
 })();
