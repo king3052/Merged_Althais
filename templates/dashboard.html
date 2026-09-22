@@ -6369,6 +6369,7 @@
 
       function savePatients() {
         try { localStorage.setItem(STORAGE_PATIENTS, JSON.stringify(PATIENTS)); } catch (e) {}
+        syncPatientsToServer();
       }
       function loadPatientsFromStorage() {
         try {
@@ -6379,6 +6380,47 @@
         } catch (e) {}
         return null;
       }
+
+      // ---- Server sync (shared across every teammate's login) ----
+      // localStorage above stays as an instant, offline-safe cache so the page
+      // never waits on a network round trip to render; the server call below
+      // is what actually makes patients visible to other people on the same
+      // org, not just the browser that added them.
+      let _patientSyncTimer = null;
+      function syncPatientsToServer() {
+        clearTimeout(_patientSyncTimer);
+        _patientSyncTimer = setTimeout(() => {
+          fetch('/api/patients/bulk-sync', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin', body: JSON.stringify({ patients: PATIENTS }),
+          }).catch(() => {}); // offline/error — localStorage cache still holds the data
+        }, 500);
+      }
+      function refreshPatientsFromServer() {
+        fetch('/api/patients', { credentials: 'same-origin' })
+          .then(r => r.ok ? r.json() : null)
+          .then(serverPatients => {
+            if (!Array.isArray(serverPatients)) return;
+            if (serverPatients.length) {
+              // Server is the shared source of truth — adopt it.
+              PATIENTS.length = 0;
+              PATIENTS.push(...serverPatients);
+              try { localStorage.setItem(STORAGE_PATIENTS, JSON.stringify(PATIENTS)); } catch (e) {}
+            } else if (PATIENTS.length) {
+              // Server has nothing yet but this browser already has local
+              // patients (e.g. first login after this sync feature shipped) —
+              // push them up once so the team starts seeing them too.
+              syncPatientsToServer();
+              return; // nothing to re-render, local state is already showing
+            } else {
+              return; // both empty, nothing to do
+            }
+            if (typeof renderActivePatient === 'function') renderActivePatient();
+            if (typeof renderSwitchList === 'function' && typeof swSearch !== 'undefined' && swSearch) renderSwitchList(swSearch.value);
+          })
+          .catch(() => {}); // offline — keep whatever loaded from localStorage
+      }
+
       function saveClaims() {
         try { localStorage.setItem(STORAGE_CLAIMS, JSON.stringify(SAVED_CLAIMS)); } catch (e) {}
       }
@@ -6411,6 +6453,9 @@
         }
         savePatients();
       }
+      // Refresh from the server right after the instant local render above,
+      // so every teammate converges on the same patient list.
+      refreshPatientsFromServer();
 
       // Restore last active patient if it still exists in the directory.
       // If it doesn't (deleted in a previous session), pick the first existing patient
