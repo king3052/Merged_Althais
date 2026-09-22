@@ -554,10 +554,23 @@ for _old_path, _new_path in _LEGACY_REDIRECTS.items():
 
 
 def _patient_dict(p: OrgPatient) -> dict:
-    return {
+    """Merge the flat core columns with the full rich object stored in `data`.
+    `data` (the actual dashboard patient object — insurance meta, allergies,
+    problems, balance, etc.) wins on overlapping keys since it's the more
+    complete, more recently-edited representation; core columns are the
+    fallback for rows written by the plain-CSV import path, which never
+    populates `data`."""
+    try:
+        extra = json.loads(p.data or "{}")
+    except Exception:
+        extra = {}
+    base = {
         "name": p.name, "mrn": p.mrn, "dob": p.dob,
         "sex": p.sex, "payer": p.payer, "provider": p.provider,
     }
+    base.update(extra)
+    base["mrn"] = p.mrn  # MRN is the identity key — never let stale `data` override it
+    return base
 
 
 def _claim_dict(c: OrgClaim) -> dict:
@@ -589,21 +602,77 @@ async def api_save_patient(request: Request, user=Depends(require_biller), db: S
     if not mrn:
         return JSONResponse({"error": "MRN is required"}, status_code=400)
     row = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == org, OrgPatient.mrn == mrn))
+    data_json = json.dumps(body)
     if row:
         row.name     = body.get("name", row.name)
         row.dob      = body.get("dob", row.dob)
         row.sex      = body.get("sex", row.sex)
-        row.payer    = body.get("payer", row.payer)
-        row.provider = body.get("provider", row.provider)
+        row.payer    = body.get("payer", body.get("insPrimary", row.payer))
+        row.provider = body.get("provider", body.get("pcp", row.provider))
+        row.data     = data_json
     else:
         db.add(OrgPatient(
             org_key=org, mrn=mrn,
             name=body.get("name", ""), dob=body.get("dob", ""),
-            sex=body.get("sex", ""), payer=body.get("payer", ""),
-            provider=body.get("provider", ""),
+            sex=body.get("sex", ""),
+            payer=body.get("payer", body.get("insPrimary", "")),
+            provider=body.get("provider", body.get("pcp", "")),
+            data=data_json,
         ))
     db.commit()
     return {"ok": True}
+
+
+@app.post("/api/patients/bulk-sync")
+async def api_bulk_sync_patients(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    """
+    Full mirror sync — the dashboard calls this every time its local patient
+    list changes (add, edit, delete, any field). The org's server-side patient
+    set is made to exactly match the array sent: rows for MRNs no longer
+    present are deleted, rows for MRNs present are upserted with the full
+    object. This keeps every teammate's login converging on the same list
+    instead of drifting — the previous behavior kept patients in browser
+    localStorage only, invisible to anyone but that one browser.
+    """
+    body = await request.json()
+    patients = body.get("patients")
+    if not isinstance(patients, list):
+        return JSONResponse({"error": "Expected {\"patients\": [...]}"}, status_code=400)
+    org = _org_namespace(user)
+
+    incoming_mrns = set()
+    for p in patients:
+        mrn = (p.get("mrn") or "").strip()
+        if not mrn:
+            continue
+        incoming_mrns.add(mrn)
+        row = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == org, OrgPatient.mrn == mrn))
+        data_json = json.dumps(p)
+        if row:
+            row.name     = p.get("name", row.name)
+            row.dob      = p.get("dob", row.dob)
+            row.sex      = p.get("sex", row.sex)
+            row.payer    = p.get("payer", p.get("insPrimary", row.payer))
+            row.provider = p.get("provider", p.get("pcp", row.provider))
+            row.data     = data_json
+        else:
+            db.add(OrgPatient(
+                org_key=org, mrn=mrn,
+                name=p.get("name", ""), dob=p.get("dob", ""), sex=p.get("sex", ""),
+                payer=p.get("payer", p.get("insPrimary", "")),
+                provider=p.get("provider", p.get("pcp", "")),
+                data=data_json,
+            ))
+
+    # Remove server-side rows for patients no longer in the incoming list
+    # (i.e. deleted locally) — this is what makes it a true mirror sync.
+    existing_rows = db.scalars(sa_select(OrgPatient).where(OrgPatient.org_key == org)).all()
+    for row in existing_rows:
+        if row.mrn not in incoming_mrns:
+            db.delete(row)
+
+    db.commit()
+    return {"ok": True, "count": len(incoming_mrns)}
 
 
 @app.post("/api/patients/import")

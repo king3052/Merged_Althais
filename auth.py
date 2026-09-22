@@ -116,7 +116,11 @@ def _org_namespace(user) -> str:
 
 
 class OrgPatient(Base):
-    """Server-side patient records scoped to an org — shared by web + desktop clients."""
+    """Server-side patient records scoped to an org — shared by web + desktop clients.
+    Core columns (mrn/name/dob/sex/payer/provider) support simple lookups and
+    the plain-CSV import path; `data` stores the full rich patient object the
+    dashboard actually works with (insurance meta, allergies, problems, balance,
+    etc.) as JSON, so nothing the UI tracks is lost on a round trip."""
     __tablename__ = "org_patients"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     org_key: Mapped[str] = mapped_column(String(255), index=True)
@@ -126,9 +130,15 @@ class OrgPatient(Base):
     sex: Mapped[str] = mapped_column(String(4), default="")
     payer: Mapped[str] = mapped_column(String(128), default="")
     provider: Mapped[str] = mapped_column(String(255), default="")
+    data: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime, default=lambda: dt.datetime.now(timezone.utc),
+        onupdate=lambda: dt.datetime.now(timezone.utc),
+    )
+    __table_args__ = (UniqueConstraint("org_key", "mrn", name="uq_org_patient_mrn"),)
 
 
 class OrgClaim(Base):
@@ -194,6 +204,23 @@ try:
         # only newly invited users (created after this migration) should see
         # the onboarding screen. Mark everyone currently in the DB as done.
         _conn.execute(text("UPDATE users SET onboarding_complete = 1"))
+        _conn.commit()
+except Exception:
+    pass  # column already exists
+
+# org_patients existed before the `data`/`updated_at` columns were added for
+# full-object sync (allergies, insurance meta, problems, etc.) — same
+# safe-ALTER pattern as above, harmless once already applied.
+try:
+    with engine.connect() as _conn:
+        _conn.execute(text("ALTER TABLE org_patients ADD COLUMN data TEXT DEFAULT '{}'"))
+        _conn.commit()
+except Exception:
+    pass  # column already exists
+
+try:
+    with engine.connect() as _conn:
+        _conn.execute(text("ALTER TABLE org_patients ADD COLUMN updated_at DATETIME"))
         _conn.commit()
 except Exception:
     pass  # column already exists
