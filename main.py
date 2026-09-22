@@ -1424,6 +1424,10 @@ async def althea_command(request: Request, user=Depends(require_user)):
 - "dictate_visit_note" — open a visit note (SOAP) so the clinician can dictate it and have it typed into the note's fields. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
 - "scribe_visit" — the clinician wants Althea to listen to a whole patient visit (the conversation between the clinician and the patient) and write up the note, then get the codes and prepare the claim. Examples: "scribe this visit", "listen to my visit with John Smith and write the note", "start scribing". This is different from "dictate_visit_note", where the clinician speaks the note itself to Althea. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
 - "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "scheduler", "patients", "soap", "settings", "staff"}}
+- "generate_appeal_letter" — draft an appeal letter for a patient's denied claim. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
+- "claim_status" — read back the status of a patient's most recent claim (submitted, paid, denied, pending, etc). Params: same "patient_name" rule as read_allergies.
+- "update_patient_field" — update one field on a patient's record: add an allergy, or change the primary insurance on file. Params: {{"patient_name": "<name as spoken, or empty string for the currently open patient>", "field": one of "allergy", "insurance", "value": "<the new value or allergy to add, as spoken>"}}
+- "general_question" — a general medical billing/coding knowledge question that ISN'T asking to read back something from THIS patient's own chart or claims (e.g. "what does modifier 25 mean", "why would a claim get denied for bundling", "how does critical care time billing work", "what's CO-97"). This is different from read_allergies/read_labs/claims_summary etc., which are about a specific real record already in the app — general_question is for billing/coding knowledge itself.
 - "unknown" — the request doesn't match any of the above, OR asks for anything clinical (diagnosis, treatment, medication advice, symptom interpretation) or anything outside this product's own functions.
 
 Important on patient_name: only fill it in when a specific name is actually spoken (e.g. "open John Smith", "what is Maria's allergy"). Whenever the speaker refers to "this patient", "my patient", "the patient", "their ...", "and his/her ... too", or gives no name at all, leave patient_name as an empty string — the app resolves that to whichever patient was just discussed (in the recent conversation below) or whichever chart is currently open, so never guess a name that wasn't said.
@@ -1448,7 +1452,9 @@ Spoken request: "{transcript}\""""
             "claims_at_risk", "documentation_gaps_today", "prior_auth_pending",
             "coding_complexity_check", "claims_denial_scan",
             "new_patient", "dictate_visit_note", "scribe_visit",
-            "open_section", "unknown"
+            "open_section",
+            "generate_appeal_letter", "claim_status", "update_patient_field", "general_question",
+            "unknown"
         ]
         # params varies by intent (a patient name, a section, a date) — strict
         # mode needs one fixed shape, so this covers every possible param key
@@ -1463,8 +1469,10 @@ Spoken request: "{transcript}\""""
                         "patient_name": {"type": "string"},
                         "section": {"type": "string"},
                         "date": {"type": "string"},
+                        "field": {"type": "string"},
+                        "value": {"type": "string"},
                     },
-                    "required": ["patient_name", "section", "date"],
+                    "required": ["patient_name", "section", "date", "field", "value"],
                     "additionalProperties": False,
                 },
                 "spoken_ack": {"type": "string"},
