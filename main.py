@@ -49,6 +49,7 @@ from datetime import timezone
 from marketing_data import SOLUTION_SEGMENTS, RESOURCE_CATEGORIES, RESOURCE_ARTICLES
 from coding_rules import resolve_time_based_codes, is_governed_code
 from code_validation import validate_codes
+import policy_knowledge
 app.include_router(auth_router)
 
 
@@ -1147,10 +1148,19 @@ def althea_public(request: Request, payload: dict):
     if not msgs or msgs[-1]["role"] != "user":
         return JSONResponse({"error": "No message."}, status_code=400)
 
+    # RAG: pull relevant billing/policy reference material for the latest
+    # user message and ground the answer in it when something relevant is
+    # found. Returns "" for unrelated questions, so this adds nothing to
+    # the prompt (and costs nothing extra) when it's not useful.
+    context_block = policy_knowledge.format_context_block(msgs[-1]["content"])
+    system_messages = [{"role": "system", "content": _PUBLIC_CHAT_SYSTEM}]
+    if context_block:
+        system_messages.append({"role": "system", "content": context_block})
+
     try:
         response = client.chat.completions.create(
             model=GROQ_MODEL,
-            messages=[{"role": "system", "content": _PUBLIC_CHAT_SYSTEM}] + msgs,
+            messages=system_messages + msgs,
             temperature=0.3,
             max_completion_tokens=500,
             reasoning_effort="low",
