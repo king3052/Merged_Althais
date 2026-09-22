@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Revenue · Coding</title>
+  <script>
+    var __ALTHAIS_USER__ = {{ user_json|safe }};
+    var __ALTHAIS_NS__ = (function(){
+      var base = (__ALTHAIS_USER__.organization || __ALTHAIS_USER__.email || 'unknown').trim().toLowerCase();
+      var safe = base.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      return 'org_' + safe;
+    })();
+  </script>
+</head>
+<body class="bg-shell">
+
+  {% if verified == '1' %}
+  <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Email verified — welcome to Althais.
+  </div>
+  <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
+  {% endif %}
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Coding</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">AI-assisted CPT/ICD-10 coding queue — claims that need codes assigned or a second look.</p>
+      </div>
+      <a href="/emr#claims" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">
+        <span class="inline-flex items-center gap-1.5">Code in EMR
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Needs Coding</div>
+          <div id="stat-missing" class="text-[22px] font-semibold text-risk-600 num mt-1">0</div>
+          <div class="text-[11px] text-ink-500 mt-0.5">draft · no CPT/ICD assigned</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Low Confidence</div>
+          <div id="stat-lowconf" class="text-[22px] font-semibold text-warn-600 num mt-1">0</div>
+          <div class="text-[11px] text-ink-500 mt-0.5">AI confidence below 75%</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Coded This Week</div>
+          <div id="stat-coded" class="text-[22px] font-semibold text-ok-600 num mt-1">0</div>
+          <div class="text-[11px] text-ink-500 mt-0.5">codes assigned in the last 7 days</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Avg AI Confidence</div>
+          <div id="stat-avgconf" class="text-[22px] font-semibold text-ink-900 num mt-1">0%</div>
+          <div class="text-[11px] text-ink-500 mt-0.5">across all coded claims</div>
+        </div>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-line flex items-center gap-1.5" id="filter-chips">
+          <button type="button" data-filter="all" class="px-2.5 py-1 text-[11.5px] bg-white text-ink-900 rounded-sm border border-line -m-px font-medium">All Needing Attention</button>
+          <button type="button" data-filter="missing" class="px-2.5 py-1 text-[11.5px] text-ink-600 hover:text-ink-900">Missing Codes</button>
+          <button type="button" data-filter="lowconf" class="px-2.5 py-1 text-[11.5px] text-ink-600 hover:text-ink-900">Low Confidence</button>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Patient</th>
+                <th class="td text-left">Provider</th>
+                <th class="td text-left">CPT</th>
+                <th class="td text-left">ICD-10</th>
+                <th class="td text-left">Status</th>
+                <th class="td text-left">AI Conf.</th>
+                <th class="td text-right">Age</th>
+                <th class="td text-right w-32"></th>
+              </tr>
+            </thead>
+            <tbody id="coding-tbody"></tbody>
+          </table>
+        </div>
+        <div id="coding-empty" class="px-4 py-12 text-center">
+          <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-ok-100 text-ok-600">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+          </div>
+          <div class="text-[14px] font-semibold text-ink-900">Coding queue is clear</div>
+          <div class="text-[12px] text-ink-500 mt-1">Every claim has codes assigned with solid AI confidence.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const _NS = __ALTHAIS_NS__ + '::';
+    const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    function loadJSON(key, fallback) {
+      try { const raw = localStorage.getItem(key); if (!raw) return fallback; const v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; }
+    }
+    function ageOf(c) {
+      if (!c.ts) return '—';
+      var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
+      if (days <= 0) return 'today';
+      return days + 'd';
+    }
+
+    const ALL_CLAIMS = loadJSON(STORAGE_CLAIMS, []).filter(function(c) { return !c.isPlaceholder; });
+
+    function isMissing(c) { return !c.cpt || !c.icd; }
+    function isLowConf(c) { const conf = Number(c.conf || 0); return !isMissing(c) && conf > 0 && conf < 75; }
+
+    const MISSING = ALL_CLAIMS.filter(isMissing);
+    const LOW_CONF = ALL_CLAIMS.filter(isLowConf);
+    const QUEUE = ALL_CLAIMS.filter(function(c) { return isMissing(c) || isLowConf(c); });
+
+    const coded = ALL_CLAIMS.filter(function(c) { return !isMissing(c); });
+    const codedThisWeek = coded.filter(function(c) {
+      if (!c.ts) return false;
+      return (Date.now() - new Date(c.ts).getTime()) <= 7 * 86400000;
+    });
+    const avgConf = coded.length
+      ? Math.round(coded.reduce(function(s, c) { return s + (Number(c.conf) || 0); }, 0) / coded.length)
+      : 0;
+
+    $('stat-missing').textContent = MISSING.length;
+    $('stat-lowconf').textContent = LOW_CONF.length;
+    $('stat-coded').textContent = codedThisWeek.length;
+    $('stat-avgconf').textContent = avgConf + '%';
+
+    const STATUS_STYLE = {
+      'Draft':           { bg: '#eceef2', fg: '#4a505c', mark: '○' },
+      'Pending Review':  { bg: '#fff0d6', fg: '#b86a00', mark: '◐' },
+      'Ready to Submit': { bg: '#dbeafe', fg: '#1d4ed8', mark: '▷' },
+      'Submitted':       { bg: '#e6efff', fg: '#0a47b0', mark: '●' },
+      'Denied':          { bg: '#ffe1e1', fg: '#c83838', mark: '✕' },
+      'Appealed':        { bg: '#fff0d6', fg: '#b86a00', mark: '↩' },
+      'Paid':            { bg: '#d8f5e3', fg: '#0c8a4f', mark: '✓' },
+    };
+
+    let activeFilter = 'all';
+
+    function currentRows() {
+      if (activeFilter === 'missing') return MISSING;
+      if (activeFilter === 'lowconf') return LOW_CONF;
+      return QUEUE;
+    }
+
+    function render() {
+      const rows = currentRows();
+      const tbody = $('coding-tbody');
+      const empty = $('coding-empty');
+      tbody.innerHTML = '';
+
+      rows.forEach(function(c) {
+        const status = c.status || 'Draft';
+        const ss = STATUS_STYLE[status] || STATUS_STYLE['Draft'];
+        const conf = Number(c.conf || 0);
+        const missing = isMissing(c);
+        const confCell = missing ? '<span class="text-ink-400">—</span>' : '<span class="num font-semibold ' + (conf < 75 ? 'text-warn-600' : 'text-ink-900') + '">' + conf + '%</span>';
+
+        const tr = document.createElement('tr');
+        tr.className = 'row-hover';
+        tr.innerHTML =
+          '<td class="td">' +
+            '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+            '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + (c.claimId ? ' · ' + esc(c.claimId) : '') + '</div>' +
+          '</td>' +
+          '<td class="td">' + esc(c.provider || '—') + '</td>' +
+          '<td class="td mono">' + (missing && !c.cpt ? '<span class="text-risk-600 font-semibold">missing</span>' : esc(c.cpt || '—')) + '</td>' +
+          '<td class="td mono">' + (missing && !c.icd ? '<span class="text-risk-600 font-semibold">missing</span>' : esc(c.icd || '—')) + '</td>' +
+          '<td class="td"><span class="pill" style="background:' + ss.bg + ';color:' + ss.fg + '">' + ss.mark + ' ' + esc(status) + '</span></td>' +
+          '<td class="td">' + confCell + '</td>' +
+          '<td class="td td-num text-right text-ink-400">' + ageOf(c) + '</td>' +
+          '<td class="td text-right"><a href="/emr#claims" class="text-[11px] font-semibold text-med-600 hover:text-med-700">Code in EMR →</a></td>';
+        tbody.appendChild(tr);
+      });
+
+      empty.style.display = rows.length ? 'none' : '';
+    }
+    render();
+
+    document.querySelectorAll('#filter-chips [data-filter]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('#filter-chips [data-filter]').forEach(function(b) {
+          b.classList.remove('bg-white', 'text-ink-900', 'rounded-sm', 'border', 'border-line', '-m-px', 'font-medium');
+          b.classList.add('text-ink-600');
+        });
+        btn.classList.add('bg-white', 'text-ink-900', 'rounded-sm', 'border', 'border-line', '-m-px', 'font-medium');
+        btn.classList.remove('text-ink-600');
+        activeFilter = btn.dataset.filter;
+        render();
+      });
+    });
+  </script>
+</body>
+</html>

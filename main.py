@@ -386,6 +386,13 @@ _WORKSPACE_PAGES = {
     # EMR (top-level workspace pages; the full patient-chart SPA stays at /emr)
     "/emr/patients": "patients.html",
     "/emr/schedule": "schedule.html",
+    # Revenue
+    "/revenue/claims": "revenue_claims.html",
+    "/revenue/coding": "revenue_coding.html",
+    "/revenue/denials": "revenue_denials.html",
+    "/revenue/appeals": "revenue_appeals.html",
+    "/revenue/payments": "revenue_payments.html",
+    "/revenue/payer-intelligence": "revenue_payer_intelligence.html",
     # Staff
     "/staff/team": "practice_team.html",
     "/staff/onboarding": "practice_onboarding.html",
@@ -461,46 +468,10 @@ _PLACEHOLDER_PAGES = {
                      "are currently available within the EMR.",
         emr_link="/emr#documents-view", emr_link_label="Open Documents in EMR",
     ),
-    "/revenue/claims": dict(
-        title="Claims", subtitle="Submission-ready and in-flight claims across the practice.",
-        description="A dedicated claims workspace for this view is coming soon. Claims management "
-                     "is currently available in the EMR.",
-        emr_link="/emr#claims", emr_link_label="Open Claims in EMR",
-    ),
-    "/revenue/coding": dict(
-        title="Coding", subtitle="AI-assisted CPT/ICD-10 coding queue.",
-        description="A dedicated coding queue is coming soon. Coding suggestions are currently "
-                     "generated within each claim in the EMR.",
-        emr_link="/emr#claims", emr_link_label="Open Claims in EMR",
-    ),
-    "/revenue/denials": dict(
-        title="Denials", subtitle="Denied claims requiring review or appeal.",
-        description="A dedicated denials workspace for this view is coming soon. Denials are "
-                     "currently available in the EMR.",
-        emr_link="/emr#denials-view", emr_link_label="Open Denials in EMR",
-    ),
-    "/revenue/appeals": dict(
-        title="Appeals", subtitle="Appeal letters and resubmission tracking.",
-        description="A dedicated appeals tracker is coming soon. Appeal generation is currently "
-                     "available from each denied claim in the EMR.",
-        emr_link="/emr#denials-view", emr_link_label="Open Denials in EMR",
-    ),
-    "/revenue/payments": dict(
-        title="Payments", subtitle="Reimbursements and payment history.",
-        description="A dedicated payments ledger is coming soon. A summary of recent payments is "
-                     "available today on the Overview dashboard.",
-        emr_link="/overview#revenue", emr_link_label="View Revenue Snapshot",
-    ),
     "/staff/clinic-onboarding": dict(
         title="Clinic Onboarding", subtitle="Set up a new clinic on Althais.",
         description="Guided clinic setup — locations, payer enrollment, and practice "
                      "configuration — is coming soon.",
-    ),
-    "/revenue/payer-intelligence": dict(
-        title="Payer Intelligence", subtitle="Payer policy updates and reimbursement trends.",
-        description="A dedicated payer intelligence workspace for this view is coming soon. "
-                     "Payer Intelligence is currently available in the EMR.",
-        emr_link="/emr#payer-view", emr_link_label="Open Payer Intelligence in EMR",
     ),
 }
 

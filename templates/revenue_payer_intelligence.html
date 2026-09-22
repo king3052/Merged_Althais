@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Revenue · Payer Intelligence</title>
+  <script>
+    var __ALTHAIS_USER__ = {{ user_json|safe }};
+    var __ALTHAIS_NS__ = (function(){
+      var base = (__ALTHAIS_USER__.organization || __ALTHAIS_USER__.email || 'unknown').trim().toLowerCase();
+      var safe = base.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      return 'org_' + safe;
+    })();
+  </script>
+</head>
+<body class="bg-shell">
+
+  {% if verified == '1' %}
+  <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Email verified — welcome to Althais.
+  </div>
+  <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
+  {% endif %}
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Payer Intelligence</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Reimbursement timelines, policy alerts, and AI-derived denial patterns by payer.</p>
+      </div>
+      <button id="payer-add-btn" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">+ Add Payer Note</button>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Payers Tracked</div>
+          <div id="payer-stat-count" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Avg Approval Rate</div>
+          <div id="payer-stat-approval" class="text-[22px] font-semibold text-ok-600 num mt-1">0%</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Avg Days To Pay</div>
+          <div id="payer-stat-days" class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+        </div>
+      </div>
+
+      <div id="payer-cards-grid" class="grid grid-cols-2 gap-3"></div>
+
+      <div class="mt-6 bg-panel border border-line rounded-sm">
+        <div class="px-4 py-2.5 border-b border-line">
+          <h3 class="text-[13px] font-semibold text-ink-900">Recent Policy Alerts</h3>
+        </div>
+        <ul id="payer-policy-list" class="divide-y divide-lineSoft text-[12.5px]"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const _NS = __ALTHAIS_NS__ + '::';
+    const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
+    // Not namespaced — matches the EMR's own key exactly so notes added
+    // here or in the EMR show up in both places.
+    const STORAGE_PAYER_NOTES = 'althais.payer_notes.v1';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    function loadJSON(key, fallback) {
+      try { const raw = localStorage.getItem(key); if (!raw) return fallback; const v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; }
+    }
+    function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+    const ALL_CLAIMS = loadJSON(STORAGE_CLAIMS, []).filter(function(c) { return !c.isPlaceholder; });
+    let POLICY_ALERTS = loadJSON(STORAGE_PAYER_NOTES, []);
+
+    function computePayerStats() {
+      const byPayer = {};
+      ALL_CLAIMS.forEach(function(c) {
+        const payer = c.payer || '—';
+        const status = (c.status || '').toLowerCase();
+        const amt = Number(c.amount) || 0;
+        if (!byPayer[payer]) byPayer[payer] = { name: payer, total: 0, paid: 0, denied: 0, amount: 0 };
+        const e = byPayer[payer];
+        e.total++;
+        if (status === 'paid') e.paid++;
+        if (status === 'denied' || status === 'appealed') e.denied++;
+        e.amount += amt;
+      });
+      return Object.values(byPayer);
+    }
+
+    function renderPayerView() {
+      const grid = $('payer-cards-grid');
+      const policyList = $('payer-policy-list');
+      const payers = computePayerStats();
+      const totalClaims = payers.reduce(function(s, p) { return s + p.total; }, 0);
+      const totalPaid = payers.reduce(function(s, p) { return s + p.paid; }, 0);
+      const avgApproval = totalClaims ? Math.round((totalPaid / totalClaims) * 100) : 0;
+
+      $('payer-stat-count').textContent = payers.length;
+      $('payer-stat-approval').textContent = avgApproval + '%';
+      $('payer-stat-days').textContent = '—';
+
+      if (!payers.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;padding:32px;text-align:center;font-size:12.5px;color:#6b7280;" class="bg-panel border border-line rounded-sm">No payer data yet. Submit claims and per-payer approval, denial, and volume stats populate here.</div>';
+      } else {
+        grid.innerHTML = payers.sort(function(a, b) { return b.total - a.total; }).map(function(p) {
+          const approval = p.total ? Math.round((p.paid / p.total) * 100) : 0;
+          const denialRate = p.total ? ((p.denied / p.total) * 100).toFixed(1) : '0.0';
+          const tone = approval >= 95 ? 'text-ok-600' : (approval >= 90 ? 'text-ink-900' : 'text-warn-600');
+          return '<div class="bg-panel border border-line rounded-sm p-4">' +
+            '<div class="flex items-center justify-between mb-2">' +
+              '<div class="text-[14px] font-semibold text-ink-900">' + esc(p.name) + '</div>' +
+              '<span class="pill" style="background:#e6efff;color:#0a47b0">' + denialRate + '% denial</span>' +
+            '</div>' +
+            '<div class="grid grid-cols-3 gap-2">' +
+              '<div><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">Approval</div><div class="' + tone + ' text-[18px] font-semibold num">' + approval + '%</div></div>' +
+              '<div><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">Claims</div><div class="text-ink-900 text-[18px] font-semibold num">' + p.total + '</div></div>' +
+              '<div><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">Billed</div><div class="text-ink-900 text-[18px] font-semibold num">$' + p.amount.toLocaleString('en-US', { maximumFractionDigits: 0 }) + '</div></div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      if (!POLICY_ALERTS.length) {
+        policyList.innerHTML = '<li class="px-4 py-4 text-center text-[12px] text-ink-500">No policy alerts. Click + Add Payer Note to record one.</li>';
+      } else {
+        policyList.innerHTML = POLICY_ALERTS.map(function(a) {
+          return '<li class="px-4 py-2.5 flex items-start gap-3">' +
+            '<span class="pill" style="background:#e6efff;color:#0a47b0;flex-shrink:0;">' + esc(a.payer) + '</span>' +
+            '<div class="flex-1 min-w-0"><div class="text-ink-900">' + esc(a.text) + '</div></div>' +
+            '<span class="text-[10.5px] text-ink-500 mono flex-shrink-0">' + esc(a.date) + '</span>' +
+          '</li>';
+        }).join('');
+      }
+    }
+    renderPayerView();
+
+    $('payer-add-btn').addEventListener('click', function() {
+      const note = prompt('Add a payer policy note (e.g. "BCBS now requires PA for 73721"):');
+      if (!note || !note.trim()) return;
+      const payer = prompt('Which payer does this apply to?', 'UnitedHealthcare') || 'Custom';
+      POLICY_ALERTS.unshift({
+        payer: payer.trim() || 'Custom',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+        text: note.trim(),
+      });
+      saveJSON(STORAGE_PAYER_NOTES, POLICY_ALERTS);
+      renderPayerView();
+    });
+  </script>
+</body>
+</html>

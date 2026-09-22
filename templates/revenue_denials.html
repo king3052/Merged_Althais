@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Revenue · Denials</title>
+  <script>
+    var __ALTHAIS_USER__ = {{ user_json|safe }};
+    var __ALTHAIS_NS__ = (function(){
+      var base = (__ALTHAIS_USER__.organization || __ALTHAIS_USER__.email || 'unknown').trim().toLowerCase();
+      var safe = base.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      return 'org_' + safe;
+    })();
+  </script>
+</head>
+<body class="bg-shell">
+
+  {% if verified == '1' %}
+  <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Email verified — welcome to Althais.
+  </div>
+  <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
+  {% endif %}
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Denials</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">All claims flagged as <span class="font-semibold text-risk-600">Denied</span> or <span class="font-semibold text-warn-600">Appealed</span>.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="denials-export-btn" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Export</button>
+        <a href="/revenue/appeals" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700">Generate Appeal Letters</a>
+      </div>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Denials</div>
+          <div id="denials-stat-total" class="text-[22px] font-semibold text-risk-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Appeal In Progress</div>
+          <div id="denials-stat-appeals" class="text-[22px] font-semibold text-warn-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Needs Appeal</div>
+          <div id="denials-stat-risk" class="text-[22px] font-semibold text-warn-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">$ At Risk</div>
+          <div id="denials-stat-amount" class="text-[22px] font-semibold text-ink-900 num mt-1">$0</div>
+        </div>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm overflow-hidden">
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Patient</th>
+                <th class="td text-left">Provider</th>
+                <th class="td text-left">CPT</th>
+                <th class="td text-left">ICD-10</th>
+                <th class="td text-left">Status</th>
+                <th class="td text-left">Payer</th>
+                <th class="td text-right">Amount</th>
+                <th class="td text-left">AI Conf.</th>
+                <th class="td text-right">Age</th>
+                <th class="td w-8"></th>
+              </tr>
+            </thead>
+            <tbody id="denials-tbody"></tbody>
+          </table>
+        </div>
+        <div id="denials-empty" class="px-4 py-12 text-center">
+          <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-ok-100 text-ok-600">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+          </div>
+          <div class="text-[14px] font-semibold text-ink-900">No Denials</div>
+          <div class="text-[12px] text-ink-500 mt-1">Every claim in the queue is clean. Nice work.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const _NS = __ALTHAIS_NS__ + '::';
+    const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    function loadJSON(key, fallback) {
+      try { const raw = localStorage.getItem(key); if (!raw) return fallback; const v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; }
+    }
+
+    const ALL_CLAIMS = loadJSON(STORAGE_CLAIMS, []).filter(function(c) { return !c.isPlaceholder; });
+    const DENIAL_ROWS = ALL_CLAIMS.filter(function(c) {
+      const s = (c.status || '').toLowerCase();
+      return s === 'denied' || s === 'appealed';
+    });
+
+    function ageOf(c) {
+      if (!c.ts) return '—';
+      var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
+      if (days <= 0) return 'today';
+      return days + 'd';
+    }
+    function fmtMoney(n) {
+      n = Number(n) || 0;
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    const STATUS_STYLE = {
+      'Denied':   { bg: '#ffe1e1', fg: '#c83838', mark: '✕' },
+      'Appealed': { bg: '#fff0d6', fg: '#b86a00', mark: '↩' },
+    };
+
+    function renderDenials() {
+      const tbody = $('denials-tbody');
+      const empty = $('denials-empty');
+      tbody.innerHTML = '';
+      let totalAmt = 0, appealed = 0, needsAppeal = 0;
+
+      DENIAL_ROWS.forEach(function(c) {
+        const status = c.status || 'Denied';
+        const ss = STATUS_STYLE[status] || STATUS_STYLE['Denied'];
+        if (status === 'Appealed') appealed++; else needsAppeal++;
+        totalAmt += Number(c.amount) || 0;
+        const conf = Number(c.conf || 0);
+
+        const tr = document.createElement('tr');
+        tr.className = 'row-hover';
+        tr.innerHTML =
+          '<td class="td">' +
+            '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+            '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + (c.claimId ? ' · ' + esc(c.claimId) : '') + '</div>' +
+          '</td>' +
+          '<td class="td">' + esc(c.provider || '—') + '</td>' +
+          '<td class="td mono">' + esc(c.cpt || '—') + '</td>' +
+          '<td class="td mono">' + esc(c.icd || '—') + '</td>' +
+          '<td class="td"><span class="pill" style="background:' + ss.bg + ';color:' + ss.fg + '">' + ss.mark + ' ' + esc(status) + '</span></td>' +
+          '<td class="td">' + esc(c.payer || '—') + '</td>' +
+          '<td class="td td-num text-right">' + fmtMoney(c.amount) + '</td>' +
+          '<td class="td"><span class="num font-semibold text-ink-900">' + esc(String(conf)) + '%</span></td>' +
+          '<td class="td td-num text-right text-ink-400">' + ageOf(c) + '</td>' +
+          '<td class="td text-right"><a href="/revenue/appeals" class="text-[11px] font-semibold text-med-600 hover:text-med-700">Appeal →</a></td>';
+        tbody.appendChild(tr);
+      });
+
+      $('denials-stat-total').textContent = DENIAL_ROWS.length;
+      $('denials-stat-appeals').textContent = appealed;
+      $('denials-stat-risk').textContent = needsAppeal;
+      $('denials-stat-amount').textContent = totalAmt > 0 ? fmtMoney(totalAmt) : '$0';
+      empty.style.display = DENIAL_ROWS.length ? 'none' : '';
+    }
+    renderDenials();
+
+    $('denials-export-btn').addEventListener('click', function() {
+      if (!DENIAL_ROWS.length) { alert('No denials to export.'); return; }
+      const lines = ['Patient,MRN,Claim ID,Provider,CPT,ICD-10,Status,Payer,Amount,AI Conf,Age'];
+      DENIAL_ROWS.forEach(function(c) {
+        lines.push([c.patient || '', c.mrn || '', c.claimId || '', c.provider || '', c.cpt || '', c.icd || '', c.status || '', c.payer || '', c.amount || 0, c.conf || 0, ageOf(c)]
+          .map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','));
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'denials_' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  </script>
+</body>
+</html>

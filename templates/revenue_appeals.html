@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Revenue · Appeals</title>
+  <script>
+    var __ALTHAIS_USER__ = {{ user_json|safe }};
+    var __ALTHAIS_NS__ = (function(){
+      var base = (__ALTHAIS_USER__.organization || __ALTHAIS_USER__.email || 'unknown').trim().toLowerCase();
+      var safe = base.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      return 'org_' + safe;
+    })();
+  </script>
+</head>
+<body class="bg-shell">
+
+  {% if verified == '1' %}
+  <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Email verified — welcome to Althais.
+  </div>
+  <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
+  {% endif %}
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line">
+      <h1 class="text-[18px] font-semibold text-ink-900">Appeals</h1>
+      <p class="text-[12px] text-ink-500 mt-0.5">Draft AI-assisted appeal letters for denied claims and track resubmission.</p>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Needs Appeal</div>
+          <div id="stat-needs" class="text-[22px] font-semibold text-risk-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Appeal In Progress</div>
+          <div id="stat-progress" class="text-[22px] font-semibold text-warn-600 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">$ Under Appeal</div>
+          <div id="stat-amount" class="text-[22px] font-semibold text-ink-900 num mt-1">$0</div>
+        </div>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm overflow-hidden">
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Patient</th>
+                <th class="td text-left">Payer</th>
+                <th class="td text-left">CPT / ICD-10</th>
+                <th class="td text-left">Status</th>
+                <th class="td text-right">Amount</th>
+                <th class="td text-right">Age</th>
+                <th class="td text-right w-44"></th>
+              </tr>
+            </thead>
+            <tbody id="appeals-tbody"></tbody>
+          </table>
+        </div>
+        <div id="appeals-empty" class="px-4 py-12 text-center">
+          <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-ok-100 text-ok-600">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+          </div>
+          <div class="text-[14px] font-semibold text-ink-900">Nothing to appeal</div>
+          <div class="text-[12px] text-ink-500 mt-1">Denied and appealed claims will show up here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== APPEAL LETTER MODAL ============== -->
+  <div id="appeal-modal" class="hidden fixed inset-0 z-50">
+    <div id="appeal-modal-backdrop" class="absolute inset-0 bg-ink-900/40"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-6">
+      <div class="relative w-full max-w-[760px] max-h-[88vh] bg-panel border border-line rounded-sm shadow-xl flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between border-b border-line px-5 py-3">
+          <div>
+            <h2 class="text-[14px] font-semibold text-ink-900">Appeal Letter</h2>
+            <div class="text-[11.5px] text-ink-500">AI-drafted formal appeal · review before sending.</div>
+          </div>
+          <button id="appeal-close" type="button" class="ml-1 text-ink-500 hover:text-ink-900 p-1 rounded-sm hover:bg-shell" aria-label="Close">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="border-b border-line bg-shell px-5 py-2 text-[11.5px] text-ink-600">
+          <span id="appeal-ref">—</span>
+        </div>
+        <div class="flex-1 overflow-y-auto thin-scroll p-6 bg-shell">
+          <div id="appeal-loading" class="hidden text-center py-16 text-[12.5px] text-ink-500">
+            <div class="mx-auto mb-3 h-5 w-5 border-2 border-med-600 border-t-transparent rounded-full animate-spin"></div>
+            Drafting appeal letter…
+          </div>
+          <div id="appeal-error" class="hidden text-center py-16 text-[12.5px] text-risk-600"></div>
+          <div id="appeal-paper" class="hidden mx-auto max-w-[640px] bg-white border border-line shadow-sm p-8" style="min-height:420px;">
+            <pre id="appeal-text" style="white-space:pre-wrap;font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;color:#1a1d24;margin:0;"></pre>
+          </div>
+        </div>
+        <div class="flex items-center justify-between border-t border-line bg-panel px-5 py-2.5">
+          <div class="text-[11px] text-ink-500">Drafted via <span class="mono">/api/appeal-letter</span></div>
+          <div class="flex items-center gap-1.5">
+            <button id="appeal-regenerate" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Regenerate</button>
+            <button id="appeal-copy" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Copy</button>
+            <button id="appeal-download" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Download</button>
+            <button id="appeal-mark" type="button" class="px-3 py-1.5 rounded-sm bg-med-600 text-white text-[12px] font-semibold hover:bg-med-700">Mark Appealed</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const _NS = __ALTHAIS_NS__ + '::';
+    const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    function loadJSON(key, fallback) {
+      try { const raw = localStorage.getItem(key); if (!raw) return fallback; const v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; }
+    }
+    function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+    function ageOf(c) {
+      if (!c.ts) return '—';
+      var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
+      if (days <= 0) return 'today';
+      return days + 'd';
+    }
+    function fmtMoney(n) {
+      n = Number(n) || 0;
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    const STATUS_STYLE = {
+      'Denied':   { bg: '#ffe1e1', fg: '#c83838', mark: '✕' },
+      'Appealed': { bg: '#fff0d6', fg: '#b86a00', mark: '↩' },
+    };
+
+    let ROWS = [];
+
+    function loadRows() {
+      const all = loadJSON(STORAGE_CLAIMS, []).filter(function(c) { return !c.isPlaceholder; });
+      ROWS = all.filter(function(c) {
+        const s = (c.status || '').toLowerCase();
+        return s === 'denied' || s === 'appealed';
+      });
+    }
+
+    function render() {
+      loadRows();
+      const tbody = $('appeals-tbody');
+      const empty = $('appeals-empty');
+      tbody.innerHTML = '';
+      let needs = 0, progress = 0, amount = 0;
+
+      ROWS.forEach(function(c, i) {
+        const status = c.status || 'Denied';
+        const ss = STATUS_STYLE[status] || STATUS_STYLE['Denied'];
+        if (status === 'Appealed') progress++; else needs++;
+        amount += Number(c.amount) || 0;
+
+        const tr = document.createElement('tr');
+        tr.className = 'row-hover';
+        tr.innerHTML =
+          '<td class="td">' +
+            '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+            '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + (c.claimId ? ' · ' + esc(c.claimId) : '') + '</div>' +
+          '</td>' +
+          '<td class="td">' + esc(c.payer || '—') + '</td>' +
+          '<td class="td mono">' + esc(c.cpt || '—') + ' / ' + esc(c.icd || '—') + '</td>' +
+          '<td class="td"><span class="pill" style="background:' + ss.bg + ';color:' + ss.fg + '">' + ss.mark + ' ' + esc(status) + '</span></td>' +
+          '<td class="td td-num text-right">' + fmtMoney(c.amount) + '</td>' +
+          '<td class="td td-num text-right text-ink-400">' + ageOf(c) + '</td>' +
+          '<td class="td text-right"><button type="button" class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700" data-gen-appeal="' + i + '">Generate Letter</button></td>';
+        tbody.appendChild(tr);
+      });
+
+      $('stat-needs').textContent = needs;
+      $('stat-progress').textContent = progress;
+      $('stat-amount').textContent = amount > 0 ? fmtMoney(amount) : '$0';
+      empty.style.display = ROWS.length ? 'none' : '';
+
+      tbody.querySelectorAll('[data-gen-appeal]').forEach(function(btn) {
+        btn.addEventListener('click', function() { openAppealModal(ROWS[Number(btn.dataset.genAppeal)]); });
+      });
+    }
+    render();
+
+    // ── Appeal letter modal ──
+    const modal = $('appeal-modal');
+    const loadingEl = $('appeal-loading');
+    const errorEl = $('appeal-error');
+    const paperEl = $('appeal-paper');
+    const textEl = $('appeal-text');
+    let currentClaim = null;
+    let currentLetter = '';
+
+    function openAppealModal(claim) {
+      currentClaim = claim;
+      $('appeal-ref').textContent = (claim.claimId || claim.mrn || claim.patient || '') + ' · ' + (claim.patient || '') + ' · ' + (claim.payer || '');
+      modal.classList.remove('hidden');
+      fetchLetter();
+    }
+    function closeAppealModal() { modal.classList.add('hidden'); currentClaim = null; }
+    $('appeal-close').addEventListener('click', closeAppealModal);
+    $('appeal-modal-backdrop').addEventListener('click', closeAppealModal);
+
+    async function fetchLetter() {
+      if (!currentClaim) return;
+      loadingEl.classList.remove('hidden');
+      errorEl.classList.add('hidden');
+      paperEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/appeal-letter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            patient: currentClaim.patient || '', mrn: currentClaim.mrn || '', claimId: currentClaim.claimId || '',
+            svcDate: (currentClaim.ts || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+            provider: currentClaim.provider || '', payer: currentClaim.payer || '',
+            cpt: currentClaim.cpt || '', icd: currentClaim.icd || '', amount: currentClaim.amount || '',
+            status: currentClaim.status || 'Denied',
+            practice: (__ALTHAIS_USER__.organization || 'Althais Health Systems'),
+          }),
+        });
+        const data = await res.json();
+        loadingEl.classList.add('hidden');
+        if (!res.ok || data.error) {
+          errorEl.textContent = data.error || 'Could not generate the appeal letter. Try again.';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+        currentLetter = data.letter || '';
+        textEl.textContent = currentLetter;
+        paperEl.classList.remove('hidden');
+      } catch (e) {
+        loadingEl.classList.add('hidden');
+        errorEl.textContent = 'Network error while drafting the letter.';
+        errorEl.classList.remove('hidden');
+      }
+    }
+    $('appeal-regenerate').addEventListener('click', fetchLetter);
+    $('appeal-copy').addEventListener('click', function() {
+      if (!currentLetter) return;
+      navigator.clipboard && navigator.clipboard.writeText(currentLetter).catch(function() {});
+    });
+    $('appeal-download').addEventListener('click', function() {
+      if (!currentLetter) return;
+      const blob = new Blob([currentLetter], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'appeal_' + (currentClaim && currentClaim.claimId ? currentClaim.claimId : 'letter') + '.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    $('appeal-mark').addEventListener('click', function() {
+      if (!currentClaim) return;
+      const all = loadJSON(STORAGE_CLAIMS, []);
+      const idx = all.findIndex(function(c) {
+        return c.claimId && currentClaim.claimId ? c.claimId === currentClaim.claimId : (c.mrn === currentClaim.mrn && c.ts === currentClaim.ts);
+      });
+      if (idx !== -1) {
+        all[idx].status = 'Appealed';
+        saveJSON(STORAGE_CLAIMS, all);
+      }
+      closeAppealModal();
+      render();
+    });
+  </script>
+</body>
+</html>

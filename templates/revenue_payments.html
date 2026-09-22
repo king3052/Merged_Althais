@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Revenue · Payments</title>
+  <script>
+    var __ALTHAIS_USER__ = {{ user_json|safe }};
+    var __ALTHAIS_NS__ = (function(){
+      var base = (__ALTHAIS_USER__.organization || __ALTHAIS_USER__.email || 'unknown').trim().toLowerCase();
+      var safe = base.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      return 'org_' + safe;
+    })();
+  </script>
+</head>
+<body class="bg-shell">
+
+  {% if verified == '1' %}
+  <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Email verified — welcome to Althais.
+  </div>
+  <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
+  {% endif %}
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line">
+      <h1 class="text-[18px] font-semibold text-ink-900">Payments</h1>
+      <p class="text-[12px] text-ink-500 mt-0.5">Reimbursements collected and pending, across every payer.</p>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Collected</div>
+          <div id="stat-collected" class="text-[22px] font-semibold text-ok-600 num mt-1">$0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Pending Reimbursement</div>
+          <div id="stat-pending" class="text-[22px] font-semibold text-ink-900 num mt-1">$0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Payments Collected</div>
+          <div id="stat-count" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Avg Payment</div>
+          <div id="stat-avg" class="text-[22px] font-semibold text-ink-900 num mt-1">$0</div>
+        </div>
+      </div>
+
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-[13px] font-semibold text-ink-900">Collections By Payer</h2>
+      </div>
+      <div id="payer-grid" class="grid grid-cols-3 gap-3 mb-6"></div>
+
+      <div class="bg-panel border border-line rounded-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-line">
+          <h2 class="text-[13px] font-semibold text-ink-900">Payment History</h2>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full">
+            <thead>
+              <tr class="table-head">
+                <th class="td text-left">Patient</th>
+                <th class="td text-left">Payer</th>
+                <th class="td text-left">Claim</th>
+                <th class="td text-left">CPT</th>
+                <th class="td text-right">Amount</th>
+                <th class="td text-right">Date</th>
+              </tr>
+            </thead>
+            <tbody id="payments-tbody"></tbody>
+          </table>
+        </div>
+        <div id="payments-empty" class="px-4 py-12 text-center">
+          <div class="text-[14px] font-semibold text-ink-900">No payments recorded yet</div>
+          <div class="text-[12px] text-ink-500 mt-1">Claims marked <span class="font-semibold text-ok-600">Paid</span> in the EMR will show up here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const _NS = __ALTHAIS_NS__ + '::';
+    const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    function loadJSON(key, fallback) {
+      try { const raw = localStorage.getItem(key); if (!raw) return fallback; const v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; }
+    }
+    function fmtMoney(n) {
+      n = Number(n) || 0;
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtDate(ts) {
+      if (!ts) return '—';
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+    }
+
+    const ALL_CLAIMS = loadJSON(STORAGE_CLAIMS, []).filter(function(c) { return !c.isPlaceholder; });
+    const PAID = ALL_CLAIMS.filter(function(c) { return (c.status || '').toLowerCase() === 'paid'; });
+    const PENDING = ALL_CLAIMS.filter(function(c) {
+      const s = (c.status || '').toLowerCase();
+      return s !== 'paid' && s !== 'draft';
+    });
+
+    const totalCollected = PAID.reduce(function(s, c) { return s + (Number(c.amount) || 0); }, 0);
+    const totalPending = PENDING.reduce(function(s, c) { return s + (Number(c.amount) || 0); }, 0);
+    const avgPayment = PAID.length ? totalCollected / PAID.length : 0;
+
+    $('stat-collected').textContent = fmtMoney(totalCollected);
+    $('stat-pending').textContent = fmtMoney(totalPending);
+    $('stat-count').textContent = PAID.length;
+    $('stat-avg').textContent = fmtMoney(avgPayment);
+
+    // ── Collections by payer ──
+    const byPayer = {};
+    PAID.forEach(function(c) {
+      const p = c.payer || 'Unknown';
+      if (!byPayer[p]) byPayer[p] = { name: p, total: 0, count: 0 };
+      byPayer[p].total += Number(c.amount) || 0;
+      byPayer[p].count++;
+    });
+    const payerGrid = $('payer-grid');
+    const payerList = Object.values(byPayer).sort(function(a, b) { return b.total - a.total; });
+    if (!payerList.length) {
+      payerGrid.innerHTML = '<div style="grid-column:1/-1;" class="bg-panel border border-line rounded-sm p-6 text-center text-[12.5px] text-ink-500">No collections yet. Paid claims will be grouped by payer here.</div>';
+    } else {
+      payerGrid.innerHTML = payerList.map(function(p) {
+        return '<div class="bg-panel border border-line rounded-sm p-4">' +
+          '<div class="text-[13px] font-semibold text-ink-900 mb-2">' + esc(p.name) + '</div>' +
+          '<div class="flex items-end justify-between">' +
+            '<div><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">Collected</div><div class="text-[18px] font-semibold text-ok-600 num">' + fmtMoney(p.total) + '</div></div>' +
+            '<div class="text-right"><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">Payments</div><div class="text-[18px] font-semibold text-ink-900 num">' + p.count + '</div></div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // ── Payment history table ──
+    const tbody = $('payments-tbody');
+    const empty = $('payments-empty');
+    const sorted = PAID.slice().sort(function(a, b) { return (b.ts || '').localeCompare(a.ts || ''); });
+    if (sorted.length) {
+      tbody.innerHTML = sorted.map(function(c) {
+        return '<tr class="row-hover">' +
+          '<td class="td">' +
+            '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+            '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + '</div>' +
+          '</td>' +
+          '<td class="td">' + esc(c.payer || '—') + '</td>' +
+          '<td class="td mono">' + esc(c.claimId || '—') + '</td>' +
+          '<td class="td mono">' + esc(c.cpt || '—') + '</td>' +
+          '<td class="td td-num text-right font-semibold text-ok-600">' + fmtMoney(c.amount) + '</td>' +
+          '<td class="td td-num text-right text-ink-500">' + fmtDate(c.ts) + '</td>' +
+        '</tr>';
+      }).join('');
+      empty.style.display = 'none';
+    } else {
+      tbody.innerHTML = '';
+      empty.style.display = '';
+    }
+  </script>
+</body>
+</html>
