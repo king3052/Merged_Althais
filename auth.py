@@ -220,7 +220,7 @@ except Exception:
 
 try:
     with engine.connect() as _conn:
-        _conn.execute(text("ALTER TABLE org_patients ADD COLUMN updated_at DATETIME"))
+        _conn.execute(text("ALTER TABLE org_patients ADD COLUMN updated_at TIMESTAMP"))
         _conn.commit()
 except Exception:
     pass  # column already exists
