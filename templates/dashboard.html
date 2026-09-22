@@ -6393,12 +6393,19 @@
           fetch('/api/patients/bulk-sync', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin', body: JSON.stringify({ patients: PATIENTS }),
-          }).catch(() => {}); // offline/error — localStorage cache still holds the data
+          })
+          .then(r => {
+            if (!r.ok) return r.text().then(t => { throw new Error('bulk-sync ' + r.status + ': ' + t); });
+          })
+          .catch(err => console.error('[patients sync]', err)); // localStorage cache still holds the data either way
         }, 500);
       }
       function refreshPatientsFromServer() {
         fetch('/api/patients', { credentials: 'same-origin' })
-          .then(r => r.ok ? r.json() : null)
+          .then(r => {
+            if (!r.ok) return r.text().then(t => { throw new Error('GET /api/patients ' + r.status + ': ' + t); });
+            return r.json();
+          })
           .then(serverPatients => {
             if (!Array.isArray(serverPatients)) return;
             if (serverPatients.length) {
@@ -6418,7 +6425,7 @@
             if (typeof renderActivePatient === 'function') renderActivePatient();
             if (typeof renderSwitchList === 'function' && typeof swSearch !== 'undefined' && swSearch) renderSwitchList(swSearch.value);
           })
-          .catch(() => {}); // offline — keep whatever loaded from localStorage
+          .catch(err => console.error('[patients refresh]', err)); // offline/error — keep whatever loaded from localStorage
       }
 
       function saveClaims() {
