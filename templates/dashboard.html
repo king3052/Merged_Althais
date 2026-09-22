@@ -5067,6 +5067,7 @@
             // ever-growing chat log.
             altheaHistory.push({ transcript, intent: data.intent });
             if (altheaHistory.length > 6) altheaHistory = altheaHistory.slice(-6);
+            data.transcript = transcript;
             await executeIntent(data);
           } catch (e) {
             if (e.name === 'AbortError') return; // user hit Stop — altheaStop() already reset the UI
@@ -5471,6 +5472,103 @@
               if (dest) setTimeout(() => { window.location.href = dest; }, 500);
             }
             if (responseEl) responseEl.textContent = spoken || 'Done.';
+
+          } else if (intent === 'generate_appeal_letter') {
+            const p = resolveAltheaPatient(params);
+            if (!p) {
+              spoken = 'I\'m not sure which patient you mean — open a chart first, or say their name.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else {
+              altheaRememberPatient(p.mrn);
+              const claims = (typeof SAVED_CLAIMS !== 'undefined') ? SAVED_CLAIMS : [];
+              const denied = claims.filter(c => c.mrn === p.mrn && c.status === 'Denied')
+                .sort((a, b) => new Date(b.ts) - new Date(a.ts));
+              if (!denied.length) {
+                spoken = spokenName(p.name) + ' doesn\u2019t have any denied claims to appeal right now.';
+                if (responseEl) responseEl.textContent = spoken;
+              } else {
+                spoken = 'Drafting an appeal letter for ' + spokenName(p.name) + '\u2019s denied claim.';
+                if (responseEl) responseEl.textContent = spoken;
+                if (typeof appealClaims !== 'undefined' && typeof appealModal !== 'undefined') {
+                  appealClaims = denied;
+                  appealCache = new Array(appealClaims.length);
+                  appealIndex = 0;
+                  appealModal.classList.remove('hidden');
+                  if (typeof logActivity === 'function') {
+                    logActivity('add', `Appeal letter drafting for <strong>${escapeHtml(p.name)}</strong>`, '');
+                  }
+                  showAppealLetter(0);
+                }
+              }
+            }
+
+          } else if (intent === 'claim_status') {
+            const p = resolveAltheaPatient(params);
+            if (!p) {
+              spoken = 'I\'m not sure which patient you mean — open a chart first, or say their name.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else {
+              altheaRememberPatient(p.mrn);
+              const claims = (typeof SAVED_CLAIMS !== 'undefined') ? SAVED_CLAIMS : [];
+              const mine = claims.filter(c => c.mrn === p.mrn).sort((a, b) => new Date(b.ts) - new Date(a.ts));
+              if (!mine.length) {
+                spoken = spokenName(p.name) + ' has no claims on file yet.';
+                if (responseEl) responseEl.textContent = spoken;
+              } else {
+                const c = mine[0];
+                const amt = typeof c.amount === 'number' ? '$' + c.amount.toFixed(2) : (c.amount || '');
+                spoken = spokenName(p.name) + '\u2019s most recent claim, ' + (c.claimId || '') + ', is ' + c.status + ', billed ' + amt + ' to ' + (c.payer || 'the payer') + '.';
+                if (responseEl) {
+                  responseEl.innerHTML = '<div style="margin-bottom:3px;"><b>' + escapeHtml(p.name) + '</b> \u00b7 ' + escapeHtml(c.claimId || '') + '</div>' +
+                    '<div>Status: <b>' + escapeHtml(c.status || '') + '</b> \u00b7 ' + escapeHtml(c.payer || '') + ' \u00b7 ' + escapeHtml(amt) + '</div>';
+                }
+              }
+            }
+
+          } else if (intent === 'update_patient_field') {
+            const p = resolveAltheaPatient(params);
+            const field = (params.field || '').toLowerCase();
+            const value = (params.value || '').trim();
+            if (!p) {
+              spoken = 'I\'m not sure which patient you mean — open a chart first, or say their name.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else if (!value) {
+              spoken = 'I didn\u2019t catch what to change it to \u2014 try again with the new value.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else if (field === 'allergy') {
+              p.allergies = Array.isArray(p.allergies) ? p.allergies : [];
+              if (!p.allergies.some(a => a.toLowerCase() === value.toLowerCase())) p.allergies.push(value);
+              if (typeof savePatients === 'function') savePatients();
+              if (typeof renderActivePatient === 'function') renderActivePatient();
+              spoken = 'Added ' + value + ' as an allergy for ' + spokenName(p.name) + '.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else if (field === 'insurance') {
+              p.insPrimary = value;
+              if (typeof savePatients === 'function') savePatients();
+              if (typeof renderActivePatient === 'function') renderActivePatient();
+              spoken = 'Updated ' + spokenName(p.name) + '\u2019s primary insurance to ' + value + '.';
+              if (responseEl) responseEl.textContent = spoken;
+            } else {
+              spoken = 'I can update an allergy or the primary insurance on file \u2014 not sure which one you mean.';
+              if (responseEl) responseEl.textContent = spoken;
+            }
+
+          } else if (intent === 'general_question') {
+            if (responseEl) responseEl.textContent = 'Looking that up\u2026';
+            try {
+              const res = await fetch('/api/althea-public', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ messages: [{ role: 'user', content: data.transcript || '' }] }),
+              });
+              const data = await res.json();
+              spoken = data.reply || 'I couldn\u2019t find a good answer for that.';
+              if (responseEl) responseEl.textContent = spoken;
+            } catch (err) {
+              spoken = 'I couldn\u2019t reach my knowledge base just now.';
+              if (responseEl) responseEl.textContent = spoken;
+            }
 
           } else {
             spoken = spoken || 'I can help with your schedule, claims summary, a patient\u2019s allergies, medications, or labs, or navigation — not clinical questions.';
