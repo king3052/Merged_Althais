@@ -1,7 +1,7 @@
 import os, re
 from dotenv import load_dotenv
 load_dotenv()  # local dev: read GROQ_API_KEY from a git-ignored .env; real env vars still win
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse
@@ -604,6 +604,84 @@ async def api_save_patient(request: Request, user=Depends(require_biller), db: S
         ))
     db.commit()
     return {"ok": True}
+
+
+@app.post("/api/patients/import")
+async def api_import_patients(
+    file: UploadFile = File(...),
+    user=Depends(require_biller),
+    db: Session = Depends(get_db),
+):
+    """
+    Bulk patient import from a CSV or Excel file. Expected columns
+    (case-insensitive, extra columns ignored): mrn, name, dob, sex,
+    payer, provider. MRN is required and used as the upsert key —
+    importing the same MRN twice updates the existing record instead
+    of duplicating it. One bad row does not fail the whole import;
+    each row's outcome is reported back so the biller can fix and
+    re-run just what failed.
+    """
+    org = _org_namespace(user)
+    filename = (file.filename or "").lower()
+    raw = await file.read()
+
+    rows = []
+    try:
+        if filename.endswith((".xlsx", ".xlsm")):
+            import openpyxl, io as _io
+            wb = openpyxl.load_workbook(_io.BytesIO(raw), data_only=True)
+            ws = wb.active
+            all_rows = list(ws.iter_rows(values_only=True))
+            if not all_rows:
+                return JSONResponse({"error": "File is empty."}, status_code=400)
+            headers = [str(h or "").strip().lower() for h in all_rows[0]]
+            for r in all_rows[1:]:
+                if all(c is None or str(c).strip() == "" for c in r):
+                    continue
+                rows.append(dict(zip(headers, r)))
+        else:
+            import csv, io as _io
+            text = raw.decode("utf-8-sig", errors="replace")
+            reader = csv.DictReader(_io.StringIO(text))
+            reader.fieldnames = [ (h or "").strip().lower() for h in (reader.fieldnames or []) ]
+            rows = list(reader)
+    except Exception as e:
+        return JSONResponse({"error": f"Could not read file: {e}"}, status_code=400)
+
+    created, updated, errors = 0, 0, []
+
+    def _val(row, key):
+        v = row.get(key)
+        if v is None:
+            return ""
+        return str(v).strip()
+
+    for i, row in enumerate(rows, start=2):  # row 2 = first data row (row 1 is headers)
+        mrn = _val(row, "mrn")
+        if not mrn:
+            errors.append(f"Row {i}: missing MRN, skipped")
+            continue
+        existing = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == org, OrgPatient.mrn == mrn))
+        if existing:
+            existing.name     = _val(row, "name")     or existing.name
+            existing.dob      = _val(row, "dob")      or existing.dob
+            existing.sex      = _val(row, "sex")      or existing.sex
+            existing.payer    = _val(row, "payer")    or existing.payer
+            existing.provider = _val(row, "provider") or existing.provider
+            updated += 1
+        else:
+            db.add(OrgPatient(
+                org_key=org, mrn=mrn,
+                name=_val(row, "name"), dob=_val(row, "dob"), sex=_val(row, "sex"),
+                payer=_val(row, "payer"), provider=_val(row, "provider"),
+            ))
+            created += 1
+
+    db.commit()
+    return JSONResponse({
+        "ok": True, "created": created, "updated": updated,
+        "errors": errors, "total_rows": len(rows),
+    })
 
 
 @app.delete("/api/patients/{mrn}")
