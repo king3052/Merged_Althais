@@ -11,7 +11,7 @@
   var EXPAND = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5L8 6l4.5 4.5"/></svg>';
   var GRIP = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M1.5 10.5l9-9M1.5 6.5l5-5"/></svg>';
   var MIC = '<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0M10 15.5V18"/></svg>';
-  var DEFAULT_CHIPS = ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Which claims are at risk?"];
+  var DEFAULT_CHIPS = ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"];
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }

@@ -273,31 +273,23 @@ def _render_emr(user) -> HTMLResponse:
     # Stack Althais's top-level workspace switcher (Overview/EMR/Revenue/Staff)
     # above the EMR's own header, so a provider deep in a patient chart can
     # still jump straight to another workspace without backing out first.
-    workspace_bar = """
-<div class="bg-med-700 text-white" style="border-bottom:1px solid rgba(255,255,255,0.15);">
-  <div class="flex items-center h-10 px-3">
-    <span class="text-[13px] font-semibold tracking-[0.18em] mr-6 opacity-90 select-none">ALTHAIS</span>
-    <nav class="flex items-center h-full overflow-x-auto">
-      <a href="/overview" class="althais-ptab">Overview</a>
-      <a href="/emr" class="althais-ptab althais-ptab-active">EMR</a>
-      <a href="/revenue/claims" class="althais-ptab">Revenue</a>
-      <a href="/staff/team" class="althais-ptab">Staff</a>
-    </nav>
-  </div>
-</div>
+    # It's the same _primary_nav.html partial every other workspace page uses,
+    # so the blue bar looks identical here.
+    primary_nav = templates.get_template("_primary_nav.html").render(user_json=_app_user_json(user))
+    workspace_bar = primary_nav + """
 <style>
-  .althais-ptab { padding:0 12px; height:40px; display:flex; align-items:center; color:rgba(255,255,255,0.68); font-weight:500; font-size:13px; border-bottom:2px solid transparent; text-decoration:none; white-space:nowrap; }
-  .althais-ptab:hover { color:#fff; }
-  .althais-ptab-active { color:#fff; font-weight:700; border-bottom-color:#fff; }
+  .primary-tab { padding: 0 14px; height: 44px; display: flex; align-items: center; color: rgba(255,255,255,0.68); font-weight: 500; font-size: 13.5px; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .primary-tab:hover { color: #fff; }
+  .primary-tab.active { color: #fff; font-weight: 700; border-bottom-color: #fff; }
 </style>
 <script>
   // The EMR's own 3-column layout is height-locked to calc(100vh - 92px) to
-  // fit exactly under its own header + tab bar. Adding the 40px workspace
+  // fit exactly under its own header + tab bar. Adding the 48px workspace
   // bar above it needs that budget subtracted too, or the layout overflows
-  // the viewport by 40px.
+  // the viewport by 48px.
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('div[style*="calc(100vh - 92px)"]').forEach(function (el) {
-      el.style.height = 'calc(100vh - 132px)';
+      el.style.height = 'calc(100vh - 140px)';
     });
   });
 </script>"""
@@ -1365,7 +1357,8 @@ def althea_extract(payload: dict, user=Depends(require_user)):
 async def althea_command(request: Request, user=Depends(require_user)):
     """
     Althea — a voice/text command interpreter scoped ONLY to this product's
-    own functions (reading the schedule, a claims summary, opening a patient
+    own functions (reading the schedule, a claims summary, pulling up claims,
+    denials, payer intelligence and payments, opening a patient
     chart, reading back a patient's allergies/medications/labs, navigating
     to a section). This is deliberately NOT a general clinical assistant: it
     classifies a spoken/typed request into one of a small, fixed set of
@@ -1406,7 +1399,11 @@ async def althea_command(request: Request, user=Depends(require_user)):
 
 - "read_schedule" — read back the appointments/schedule for a day. Params: {{"date": "today" or "tomorrow" — default to "today" unless the speaker (or a follow-up in the recent conversation below) clearly asks about a different day}}
 - "next_appointment" — read back just the single next upcoming appointment. No params.
-- "claims_summary" — summarize claims (pending/denied/paid counts and total billed). No params.
+- "claims_summary" — overall claim counts only (pending/denied/paid counts and total billed), e.g. "how are my claims", "claims summary". No params.
+- "find_claims" — pull up / list / search specific claims matching filters, e.g. "show me denied claims", "which Aetna claims are pending", "pull John Smith's claims", "find claim CL-2026-003", "claims for 99214", "what's unpaid with Medicare". Params: {{"status": one of "denied", "appealed", "paid", "pending", "submitted", "ready", "review", "draft", "unpaid", or empty string for any status; "payer": "<insurance payer as spoken, or empty>"; "patient_name": "<name as spoken, or empty>"; "query": "<a claim ID, CPT or ICD-10 code as spoken, or empty>"}}
+- "denials_summary" — an overview of denied claims: how many, dollars at stake, which still need an appeal, top payers and reasons, e.g. "how are denials looking", "what needs to be appealed", "denials from UnitedHealthcare". Params: {{"payer": "<payer as spoken, or empty for all payers>"}}
+- "payer_intelligence" — how payers are performing (approval and denial rates, volume, billed/collected) and their rules or policy notes, e.g. "how is Aetna doing", "which payer denies the most", "payer intelligence", "what does Blue Cross require for 70553". Params: {{"payer": "<payer as spoken, or empty to compare all payers>"; "query": "<a CPT code or topic the speaker asked about for that payer's rules, or empty>"}}
+- "payments_summary" — money collected vs. still outstanding, e.g. "how much have we collected", "what's outstanding", "payments from Medicare". Params: {{"payer": "<payer as spoken, or empty>"}}
 - "open_patient" — open a specific patient's chart. Params: {{"patient_name": "<name as spoken>"}}
 - "start_visit" — begin a new visit/encounter note for a patient. Params: {{"patient_name": "<name as spoken, or empty string if referring to the currently open patient>"}}
 - "check_claim_readiness" — check whether a claim/visit is ready to submit (missing documentation, flags, risk score). Params: {{"patient_name": "<name as spoken, or empty string to check whatever claim/visit is currently open>"}}
@@ -1423,7 +1420,7 @@ async def althea_command(request: Request, user=Depends(require_user)):
 - "new_patient" — open the New Patient form so the clinician can dictate the patient's details (name, date of birth, insurance, allergies, address, phone) and have them typed in. This is data entry only. No params.
 - "dictate_visit_note" — open a visit note (SOAP) so the clinician can dictate it and have it typed into the note's fields. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
 - "scribe_visit" — the clinician wants Althea to listen to a whole patient visit (the conversation between the clinician and the patient) and write up the note, then get the codes and prepare the claim. Examples: "scribe this visit", "listen to my visit with John Smith and write the note", "start scribing". This is different from "dictate_visit_note", where the clinician speaks the note itself to Althea. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
-- "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "scheduler", "patients", "soap", "settings", "staff"}}
+- "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "denials", "appeals", "payments", "coding", "payer_intelligence", "scheduler", "patients", "soap", "settings", "staff"}}
 - "generate_appeal_letter" — draft an appeal letter for a patient's denied claim. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
 - "claim_status" — read back the status of a patient's most recent claim (submitted, paid, denied, pending, etc). Params: same "patient_name" rule as read_allergies.
 - "update_patient_field" — update one field on a patient's record: add an allergy, or change the primary insurance on file. Params: {{"patient_name": "<name as spoken, or empty string for the currently open patient>", "field": one of "allergy", "insurance", "value": "<the new value or allergy to add, as spoken>"}}
@@ -1449,6 +1446,7 @@ Spoken request: "{transcript}\""""
             "start_visit", "check_claim_readiness",
             "read_allergies", "read_medications", "read_labs",
             "start_visit_timer", "stop_visit_timer",
+            "find_claims", "denials_summary", "payer_intelligence", "payments_summary",
             "claims_at_risk", "documentation_gaps_today", "prior_auth_pending",
             "coding_complexity_check", "claims_denial_scan",
             "new_patient", "dictate_visit_note", "scribe_visit",
@@ -1471,8 +1469,11 @@ Spoken request: "{transcript}\""""
                         "date": {"type": "string"},
                         "field": {"type": "string"},
                         "value": {"type": "string"},
+                        "status": {"type": "string"},
+                        "payer": {"type": "string"},
+                        "query": {"type": "string"},
                     },
-                    "required": ["patient_name", "section", "date", "field", "value"],
+                    "required": ["patient_name", "section", "date", "field", "value", "status", "payer", "query"],
                     "additionalProperties": False,
                 },
                 "spoken_ack": {"type": "string"},

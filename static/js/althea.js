@@ -23,7 +23,8 @@
     var base = (user.organization || user.email || "unknown").trim().toLowerCase();
     return "org_" + base.replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") + "::";
   })();
-  var K = { patients: NS + "althais.patients.v1", claims: NS + "althais.claims.v1", appts: NS + "althais.appointments.v1", notes: NS + "althais.notes.v1" };
+  var K = { patients: NS + "althais.patients.v1", claims: NS + "althais.claims.v1", appts: NS + "althais.appointments.v1", notes: NS + "althais.notes.v1",
+            payerRules: NS + "althais.payer_rules.v1", payerNotes: "althais.payer_notes.v1" /* not namespaced: matches the EMR's own key */ };
 
   /* where "open a section" goes when you are not in the EMR */
   var SECTIONS = {
@@ -32,6 +33,8 @@
     scheduler: "/emr/schedule", patients: "/emr/patients", soap: "/emr", emr: "/emr", settings: "/settings",
     staff: "/staff/team", team: "/staff/team"
   };
+  var REV = window.AltheaRevenue || null;   /* claims, denials, payer intelligence, payments (static/js/althea-revenue.js) */
+  if (REV) Object.keys(REV.SECTIONS).forEach(function (k) { SECTIONS[k] = REV.SECTIONS[k]; });
   /* these need the patient chart, so the EMR page carries them out */
   var HANDOFF = { scribe_visit: 1, new_patient: 1, dictate_visit_note: 1, open_patient: 1, start_visit: 1, check_claim_readiness: 1, read_allergies: 1, read_medications: 1, read_labs: 1, start_visit_timer: 1, stop_visit_timer: 1, claims_denial_scan: 1 };
 
@@ -199,7 +202,10 @@
       return;
     }
 
-    if (intent === "read_schedule") {
+    if (REV && REV.handles(intent)) {
+      var rev = REV.answer(intent, params, { claims: load(K.claims, []), payerNotes: load(K.payerNotes, []), payerRules: load(K.payerRules, []), spokenName: spokenName });
+      spoken = rev.spoken; html = rev.html;
+    } else if (intent === "read_schedule") {
       var tomorrow = String(params.date || "").toLowerCase().trim() === "tomorrow";
       var target = tomorrow ? new Date(Date.now() + 86400000).toISOString().slice(0, 10) : todayIso(), day = tomorrow ? "tomorrow" : "today";
       var appts = filterProvider(load(K.appts, []).filter(function (a) { return a.date === target; })).sort(function (a, b) { return (a.time || "").localeCompare(b.time || ""); });
@@ -273,9 +279,9 @@
     } else if (intent === "open_section") {
       var dest = SECTIONS[String(params.section || "").toLowerCase().trim()];
       if (dest) { text = spoken || "Opening it now."; statusEl.textContent = "Opening…"; responseEl.textContent = text; speak(spoken); setTimeout(function () { window.location.href = dest; }, 500); return; }
-      text = spoken || "Which section? Try Overview, Claims, Schedule, Patients, Staff or Settings.";
+      text = spoken || "Which section? Try Overview, Claims, Denials, Payments, Schedule, Patients, Staff or Settings.";
     } else {
-      spoken = spoken || "I can help with your schedule, claims, prior authorizations, documentation gaps or navigation. Not clinical questions.";
+      spoken = spoken || "I can help with your schedule, claims, denials, payers, payments, prior authorizations, documentation gaps or navigation. Not clinical questions.";
       text = spoken;
     }
 

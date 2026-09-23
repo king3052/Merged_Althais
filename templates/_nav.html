@@ -1,42 +1,4 @@
-<script>window.__ALTHAIS_USER__ = {{ user_json | safe }};</script>
-
-<!-- =================== PRIMARY NAVIGATION =================== -->
-<header class="bg-med-600 text-white sticky top-0 z-30">
-  <div class="max-w-[1560px] mx-auto flex h-12 items-center px-4">
-    <a href="/overview" class="flex items-center pr-4 border-r border-white/15 mr-4 h-full select-none flex-shrink-0" aria-label="Althais">
-      <span class="text-[15px] font-semibold tracking-[0.18em] leading-none">ALTHAIS</span>
-    </a>
-    <span id="nav-org-name" class="text-[12px] text-white/55 mr-6 hidden md:block truncate max-w-[180px]"></span>
-
-    <nav class="flex items-center h-full overflow-x-auto thin-scroll">
-      <a class="primary-tab" data-workspace="overview" href="/overview">Overview</a>
-      <a class="primary-tab" data-workspace="emr" href="/emr">EMR</a>
-      <a class="primary-tab" data-workspace="revenue" href="/revenue/claims">Revenue</a>
-      <a class="primary-tab" data-workspace="staff" href="/staff/team">Staff</a>
-    </nav>
-
-    <div class="ml-auto flex items-center gap-3 pl-3 flex-shrink-0">
-      <button type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode" class="theme-btn flex items-center justify-center h-8 w-8 rounded-md border border-white/15 bg-white/[0.07] text-white/90 hover:text-white hover:bg-white/[0.16] hover:border-white/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 transition-colors">
-        <svg class="theme-moon h-[16px] w-[16px]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        <svg class="theme-sun h-[16px] w-[16px]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-      </button>
-      <a href="/settings" title="Settings" aria-label="Settings" class="settings-btn group flex items-center gap-2 h-8 px-2.5 lg:pr-3 rounded-md border border-white/15 bg-white/[0.07] text-white/90 hover:text-white hover:bg-white/[0.16] hover:border-white/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 transition-colors text-[12.5px] font-medium">
-        <svg class="h-[18px] w-[18px] flex-shrink-0 transition-transform duration-500 ease-out group-hover:rotate-90 motion-reduce:transition-none motion-reduce:group-hover:rotate-0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span class="hidden lg:inline">Settings</span>
-      </a>
-      <div class="h-5 w-px bg-white/25"></div>
-      <div class="flex items-center gap-2">
-        <div id="nav-avatar" class="w-7 h-7 rounded-sm bg-white/15 text-white text-[11px] font-semibold flex items-center justify-center flex-shrink-0">--</div>
-        <span id="nav-user-name" class="text-[12.5px] text-white/85 hidden sm:block whitespace-nowrap"></span>
-        <form method="POST" action="/logout" style="margin:0">
-          <button type="submit" title="Sign out" class="flex items-center justify-center w-7 h-7 rounded-sm hover:bg-white/10 text-white/70 hover:text-white">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-</header>
+{% include "_primary_nav.html" %}
 
 <!-- =================== SECONDARY NAVIGATION =================== -->
 <nav class="bg-panel border-b border-line sticky top-12 z-20">
@@ -85,10 +47,6 @@
       if (path === '/' + key || path.startsWith('/' + key + '/')) { activeWorkspace = key; break; }
     }
 
-    document.querySelectorAll('.primary-tab').forEach(tab => {
-      if (tab.dataset.workspace === activeWorkspace) tab.classList.add('active');
-    });
-
     const secondaryNav = document.getElementById('secondary-nav');
     if (activeWorkspace) {
       const items = NAVIGATION[activeWorkspace].items;
@@ -98,17 +56,10 @@
         return `<a class="nav-tab${isActive ? ' active' : ''}" href="${item.href}">${item.label}</a>`;
       }).join('');
     }
-
-    const u = window.__ALTHAIS_USER__ || {};
-    const displayName = u.provider_name || u.full_name || (u.email ? u.email.split('@')[0] : 'there');
-    const initialsSrc = u.provider_name || u.full_name || u.email || 'A';
-    const initials = initialsSrc.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'A';
-    document.getElementById('nav-avatar').textContent = initials;
-    document.getElementById('nav-user-name').textContent = displayName;
-    document.getElementById('nav-org-name').textContent = u.organization || 'Althais';
   })();
 </script>
 
 <!-- Althea, the assistant, on every section (the EMR page has its own copy) -->
 <script src="/static/js/althea-ui.js"></script>
+<script src="/static/js/althea-revenue.js"></script>
 <script src="/static/js/althea.js"></script>
