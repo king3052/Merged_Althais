@@ -2691,8 +2691,8 @@
         <!-- EDI transmission animation — lives here rather than inside the
              SOAP modal so it persists after SOAP closes. Same staged steps
              as the SOAP overlay, new IDs so there's no conflict. -->
-        <div id="claim-detail-edi-overlay" class="hidden absolute inset-0 z-20 flex items-center justify-center bg-[rgba(15,17,22,0.82)] backdrop-blur-[2px] px-4">
-          <div class="w-full max-w-[400px] bg-white rounded-lg shadow-2xl border border-line overflow-hidden">
+        <div id="claim-detail-edi-overlay" class="edi-fullscreen hidden fixed inset-0 flex items-center justify-center bg-[rgba(15,17,22,0.82)] backdrop-blur-[2px] px-4 py-4">
+          <div class="w-full max-w-[400px] bg-white rounded-lg shadow-2xl border border-line overflow-x-hidden overflow-y-auto thin-scroll" style="max-height:calc(100vh - 32px)">
             <div id="claim-detail-edi-loading" class="px-8 py-10 text-center">
               <div class="flex justify-center mb-6"><div class="edi-spinner" aria-hidden="true"></div></div>
               <div class="min-h-[72px]">
@@ -3471,8 +3471,8 @@
          IDs since this modal is a separate DOM subtree. Still a simulated
          transmission, same as the original — no real clearinghouse exists
          yet (see earlier discussion on Claim.MD). -->
-    <div id="soap-edi-overlay" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-[rgba(15,17,22,0.82)] backdrop-blur-[2px] px-4">
-      <div class="w-full max-w-[440px] bg-white rounded-lg shadow-2xl border border-line overflow-hidden">
+    <div id="soap-edi-overlay" class="edi-fullscreen hidden fixed inset-0 flex items-center justify-center bg-[rgba(15,17,22,0.82)] backdrop-blur-[2px] px-4 py-4">
+      <div class="w-full max-w-[440px] bg-white rounded-lg shadow-2xl border border-line overflow-x-hidden overflow-y-auto thin-scroll" style="max-height:calc(100vh - 32px)">
         <div id="soap-edi-loading-phase" class="px-8 py-10 text-center">
           <div class="flex justify-center mb-6">
             <div class="edi-spinner" aria-hidden="true"></div>
@@ -3525,6 +3525,11 @@
     <div id="cmd-results" class="max-h-[360px] overflow-y-auto thin-scroll"></div>
   </div>
 
+  <script>
+    // The claim transmission screens cover the whole window, above the modal that started them. Moving them to
+    // <body> means no parent (the claim detail card, the SOAP window) can clip them to its own size.
+    document.querySelectorAll('.edi-fullscreen').forEach(function (el) { el.style.zIndex = '60'; document.body.appendChild(el); });
+  </script>
   <script>
     (function () {
       // Always start at the top of the workspace on load — don't let the
@@ -7338,6 +7343,8 @@
 
       function closeClaimDetail() {
         if (claimDetailModal) claimDetailModal.classList.add('hidden');
+        const ediScreen = document.getElementById('claim-detail-edi-overlay');   // full-screen, so hide it with the window
+        if (ediScreen) ediScreen.classList.add('hidden');
         _detailClaim = null; _detailRow = null;
       }
 

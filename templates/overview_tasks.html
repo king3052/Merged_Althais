@@ -24,6 +24,40 @@
     html[data-theme-resolved="dark"] .tab.active { background:var(--brand-dark-tint); color:var(--brand-dark-link-soft); }
     html[data-theme-resolved="dark"] .task, html[data-theme-resolved="dark"] .sugg { border-color:#2c313b; }
     html[data-theme-resolved="dark"] .act { color:var(--brand-dark-link); }
+    /* ---- Work Today (worklist) ---- */
+    .chip { font-size:12px; padding:5px 11px; border-radius:999px; border:1px solid #e4e6eb; background:#fff; color:#4a505c; cursor:pointer; }
+    .chip.active { background:var(--brand); border-color:var(--brand); color:var(--brand-on); }
+    .chip .n { opacity:.7; margin-left:3px; }
+    .stat { background:#fff; border:1px solid #e4e6eb; border-radius:6px; padding:14px 16px; }
+    .stat .v { font-size:24px; font-weight:600; color:#0f1116; margin-top:2px; }
+    .wl { background:#fff; border:1px solid #e4e6eb; border-radius:6px; overflow:hidden; }
+    .wl-row { display:flex; align-items:center; gap:14px; padding:13px 16px; border-top:1px solid #eceef2; }
+    .wl-row:first-child { border-top:0; }
+    .wl-row:hover { background:#fafbfc; }
+    .lvl { width:4px; align-self:stretch; border-radius:2px; flex-shrink:0; }
+    .kind { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#6b7280; }
+    .owner { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#2c313b; background:#f4f5f7; border:1px solid #e4e6eb; border-radius:999px; padding:3px 10px 3px 4px; cursor:pointer; max-width:190px; }
+    .owner:hover { border-color:#c7cad1; }
+    .owner .av { width:20px; height:20px; border-radius:50%; background:var(--brand-100); color:var(--brand-text-strong); font-size:9.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .owner span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .go { font-size:12px; font-weight:600; padding:7px 12px; border-radius:4px; background:var(--brand); color:var(--brand-on); box-shadow:var(--brand-ring); white-space:nowrap; }
+    .go:hover { background:var(--brand-700); }
+    .ib { width:30px; height:30px; border-radius:4px; border:1px solid #e4e6eb; background:#fff; color:#6b7280; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .ib:hover { color:#0f1116; border-color:#c7cad1; }
+    .ib.ok:hover { color:#0c8a4f; border-color:#0c8a4f; }
+    .pop { position:absolute; z-index:40; background:#fff; border:1px solid #e4e6eb; border-radius:6px; box-shadow:0 12px 32px -8px rgba(15,17,22,.25); padding:6px; width:230px; max-height:320px; overflow-y:auto; }
+    .pop button { display:block; width:100%; text-align:left; font-size:12.5px; padding:6px 10px; border-radius:4px; background:none; border:0; cursor:pointer; color:#2c313b; }
+    .pop button:hover { background:#f4f5f7; }
+    .pop .h { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#8b909c; padding:8px 10px 4px; }
+    html[data-theme-resolved="dark"] .chip.active { background:var(--brand); border-color:var(--brand); color:var(--brand-on); }
+    html[data-theme-resolved="dark"] .stat, html[data-theme-resolved="dark"] .wl, html[data-theme-resolved="dark"] .pop { background:#1a1d24; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .stat .v { color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .wl-row { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .wl-row:hover { background:#1f232b; }
+    html[data-theme-resolved="dark"] .owner { background:#14181f; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .pop button { color:#d6dae5; }
+    html[data-theme-resolved="dark"] .pop button:hover { background:#20242c; }
+    html[data-theme-resolved="dark"] .chip, html[data-theme-resolved="dark"] .ib { background:#1a1d24; border-color:#2c313b; color:#b8bdcd; }
   </style>
 </head>
 <body class="bg-shell">
@@ -39,7 +73,7 @@
       <button id="new-btn" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ New Task</button>
     </div>
 
-    <div class="p-5 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 items-start">
+    <div id="tasks-grid" class="p-5 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 items-start">
       <div>
         <!-- form -->
         <form id="task-form" class="hidden bg-panel border border-line rounded-sm p-4 mb-4" autocomplete="off">
@@ -63,14 +97,31 @@
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <div class="flex items-center gap-1" id="tabs" role="tablist"></div>
           <input id="search" type="search" placeholder="Search tasks…" class="fld ml-auto" style="width:220px" aria-label="Search tasks" />
+          <label id="who-wrap" class="hidden ml-auto flex items-center gap-2 text-[12px] text-ink-600">Show Work For
+            <select id="f-who" class="fld" style="width:auto" aria-label="Show work for"></select>
+          </label>
         </div>
 
-        <div class="bg-panel border border-line rounded-sm">
+        <div id="tasks-view" class="bg-panel border border-line rounded-sm">
           <div id="list"><div class="px-4 py-10 text-center text-[12px] text-ink-500">Loading…</div></div>
+        </div>
+
+        <!-- Work Today: everything waiting on someone, with an owner and a next step (PracticeData.worklist) -->
+        <div id="today-view" class="hidden">
+          <p class="text-[12px] text-ink-500 mb-3">Everything waiting on someone across notes, claims, labs, prior auths, referrals, the schedule, tasks and staff, most urgent first.</p>
+          <div id="wl-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+          <div id="wl-chips" class="flex flex-wrap gap-1.5 mb-3"></div>
+          <div id="wl-hint" class="hidden mb-3 text-[12px] text-ink-600"></div>
+          <div id="wl-list" class="wl"></div>
+          <details id="wl-done-wrap" class="mt-5 hidden">
+            <summary class="cursor-pointer text-[12.5px] font-semibold text-ink-700 select-none">Done Today <span id="wl-done-count" class="text-ink-500 font-normal"></span></summary>
+            <div id="wl-done-list" class="wl mt-2"></div>
+          </details>
+          <p class="mt-4 text-[11px] text-ink-400">Reassigning, finishing or snoozing an item is shared with your whole team.</p>
         </div>
       </div>
 
-      <aside class="bg-panel border border-line rounded-sm xl:sticky xl:top-[100px]">
+      <aside id="sugg-aside" class="bg-panel border border-line rounded-sm xl:sticky xl:top-[100px]">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
           <h3 class="text-[13px] font-semibold text-ink-900">Suggested From AI Inbox</h3>
           <a href="/overview/inbox" class="text-[11px] font-semibold text-med-600">View All →</a>
@@ -80,6 +131,8 @@
     </div>
   </div>
 
+  <div id="pop" class="pop hidden" role="menu"></div>
+
   <script src="/static/js/staff-store.js"></script>
   <script src="/static/js/practice-data.js"></script>
   <script>
@@ -87,7 +140,7 @@
     const $ = (id) => document.getElementById(id);
     const esc = P.esc;
     const ME = P.currentUserName();
-    let DOC = null, STAFF = null, LOCAL = P.local(), view = 'mine', editingId = null;
+    let DOC = null, STAFF = null, LOCAL = P.local(), view = 'today', editingId = null;
     const PRI = { High: 'background:#ffe1e1;color:#c83838', Medium: 'background:#fff0d6;color:#b86a00', Low: 'background:#eceef2;color:#4a505c' };
 
     function assignees() {
@@ -105,8 +158,18 @@
     };
 
     function render() {
-      $('tabs').innerHTML = Object.entries(VIEWS).map(([k, v]) =>
+      const todayCount = WL.ready ? wlOpen(wlScope()).length : '';
+      $('tabs').innerHTML = `<button type="button" role="tab" aria-selected="${view === 'today'}" class="tab${view === 'today' ? ' active' : ''}" data-view="today">Work Today<span class="n">${todayCount}</span></button>` +
+        Object.entries(VIEWS).map(([k, v]) =>
         `<button type="button" role="tab" aria-selected="${k === view}" class="tab${k === view ? ' active' : ''}" data-view="${k}">${v.label}<span class="n">${DOC.tasks.filter(v.test).length}</span></button>`).join('');
+      const isToday = view === 'today';
+      $('today-view').classList.toggle('hidden', !isToday);
+      $('tasks-view').classList.toggle('hidden', isToday);
+      $('sugg-aside').classList.toggle('hidden', isToday);
+      $('search').classList.toggle('hidden', isToday);
+      $('who-wrap').classList.toggle('hidden', !isToday);
+      $('tasks-grid').style.gridTemplateColumns = isToday ? '1fr' : '';
+      if (isToday) { renderToday(); return; }
       const q = $('search').value.trim().toLowerCase();
       const rows = DOC.tasks.filter(VIEWS[view].test).filter(t => !q || (t.title + ' ' + (t.notes || '') + ' ' + (t.assignee || '')).toLowerCase().includes(q))
         .sort(view === 'done'
@@ -139,6 +202,127 @@
           <div class="flex-shrink-0 whitespace-nowrap">${done ? '' : `<button class="act" data-edit="${esc(t.id)}">Edit</button>`}<button class="act risk" data-delete="${esc(t.id)}">Delete</button></div>
         </div>`;
       }).join('');
+    }
+
+    // ================= Work Today =================
+    const LEVEL = { High: '#c83838', Medium: '#b86a00', Low: '#aab0bb' };
+    const WL = { items: [], me: null, kind: '', popFor: null, ready: false };
+    const wlInitials = (s) => String(s || '?').replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+    const wlOwner = (it) => it.ownerPerson || it.ownerRole || 'Unassigned';
+    const wlPeople = () => {
+      const names = new Set();
+      if (STAFF) STAFF.people.filter(p => p.status !== 'inactive').forEach(p => names.add(p.name));
+      WL.items.forEach(i => { if (i.ownerPerson) names.add(i.ownerPerson); });
+      return [...names].sort();
+    };
+    const wlLocalDay = (ts) => { const d = new Date(ts); return isNaN(d) ? '' : new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+    const wlOpen = (list) => list.filter(i => !i.done && !i.snoozed);
+    function wlScope() {
+      const who = $('f-who').value || 'me';
+      if (who === 'me') return WL.items.filter(i => P.isMine(i, WL.me));
+      if (who === 'all') return WL.items;
+      if (who.startsWith('role:')) return WL.items.filter(i => i.ownerRole === who.slice(5));
+      if (who.startsWith('person:')) return WL.items.filter(i => (i.ownerPerson || '').toLowerCase() === who.slice(7).toLowerCase());
+      return WL.items;
+    }
+    function wlRefresh() { WL.items = P.worklist(LOCAL, STAFF, DOC); WL.ready = true; }
+    function renderToday() {
+      const scoped = wlScope(), today = P.todayIso(), isMe = $('f-who').value === 'me';
+      const open = wlOpen(scoped), doneToday = scoped.filter(i => i.done && wlLocalDay(i.doneAt) === today);
+      const high = open.filter(i => i.level === 'High').length, waiting = open.filter(i => i.since && P.daysUntil(i.since) < -2).length;
+      const whoLabel = $('f-who').selectedOptions[0] ? $('f-who').selectedOptions[0].text : '';
+      $('wl-stats').innerHTML = [
+        [isMe ? 'Waiting On You' : 'Open Items', open.length, whoLabel],
+        ['High Priority', high, high ? 'do these first' : 'nothing urgent'],
+        ['Waiting 3+ Days', waiting, 'since it came up'],
+        ['Done Today', doneToday.length, doneToday.length ? 'nice work' : 'nothing yet'],
+      ].map(([l, v, sub]) => `<div class="stat"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${l}</div><div class="v num">${v}</div><div class="text-[11px] text-ink-400">${esc(sub)}</div></div>`).join('');
+      const counts = {};
+      open.forEach(i => { counts[i.kind] = (counts[i.kind] || 0) + 1; });
+      if (WL.kind && !counts[WL.kind]) WL.kind = '';
+      $('wl-chips').innerHTML = [['', 'All', open.length]].concat(Object.keys(P.KIND_LABEL).filter(k => counts[k]).map(k => [k, P.KIND_LABEL[k], counts[k]]))
+        .map(([k, l, n]) => `<button type="button" class="chip${k === WL.kind ? ' active' : ''}" data-kind="${k}">${l}<span class="n">${n}</span></button>`).join('');
+      const rows = open.filter(i => !WL.kind || i.kind === WL.kind);
+      const snoozed = scoped.filter(i => i.snoozed && !i.done).length;
+      const nothingMine = isMe && !open.length && WL.items.some(i => !i.done && !i.snoozed);
+      $('wl-hint').classList.toggle('hidden', !(nothingMine || snoozed));
+      $('wl-hint').innerHTML = (nothingMine ? `Nothing is assigned to you right now. <button type="button" class="font-semibold text-med-600" data-who="all">See everyone's work →</button> ` : '') +
+        (snoozed ? `<span class="text-ink-500">${P.plural(snoozed, 'item is', 'items are')} snoozed until tomorrow.</span>` : '');
+      $('wl-list').innerHTML = rows.length ? rows.map(wlRow).join('') : `
+        <div class="px-4 py-12 text-center">
+          <div class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-ok-100 text-ok-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg></div>
+          <div class="font-semibold text-ink-900 text-[13px]">All clear</div>
+          <div class="text-ink-400 text-[12px] mt-0.5">Nothing is waiting${isMe ? ' on you' : ''} right now.</div>
+        </div>`;
+      $('wl-done-wrap').classList.toggle('hidden', !doneToday.length);
+      $('wl-done-count').textContent = `(${doneToday.length})`;
+      $('wl-done-list').innerHTML = doneToday.map(i => `
+        <div class="wl-row"><div class="flex-1 min-w-0"><div class="text-[12.5px] text-ink-500 line-through">${esc(i.title)}</div>
+        <div class="text-[11px] text-ink-400">Done by ${esc(i.doneBy || '—')} · ${esc(P.relTime(i.doneAt))}</div></div>
+        <button type="button" class="text-[12px] font-semibold text-med-600" data-undo="${esc(i.id)}">Undo</button></div>`).join('');
+    }
+    function wlRow(i) {
+      const since = i.since ? P.daysUntil(i.since) : null;
+      const age = since == null ? '' : (since < 0 ? `${-since}d waiting` : since === 0 ? 'today' : '');
+      return `
+        <div class="wl-row">
+          <span class="lvl" style="background:${LEVEL[i.level]}" title="${i.level} priority"></span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2"><span class="kind">${esc(i.kindLabel)}</span>${i.level === 'High' ? '<span class="pill" style="background:#ffe1e1;color:#c83838">High</span>' : ''}${age ? `<span class="text-[11px] text-ink-400">${age}</span>` : ''}</div>
+            <div class="wl-title text-[13.5px] font-medium text-ink-900 mt-0.5 truncate">${esc(i.title)}</div>
+            <div class="text-[12px] text-ink-500 truncate">${esc(i.detail)}</div>
+          </div>
+          <button type="button" class="owner" data-owner="${esc(i.id)}" title="Owner: ${esc(wlOwner(i))}${i.reassigned ? ' (reassigned)' : ''}. Click to reassign.">
+            <span class="av">${esc(wlInitials(wlOwner(i)))}</span><span>${esc(wlOwner(i))}</span>
+          </button>
+          <a href="${esc(i.href)}" class="go">${esc(i.action)} →</a>
+          <button type="button" class="ib" data-snooze="${esc(i.id)}" title="Snooze until tomorrow" aria-label="Snooze until tomorrow"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></svg></button>
+          <button type="button" class="ib ok" data-wldone="${esc(i.id)}" title="Mark done" aria-label="Mark done"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg></button>
+        </div>`;
+    }
+    function wlSave(id, patch, msg) {
+      const it = WL.items.find(x => x.id === id);
+      return P.tasks.save(d => {
+        d.worklist[id] = Object.assign({}, d.worklist[id] || {}, patch);
+        if (patch.doneAt) P.tasks.log(d, 'Done: ' + it.title, '/overview/tasks?view=today');
+        if (patch.ownerRole != null || patch.ownerPerson != null) P.tasks.log(d, 'Reassigned to ' + (patch.ownerPerson || patch.ownerRole) + ': ' + it.title, '/overview/tasks?view=today');
+      }, msg).then(d => { DOC = d; wlRefresh(); render(); }).catch(() => {});
+    }
+    function openPop(btn) {
+      WL.popFor = btn.dataset.owner;
+      const pop = $('pop'), r = btn.getBoundingClientRect();
+      pop.innerHTML = '<div class="h">Assign To A Role</div>' + P.OWNER_ROLES.map(x => `<button type="button" data-assign="role" data-val="${esc(x)}">${esc(x)}</button>`).join('') +
+        (wlPeople().length ? '<div class="h">Or A Person</div>' + wlPeople().map(x => `<button type="button" data-assign="person" data-val="${esc(x)}">${esc(x)}</button>`).join('') : '');
+      pop.style.left = Math.min(window.innerWidth - 240, r.left + window.scrollX) + 'px';
+      pop.style.top = (r.bottom + window.scrollY + 4) + 'px';
+      pop.classList.remove('hidden');
+      const first = pop.querySelector('button'); if (first) first.focus();
+    }
+    function closePop() { $('pop').classList.add('hidden'); WL.popFor = null; }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#today-view button, #pop button');
+      if (!b) { if (!e.target.closest('.owner')) closePop(); return; }
+      if (b.dataset.kind !== undefined) { WL.kind = b.dataset.kind; renderToday(); return; }
+      if (b.dataset.who) { $('f-who').value = b.dataset.who; render(); return; }
+      if (b.dataset.wldone) return wlSave(b.dataset.wldone, { doneAt: new Date().toISOString(), doneBy: P.currentUserName() }, 'Marked done');
+      if (b.dataset.undo) return wlSave(b.dataset.undo, { doneAt: '', doneBy: '' }, 'Moved back to the list');
+      if (b.dataset.snooze) return wlSave(b.dataset.snooze, { snoozeUntil: P.isoOffset(1) }, 'Snoozed until tomorrow');
+      if (b.dataset.owner) { openPop(b); return; }
+      if (b.dataset.assign !== undefined) {
+        const id = WL.popFor, val = b.dataset.val, type = b.dataset.assign; closePop();
+        return wlSave(id, type === 'role' ? { ownerRole: val, ownerPerson: '' } : { ownerPerson: val }, 'Reassigned to ' + val);
+      }
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+    $('f-who').addEventListener('change', () => { WL.kind = ''; render(); });
+    function setupWho() {
+      WL.me = P.myIdentity(STAFF);
+      const ROLE_LABEL = { 'Provider': 'All Providers', 'Medical Assistant': 'All Medical Assistants', 'Front Desk': 'Front Desk', 'Biller': 'Billing', 'Practice Manager': 'Practice Manager' };
+      const opts = [['me', 'Me'], ['all', 'Everyone']].concat(P.OWNER_ROLES.map(r => ['role:' + r, ROLE_LABEL[r]])).concat(wlPeople().map(p => ['person:' + p, p]));
+      $('f-who').innerHTML = opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
+      const q = new URLSearchParams(location.search).get('who');
+      if (q && opts.some(o => o[0] === q)) $('f-who').value = q;
+      else if (!WL.items.some(i => P.isMine(i, WL.me) && !i.done)) $('f-who').value = 'all';   // nothing of mine: show the practice's work
     }
 
     function renderSuggestions() {
@@ -187,7 +371,7 @@
           P.tasks.log(d, `Created task: ${vals.title}${vals.assignee && vals.assignee !== ME ? ' (assigned to ' + vals.assignee + ')' : ''}`, '/overview/tasks');
         }
       }, id ? 'Task updated' : 'Task added').catch(() => DOC);
-      closeForm(); render(); renderSuggestions();
+      closeForm(); wlRefresh(); render(); renderSuggestions();
     });
 
     // ---- list actions ----
@@ -208,7 +392,7 @@
         if (!confirm(`Delete "${t.title}"?`)) return;
         DOC = await P.tasks.save(d => { d.tasks = d.tasks.filter(x => x.id !== t.id); P.tasks.log(d, `Deleted task: ${t.title}`); }, 'Task deleted').catch(() => DOC);
       }
-      render(); renderSuggestions();
+      wlRefresh(); render(); renderSuggestions();
     });
     $('tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) { view = b.dataset.view; render(); } });
     $('search').addEventListener('input', render);
@@ -221,9 +405,9 @@
 
     Promise.all([P.tasks.load(), window.StaffStore ? StaffStore.load().catch(() => null) : null]).then(([d, s]) => {
       DOC = d; STAFF = s;
+      wlRefresh(); setupWho();
       const q = new URLSearchParams(location.search);
-      if (q.get('view') && VIEWS[q.get('view')]) view = q.get('view');
-      else if (!DOC.tasks.some(VIEWS.mine.test) && DOC.tasks.some(VIEWS.open.test)) view = 'open';
+      if (q.get('view') && (VIEWS[q.get('view')] || q.get('view') === 'today')) view = q.get('view');
       render(); renderSuggestions();
       // AI Inbox's "Create task" lands here with the alert pre-filled
       if (q.get('alert')) { const a = P.alerts(LOCAL, STAFF).find(x => x.id === q.get('alert')); if (a) openForm(null, { title: a.task, notes: a.detail, priority: a.level, link: a.href, alertId: a.id, due: a.level === 'High' ? P.isoOffset(1) : P.isoOffset(3) }); }

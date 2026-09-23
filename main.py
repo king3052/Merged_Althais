@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse
 from groq import Groq
 import json
+from urllib.parse import urlencode
 from ncci_checker import check_claim_ncci_flags
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -476,6 +477,14 @@ def _placeholder_route(config: dict):
 
 for _path, _config in _PLACEHOLDER_PAGES.items():
     app.add_api_route(_path, _placeholder_route(_config), methods=["GET"])
+
+
+# "Work Today" (formerly its own page) lives inside Tasks as its first view; keep the old address working.
+@app.get("/overview/today")
+async def overview_today_redirect(request: Request):
+    params = dict(request.query_params)
+    params["view"] = "today"
+    return RedirectResponse(url="/overview/tasks?" + urlencode(params), status_code=302)
 
 
 # ── Backward-compatible redirects from the old single-row nav's routes ────────
