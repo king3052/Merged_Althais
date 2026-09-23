@@ -5,7 +5,7 @@
   <title>Althais — Clinic Onboarding</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
-    .fld:focus { border-color:#0d5bd7; }
+    .fld:focus { border-color:var(--brand); }
     .fld.bad { border-color:#c83838; }
     .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
     .phase { background:#fff; border:1px solid #e4e6eb; border-radius:6px; overflow:hidden; }
@@ -19,28 +19,28 @@
     /* the timeline: a line from each step's dot down to the next one */
     .step:not(:last-child)::after { content:''; position:absolute; left:30px; top:44px; bottom:-15px; width:2px; background:#e4e6eb; z-index:1; }
     .step.is-done:not(:last-child)::after { background:#9fd9b8; }
-    .step.is-open { background:#fbfcff; box-shadow:inset 3px 0 0 #0d5bd7; }
+    .step.is-open { background:#fbfcff; box-shadow:inset 3px 0 0 var(--brand); }
     .step-h { width:100%; display:flex; align-items:flex-start; gap:14px; padding:15px 18px; background:none; border:0; cursor:pointer; text-align:left; }
-    .step-h:hover .step-title { color:#0d5bd7; }
+    .step-h:hover .step-title { color:var(--brand-text); }
     .num-dot { position:relative; z-index:2; width:26px; height:26px; border-radius:50%; border:2px solid #d4d7de; background:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; color:#6b7280; }
     .num-dot.is-done { background:#0c8a4f; border-color:#0c8a4f; color:#fff; }
-    .step.is-open .num-dot:not(.is-done) { border-color:#0d5bd7; color:#fff; background:#0d5bd7; }
+    .step.is-open .num-dot:not(.is-done) { border-color:var(--brand); color:var(--brand-on); background:var(--brand); }
     .step-title { display:block; font-size:13.5px; font-weight:600; color:#0f1116; line-height:1.35; }
     .step.is-done:not(.is-open) .step-title { color:#6b7280; font-weight:500; }
     .step-sub { display:block; font-size:12px; color:#6b7280; margin-top:2px; line-height:1.4; }
     .step-right { display:flex; align-items:center; gap:10px; flex-shrink:0; margin-top:3px; }
     .done-tag { font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#0c8a4f; background:#e3f6ea; padding:2px 7px; border-radius:999px; }
-    .edit-link { font-size:11.5px; font-weight:600; color:#0d5bd7; }
+    .edit-link { font-size:11.5px; font-weight:600; color:var(--brand-text); }
     .chev { transition:transform .15s; color:#8b909c; }
     .step.is-open .chev { transform:rotate(180deg); }
     .step-b { display:none; padding:0 18px 18px 58px; }
     .step.is-open .step-b { display:block; }
     .step-card { background:#f7f8fa; border:1px solid #eceef2; border-radius:4px; padding:16px; }
-    .act { font-size:11px; font-weight:600; color:#0d5bd7; background:none; border:0; cursor:pointer; padding:0 4px; }
+    .act { font-size:11px; font-weight:600; color:var(--brand-text); background:none; border:0; cursor:pointer; padding:0 4px; }
     .act.risk { color:#c83838; }
     .btn { font-size:12px; padding:7px 12px; border-radius:2px; font-weight:600; cursor:pointer; white-space:nowrap; }
-    .btn-p { background:#0d5bd7; color:#fff; border:1px solid #0d5bd7; }
-    .btn-p:hover { background:#0a47b0; }
+    .btn-p { background:var(--brand); color:var(--brand-on); border:1px solid var(--brand); }
+    .btn-p:hover { background:var(--brand-700); }
     .btn-p:disabled { opacity:.5; cursor:default; }
     .btn-s { background:#fff; color:#2c313b; border:1px solid #e4e6eb; }
     .btn-s:hover { background:#f4f5f7; }
@@ -50,7 +50,7 @@
     .note { font-size:11.5px; color:#6b7280; }
     .side-step { width:100%; display:flex; align-items:center; gap:9px; padding:6px 16px; background:none; border:0; cursor:pointer; text-align:left; font-size:12.5px; color:#2c313b; }
     .side-step:hover { background:#f4f5f7; }
-    .side-step.is-current { color:#0d5bd7; font-weight:600; }
+    .side-step.is-current { color:var(--brand-text); font-weight:600; }
     .side-dot { width:16px; height:16px; border-radius:50%; border:1.5px solid #c7cad1; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; color:#8b909c; }
     .side-dot.is-done { background:#0c8a4f; border-color:#0c8a4f; color:#fff; }
     .fact { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px solid #eceef2; }
@@ -66,18 +66,18 @@
     html[data-theme-resolved="dark"] .phase-h { background:#161a21; border-color:#2c313b; }
     html[data-theme-resolved="dark"] .phase-h h2 { color:#aab0bf; }
     html[data-theme-resolved="dark"] .step { border-color:#2c313b; }
-    html[data-theme-resolved="dark"] .step.is-open { background:#1c2230; box-shadow:inset 3px 0 0 #3987e5; }
+    html[data-theme-resolved="dark"] .step.is-open { background:#1c2230; box-shadow:inset 3px 0 0 var(--brand); }
     html[data-theme-resolved="dark"] .step-title { color:#e7eaf2; }
     html[data-theme-resolved="dark"] .num-dot { background:#1a1d24; border-color:#3a4150; color:#aab0bf; }
     html[data-theme-resolved="dark"] .num-dot.is-done { background:#0c8a4f; border-color:#0c8a4f; color:#fff; }
-    html[data-theme-resolved="dark"] .step.is-open .num-dot:not(.is-done) { background:#2f6fe8; border-color:#2f6fe8; color:#fff; }
+    html[data-theme-resolved="dark"] .step.is-open .num-dot:not(.is-done) { background:var(--brand); border-color:var(--brand); color:var(--brand-on); }
     html[data-theme-resolved="dark"] .step:not(:last-child)::after { background:#2c313b; }
     html[data-theme-resolved="dark"] .step.is-done:not(:last-child)::after { background:#1f5f3c; }
     html[data-theme-resolved="dark"] .done-tag { background:#123424; color:#4cc38a; }
     html[data-theme-resolved="dark"] .step-card { background:#14181f; border-color:#2c313b; }
     html[data-theme-resolved="dark"] .btn-s { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
     html[data-theme-resolved="dark"] .mini, html[data-theme-resolved="dark"] .mini .r { border-color:#2c313b; }
-    html[data-theme-resolved="dark"] .act { color:#6f9eff; }
+    html[data-theme-resolved="dark"] .act { color:var(--brand-dark-link); }
   </style>
 </head>
 <body class="bg-shell">

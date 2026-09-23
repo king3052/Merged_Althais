@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script src="/static/js/theme.js"></script>
+  <script src="/static/js/brand.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -16,7 +17,7 @@
       colors: {
         shell: '#f4f5f7', panel: '#ffffff', line: '#e4e6eb', lineSoft: '#eceef2',
         ink: { 900: '#0f1116', 800: '#1a1d24', 700: '#2c313b', 600: '#4a505c', 500: '#6b7280', 400: '#8b909c', 300: '#aab0bb' },
-        med: { 700: '#0a47b0', 600: '#0d5bd7', 500: '#1f6fea', 100: '#e6efff', 50: '#f3f7ff' },
+        med: { 700: 'rgb(var(--brand-700-rgb) / <alpha-value>)', 600: 'rgb(var(--brand-rgb) / <alpha-value>)', 500: 'rgb(var(--brand-500-rgb) / <alpha-value>)', 100: 'rgb(var(--brand-100-rgb) / <alpha-value>)', 50: 'rgb(var(--brand-50-rgb) / <alpha-value>)' },
         ok: { 600: '#0c8a4f', 100: '#d8f5e3' },
         warn: { 600: '#b86a00', 100: '#fff0d6' },
         risk: { 600: '#c83838', 100: '#ffe1e1' },
@@ -36,7 +37,7 @@
   .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.01em; line-height: 16px; }
   .count-pill { font-size: 10.5px; font-weight: 600; padding: 0 5px; height: 16px; display: inline-flex; align-items: center; border-radius: 8px; background: #eceef2; color: #4a505c; }
   .count-pill.alert { background: #ffe1e1; color: #c83838; }
-  .count-pill.med { background: #e6efff; color: #0a47b0; }
+  .count-pill.med { background: var(--brand-100); color: var(--brand-text-strong); }
   .kpi { flex: 1; min-width: 0; padding: 10px 14px; border-right: 1px solid #e4e6eb; }
   .kpi:last-child { border-right: 0; }
   .table-head { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7280; font-weight: 600; background: #f7f9fc; border-top: 1px solid #e4e6eb; border-bottom: 1px solid #e4e6eb; }
@@ -47,7 +48,7 @@
   .panel-title { font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #4a505c; }
   .panel-header-toggle { cursor: pointer; user-select: none; }
   .panel-chevron { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 3px; color: #6b7280; }
-  .panel-header-toggle:hover .panel-chevron { background: #dbe8ff; }
+  .panel-header-toggle:hover .panel-chevron { background: var(--brand-200); }
   .panel-chevron svg { transition: transform 0.16s ease; }
   .panel-body { overflow: hidden; }
   .panel-collapsible.is-collapsed .panel-body { display: none; }
@@ -59,7 +60,8 @@
   .primary-tab.active { color: #fff; font-weight: 700; border-bottom-color: #fff; }
   .nav-tab { position: relative; padding: 9px 14px; font-size: 12.5px; color: #4a505c; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
   .nav-tab:hover { color: #0f1116; }
-  .nav-tab.active { color: #0d5bd7; font-weight: 600; }
-  .nav-tab.active::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: #0d5bd7; border-radius: 1px; }
+  .nav-tab.active { color: var(--brand-text); font-weight: 600; }
+  .nav-tab.active::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: var(--brand-mark); border-radius: 1px; }
 </style>
 <link rel="stylesheet" href="/static/css/dark.css" />
+<link rel="stylesheet" href="/static/css/brand-theme.css" />

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="/static/js/brand.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Althais — Home</title>
@@ -22,7 +23,7 @@
             line: '#e4e6eb',
             lineSoft: '#eceef2',
             ink: { 900: '#0f1116', 800: '#1a1d24', 700: '#2c313b', 600: '#4a505c', 500: '#6b7280', 400: '#8b909c', 300: '#aab0bb' },
-            med: { 700: '#0a47b0', 600: '#0d5bd7', 500: '#1f6fea', 100: '#e6efff', 50: '#f3f7ff' },
+            med: { 700: 'rgb(var(--brand-700-rgb) / <alpha-value>)', 600: 'rgb(var(--brand-rgb) / <alpha-value>)', 500: 'rgb(var(--brand-500-rgb) / <alpha-value>)', 100: 'rgb(var(--brand-100-rgb) / <alpha-value>)', 50: 'rgb(var(--brand-50-rgb) / <alpha-value>)' },
             ok: { 600: '#0c8a4f', 100: '#d8f5e3' },
             warn: { 600: '#b86a00', 100: '#fff0d6' },
             risk: { 600: '#c83838', 100: '#ffe1e1' },
@@ -46,12 +47,12 @@
 
     .side-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; font-size: 12.5px; color: #2c313b; border-left: 2px solid transparent; cursor: pointer; }
     .side-row:hover { background: #f1f3f7; }
-    .side-row.active { background: #e6efff; color: #0a47b0; font-weight: 600; border-left-color: #0d5bd7; }
+    .side-row.active { background: var(--brand-100); color: var(--brand-text-strong); font-weight: 600; border-left-color: var(--brand); }
     .side-section { padding: 8px 12px 4px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #8b909c; font-weight: 600; }
 
     .count-pill { font-size: 10.5px; font-weight: 600; padding: 0 5px; height: 16px; display: inline-flex; align-items: center; border-radius: 8px; background: #eceef2; color: #4a505c; }
     .count-pill.alert { background: #ffe1e1; color: #c83838; }
-    .count-pill.med { background: #e6efff; color: #0a47b0; }
+    .count-pill.med { background: var(--brand-100); color: var(--brand-text-strong); }
 
     .kpi { flex: 1; min-width: 0; padding: 10px 14px; border-right: 1px solid #e4e6eb; }
     .kpi:last-child { border-right: 0; }
@@ -66,7 +67,7 @@
 
     .panel-header-toggle { cursor: pointer; user-select: none; }
     .panel-chevron { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 3px; color: #6b7280; }
-    .panel-header-toggle:hover .panel-chevron { background: #dbe8ff; }
+    .panel-header-toggle:hover .panel-chevron { background: var(--brand-200); }
     .panel-chevron svg { transition: transform 0.16s ease; }
     .panel-body { overflow: hidden; }
     .panel-collapsible.is-collapsed .panel-body { display: none; }
@@ -82,6 +83,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
   <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="stylesheet" href="/static/css/brand-theme.css" />
 </head>
 <body class="bg-shell">
 
@@ -107,10 +109,10 @@
       </div>
 
       <div class="ml-6 relative">
-        <div class="flex items-center gap-2 rounded-sm px-2 py-1 text-[12px] w-[280px] focus-within:brightness-110" style="background:#0d5bd7;border:1px solid rgba(255,255,255,0.25);">
+        <div class="flex items-center gap-2 rounded-sm px-2 py-1 text-[12px] w-[280px] focus-within:brightness-110" style="background:var(--brand);border:1px solid rgba(255,255,255,0.25);">
           <svg class="h-3.5 w-3.5 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
           <input type="text" placeholder="Search patients, claims, staff…" autocomplete="off" class="bg-transparent outline-none flex-1 min-w-0" style="color:#fff;caret-color:#fff;" />
-          <span class="ml-auto text-[10px] tracking-wider text-white font-semibold px-1.5 rounded-sm" style="background:#0d5bd7;border:1px solid rgba(255,255,255,0.25);">⌘K</span>
+          <span class="ml-auto text-[10px] tracking-wider text-white font-semibold px-1.5 rounded-sm" style="background:var(--brand);border:1px solid rgba(255,255,255,0.25);">⌘K</span>
         </div>
       </div>
 
@@ -474,7 +476,7 @@
     const SCHEDULE = [];
     const STATUS_PILL = {
       'Completed':  'background:#d8f5e3;color:#0c8a4f',
-      'In room':    'background:#0d5bd7;color:#fff',
+      'In room':    'background:var(--brand);color:var(--brand-on)',
       'Checked in': 'background:#fff0d6;color:#b86a00',
       'Upcoming':   'background:#eceef2;color:#4a505c',
       'No-show':    'background:#ffe1e1;color:#c83838',

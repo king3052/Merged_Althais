@@ -115,7 +115,7 @@
           return '<div class="bg-panel border border-line rounded-sm p-4">' +
             '<div class="flex items-center justify-between mb-2">' +
               '<div class="text-[14px] font-semibold text-ink-900">' + esc(p.name) + '</div>' +
-              '<span class="pill" style="background:#e6efff;color:#0a47b0">' + denialRate + '% denial</span>' +
+              '<span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">' + denialRate + '% denial</span>' +
             '</div>' +
             '<div class="grid grid-cols-3 gap-2">' +
               '<div><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">Approval</div><div class="' + tone + ' text-[18px] font-semibold num">' + approval + '%</div></div>' +
@@ -131,7 +131,7 @@
       } else {
         policyList.innerHTML = POLICY_ALERTS.map(function(a) {
           return '<li class="px-4 py-2.5 flex items-start gap-3">' +
-            '<span class="pill" style="background:#e6efff;color:#0a47b0;flex-shrink:0;">' + esc(a.payer) + '</span>' +
+            '<span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong);flex-shrink:0;">' + esc(a.payer) + '</span>' +
             '<div class="flex-1 min-w-0"><div class="text-ink-900">' + esc(a.text) + '</div></div>' +
             '<span class="text-[10.5px] text-ink-500 mono flex-shrink-0">' + esc(a.date) + '</span>' +
           '</li>';

@@ -200,13 +200,13 @@
     return "Assigned";
   }
   var PILL = {
-    "Invited": "background:#eceef2;color:#4a505c", "In Progress": "background:#e6efff;color:#0a47b0", "Needs Review": "background:#fff0d6;color:#b86a00",
+    "Invited": "background:#eceef2;color:#4a505c", "In Progress": "background:var(--brand-100);color:var(--brand-text-strong)", "Needs Review": "background:#fff0d6;color:#b86a00",
     "Active": "background:#d8f5e3;color:#0c8a4f", "Inactive": "background:#eceef2;color:#4a505c",
-    "Verified": "background:#d8f5e3;color:#0c8a4f", "Pending Verification": "background:#e6efff;color:#0a47b0", "Expiring Soon": "background:#fff0d6;color:#b86a00",
+    "Verified": "background:#d8f5e3;color:#0c8a4f", "Pending Verification": "background:var(--brand-100);color:var(--brand-text-strong)", "Expiring Soon": "background:#fff0d6;color:#b86a00",
     "Expired": "background:#ffe1e1;color:#c83838", "Rejected": "background:#ffe1e1;color:#c83838",
     "Completed": "background:#d8f5e3;color:#0c8a4f", "Assigned": "background:#eceef2;color:#4a505c", "Due Soon": "background:#fff0d6;color:#b86a00", "Overdue": "background:#ffe1e1;color:#c83838",
     "Compliant": "background:#d8f5e3;color:#0c8a4f", "Action Needed": "background:#ffe1e1;color:#c83838", "Missing Requirement": "background:#fff0d6;color:#b86a00",
-    "Not Started": "background:#eceef2;color:#4a505c", "Submitted": "background:#e6efff;color:#0a47b0", "Approved": "background:#d8f5e3;color:#0c8a4f", "Denied": "background:#ffe1e1;color:#c83838"
+    "Not Started": "background:#eceef2;color:#4a505c", "Submitted": "background:var(--brand-100);color:var(--brand-text-strong)", "Approved": "background:#d8f5e3;color:#0c8a4f", "Denied": "background:#ffe1e1;color:#c83838"
   };
   function pill(label) { return '<span class="pill" style="' + (PILL[label] || PILL["Assigned"]) + '">' + esc(label) + "</span>"; }
 

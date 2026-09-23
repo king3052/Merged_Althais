@@ -22,6 +22,7 @@
     window.__ALTHAIS_NS__ = "{{ORG_NS}}";   // replaced by the server on every page load
   </script>
   <script src="/static/js/theme.js"></script>
+  <script src="/static/js/brand.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -45,13 +46,7 @@
               400: '#8b909c',
               300: '#aab0bb'
             },
-            med: {
-              700: '#0a47b0',
-              600: '#0d5bd7',
-              500: '#1f6fea',
-              100: '#e6efff',
-              50: '#f3f7ff'
-            },
+            med: { 700: 'rgb(var(--brand-700-rgb) / <alpha-value>)', 600: 'rgb(var(--brand-rgb) / <alpha-value>)', 500: 'rgb(var(--brand-500-rgb) / <alpha-value>)', 100: 'rgb(var(--brand-100-rgb) / <alpha-value>)', 50: 'rgb(var(--brand-50-rgb) / <alpha-value>)' },
             ok: { 600: '#0c8a4f', 100: '#d8f5e3' },
             warn: { 600: '#b86a00', 100: '#fff0d6' },
             risk: { 600: '#c83838', 100: '#ffe1e1' },
@@ -78,7 +73,7 @@
     .row-hover:hover { background: #f7f9fc; }
     .row-hover:hover .row-actions { opacity: 1; }
     .row-actions { opacity: 0; transition: opacity .12s; }
-    .row-selected { background: #e6efff !important; }
+    .row-selected { background: var(--brand-100) !important; }
     .row-selected .row-actions { opacity: 1; }
     .row-selected:hover { background: #d8e7ff !important; }
 
@@ -102,7 +97,7 @@
       font-weight: 500;
     }
     .nav-tab.active {
-      color: #0d5bd7;
+      color: var(--brand-text);
       font-weight: 600;
     }
     .nav-tab.active::after {
@@ -110,7 +105,7 @@
       position: absolute;
       left: 8px; right: 8px; bottom: -1px;
       height: 2px;
-      background: #0d5bd7;
+      background: var(--brand-mark);
       border-radius: 1px;
     }
 
@@ -123,9 +118,9 @@
     }
     .pr-tab:hover { background: #f4f5f7; }
     .pr-tab.active {
-      background: #e6efff;
-      color: #0a47b0;
-      border-color: #0d5bd7;
+      background: var(--brand-100);
+      color: var(--brand-text-strong);
+      border-color: var(--brand);
     }
 
     .side-row {
@@ -140,10 +135,10 @@
     }
     .side-row:hover { background: #f1f3f7; }
     .side-row.active {
-      background: #e6efff;
-      color: #0a47b0;
+      background: var(--brand-100);
+      color: var(--brand-text-strong);
       font-weight: 600;
-      border-left-color: #0d5bd7;
+      border-left-color: var(--brand);
     }
     .side-section {
       padding: 8px 12px 4px;
@@ -166,7 +161,7 @@
       color: #4a505c;
     }
     .count-pill.alert { background: #ffe1e1; color: #c83838; }
-    .count-pill.med { background: #e6efff; color: #0a47b0; }
+    .count-pill.med { background: var(--brand-100); color: var(--brand-text-strong); }
 
     .kpi {
       flex: 1;
@@ -200,17 +195,17 @@
 
     /* Sparkline area gradient */
     .spark-gradient {
-      stop-color: #0d5bd7;
+      stop-color: var(--brand);
     }
 
-    .focus-row { background: #f3f7ff; }
-    .focus-row:hover { background: #e6efff; }
+    .focus-row { background: var(--brand-50); }
+    .focus-row:hover { background: var(--brand-100); }
 
     /* EDI / clearinghouse transmission overlay */
     @keyframes edi-spin { to { transform: rotate(360deg); } }
     .edi-spinner {
       width: 48px; height: 48px;
-      border: 3px solid #e6efff; border-top-color: #0d5bd7;
+      border: 3px solid var(--brand-100); border-top-color: var(--brand);
       border-radius: 50%; animation: edi-spin 0.85s linear infinite;
     }
     #edi-progress-fill { transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -238,12 +233,12 @@
       position: absolute; top: 50%; transform: translateY(-50%); z-index: 20;
       display: flex; align-items: center; justify-content: center;
       width: 16px; height: 46px; border-radius: 4px;
-      background: var(--med-600, #0d5bd7); color: #fff;
-      border: 1px solid var(--med-700, #0a49ad);
+      background: var(--med-600, var(--brand)); color: #fff;
+      border: 1px solid var(--med-700, var(--brand-700));
       box-shadow: 0 1px 3px rgba(16,24,40,.18); cursor: pointer;
       transition: background 0.12s ease, width 0.12s ease;
     }
-    .sidebar-toggle-btn:hover { background: var(--med-700, #0a49ad); width: 18px; }
+    .sidebar-toggle-btn:hover { background: var(--med-700, var(--brand-700)); width: 18px; }
     .sidebar-toggle-btn svg { transition: transform 0.18s ease; }
 
     #left-sidebar.is-collapsed { width: 40px; overflow: hidden; }
@@ -293,9 +288,9 @@
     .panel-chevron {
       display: flex; align-items: center; justify-content: center;
       width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
-      color: var(--med-600, #0d5bd7); background: var(--med-50, #eef4ff);
+      color: var(--med-600, var(--brand-text)); background: var(--med-50, var(--brand-100));
     }
-    .panel-header-toggle:hover .panel-chevron { background: var(--med-100, #dbe8ff); }
+    .panel-header-toggle:hover .panel-chevron { background: var(--med-100, var(--brand-200)); }
     .panel-chevron svg { transition: transform 0.16s ease; }
     .panel-body { overflow: hidden; }
     .panel-collapsible.is-collapsed .panel-body { display: none; }
@@ -303,6 +298,7 @@
 
   </style>
   <link rel="stylesheet" href="/static/css/dark.css" />
+  <link rel="stylesheet" href="/static/css/brand-theme.css" />
   <link rel="stylesheet" href="/static/css/althea.css" />
 </head>
 <body class="bg-shell text-ink-800">
@@ -374,7 +370,7 @@
   </header>
 
   <!-- =================== SECONDARY NAV =================== -->
-  <nav class="bg-panel border-b border-line">
+  <nav id="emr-tabs" class="bg-panel border-b border-line">
     <div class="flex items-center px-2">
       <a class="nav-tab active" href="#overview" data-tab="overview">Overview</a>
       <a class="nav-tab" href="#patients-view" data-tab="patients">Patients <span id="patients-tab-count" class="count-pill ml-1">0</span></a>
@@ -393,7 +389,7 @@
   </nav>
 
   <!-- =================== MAIN 3-COLUMN =================== -->
-  <div class="flex" style="height: calc(100vh - 92px);">
+  <div class="flex emr-layout" style="height: calc(100vh - 92px);">
 
     <!-- ========= LEFT SIDEBAR ========= -->
     <aside id="left-sidebar" class="w-[226px] flex-shrink-0 border-r border-line bg-panel overflow-y-auto thin-scroll relative sidebar-panel">
@@ -675,7 +671,7 @@
                 <div id="ps-mrn" class="text-ink-500 mono text-[11.5px]">JS10023</div>
                 <div class="flex items-center gap-1.5 mt-1">
                   <span class="pill" style="background:#d8f5e3;color:#0c8a4f">Active</span>
-                  <span class="pill" style="background:#e6efff;color:#0a47b0">Established</span>
+                  <span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">Established</span>
                 </div>
               </div>
             </div>
@@ -1232,26 +1228,26 @@
         #settings-view .s-card { background: transparent; border: 1px solid #e4e6eb; border-radius: 8px; }
         #settings-view .s-card-glow { background: transparent; border: 1px solid #d8e7ff; border-radius: 8px; }
         #settings-view .s-input { background: #ffffff; border: 1px solid #e4e6eb; color: #0f1116; border-radius: 6px; padding: 8px 12px; font-size: 12.5px; outline: none; transition: border-color .15s, box-shadow .15s; width: 100%; }
-        #settings-view .s-input:focus { border-color: #0d5bd7; box-shadow: 0 0 0 3px rgba(13,91,215,0.12); }
+        #settings-view .s-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgb(var(--brand-rgb) / 0.12); }
         #settings-view .s-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; font-weight: 600; }
         #settings-view .s-tab { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #4a505c; cursor: pointer; transition: background .15s, color .15s; border-left: 2px solid transparent; }
         #settings-view .s-tab:hover { background: #f1f3f7; color: #0f1116; }
-        #settings-view .s-tab.active { background: #e6efff; color: #0a47b0; font-weight: 600; border-left-color: #0d5bd7; }
-        #settings-view .s-tab .s-dot { width: 5px; height: 5px; border-radius: 50%; background: #0d5bd7; opacity: 0; transition: opacity .15s; }
+        #settings-view .s-tab.active { background: var(--brand-100); color: var(--brand-text-strong); font-weight: 600; border-left-color: var(--brand); }
+        #settings-view .s-tab .s-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brand); opacity: 0; transition: opacity .15s; }
         #settings-view .s-tab.active .s-dot { opacity: 1; }
         #settings-view .toggle { width: 36px; height: 20px; background: #d4d7de; border-radius: 12px; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
         #settings-view .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 2px rgba(15,17,22,0.18); }
-        #settings-view .toggle.on { background: #0d5bd7; }
+        #settings-view .toggle.on { background: var(--brand); }
         #settings-view .toggle.on::after { transform: translateX(16px); }
         #settings-view .s-btn { padding: 8px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600; transition: all .15s; cursor: pointer; }
-        #settings-view .s-btn-primary { background: #0d5bd7; color: #fff; border: 1px solid #0a47b0; }
-        #settings-view .s-btn-primary:hover { background: #0a47b0; }
+        #settings-view .s-btn-primary { background: var(--brand); color:var(--brand-on); border: 1px solid var(--brand-700); }
+        #settings-view .s-btn-primary:hover { background: var(--brand-700); }
         #settings-view .s-btn-ghost { background: #fff; color: #2c313b; border: 1px solid #e4e6eb; }
         #settings-view .s-btn-ghost:hover { background: #f4f5f7; border-color: #aab0bb; }
         #settings-view .s-pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; line-height: 16px; }
         #settings-view .s-pill-ok { background: #d8f5e3; color: #0c8a4f; }
         #settings-view .s-pill-warn { background: #fff0d6; color: #b86a00; }
-        #settings-view .s-pill-info { background: #e6efff; color: #0a47b0; }
+        #settings-view .s-pill-info { background: var(--brand-100); color: var(--brand-text-strong); }
         #settings-view .s-pill-muted { background: #eceef2; color: #4a505c; }
         #settings-view .s-section-title { font-size: 18px; font-weight: 600; color: #0f1116; letter-spacing: -0.01em; }
         #settings-view .s-section-sub { font-size: 12.5px; color: #6b7280; margin-top: 4px; }
@@ -1261,9 +1257,9 @@
         #settings-view .s-row-sub { font-size: 11.5px; color: #6b7280; margin-top: 2px; }
         #settings-view .s-divider { height: 1px; background: #e4e6eb; margin: 24px 0; }
         #settings-view .s-search { background: #ffffff; border: 1px solid #e4e6eb; border-radius: 6px; padding: 7px 12px; font-size: 12.5px; color: #0f1116; outline: none; }
-        #settings-view .s-search:focus { border-color: #0d5bd7; box-shadow: 0 0 0 3px rgba(13,91,215,0.12); }
+        #settings-view .s-search:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgb(var(--brand-rgb) / 0.12); }
         #settings-view .s-grid-bg { background: #ffffff; }
-        #settings-view .glow { box-shadow: 0 0 0 1px rgba(13,91,215,0.18), 0 6px 20px -8px rgba(13,91,215,0.18); }
+        #settings-view .glow { box-shadow: 0 0 0 1px rgb(var(--brand-rgb) / 0.18), 0 6px 20px -8px rgb(var(--brand-rgb) / 0.18); }
         #settings-view .num { font-variant-numeric: tabular-nums; }
         #settings-view .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
         #settings-view a, #settings-view button { font-family: inherit; }
@@ -1283,6 +1279,29 @@
           background-repeat: no-repeat; background-position: right 10px center;
           cursor: pointer; outline: none;
         }
+        /* ---- Settings has the whole screen (body.settings-mode is set by showView) ---- */
+        body.settings-mode #emr-context-bar, body.settings-mode #emr-tabs,
+        body.settings-mode #left-sidebar, body.settings-mode #right-sidebar { display: none !important; }
+        body.settings-mode .emr-layout { height: calc(100vh - 48px) !important; }
+        /* ---- layout ---- */
+        #settings-view { background: #f4f5f7 !important; }
+        #settings-view .s-nav { width: 232px; flex-shrink: 0; padding: 16px 12px 24px; background: #fff; border-right: 1px solid #e4e6eb; position: sticky; top: 0; align-self: flex-start; min-height: calc(100vh - 150px); }
+        #settings-view .s-group { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b909c; padding: 14px 12px 6px; }
+        #settings-view .s-group:first-child { padding-top: 4px; }
+        #settings-view .s-tab { margin-bottom: 1px; border-left: 3px solid transparent; border-radius: 0 6px 6px 0; }
+        #settings-view .s-content { flex: 1; min-width: 0; padding: 28px 40px 48px; overflow-x: hidden; }
+        #settings-view .s-content > section { max-width: 940px; }
+        #settings-view .s-card { background: #fff; box-shadow: 0 1px 2px rgba(15,17,22,.04); }
+        #settings-view .s-back { font-size: 12px; font-weight: 600; color: #6b7280; background: none; border: 0; padding: 0; margin-bottom: 4px; cursor: pointer; }
+        #settings-view .s-back:hover { color: var(--brand-text); }
+        #settings-view .s-search-wrap { position: relative; display: inline-flex; align-items: center; }
+        #settings-view .s-search-wrap svg { position: absolute; left: 10px; width: 14px; height: 14px; color: #8b909c; pointer-events: none; }
+        #settings-view .s-search-wrap .s-search { padding-left: 31px; }
+        html[data-theme-resolved="dark"] #settings-view { background: #0e1116 !important; }
+        html[data-theme-resolved="dark"] #settings-view .s-nav { background: #14181f; border-color: #2c313b; }
+        html[data-theme-resolved="dark"] #settings-view .s-card { background: #1a1d24 !important; box-shadow: none; }
+        html[data-theme-resolved="dark"] #settings-view .s-group { color: #6b7280; }
+        html[data-theme-resolved="dark"] #settings-view .s-back:hover { color: var(--brand-dark-link); }
         @keyframes settingsFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         #settings-view [data-section] { animation: settingsFadeIn .25s ease both; }
       </style>
@@ -1290,17 +1309,19 @@
       <!-- Settings header -->
       <div class="s-grid-bg border-b" style="border-color:#e4e6eb; padding: 18px 28px;">
         <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-4">
+          <div>
+            <button type="button" id="settings-back" class="s-back">← Back</button>
             <h1 class="s-section-title" style="font-size: 22px;">Settings</h1>
+            <p class="s-section-sub" style="margin-top:2px;">Your practice, team, billing and preferences.</p>
           </div>
           <div class="flex items-center gap-2.5">
-            <input id="settings-search" type="search" class="s-search" placeholder="Search settings…" style="width: 240px;" aria-label="Search settings" />
+            <label class="s-search-wrap">
+              <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
+              <input id="settings-search" type="search" class="s-search" placeholder="Search settings…" style="width: 220px;" aria-label="Search settings" />
+            </label>
             <select id="settings-practice-select" class="s-input" style="width: 200px;">
               <option>+ Add Organization…</option>
             </select>
-            <a href="/overview/inbox" class="s-btn s-btn-ghost" style="padding: 8px 10px;display:inline-flex;" title="AI Inbox" aria-label="Open AI Inbox">
-              <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4v-3.3a6 6 0 0 0-12 0v3.3a2 2 0 0 1-.6 1.4L4 17h5"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
-            </a>
             <div class="relative" id="settings-doc-dropdown" style="position:relative;">
               <button id="settings-doc-btn" type="button" class="s-btn s-btn-ghost" style="padding:8px 12px;display:inline-flex;align-items:center;gap:6px;">
                 <span id="settings-doc-name">Dr. R. Patel</span>
@@ -1325,49 +1346,27 @@
       <div class="flex" style="min-height: 600px;">
 
         <!-- Settings sidebar -->
-        <aside style="width: 240px; padding: 18px 14px; flex-shrink: 0; border-right: 1px solid #d0d3db;">
-          <div class="s-tab active" data-settings-tab="practice">
-            <span>Practice</span>
-            <span class="s-dot" style="margin-left:auto"></span>
-          </div>
-          <div class="s-tab" data-settings-tab="users">
-            <span>Users &amp; Roles</span>
-            <span class="s-dot" style="margin-left:auto"></span>
-          </div>
-          <div class="s-tab" data-settings-tab="ai">
-            <span>AI Automation</span>
-            <span class="s-pill s-pill-info" style="margin-left:auto;font-size:9px;padding:1px 6px;">NEW</span>
-          </div>
-          <div class="s-tab" data-settings-tab="billing">
-            <span>Billing &amp; Claims</span>
-            <span class="s-dot" style="margin-left:auto"></span>
-          </div>
-          <div class="s-tab" data-settings-tab="integrations">
-            <span>Integrations</span>
-          </div>
-          <div class="s-tab" data-settings-tab="notifications">
-            <span>Notifications</span>
-          </div>
-          <div class="s-tab" data-settings-tab="comms">
-            <span>Patient Communication</span>
-          </div>
-          <div class="s-tab" data-settings-tab="security">
-            <span>Security &amp; Compliance</span>
-            <span class="s-pill s-pill-muted" style="margin-left:auto;font-size:9px;padding:1px 6px;">0</span>
-          </div>
-          <div class="s-tab" data-settings-tab="appearance">
-            <span>Appearance</span>
-          </div>
-          <div class="s-tab" data-settings-tab="analytics">
-            <span>Analytics</span>
-          </div>
-          <div class="s-tab" data-settings-tab="api">
-            <span>API &amp; Developer</span>
-          </div>
+        <aside class="s-nav">
+          <div class="s-group">Practice</div>
+          <div class="s-tab active" data-settings-tab="practice"><span>Practice</span></div>
+          <div class="s-tab" data-settings-tab="users"><span>Users &amp; Roles</span></div>
+          <div class="s-group">Billing &amp; AI</div>
+          <div class="s-tab" data-settings-tab="billing"><span>Billing &amp; Claims</span></div>
+          <div class="s-tab" data-settings-tab="ai"><span>AI Automation</span> <span class="s-pill s-pill-info" style="margin-left:auto;font-size:9px;padding:1px 6px;">NEW</span></div>
+          <div class="s-tab" data-settings-tab="integrations"><span>Integrations</span></div>
+          <div class="s-group">Communication</div>
+          <div class="s-tab" data-settings-tab="notifications"><span>Notifications</span></div>
+          <div class="s-tab" data-settings-tab="comms"><span>Patient Communication</span></div>
+          <div class="s-group">Workspace</div>
+          <div class="s-tab" data-settings-tab="security"><span>Security &amp; Compliance</span></div>
+          <div class="s-tab" data-settings-tab="appearance"><span>Appearance</span></div>
+          <div class="s-group">Data</div>
+          <div class="s-tab" data-settings-tab="analytics"><span>Analytics</span></div>
+          <div class="s-tab" data-settings-tab="api"><span>API &amp; Developer</span></div>
         </aside>
 
         <!-- Settings content -->
-        <div style="flex: 1; padding: 28px 32px; overflow-x: hidden;">
+        <div class="s-content">
 
           <!-- ========== PRACTICE ========== -->
           <section data-section="practice">
@@ -1441,7 +1440,7 @@
             </div>
 
             <!-- Add staff/provider form (hidden) -->
-            <div id="add-staff-form" class="hidden s-card" style="padding:14px; margin-bottom:14px; background:#f3f7ff; border-color:#d8e7ff;">
+            <div id="add-staff-form" class="hidden s-card" style="padding:14px; margin-bottom:14px; background:var(--brand-50); border-color:#d8e7ff;">
               <div class="grid grid-cols-12 gap-3">
                 <div class="col-span-5"><div class="s-label" style="margin-bottom:6px;">Full Name <span style="color:#c83838">*</span></div><input id="staff-name" class="s-input" placeholder="Dr. Jane Doe" /></div>
                 <div class="col-span-3"><div class="s-label" style="margin-bottom:6px;">Role</div>
@@ -1484,7 +1483,7 @@
             <!-- Stats -->
             <div class="grid grid-cols-3 gap-3">
               <div class="s-card" style="padding:16px;"><div class="s-label">Team Members</div><div id="team-count" style="font-size:24px;font-weight:600;color:#0f1116;margin-top:6px;" class="num">—</div></div>
-              <div class="s-card" style="padding:16px;"><div class="s-label">Your Role</div><div id="team-my-role" style="font-size:14px;font-weight:600;color:#0d5bd7;margin-top:6px;text-transform:capitalize;">—</div></div>
+              <div class="s-card" style="padding:16px;"><div class="s-label">Your Role</div><div id="team-my-role" style="font-size:14px;font-weight:600;color:var(--brand-text);margin-top:6px;text-transform:capitalize;">—</div></div>
               <div class="s-card" style="padding:16px;"><div class="s-label">Organization</div><div id="team-org-name" style="font-size:13px;font-weight:600;color:#0f1116;margin-top:6px;">—</div></div>
             </div>
 
@@ -1560,7 +1559,7 @@
                     <option value="admin">Admin — full access</option>
                   </select>
                 </div>
-                <button id="invite-submit-btn" style="width:100%;background:#0d5bd7;color:#fff;border:none;border-radius:6px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Send Invite</button>
+                <button id="invite-submit-btn" style="width:100%;background:var(--brand);color:var(--brand-on);border:none;border-radius:6px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Send Invite</button>
                 <p style="font-size:11.5px;color:#9ca3af;text-align:center;margin-top:10px;">They'll receive an email with a temporary password.</p>
               </div>
             </div>
@@ -1689,10 +1688,10 @@
                 </div>
                 <div id="fee-schedule-rows"></div>
               </div>
-              <button id="fee-schedule-add-row" type="button" style="margin-top:10px;font-size:11.5px;font-weight:600;color:#0d5bd7;background:none;border:none;cursor:pointer;padding:4px 0;">+ Add CPT Code</button>
+              <button id="fee-schedule-add-row" type="button" style="margin-top:10px;font-size:11.5px;font-weight:600;color:var(--brand-text);background:none;border:none;cursor:pointer;padding:4px 0;">+ Add CPT Code</button>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
                 <span id="fee-schedule-saved-msg" style="font-size:11px;color:#22c55e;opacity:0;transition:opacity 0.2s;">Saved</span>
-                <button id="fee-schedule-save" type="button" style="font-size:12px;font-weight:600;color:#fff;background:#0d5bd7;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;">Save Fee Schedule</button>
+                <button id="fee-schedule-save" type="button" style="font-size:12px;font-weight:600;color:var(--brand-on);background:var(--brand);border:none;border-radius:6px;padding:7px 16px;cursor:pointer;">Save Fee Schedule</button>
               </div>
             </div>
 
@@ -1777,10 +1776,10 @@
               <div class="s-card glow" style="padding:18px;">
                 <div class="s-label">Security Score</div>
                 <div style="display:flex;align-items:end;gap:8px;margin-top:10px;">
-                  <div style="font-size:32px;font-weight:600;color:#0d5bd7;" class="num">0</div>
+                  <div style="font-size:32px;font-weight:600;color:var(--brand-text);" class="num">0</div>
                   <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">/ 100</div>
                 </div>
-                <div style="height:6px;background:#e4e6eb;border-radius:4px;overflow:hidden;margin-top:10px;"><div style="height:100%;width:0%;background:#0d5bd7;"></div></div>
+                <div style="height:6px;background:#e4e6eb;border-radius:4px;overflow:hidden;margin-top:10px;"><div style="height:100%;width:0%;background:var(--brand);"></div></div>
               </div>
               <div class="s-card" style="padding:18px;">
                 <div class="s-label">HIPAA Compliance</div>
@@ -1853,11 +1852,94 @@
             </div>
             <div class="s-divider"></div>
             <div class="s-card" style="padding:0 22px;">
-              <div class="s-row"><div><div class="s-row-label">Theme</div><div class="s-row-sub">Dashboard color mode.</div></div><div style="display:flex;gap:6px;"><button id="theme-light" data-theme-btn="light" class="s-btn" style="background:#e6efff;color:#0a47b0;border:1px solid #0d5bd7;padding:6px 12px;">Light</button><button id="theme-dark" data-theme-btn="dark" class="s-btn s-btn-ghost" style="padding:6px 12px;">Dark</button><button id="theme-system" data-theme-btn="system" class="s-btn s-btn-ghost" style="padding:6px 12px;">System</button></div></div>
+              <div class="s-row"><div><div class="s-row-label">Theme</div><div class="s-row-sub">Dashboard color mode.</div></div><div style="display:flex;gap:6px;"><button id="theme-light" data-theme-btn="light" class="s-btn" style="background:var(--brand-100);color:var(--brand-text-strong);border:1px solid var(--brand);padding:6px 12px;">Light</button><button id="theme-dark" data-theme-btn="dark" class="s-btn s-btn-ghost" style="padding:6px 12px;">Dark</button><button id="theme-system" data-theme-btn="system" class="s-btn s-btn-ghost" style="padding:6px 12px;">System</button></div></div>
               <div class="s-row"><div><div class="s-row-label">Compact Mode</div><div class="s-row-sub">Tighter row heights, denser tables.</div></div><div class="toggle"></div></div>
               <div class="s-row"><div><div class="s-row-label">Specialty Preset</div><div class="s-row-sub">Pre-tunes the dashboard for your field.</div></div><select class="s-input" style="width:200px;"><option>Cardiology</option><option>Internal Medicine</option><option>Orthopedics</option><option>Custom</option></select></div>
               <div class="s-row"><div><div class="s-row-label">Keyboard Shortcuts</div><div class="s-row-sub">Press <span class="mono" style="background:#e4e6eb;padding:1px 5px;border-radius:3px;">⌘ /</span> to view all shortcuts.</div></div><div class="toggle on"></div></div>
             </div>
+                      <div class="s-divider"></div>
+            <div class="s-card" style="padding:20px 22px;" id="brand-card">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                <div>
+                  <div class="s-row-label">Brand Color</div>
+                  <div class="s-row-sub">The color of Althais for everyone in your practice. Text on it adjusts automatically so it stays readable.</div>
+                </div>
+                <div id="brand-saved-note" class="s-row-sub" style="text-align:right;"></div>
+              </div>
+
+              <div id="brand-swatches" role="radiogroup" aria-label="Brand color presets" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px;"></div>
+
+              <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                <span class="s-row-sub" style="margin:0;">Custom</span>
+                <input id="brand-picker" type="color" aria-label="Pick a custom brand color" style="width:36px;height:30px;padding:0;border:1px solid #e4e6eb;border-radius:6px;background:none;cursor:pointer;" />
+                <input id="brand-hex" class="s-input mono" style="width:110px;" maxlength="7" placeholder="#0d5bd7" aria-label="Brand color hex code" />
+              </div>
+
+              <div style="margin-top:16px;border:1px solid #e4e6eb;border-radius:8px;overflow:hidden;" id="brand-preview" aria-label="Preview">
+                <div style="background:var(--brand);color:var(--brand-on);border-bottom:var(--brand-bar-line);display:flex;align-items:center;gap:18px;padding:10px 14px;font-size:12.5px;">
+                  <span style="font-weight:600;letter-spacing:.18em;">ALTHAIS</span>
+                  <span style="font-weight:700;border-bottom:2px solid var(--brand-on);padding-bottom:2px;">Overview</span>
+                  <span style="opacity:.7;">EMR</span><span style="opacity:.7;">Revenue</span><span style="opacity:.7;">Staff</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap;background:#fff;" class="brand-preview-body">
+                  <span style="background:var(--brand);color:var(--brand-on);box-shadow:var(--brand-ring);padding:6px 12px;border-radius:4px;font-size:12px;font-weight:600;">+ New Claim</span>
+                  <span style="color:var(--brand-text);font-size:12px;font-weight:600;">View All →</span>
+                  <span style="background:var(--brand-100);color:var(--brand-text-strong);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600;">Submitted</span>
+                  <span id="brand-contrast" class="s-row-sub" style="margin:0 0 0 auto;"></span>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;">
+                <button id="brand-save" type="button" class="s-btn s-btn-primary">Save Brand Color</button>
+                <button id="brand-cancel" type="button" class="s-btn s-btn-ghost">Cancel</button>
+                <button id="brand-reset" type="button" class="s-btn s-btn-ghost">Reset To Althais Blue</button>
+                <span id="brand-msg" class="s-row-sub" style="margin:0;"></span>
+              </div>
+            </div>
+            <script>
+              // Settings > Appearance > Brand Color (static/js/brand.js does the palette, saving and sharing)
+              (function () {
+                const B = window.AlthaisBrand; if (!B) return;
+                const $ = (id) => document.getElementById(id);
+                let saved = B.current(), picked = saved;
+                const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+                function render() {
+                  $('brand-swatches').innerHTML = B.PRESETS.map(p => {
+                    const on = p.hex.toLowerCase() === picked;
+                    return `<button type="button" role="radio" aria-checked="${on}" data-hex="${p.hex}" class="s-btn s-btn-ghost" title="${esc(p.name)} ${p.hex}" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;height:40px;padding:0 12px;min-width:0;${on ? 'border-color:var(--brand-text);box-shadow:0 0 0 1px var(--brand-text);' : ''}">
+                      <span style="width:18px;height:18px;border-radius:50%;background:${p.hex};box-shadow:inset 0 0 0 1px rgba(15,17,22,.15);flex-shrink:0;"></span>
+                      <span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.name)}</span></button>`;
+                  }).join('');
+                  $('brand-picker').value = picked; $('brand-hex').value = picked;
+                  const v = B.palette(picked), c = B.contrast(v['--brand'], v['--brand-on']);
+                  $('brand-contrast').textContent = `Text on this color: ${c.toFixed(1)}:1 ${c >= 4.5 ? '· easy to read' : '· readable'}`;
+                  const dirty = picked !== saved, edit = B.canEdit();
+                  $('brand-save').disabled = !dirty || !edit; $('brand-save').style.opacity = (!dirty || !edit) ? '.5' : '';
+                  $('brand-cancel').style.display = dirty ? '' : 'none';
+                  $('brand-reset').style.display = (edit && picked !== B.DEFAULT) ? '' : 'none';
+                  const who = B.savedBy();
+                  $('brand-saved-note').textContent = !edit ? 'Only admins can change this.' : (who ? `Saved by ${who.by}${who.at ? ' · ' + new Date(who.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}` : '');
+                  $('brand-msg').textContent = dirty ? 'Previewing. Save to keep it for everyone.' : '';
+                }
+                function preview(hex) { const h = B.norm(hex); if (!h) return; picked = h; B.apply(h); render(); }
+
+                $('brand-swatches').addEventListener('click', (e) => { const b = e.target.closest('[data-hex]'); if (b) preview(b.dataset.hex); });
+                $('brand-picker').addEventListener('input', (e) => preview(e.target.value));
+                $('brand-hex').addEventListener('change', (e) => { if (B.norm(e.target.value)) preview(e.target.value); else { $('brand-msg').textContent = 'Use a hex code like #0d5bd7.'; } });
+                $('brand-cancel').addEventListener('click', () => preview(saved));
+                $('brand-reset').addEventListener('click', () => preview(B.DEFAULT));
+                $('brand-save').addEventListener('click', async () => {
+                  $('brand-save').disabled = true; $('brand-msg').textContent = 'Saving…';
+                  try { saved = await B.save(picked); picked = saved; render(); $('brand-msg').textContent = 'Saved. Everyone in your practice now sees this color.'; }
+                  catch (err) { render(); $('brand-msg').textContent = err.message; }
+                });
+                // leaving Settings with an unsaved preview puts the saved color back
+                window.addEventListener('pagehide', () => { if (picked !== saved) B.apply(saved); });
+                B.ready().then(h => { saved = h; picked = h; render(); });
+                render();
+              })();
+            </script>
           </section>
 
           <!-- ========== ANALYTICS ========== -->
@@ -2029,8 +2111,8 @@
           <svg class="w-full mt-3" viewBox="0 0 300 70" preserveAspectRatio="none">
             <defs>
               <linearGradient id="spark" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stop-color="#0d5bd7" stop-opacity="0.25"/>
-                <stop offset="100%" stop-color="#0d5bd7" stop-opacity="0"/>
+                <stop offset="0%" stop-color="var(--brand)" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="var(--brand)" stop-opacity="0"/>
               </linearGradient>
             </defs>
             <line x1="0" y1="20" x2="300" y2="20" stroke="#eceef2" stroke-width="1"/>
@@ -3516,6 +3598,8 @@
         Object.entries(ALL_VIEWS).forEach(([key, el]) => {
           if (el) el.classList.toggle('hidden', key !== name);
         });
+        // Settings gets the whole screen: no patient bar, EMR tabs or chart sidebars around it
+        document.body.classList.toggle('settings-mode', name === 'settings');
         if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
@@ -3572,6 +3656,14 @@
           const active = document.querySelector(`#settings-view [data-section="${target}"]`);
           if (active) { active.style.animation = 'none'; void active.offsetWidth; active.style.animation = ''; }
         });
+      });
+
+      // ---- Settings "Back": /settings goes to the EMR; opened from the EMR's Settings tab, it returns to Overview ----
+      const settingsBack = document.getElementById('settings-back');
+      if (settingsBack) settingsBack.addEventListener('click', () => {
+        if (location.pathname.replace(/\/+$/, '') === '/settings') { location.href = '/emr'; return; }
+        const ov = document.querySelector('.nav-tab[data-tab="overview"]');
+        if (ov) ov.click();
       });
 
       // ---- Settings search: keep only the tabs whose section mentions every typed word, and open the first ----
@@ -5951,7 +6043,7 @@
             <td class="td">${escapeHtml(snap.provider)}</td>
             <td class="td mono">${escapeHtml(cpt ? cpt.code : '—')}</td>
             <td class="td mono">${escapeHtml(icd ? icd.code : '—')}</td>
-            <td class="td"><span class="pill" style="background:#e6efff;color:#0a47b0">● Submitted</span></td>
+            <td class="td"><span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">● Submitted</span></td>
             <td class="td">${escapeHtml(snap.payer)}</td>
             <td class="td td-num text-right">${amtFmt}</td>
             <td class="td"><span class="pill" style="background:#d8f5e3;color:#0c8a4f">Low</span></td>
@@ -6838,7 +6930,7 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5">
               <span class="font-semibold text-ink-900">${escapeHtml(p.name)}</span>
-              ${isActive ? '<span class="pill" style="background:#e6efff;color:#0a47b0">Active</span>' : ''}
+              ${isActive ? '<span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">Active</span>' : ''}
             </div>
             <div class="text-[11px] text-ink-500 mono">${escapeHtml(p.mrn)} · ${escapeHtml(p.sex)} / ${age} · ${escapeHtml(fmtUsDate(p.dob))}</div>
           </div>
@@ -7536,7 +7628,7 @@
           'Draft':           { bg: '#eceef2', fg: '#4a505c', mark: '○' },
           'Pending Review':  { bg: '#fff0d6', fg: '#b86a00', mark: '◐' },
           'Ready to Submit': { bg: '#dbeafe', fg: '#1d4ed8', mark: '▷' },
-          'Submitted':       { bg: '#e6efff', fg: '#0a47b0', mark: '●' },
+          'Submitted':       { bg: 'var(--brand-100)', fg: 'var(--brand-text-strong)', mark: '●' },
           'Denied':          { bg: '#ffe1e1', fg: '#c83838', mark: '✕' },
           'Appealed':        { bg: '#fff0d6', fg: '#b86a00', mark: '↩' },
           'Paid':            { bg: '#d8f5e3', fg: '#0c8a4f', mark: '✓' }
@@ -8430,11 +8522,11 @@
       }
       function avatarGradient(seed) {
         const palettes = [
-          'linear-gradient(135deg,#0d5bd7,#0a47b0)',
+          'linear-gradient(135deg,var(--brand),var(--brand-700))',
           'linear-gradient(135deg,#22c55e,#0ea5e9)',
           'linear-gradient(135deg,#f59e0b,#ef4444)',
-          'linear-gradient(135deg,#a855f7,#0d5bd7)',
-          'linear-gradient(135deg,#06b6d4,#0d5bd7)'
+          'linear-gradient(135deg,#a855f7,var(--brand))',
+          'linear-gradient(135deg,#06b6d4,var(--brand))'
         ];
         let h = 0;
         for (let i = 0; i < (seed || '').length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -8476,13 +8568,13 @@
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'w-full flex items-center justify-between gap-2 text-left hover:bg-shell';
-            item.style.cssText = 'border:0; background:' + (isActive ? '#f3f7ff' : 'transparent') + '; cursor:pointer; padding:8px 12px; width:100%;';
+            item.style.cssText = 'border:0; background:' + (isActive ? 'var(--brand-50)' : 'transparent') + '; cursor:pointer; padding:8px 12px; width:100%;';
             item.innerHTML = `
               <div class="min-w-0" style="flex:1;min-width:0;">
                 <div class="text-[12.5px] text-ink-900 font-medium" style="font-weight:500;color:#0f1116;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.name)}</div>
                 <div class="text-[10.5px] text-ink-500" style="color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.role)}${s.title ? ' · ' + escapeHtml(s.title) : ''}</div>
               </div>
-              ${isActive ? '<span style="font-size:10.5px;font-weight:600;color:#0a47b0;">Active</span>' : ''}
+              ${isActive ? '<span style="font-size:10.5px;font-weight:600;color:var(--brand-text-strong);">Active</span>' : ''}
             `;
             item.addEventListener('click', () => {
               const m1 = document.getElementById('profile-menu');     if (m1) m1.classList.add('hidden');
@@ -8562,7 +8654,7 @@
           chip.type = 'button';
           chip.className = 's-btn';
           chip.style.cssText = 'padding:6px 12px;font-size:12px;' + (isActive
-            ? 'background:#e6efff;color:#0a47b0;border:1px solid #0d5bd7;'
+            ? 'background:var(--brand-100);color:var(--brand-text-strong);border:1px solid var(--brand);'
             : 'background:#fff;color:#2c313b;border:1px solid #e4e6eb;');
           chip.textContent = p.name;
           chip.addEventListener('click', () => {
@@ -8664,7 +8756,7 @@
           row.style.padding = '12px 18px';
           row.style.cursor = 'pointer';
           if (idx < STAFF.length - 1) row.style.borderBottom = '1px solid #eceef2';
-          if (isActive) row.style.background = '#f3f7ff';
+          if (isActive) row.style.background = 'var(--brand-50)';
           row.innerHTML = `
             <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
               <span style="width:30px;height:30px;border-radius:50%;background:${grad};display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:#fff;flex-shrink:0;">${initials}</span>
@@ -8845,9 +8937,9 @@
           body[data-theme-resolved="dark"] .s-pill-ok {
             background: #123423 !important; color: #5fd398 !important;
           }
-          body[data-theme-resolved="dark"] .pill[style*="background:#e6efff"],
+          body[data-theme-resolved="dark"] .pill[style*="background:var(--brand-dark-tint)"],
           body[data-theme-resolved="dark"] .s-pill-info {
-            background: #182740 !important; color: #7fa8f0 !important;
+            background: var(--brand-dark-tint) !important; color: #7fa8f0 !important;
           }
           body[data-theme-resolved="dark"] .pill[style*="background:#dbeafe"] {
             background: #16273f !important; color: #6fa2f5 !important;
@@ -8866,14 +8958,14 @@
           /* Fee-schedule / risk badges reuse the same green/amber/red hexes
              directly as text or backgrounds in a few places */
           body[data-theme-resolved="dark"] [style*="color:#0c8a4f"] { color: #5fd398 !important; }
-          body[data-theme-resolved="dark"] [style*="color:#0a47b0"] { color: #7fa8f0 !important; }
+          body[data-theme-resolved="dark"] [style*="color:var(--brand-dark-link)"] { color: #7fa8f0 !important; }
           body[data-theme-resolved="dark"] [style*="color:#b86a00"] { color: #e8b158 !important; }
           body[data-theme-resolved="dark"] [style*="color:#c83838"] { color: #f0918f !important; }
           body[data-theme-resolved="dark"] [style*="color:#4a505c"] { color: #9aa0ac !important; }
           body[data-theme-resolved="dark"] [style*="background:#d8f5e3"] { background: #123423 !important; }
           body[data-theme-resolved="dark"] [style*="background:#fff0d6"] { background: #3a2c10 !important; }
           body[data-theme-resolved="dark"] [style*="background:#ffe1e1"] { background: #3a1616 !important; }
-          body[data-theme-resolved="dark"] [style*="background:#e6efff"] { background: #182740 !important; }
+          body[data-theme-resolved="dark"] [style*="background:var(--brand-dark-tint)"] { background: var(--brand-dark-tint) !important; }
           body[data-theme-resolved="dark"] [style*="background:#eceef2"] { background: #22262e !important; }
           body[data-theme-resolved="dark"] [style*="background:#fef3c7"] { background: #3a2c10 !important; }
           body[data-theme-resolved="dark"] [style*="color:#92400e"] { color: #e8b158 !important; }
@@ -8892,10 +8984,10 @@
           body[data-theme-resolved="dark"] .seg-inactive { color: #8b909c !important; }
           body[data-theme-resolved="dark"] .side-row { color: #b8bdcd !important; }
           body[data-theme-resolved="dark"] .side-row:hover { background: #20242c !important; }
-          body[data-theme-resolved="dark"] .side-row.active { background: #1a2436 !important; color: #6f9eff !important; }
+          body[data-theme-resolved="dark"] .side-row.active { background: #1a2436 !important; color: var(--brand-dark-link) !important; }
           body[data-theme-resolved="dark"] .side-section { color: #6b7280 !important; }
           body[data-theme-resolved="dark"] .nav-tab { color: #b8bdcd !important; }
-          body[data-theme-resolved="dark"] .nav-tab.active { color: #6f9eff !important; }
+          body[data-theme-resolved="dark"] .nav-tab.active { color: var(--brand-dark-link) !important; }
           body[data-theme-resolved="dark"] .count-pill { background: #2c313b !important; color: #b8bdcd !important; }
           body[data-theme-resolved="dark"] .checkbox-tick { background: #1a1d24 !important; border-color: #2c313b !important; }
 
@@ -8909,7 +9001,7 @@
           body[data-theme-resolved="dark"] #settings-view .s-divider { background: #2c313b !important; }
           body[data-theme-resolved="dark"] #settings-view .s-tab { color: #b8bdcd !important; }
           body[data-theme-resolved="dark"] #settings-view .s-tab:hover { background: #20242c !important; color: #e7eaf2 !important; }
-          body[data-theme-resolved="dark"] #settings-view .s-tab.active { background: #1a2436 !important; color: #6f9eff !important; }
+          body[data-theme-resolved="dark"] #settings-view .s-tab.active { background: #1a2436 !important; color: var(--brand-dark-link) !important; }
           body[data-theme-resolved="dark"] #settings-view .s-btn-ghost { background: #1a1d24 !important; color: #b8bdcd !important; border-color: #2c313b !important; }
           body[data-theme-resolved="dark"] #settings-view .s-btn-ghost:hover { background: #20242c !important; color: #e7eaf2 !important; }
 
@@ -8921,7 +9013,7 @@
           body[data-theme-resolved="dark"] .bg-white { background: #1a1d24 !important; }
           /* The shared blue header: same darker blue and translucent controls as every other page (static/css/dark.css) */
           body[data-theme-resolved="dark"] header.bg-med-600 [class*="bg-white"] { background-color: rgba(255, 255, 255, 0.10) !important; }
-          body[data-theme-resolved="dark"] header.bg-med-600 { background-color: #0b3f9c !important; border-bottom: 1px solid #1c2a44; }
+          body[data-theme-resolved="dark"] header.bg-med-600 { background-color: var(--brand-dark-header) !important; border-bottom: 1px solid #1c2a44; }
 
           /* ── Nav / secondary header ── */
           body[data-theme-resolved="dark"] nav.bg-panel { background: #1a1d24 !important; border-color: #2c313b !important; }
@@ -8929,7 +9021,7 @@
           body[data-theme-resolved="dark"] .kpi { border-color: #2c313b !important; }
           body[data-theme-resolved="dark"] .pr-tab { background: #1a1d24 !important; border-color: #2c313b !important; color: #b8bdcd !important; }
           body[data-theme-resolved="dark"] .pr-tab:hover { background: #20242c !important; }
-          body[data-theme-resolved="dark"] .pr-tab.active { background: #1a2436 !important; border-color: #0d5bd7 !important; color: #6f9eff !important; }
+          body[data-theme-resolved="dark"] .pr-tab.active { background: #1a2436 !important; border-color: var(--brand) !important; color: var(--brand-dark-link) !important; }
 
           /* ── Tables ── */
           body[data-theme-resolved="dark"] thead,
@@ -8954,7 +9046,7 @@
           body[data-theme-resolved="dark"] [id$="-modal-panel"] .bg-white,
           body[data-theme-resolved="dark"] [id$="-modal-panel"] .bg-med-50,
           body[data-theme-resolved="dark"] [id$="-modal-panel"] .bg-med-100 { background: #14181f !important; }
-          body[data-theme-resolved="dark"] [id$="-modal-panel"] .text-med-700 { color: #6f9eff !important; }
+          body[data-theme-resolved="dark"] [id$="-modal-panel"] .text-med-700 { color: var(--brand-dark-link) !important; }
           body[data-theme-resolved="dark"] [id$="-modal-panel"] [class*="border-med"] { border-color: #2c313b !important; }
 
           /* ── Dropdowns / menus ── */
@@ -8982,7 +9074,7 @@
           body[data-theme-resolved="dark"] #settings-view .s-divider { background: #2c313b !important; }
           body[data-theme-resolved="dark"] #settings-view .s-tab { color: #b8bdcd !important; }
           body[data-theme-resolved="dark"] #settings-view .s-tab:hover { background: #20242c !important; color: #e7eaf2 !important; }
-          body[data-theme-resolved="dark"] #settings-view .s-tab.active { background: #1a2436 !important; color: #6f9eff !important; }
+          body[data-theme-resolved="dark"] #settings-view .s-tab.active { background: #1a2436 !important; color: var(--brand-dark-link) !important; }
           body[data-theme-resolved="dark"] #settings-view .s-btn-ghost { background: #1a1d24 !important; color: #b8bdcd !important; border-color: #2c313b !important; }
           body[data-theme-resolved="dark"] #settings-view .s-btn-ghost:hover { background: #20242c !important; color: #e7eaf2 !important; }
           body[data-theme-resolved="dark"] #settings-view aside { background: transparent !important; border-right: 1px solid #2c313b !important; }
@@ -9032,7 +9124,7 @@
         document.querySelectorAll('[data-theme-btn]').forEach(b => {
           const isActive = b.getAttribute('data-theme-btn') === mode;
           b.style.cssText = isActive
-            ? 'background:#e6efff;color:#0a47b0;border:1px solid #0d5bd7;padding:6px 12px;'
+            ? 'background:var(--brand-100);color:var(--brand-text-strong);border:1px solid var(--brand);padding:6px 12px;'
             : 'padding:6px 12px;';
           b.className = isActive ? 's-btn' : 's-btn s-btn-ghost';
         });
@@ -9069,7 +9161,7 @@
           el.style.setProperty('background', isDark ? '#14181f' : '#f7f9fc', 'important');
         });
         // Patch mono code-block divs with inline light backgrounds
-        document.querySelectorAll('[style*="background:#f7f9fc"], [style*="background:#f3f7ff"]').forEach(el => {
+        document.querySelectorAll('[style*="background:#f7f9fc"], [style*="background:var(--brand-50)"]').forEach(el => {
           if (isDark) el.style.setProperty('background', '#14181f', 'important');
           else el.style.removeProperty('background');
         });
@@ -9316,7 +9408,7 @@
 
         // Drag and drop
         if (dropzone) {
-          dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor='#0d5bd7'; });
+          dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor='var(--brand)'; });
           dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor=''; });
           dropzone.addEventListener('drop', e => {
             e.preventDefault(); dropzone.style.borderColor='';
@@ -9590,7 +9682,7 @@
 
         function roleBadge(role) {
           const colors = {
-            admin:    'background:#e6efff;color:#0a47b0',
+            admin:    'background:var(--brand-100);color:var(--brand-text-strong)',
             biller:   'background:#d8f5e3;color:#0c6e40',
             provider: 'background:#fef3c7;color:#92400e',
             viewer:   'background:#f3f4f6;color:#374151',
@@ -9876,7 +9968,7 @@
             card.innerHTML = `
               <div class="flex items-center justify-between mb-2">
                 <div class="text-[14px] font-semibold text-ink-900">${escapeHtml(p.name)}</div>
-                <span class="pill" style="background:#e6efff;color:#0a47b0">${denialRate}% denial</span>
+                <span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">${denialRate}% denial</span>
               </div>
               <div class="grid grid-cols-3 gap-2">
                 <div>
@@ -9905,7 +9997,7 @@
             const li = document.createElement('li');
             li.className = 'px-4 py-2.5 flex items-start gap-3';
             li.innerHTML = `
-              <span class="pill" style="background:#e6efff;color:#0a47b0;flex-shrink:0;">${escapeHtml(a.payer)}</span>
+              <span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong);flex-shrink:0;">${escapeHtml(a.payer)}</span>
               <div class="flex-1 min-w-0"><div class="text-ink-900">${escapeHtml(a.text)}</div></div>
               <span class="text-[10.5px] text-ink-500 mono flex-shrink-0">${escapeHtml(a.date)}</span>
             `;
@@ -10247,7 +10339,7 @@
                 <span class="text-ink-900">${escapeHtml(d.name)}</span>
               </div>
             </td>
-            <td class="td"><span class="pill" style="background:#e6efff;color:#0a47b0">${escapeHtml(d.type)}</span></td>
+            <td class="td"><span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">${escapeHtml(d.type)}</span></td>
             <td class="td num text-ink-500">${escapeHtml(d.size || '—')}</td>
             <td class="td num text-ink-500">${escapeHtml(d.uploaded)}</td>
             <td class="td">${statusPill}</td>
@@ -10469,7 +10561,7 @@
         if (/^(approved|active|completed|won|signed|normal|paid|payment|scheduled|yes|resulted)$/.test(v)) s = 'background:#d8f5e3;color:#0c8a4f';
         else if (/^(pending|under review|on hold|drafted|submitted|refund|ordered)$/.test(v)) s = 'background:#fff0d6;color:#b86a00';
         else if (/^(denied|lost|cancelled|critical|high|no-show|expired|discontinued)$/.test(v)) s = 'background:#ffe1e1;color:#c83838';
-        else if (v === 'low' || v === 'collected') s = 'background:#e6efff;color:#0a47b0';
+        else if (v === 'low' || v === 'collected') s = 'background:var(--brand-100);color:var(--brand-text-strong)';
         return '<span class="pill" style="' + s + '">' + escapeHtml(val == null || val === '' ? '—' : String(val)) + '</span>';
       }
 
@@ -11262,7 +11354,7 @@
               <div class="flex items-center gap-2.5">
                 <div class="flex h-7 w-7 items-center justify-center rounded-sm bg-med-100 text-med-700 text-[11px] font-semibold flex-shrink-0">${escapeHtml(initialsOf(p.name))}</div>
                 <div>
-                  <div class="font-semibold text-ink-900 flex items-center gap-1.5">${escapeHtml(p.name || '—')}${isActive ? '<span class="pill" style="background:#e6efff;color:#0a47b0">Active</span>' : ''}</div>
+                  <div class="font-semibold text-ink-900 flex items-center gap-1.5">${escapeHtml(p.name || '—')}${isActive ? '<span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">Active</span>' : ''}</div>
                   <div class="text-[11px] text-ink-500 mono">${escapeHtml(p.mrn || '—')}</div>
                 </div>
               </div>
@@ -11649,7 +11741,7 @@
       const SEV_BADGE = {
         High:   { bg:'#ffe1e1', fg:'#c83838', letter:'H' },
         Medium: { bg:'#fff0d6', fg:'#b86a00', letter:'M' },
-        Low:    { bg:'#e6efff', fg:'#0a47b0', letter:'L' }
+        Low:    { bg:'var(--brand-100)', fg:'var(--brand-text-strong)', letter:'L' }
       };
       function renderRiskPanel() {
         const list = document.getElementById('risk-list');
@@ -11707,7 +11799,7 @@
       function fmtDayLabel(d) { return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }); }
       function isoDate(d) { return d.toISOString().slice(0,10); }
       const SCH_STATUS_STYLE = {
-        Scheduled:{ bg:'#e6efff', fg:'#0a47b0' },
+        Scheduled:{ bg:'var(--brand-100)', fg:'var(--brand-text-strong)' },
         Confirmed:{ bg:'#d8f5e3', fg:'#0c8a4f' },
         'Checked In':{ bg:'#f1e8ff', fg:'#6b3fa0' },
         Completed:{ bg:'#eceef2', fg:'#4a505c' },
@@ -12067,7 +12159,7 @@
               '<div class="text-[12px] text-ink-500"><span class="font-semibold">To:</span> '+escapeHtml(m.to)+'</div>' +
               (m.re ? '<div class="text-[12px] text-ink-500"><span class="font-semibold">Re:</span> '+escapeHtml(m.re)+'</div>' : '') +
               '<div class="text-[11px] text-ink-400 mono mt-1">'+escapeHtml(m.date)+' · '+escapeHtml(m.type)+' · '+escapeHtml(m.direction)+'</div>' +
-              '<div class="flex flex-wrap gap-1 mt-2">'+(m.tags||[]).map(t=>'<span class="pill" style="background:#e6efff;color:#0a47b0">'+escapeHtml(t)+'</span>').join('')+'</div>' +
+              '<div class="flex flex-wrap gap-1 mt-2">'+(m.tags||[]).map(t=>'<span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">'+escapeHtml(t)+'</span>').join('')+'</div>' +
             '</div>' +
             '<div class="text-[13px] text-ink-800 leading-relaxed whitespace-pre-wrap">'+escapeHtml(m.body)+'</div>';
         }
@@ -12323,7 +12415,7 @@
             ? '<span class="pill ml-1" style="background:#f1e8ff;color:#6b3fa0">Mod ' + escapeHtml(c.modifier) + '</span>'
             : '';
           const manualBadge = c._manual
-            ? '<span class="pill ml-1" style="background:#e6efff;color:#0a47b0">Manual</span>'
+            ? '<span class="pill ml-1" style="background:var(--brand-100);color:var(--brand-text-strong)">Manual</span>'
             : '';
           // Two distinct warnings, deliberately kept separate: a format
           // problem means the code is shaped wrong (likely hallucinated);
@@ -12350,7 +12442,7 @@
             : '';
           return '<div class="bg-shell border ' + stateClass + ' rounded-sm px-3 py-2">' +
             '<div class="flex items-center justify-between">' +
-              '<div><span class="pill" style="background:#e6efff;color:#0a47b0">' + escapeHtml(c.type||'CODE') + '</span> ' +
+              '<div><span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">' + escapeHtml(c.type||'CODE') + '</span> ' +
               '<span class="mono text-[13px] font-semibold text-ink-900 ml-1">' + escapeHtml(c.code) + '</span>' + unitsNote + ' ' +
               '<span class="text-[12px] text-ink-600">' + escapeHtml(c.desc||'') + '</span>' + timeBadge + modBadge + manualBadge + formatBadge + feeBadge + '</div>' +
               confDisplay +

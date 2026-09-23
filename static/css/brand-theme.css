@@ -1,0 +1,45 @@
+/* Althais brand color, applied from the variables static/js/brand.js sets on <html> (Settings > Appearance).
+   The brand can be light (pink) or dark (Althais blue), so text on it uses --brand-on (white or a deep shade,
+   whichever reads) and brand-colored text on white uses --brand-text, which is darkened until it's readable. */
+
+/* primary buttons and badges on the brand color */
+:not(header).bg-med-600.text-white, :not(header).bg-med-700.text-white,
+.bg-med-600:not(header) .text-white, .hover\:bg-med-700:hover:not(header) { color: var(--brand-on) !important; }
+:not(header).bg-med-600 { box-shadow: var(--brand-ring); }
+
+/* brand text on light backgrounds */
+.text-med-600, .hover\:text-med-600:hover { color: var(--brand-text) !important; }
+.text-med-700, .hover\:text-med-700:hover { color: var(--brand-text-strong) !important; }
+.border-med-600 { border-color: var(--brand-text) !important; }
+
+/* the top bar in light mode */
+html:not([data-theme-resolved="dark"]) header.bg-med-600 { color: var(--brand-on) !important; border-bottom: var(--brand-bar-line); }
+html:not([data-theme-resolved="dark"]) header.bg-med-600 [class*="text-white"] { color: rgb(var(--brand-on-rgb) / .85) !important; }
+html:not([data-theme-resolved="dark"]) header.bg-med-600 [class*="border-white"] { border-color: rgb(var(--brand-on-rgb) / .18) !important; }
+html:not([data-theme-resolved="dark"]) header.bg-med-600 [class*="bg-white"] { background-color: var(--brand-glass) !important; }
+html:not([data-theme-resolved="dark"]) header.bg-med-600 [class*="hover:bg-white"]:hover { background-color: var(--brand-glass-hover) !important; }
+html:not([data-theme-resolved="dark"]) .primary-tab { color: rgb(var(--brand-on-rgb) / .68) !important; }
+html:not([data-theme-resolved="dark"]) .primary-tab:hover,
+html:not([data-theme-resolved="dark"]) .primary-tab.active { color: var(--brand-on) !important; border-bottom-color: var(--brand-on) !important; }
+
+/* dark mode: a deep brand top bar keeps white text; brand text becomes the light brand shade */
+html[data-theme-resolved="dark"] header.bg-med-600 { background-color: var(--brand-dark-header) !important; color: var(--brand-dark-on) !important; }
+html[data-theme-resolved="dark"] header.bg-med-600 [class*="text-white"] { color: rgb(var(--brand-dark-on-rgb) / .85) !important; }
+html[data-theme-resolved="dark"] header.bg-med-600 [class*="border-white"] { border-color: rgb(var(--brand-dark-on-rgb) / .2) !important; }
+html[data-theme-resolved="dark"] header.bg-med-600 [class*="bg-white"] { background-color: var(--brand-dark-glass) !important; }
+html[data-theme-resolved="dark"] header.bg-med-600 [class*="hover:bg-white"]:hover { background-color: var(--brand-dark-glass-hover) !important; }
+html[data-theme-resolved="dark"] .primary-tab { color: rgb(var(--brand-dark-on-rgb) / .68) !important; }
+html[data-theme-resolved="dark"] .primary-tab:hover,
+html[data-theme-resolved="dark"] .primary-tab.active { color: var(--brand-dark-on) !important; border-bottom-color: var(--brand-dark-on) !important; }
+html[data-theme-resolved="dark"] .text-med-600, html[data-theme-resolved="dark"] .text-med-700 { color: var(--brand-dark-link) !important; }
+html[data-theme-resolved="dark"] .border-med-600 { border-color: var(--brand-dark-link) !important; }
+
+/* dark mode swaps in the softened brand (set by brand.js) for buttons and highlights. !important lets these
+   stylesheet values win over the light-mode values brand.js writes inline on <html>. */
+html[data-theme-resolved="dark"] {
+  --brand: var(--brand-dk) !important; --brand-rgb: var(--brand-dk-rgb) !important;
+  --brand-700: var(--brand-dk-700) !important; --brand-700-rgb: var(--brand-dk-700-rgb) !important;
+  --brand-on: var(--brand-dk-on) !important; --brand-on-rgb: var(--brand-dk-on-rgb) !important;
+  --brand-mark: var(--brand-dk) !important;
+}
+

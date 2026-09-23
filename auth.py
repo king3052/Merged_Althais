@@ -721,6 +721,8 @@ async def save_org_settings(
 #                clinic setup (static/js/staff-store.js). Admins only can edit.
 #    /api/tasks  the practice's task list and dismissed AI Inbox alerts
 #                (static/js/practice-data.js). Anyone in the org can edit.
+#    /api/branding  the practice's brand color (static/js/brand.js), set in
+#                Settings > Appearance. Admins only can edit.
 #  Kept apart from the generic settings endpoints above because these hold
 #  personal data: an account with no organization gets its own private
 #  document instead of the shared "" key.
@@ -786,6 +788,7 @@ def _register_doc_routes(path: str, category: str, admin_only: bool, denied_mess
 
 _register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.")
 _register_doc_routes("/api/tasks", "tasks", admin_only=False, denied_message="")
+_register_doc_routes("/api/branding", "branding", admin_only=True, denied_message="Only admins can change the brand color.")
 
 
 # ──────────────────────────────────────────────────────────────────────────

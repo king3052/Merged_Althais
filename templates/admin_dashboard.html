@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="/static/js/brand.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Althais Admin — Dashboard</title>
@@ -12,7 +13,7 @@
       colors: {
         shell: '#f4f5f7', panel: '#ffffff', line: '#e4e6eb', lineSoft: '#eceef2',
         ink: { 900: '#0f1116', 700: '#2c313b', 500: '#6b7280', 400: '#8b909c' },
-        med: { 700: '#0a47b0', 600: '#0d5bd7', 100: '#e6efff' },
+        med: { 700: 'rgb(var(--brand-700-rgb) / <alpha-value>)', 600: 'rgb(var(--brand-rgb) / <alpha-value>)', 500: 'rgb(var(--brand-500-rgb) / <alpha-value>)', 100: 'rgb(var(--brand-100-rgb) / <alpha-value>)', 50: 'rgb(var(--brand-50-rgb) / <alpha-value>)' },
         ok: { 600: '#0c8a4f', 100: '#d8f5e3' }, risk: { 600: '#c83838', 100: '#ffe1e1' }
       }
     } } };
@@ -25,6 +26,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
   <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="stylesheet" href="/static/css/brand-theme.css" />
 </head>
 <body class="bg-shell min-h-screen">
   <!-- Top bar -->

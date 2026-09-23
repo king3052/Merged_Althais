@@ -5,25 +5,25 @@
   <title>Althais — Tasks</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
-    .fld:focus { border-color:#0d5bd7; }
+    .fld:focus { border-color:var(--brand); }
     .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
     .tab { font-size:12.5px; padding:6px 12px; border-radius:2px; color:#4a505c; font-weight:500; background:none; border:0; cursor:pointer; }
-    .tab.active { background:#e6efff; color:#0a47b0; font-weight:600; }
+    .tab.active { background:var(--brand-100); color:var(--brand-text-strong); font-weight:600; }
     .tab .n { font-size:10.5px; margin-left:4px; color:inherit; opacity:.75; }
     .task { display:flex; align-items:flex-start; gap:10px; padding:11px 16px; border-bottom:1px solid #eceef2; }
     .task:last-child { border-bottom:0; }
     .done-box { width:18px; height:18px; border-radius:50%; border:1.5px solid #c7cad1; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:transparent; cursor:pointer; margin-top:1px; }
     .done-box:hover { border-color:#0c8a4f; }
     .done-box.is-done { background:#0c8a4f; border-color:#0c8a4f; }
-    .act { font-size:11px; font-weight:600; color:#0d5bd7; background:none; border:0; cursor:pointer; padding:0 4px; }
+    .act { font-size:11px; font-weight:600; color:var(--brand-text); background:none; border:0; cursor:pointer; padding:0 4px; }
     .act.risk { color:#c83838; }
     .sugg { padding:10px 14px; border-bottom:1px solid #eceef2; }
     .sugg:last-child { border-bottom:0; }
     html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
     html[data-theme-resolved="dark"] .tab { color:#aab0bf; }
-    html[data-theme-resolved="dark"] .tab.active { background:#182740; color:#9dbcff; }
+    html[data-theme-resolved="dark"] .tab.active { background:var(--brand-dark-tint); color:var(--brand-dark-link-soft); }
     html[data-theme-resolved="dark"] .task, html[data-theme-resolved="dark"] .sugg { border-color:#2c313b; }
-    html[data-theme-resolved="dark"] .act { color:#6f9eff; }
+    html[data-theme-resolved="dark"] .act { color:var(--brand-dark-link); }
   </style>
 </head>
 <body class="bg-shell">

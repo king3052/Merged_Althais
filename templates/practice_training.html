@@ -6,16 +6,16 @@
   <style>
     .modal-overlay { background: rgba(15,17,22,0.45); }
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
-    .fld:focus { border-color:#0d5bd7; }
+    .fld:focus { border-color:var(--brand); }
     .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; }
     .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
-    .act { font-size:11px; font-weight:600; color:#0d5bd7; background:none; border:0; cursor:pointer; padding:0 4px; }
+    .act { font-size:11px; font-weight:600; color:var(--brand-text); background:none; border:0; cursor:pointer; padding:0 4px; }
     .act.risk { color:#c83838; }
     .who-list { max-height:170px; overflow-y:auto; border:1px solid #e4e6eb; border-radius:2px; padding:4px 8px; }
     .who-list label { display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 0; cursor:pointer; }
     html[data-theme-resolved="dark"] .fld, html[data-theme-resolved="dark"] .flt { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
     html[data-theme-resolved="dark"] .who-list { border-color:#2c313b; }
-    html[data-theme-resolved="dark"] .act { color:#6f9eff; }
+    html[data-theme-resolved="dark"] .act { color:var(--brand-dark-link); }
   </style>
 </head>
 <body class="bg-shell">

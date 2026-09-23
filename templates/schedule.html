@@ -6,7 +6,7 @@
   <style>
     .modal-overlay { background: rgba(15,17,22,0.45); }
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
-    .fld:focus { border-color:#0d5bd7; }
+    .fld:focus { border-color:var(--brand); }
     .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
     .st-sel { font-size:11px; font-weight:600; border-radius:3px; padding:2px 4px; border:0; cursor:pointer; }
     .act { font-size:11px; font-weight:600; color:#c83838; background:none; border:0; cursor:pointer; }
@@ -114,7 +114,7 @@
     const esc = P.esc;
     const KEY = P.ns + 'althais.appointments.v1';
     const STATUSES = ['Scheduled', 'Confirmed', 'Checked In', 'Completed', 'No-show', 'Cancelled'];
-    const STYLE = { Scheduled: 'background:#e6efff;color:#0a47b0', Confirmed: 'background:#d8f5e3;color:#0c8a4f', 'Checked In': 'background:#f1e8ff;color:#6b3fa0', Completed: 'background:#eceef2;color:#4a505c', 'No-show': 'background:#ffe1e1;color:#c83838', Cancelled: 'background:#f3f3f3;color:#9aa0ac' };
+    const STYLE = { Scheduled: 'background:var(--brand-100);color:var(--brand-text-strong)', Confirmed: 'background:#d8f5e3;color:#0c8a4f', 'Checked In': 'background:#f1e8ff;color:#6b3fa0', Completed: 'background:#eceef2;color:#4a505c', 'No-show': 'background:#ffe1e1;color:#c83838', Cancelled: 'background:#f3f3f3;color:#9aa0ac' };
     const norm = (s) => (/^no-?show$/i.test(s || '') ? 'No-show' : (s || 'Scheduled'));
     let day = P.todayIso();
 
