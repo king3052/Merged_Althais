@@ -8740,9 +8740,9 @@
           body[data-theme-resolved="dark"] .bg-shell,
           body[data-theme-resolved="dark"] [class*="bg-shell"] { background: #14181f !important; }
           body[data-theme-resolved="dark"] .bg-white { background: #1a1d24 !important; }
-          /* bg-white/10 etc. inside the blue header must stay transparent — do NOT override */
-          body[data-theme-resolved="dark"] header [class*="bg-white"] { background: transparent !important; }
-          body[data-theme-resolved="dark"] header { background-color: #0d5bd7 !important; }
+          /* The shared blue header: same darker blue and translucent controls as every other page (static/css/dark.css) */
+          body[data-theme-resolved="dark"] header.bg-med-600 [class*="bg-white"] { background-color: rgba(255, 255, 255, 0.10) !important; }
+          body[data-theme-resolved="dark"] header.bg-med-600 { background-color: #0b3f9c !important; border-bottom: 1px solid #1c2a44; }
 
           /* ── Nav / secondary header ── */
           body[data-theme-resolved="dark"] nav.bg-panel { background: #1a1d24 !important; border-color: #2c313b !important; }
