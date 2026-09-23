@@ -1,4 +1,4 @@
-<![CDATA[<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   {% include "_head.html" %}
@@ -26,6 +26,7 @@
   {% endif %}
 
   {% include "_nav.html" %}
+  <script src="/static/js/staff-store.js"></script>
 
   <div class="max-w-[1560px] mx-auto flex items-start">
 
@@ -83,7 +84,7 @@
       <section id="schedule" class="bg-panel border-b border-line">
         <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
           <h2 class="text-[13px] font-semibold text-ink-900">Today's Schedule</h2>
-          <a href="/emr/schedule" class="text-[11px] text-med-600 hover:text-med-700 font-medium">View full schedule →</a>
+          <a href="/emr/schedule" class="text-[11px] text-med-600 hover:text-med-700 font-medium">View Full Schedule →</a>
         </div>
         <div class="overflow-x-auto thin-scroll">
           <table class="w-full">
@@ -110,19 +111,19 @@
         <ul id="alerts-list" class="divide-y divide-lineSoft text-[12px]"></ul>
       </section>
 
-      <!-- Charts Waiting for Signature -->
+      <!-- Charts Waiting For Signature -->
       <section id="charts-waiting" class="bg-panel border-b border-line">
         <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
-          <h2 class="text-[13px] font-semibold text-ink-900">Charts Waiting for Signature</h2>
+          <h2 class="text-[13px] font-semibold text-ink-900">Charts Waiting For Signature</h2>
           <a href="/emr" class="text-[11px] text-med-600 hover:text-med-700 font-medium">Open EMR →</a>
         </div>
         <div id="signatures-rows" class="divide-y divide-lineSoft"></div>
       </section>
 
-      <!-- Claims Ready for Submission -->
+      <!-- Claims Ready For Submission -->
       <section id="claims-panel" class="bg-panel border-b border-line">
         <div class="flex items-center justify-between px-4 py-2.5 border-b border-line">
-          <h2 class="text-[13px] font-semibold text-ink-900">Claims Ready for Submission</h2>
+          <h2 class="text-[13px] font-semibold text-ink-900">Claims Ready For Submission</h2>
           <a href="/revenue/claims" class="text-[11px] text-med-600 hover:text-med-700 font-medium">Open Claims →</a>
         </div>
         <div class="overflow-x-auto thin-scroll">
@@ -356,7 +357,7 @@
       '</li>';
     }).join('') : '<li>' + emptyState('No active alerts', 'Althea will flag risks here as they come up.') + '</li>';
 
-    // ── Charts Waiting for Signature ──
+    // ── Charts Waiting For Signature ──
     // Show claims with a status suggesting they need signature (Draft, needs review)
     var signatureNeeded = SAVED_CLAIMS.filter(function(c) {
       var s = (c.status || '').toLowerCase();
@@ -401,7 +402,7 @@
       '</div>';
     }).join('') : '<div class="px-4 py-2.5 text-[12px] text-ink-500">No charts awaiting signature.</div>';
 
-    // ── Claims Ready for Submission ──
+    // ── Claims Ready For Submission ──
     const CLAIM_PILL = {
       'Ready to submit': 'background:#d8f5e3;color:#0c8a4f',
       'Needs review':    'background:#fff0d6;color:#b86a00',
@@ -514,37 +515,46 @@
     }
 
     // ── Staff Onboarding & Compliance Alerts ──
-    // Derived from the data: flag patients with missing insurance, claims needing attention
+    // From the Staff workspace's records (static/js/staff-store.js): the same rules the Compliance page uses.
     var STAFF_ALERTS = [];
+    const TONE_TEXT = { ok: 'text-ok-600', warn: 'text-warn-600', risk: 'text-risk-600', med: 'text-med-600' };
 
-    var noCoverageCount = PATIENTS.filter(function(p) { return !p.insPrimary || p.insPrimary === '—'; }).length;
-    if (noCoverageCount > 0) {
-      STAFF_ALERTS.push({ tone: 'warn', label: noCoverageCount + ' patient' + (noCoverageCount > 1 ? 's' : '') + ' missing insurance info', detail: 'Update insurance details in the EMR patient record.', href: '/emr' });
+    function renderStaffAlerts() {
+      $('team-list').innerHTML = STAFF_ALERTS.length ? STAFF_ALERTS.map(function(t) {
+        return '<li class="px-3 py-2 row-hover cursor-pointer" onclick="window.location.href=\'' + esc(t.href) + '\'">' +
+          '<a href="' + esc(t.href) + '" class="block no-underline">' +
+            '<div class="font-semibold ' + (TONE_TEXT[t.tone] || '') + '">' + esc(t.label) + '</div>' +
+            '<div class="text-ink-500 text-[11px] mt-0.5">' + esc(t.detail) + '</div>' +
+          '</a>' +
+        '</li>';
+      }).join('') : '<li>' + emptyState('No urgent staff alerts', 'Onboarding and compliance issues that need attention will show up here.') + '</li>';
+      $('team-alert-count').textContent = STAFF_ALERTS.length;
+      var kpis = document.querySelectorAll('.kpi');
+      if (kpis.length >= 4) {
+        kpis[3].querySelector('.num').textContent = STAFF_ALERTS.length;
+        var staffLabel = kpis[3].querySelectorAll('.text-ink-400');
+        if (staffLabel.length) staffLabel[0].textContent = STAFF_ALERTS.length + ' alert' + (STAFF_ALERTS.length !== 1 ? 's' : '');
+      }
     }
+    renderStaffAlerts();
 
-    var needsReviewCount = SAVED_CLAIMS.filter(function(c) { return (c.status || '').toLowerCase() === 'needs review'; }).length;
-    if (needsReviewCount > 0) {
-      STAFF_ALERTS.push({ tone: 'warn', label: needsReviewCount + ' claim' + (needsReviewCount > 1 ? 's' : '') + ' need' + (needsReviewCount === 1 ? 's' : '') + ' review', detail: 'Review and update claim status in Revenue workspace.', href: '/revenue/claims' });
+    if (window.StaffStore) {
+      StaffStore.load().then(function(doc) {
+        var items = StaffStore.complianceItems(doc);
+        var n = function(st) { return items.filter(function(i) { return i.status === st; }).length; };
+        var plural = function(k, one, many) { return k + ' ' + (k === 1 ? one : many); };
+        var review = doc.people.filter(function(p) { return StaffStore.status(p) === 'Needs Review'; }).length;
+        var alerts = [];
+        if (n('Expired')) alerts.push({ tone: 'risk', label: plural(n('Expired'), 'credential expired', 'credentials expired'), detail: 'Staff shouldn’t work with patients on an expired license or certification.', href: '/staff/compliance' });
+        if (n('Overdue')) alerts.push({ tone: 'risk', label: plural(n('Overdue'), 'training overdue', 'trainings overdue'), detail: 'Past the due date. Complete or reschedule.', href: '/staff/training' });
+        if (n('Expiring Soon')) alerts.push({ tone: 'warn', label: plural(n('Expiring Soon'), 'credential expires', 'credentials expire') + ' within ' + StaffStore.EXPIRING_DAYS + ' days', detail: 'Start renewals now.', href: '/staff/credentials' });
+        if (n('Missing Requirement')) alerts.push({ tone: 'warn', label: plural(n('Missing Requirement'), 'missing staff requirement', 'missing staff requirements'), detail: 'Active staff with unverified onboarding items.', href: '/staff/compliance' });
+        if (review) alerts.push({ tone: 'med', label: plural(review, 'person is', 'people are') + ' ready for onboarding approval', detail: 'Every requirement is verified. Approve to add them to the Team.', href: '/staff/onboarding' });
+        if (n('Pending Verification')) alerts.push({ tone: 'med', label: plural(n('Pending Verification'), 'credential needs', 'credentials need') + ' verification', detail: 'Check the documents and mark them verified.', href: '/staff/credentials?status=Pending%20Verification' });
+        STAFF_ALERTS = alerts.slice(0, 4);
+        renderStaffAlerts();
+      }).catch(function() { /* staff records unavailable: leave the empty state */ });
     }
-
-    var deniedCount = deniedClaims.length;
-    if (deniedCount > 0) {
-      STAFF_ALERTS.push({ tone: 'risk', label: deniedCount + ' claim' + (deniedCount > 1 ? 's' : '') + ' denied', detail: 'Denied claims need appeal or resubmission.', href: '/revenue/claims' });
-    }
-
-    STAFF_ALERTS = STAFF_ALERTS.slice(0, 4);
-
-    const TONE_TEXT = { ok: 'text-ok-600', warn: 'text-warn-600', risk: 'text-risk-600' };
-
-    $('team-list').innerHTML = STAFF_ALERTS.length ? STAFF_ALERTS.map(function(t) {
-      return '<li class="px-3 py-2 row-hover cursor-pointer" onclick="window.location.href=\'' + esc(t.href) + '\'">' +
-        '<a href="' + esc(t.href) + '" class="block no-underline">' +
-          '<div class="font-semibold ' + (TONE_TEXT[t.tone] || '') + '">' + esc(t.label) + '</div>' +
-          '<div class="text-ink-500 text-[11px] mt-0.5">' + esc(t.detail) + '</div>' +
-        '</a>' +
-      '</li>';
-    }).join('') : '<li>' + emptyState('No urgent staff alerts', 'Onboarding and compliance issues that need attention will show up here.') + '</li>';
-    $('team-alert-count').textContent = STAFF_ALERTS.length;
 
     // ── Recent Activity ──
     var recentActivity = ACTIVITY_LOG.slice(0, 10);
@@ -589,14 +599,7 @@
         }
       }
 
-      // Staff/Compliance KPI
-      if (chartsKpi.length >= 4) {
-        chartsKpi[3].querySelector('.num').textContent = STAFF_ALERTS.length;
-        var staffLabel = chartsKpi[3].querySelectorAll('.text-ink-400');
-        if (staffLabel.length) {
-          staffLabel[0].textContent = STAFF_ALERTS.length + ' alert' + (STAFF_ALERTS.length !== 1 ? 's' : '');
-        }
-      }
+      // Staff/Compliance KPI: set by renderStaffAlerts() once staff records load
     }
     updateKPIs();
   </script>

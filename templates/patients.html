@@ -15,32 +15,32 @@
         <p class="text-[12px] text-ink-500 mt-0.5">Patient directory — demographics, coverage, and outstanding balance.</p>
       </div>
       <div class="flex items-center gap-2">
-        <input type="text" autocomplete="off" placeholder="Search name or MRN…"
+        <input id="search" type="search" autocomplete="off" placeholder="Search name or MRN…" aria-label="Search patients"
                class="rounded-sm border border-line bg-white px-3 py-1.5 text-[12px] text-ink-900 outline-none focus:border-med-600 w-[220px]" />
-        <a href="/emr#patients-view" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Add patient</a>
+        <a href="/emr?new_patient=1" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Add Patient</a>
       </div>
     </div>
 
     <div class="p-5">
       <div class="grid grid-cols-3 gap-3 mb-5">
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total patients</div>
-          <div class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Patients</div>
+          <div id="k-total" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">With coverage</div>
-          <div class="text-[22px] font-semibold text-ok-600 num mt-1">0</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">With Coverage</div>
+          <div id="k-covered" class="text-[22px] font-semibold text-ok-600 num mt-1">0</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Outstanding A/R</div>
-          <div class="text-[22px] font-semibold text-ink-900 num mt-1">$0</div>
+          <div id="k-ar" class="text-[22px] font-semibold text-ink-900 num mt-1">$0</div>
         </div>
       </div>
 
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Patient directory</h3>
-          <span class="text-[11px] text-ink-500">0 patients</span>
+          <h3 class="text-[13px] font-semibold text-ink-900">Patient Directory</h3>
+          <span id="count" class="text-[11px] text-ink-500">0 patients</span>
         </div>
         <div class="overflow-x-auto thin-scroll">
           <table class="w-full">
@@ -49,20 +49,59 @@
                 <th class="td text-left">Patient</th>
                 <th class="td text-left">DOB / Age</th>
                 <th class="td text-left">Sex</th>
-                <th class="td text-left">Primary insurance</th>
+                <th class="td text-left">Primary Insurance</th>
                 <th class="td text-left">PCP</th>
                 <th class="td text-right">Balance</th>
                 <th class="td w-7"></th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody id="rows"></tbody>
           </table>
-          <div class="px-4 py-10 text-center text-[12px] text-ink-500">
-            No patients in the directory yet. Click <span class="font-semibold text-med-600">+ Add patient</span> to create one.
+          <div id="empty" class="px-4 py-10 text-center text-[12px] text-ink-500">
+            No patients in the directory yet. Click <span class="font-semibold text-med-600">+ Add Patient</span> to create one.
           </div>
         </div>
       </div>
     </div>
   </div>
+  <script src="/static/js/practice-data.js"></script>
+  <script>
+    // The EMR's own patient records for this organization (same storage the EMR reads and writes).
+    const P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = P.esc;
+    const PATIENTS = P.local().patients.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const covered = (p) => p.insPrimary && p.insPrimary !== '—';
+    function age(dob) {
+      const d = new Date(dob + 'T00:00:00'); if (isNaN(d)) return '';
+      const n = new Date(); let a = n.getFullYear() - d.getFullYear();
+      if (n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) a--;
+      return a;
+    }
+    $('k-total').textContent = PATIENTS.length;
+    $('k-covered').textContent = PATIENTS.filter(covered).length;
+    $('k-ar').textContent = P.money(PATIENTS.reduce((s, p) => s + (Number(p.balance) || 0), 0)).replace(/\.00$/, '');
+
+    function render() {
+      const q = $('search').value.trim().toLowerCase();
+      const rows = PATIENTS.filter(p => !q || ((p.name || '') + ' ' + (p.mrn || '')).toLowerCase().includes(q));
+      $('count').textContent = rows.length === PATIENTS.length ? `${PATIENTS.length} patient${PATIENTS.length === 1 ? '' : 's'}` : `${rows.length} of ${PATIENTS.length} patients`;
+      $('empty').style.display = rows.length ? 'none' : 'block';
+      if (PATIENTS.length && !rows.length) $('empty').textContent = 'No patients match your search.';
+      $('rows').innerHTML = rows.map(p => `
+        <tr class="row-hover cursor-pointer" data-mrn="${esc(p.mrn)}">
+          <td class="td"><a href="/emr?patient=${encodeURIComponent(p.mrn)}" class="font-semibold text-ink-900 hover:text-med-600">${esc(p.name)}</a><div class="text-[11px] text-ink-500 mono">${esc(p.mrn)}</div></td>
+          <td class="td text-ink-700 num">${esc(p.dob ? P.fmtDate(p.dob) : '—')}${p.dob ? `<span class="text-ink-400"> · ${age(p.dob)}</span>` : ''}</td>
+          <td class="td text-ink-700">${esc(p.sex || '—')}</td>
+          <td class="td ${covered(p) ? 'text-ink-700' : 'text-warn-600 font-semibold'}">${esc(covered(p) ? p.insPrimary : 'None on file')}</td>
+          <td class="td text-ink-700">${esc(p.pcp || '—')}</td>
+          <td class="td text-right num ${Number(p.balance) > 0 ? 'text-ink-900 font-semibold' : 'text-ink-500'}">${P.money(p.balance)}</td>
+          <td class="td text-right text-ink-400">›</td>
+        </tr>`).join('');
+    }
+    $('rows').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-mrn]'); if (tr && !e.target.closest('a')) location.href = '/emr?patient=' + encodeURIComponent(tr.dataset.mrn); });
+    $('search').addEventListener('input', render);
+    render();
+  </script>
 </body>
 </html>

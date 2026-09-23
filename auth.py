@@ -715,6 +715,80 @@ async def save_org_settings(
 
 
 # ──────────────────────────────────────────────────────────────────────────
+#  Shared workspace documents — one JSON document per organization per kind,
+#  stored in org_settings under the kind's category:
+#    /api/staff  team members, onboarding, credentials, training, roles and
+#                clinic setup (static/js/staff-store.js). Admins only can edit.
+#    /api/tasks  the practice's task list and dismissed AI Inbox alerts
+#                (static/js/practice-data.js). Anyone in the org can edit.
+#  Kept apart from the generic settings endpoints above because these hold
+#  personal data: an account with no organization gets its own private
+#  document instead of the shared "" key.
+#
+#  Saves are versioned: the document carries a "rev" number, a PUT must send
+#  the rev it was based on, and a stale rev gets 409 plus the current
+#  document, so two people editing at once never silently overwrite each other.
+# ──────────────────────────────────────────────────────────────────────────
+def _doc_org_key(user: User) -> str:
+    return user.organization.strip() if (user.organization or "").strip() else f"user:{user.email}"
+
+
+def _load_doc(user: User, db: Session, category: str):
+    row = db.scalar(
+        select(OrgSettings).where(
+            OrgSettings.org_key == _doc_org_key(user),
+            OrgSettings.category == category,
+        )
+    )
+    doc = {}
+    if row:
+        try:
+            doc = _json.loads(row.data) or {}
+        except Exception:
+            doc = {}
+    if not isinstance(doc, dict):
+        doc = {}
+    doc.setdefault("rev", 0)
+    return row, doc
+
+
+def _can_edit_doc(user: User, admin_only: bool) -> bool:
+    return (user.role or "admin") == "admin" if admin_only else True
+
+
+def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str):
+    @router.get(path)
+    def get_doc(user: User = Depends(require_user), db: Session = Depends(get_db)):
+        _, doc = _load_doc(user, db, category)
+        return JSONResponse({"data": doc, "can_edit": _can_edit_doc(user, admin_only)})
+
+    @router.put(path)
+    async def save_doc(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+        if not _can_edit_doc(user, admin_only):
+            return JSONResponse({"error": denied_message}, status_code=403)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Request body must be valid JSON."}, status_code=400)
+        if not isinstance(body, dict):
+            return JSONResponse({"error": "Expected a JSON object."}, status_code=400)
+        row, current = _load_doc(user, db, category)
+        if body.get("rev") != current["rev"]:
+            return JSONResponse({"error": "These records changed since you loaded them.", "data": current}, status_code=409)
+        body["rev"] = current["rev"] + 1
+        if row:
+            row.data = _json.dumps(body)
+        else:
+            db.add(OrgSettings(org_key=_doc_org_key(user), category=category, data=_json.dumps(body)))
+        db.commit()
+        return JSONResponse({"ok": True, "data": body})
+
+
+_register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.")
+_register_doc_routes("/api/tasks", "tasks", admin_only=False, denied_message="")
+
+
+# ──────────────────────────────────────────────────────────────────────────
 #  Password reset
 # ──────────────────────────────────────────────────────────────────────────
 @router.post("/forgot-password")

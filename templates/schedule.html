@@ -3,47 +3,61 @@
 <head>
   {% include "_head.html" %}
   <title>Althais — Schedule</title>
+  <style>
+    .modal-overlay { background: rgba(15,17,22,0.45); }
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:#0d5bd7; }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .st-sel { font-size:11px; font-weight:600; border-radius:3px; padding:2px 4px; border:0; cursor:pointer; }
+    .act { font-size:11px; font-weight:600; color:#c83838; background:none; border:0; cursor:pointer; }
+    html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+  </style>
 </head>
 <body class="bg-shell">
 
   {% include "_nav.html" %}
 
   <div class="max-w-[1560px] mx-auto">
-    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
       <div>
         <h1 class="text-[18px] font-semibold text-ink-900">Schedule</h1>
         <p class="text-[12px] text-ink-500 mt-0.5">Appointments across the practice.</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <select id="f-provider" class="fld" style="width:auto" aria-label="Filter by provider"></select>
         <div class="flex items-center rounded-sm border border-line bg-white text-[12px]">
-          <button type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-r border-line">‹</button>
-          <button type="button" id="sch-today-label" class="px-3 py-1.5 text-ink-900 font-semibold mono">—</button>
-          <button type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-l border-line">›</button>
+          <button id="day-prev" type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-r border-line" aria-label="Previous Day">‹</button>
+          <label class="relative px-3 py-1.5 text-ink-900 font-semibold mono cursor-pointer">
+            <span id="sch-today-label">—</span>
+            <input id="day-pick" type="date" class="absolute inset-0 opacity-0 cursor-pointer" aria-label="Pick A Date" />
+          </label>
+          <button id="day-next" type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-l border-line" aria-label="Next Day">›</button>
         </div>
-        <button type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ New Appointment</button>
+        <button id="day-today" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold">Today</button>
+        <button id="new-appt" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ New Appointment</button>
       </div>
     </div>
 
     <div class="p-5">
       <div class="grid grid-cols-3 gap-3 mb-5">
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Today's appointments</div>
-          <div class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Today's Appointments</div>
+          <div id="k-today" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">This week</div>
-          <div class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">This Week</div>
+          <div id="k-week" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">No-shows · 7d</div>
-          <div class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">No-Shows · 7d</div>
+          <div id="k-noshow" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
         </div>
       </div>
 
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Appointments</h3>
-          <span class="text-[11px] text-ink-500">0 scheduled</span>
+          <h3 id="list-title" class="text-[13px] font-semibold text-ink-900">Appointments</h3>
+          <span id="count" class="text-[11px] text-ink-500">0 scheduled</span>
         </div>
         <div class="overflow-x-auto thin-scroll">
           <table class="w-full">
@@ -54,11 +68,12 @@
                 <th class="td text-left">Reason</th>
                 <th class="td text-left">Provider</th>
                 <th class="td text-left">Status</th>
+                <th class="td text-right"></th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody id="rows"></tbody>
           </table>
-          <div class="px-4 py-10 text-center text-[12px] text-ink-500">
+          <div id="empty" class="px-4 py-10 text-center text-[12px] text-ink-500">
             No appointments scheduled for this day. Click <span class="font-semibold text-med-600">+ New Appointment</span> to add one.
           </div>
         </div>
@@ -66,9 +81,140 @@
     </div>
   </div>
 
+  <!-- New appointment -->
+  <div id="appt-modal" class="fixed inset-0 z-40 hidden items-center justify-center modal-overlay">
+    <form id="appt-form" class="bg-white rounded-sm shadow-xl w-[460px] max-w-[92vw]" autocomplete="off">
+      <div class="px-4 py-3 border-b border-line"><h3 class="text-[13.5px] font-semibold text-ink-900">New Appointment</h3></div>
+      <div class="p-4 space-y-3">
+        <div><label class="lbl" for="a-patient">Patient</label><select id="a-patient" class="fld" required></select></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="a-date">Date</label><input id="a-date" type="date" class="fld num" required /></div>
+          <div><label class="lbl" for="a-time">Time</label><input id="a-time" type="time" class="fld num" step="900" required /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="a-provider">Provider</label><input id="a-provider" class="fld" list="prov-list" required /><datalist id="prov-list"></datalist></div>
+          <div><label class="lbl" for="a-type">Visit Type</label><select id="a-type" class="fld"><option>Office Visit</option><option>Follow-up</option><option>New Patient</option><option>Telehealth</option><option>Procedure</option><option>Annual Wellness</option></select></div>
+        </div>
+        <div><label class="lbl" for="a-notes">Reason / Notes</label><input id="a-notes" class="fld" placeholder="e.g. Diabetes follow-up" /></div>
+        <div id="a-error" class="hidden text-[12px] text-risk-600"></div>
+      </div>
+      <div class="px-4 py-3 border-t border-line flex items-center justify-end gap-2">
+        <button id="a-cancel" type="button" class="text-[12px] px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Cancel</button>
+        <button type="submit" class="text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Save Appointment</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="/static/js/practice-data.js"></script>
   <script>
-    const now = new Date();
-    document.getElementById('sch-today-label').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    // Reads and writes the same appointment records as the EMR's scheduler (this organization's
+    // althais.appointments.v1), so anything booked here shows up there and in Althea's "what's my schedule".
+    const P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = P.esc;
+    const KEY = P.ns + 'althais.appointments.v1';
+    const STATUSES = ['Scheduled', 'Confirmed', 'Checked In', 'Completed', 'No-show', 'Cancelled'];
+    const STYLE = { Scheduled: 'background:#e6efff;color:#0a47b0', Confirmed: 'background:#d8f5e3;color:#0c8a4f', 'Checked In': 'background:#f1e8ff;color:#6b3fa0', Completed: 'background:#eceef2;color:#4a505c', 'No-show': 'background:#ffe1e1;color:#c83838', Cancelled: 'background:#f3f3f3;color:#9aa0ac' };
+    const norm = (s) => (/^no-?show$/i.test(s || '') ? 'No-show' : (s || 'Scheduled'));
+    let day = P.todayIso();
+
+    const load = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+    const save = (list) => { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { P.toast('Could not save on this device', 'error'); } };
+    const shift = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+
+    function providers() {
+      const L = P.local();
+      return [...new Set(load().map(a => a.provider).concat(L.claims.map(c => c.provider)).filter(Boolean))].sort();
+    }
+
+    function render() {
+      const all = load(), prov = $('f-provider').value;
+      const mine = all.filter(a => !prov || a.provider === prov);
+      const today = P.todayIso();
+      const d = new Date(day + 'T00:00:00');
+      $('sch-today-label').textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + (day === today ? ' · Today' : '');
+      $('day-pick').value = day;
+      $('list-title').textContent = day === today ? "Today's Appointments" : 'Appointments · ' + d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+      const weekStart = shift(today, -((new Date(today + 'T00:00:00').getDay() + 6) % 7)), weekEnd = shift(weekStart, 6);
+      $('k-today').textContent = mine.filter(a => a.date === today && norm(a.status) !== 'Cancelled').length;
+      $('k-week').textContent = mine.filter(a => a.date >= weekStart && a.date <= weekEnd && norm(a.status) !== 'Cancelled').length;
+      $('k-noshow').textContent = mine.filter(a => norm(a.status) === 'No-show' && a.date >= shift(today, -7) && a.date <= today).length;
+
+      const rows = mine.filter(a => a.date === day).sort((x, y) => (x.time || '').localeCompare(y.time || ''));
+      $('count').textContent = `${rows.length} scheduled`;
+      $('empty').style.display = rows.length ? 'none' : 'block';
+      $('rows').innerHTML = rows.map(a => {
+        const st = norm(a.status);
+        return `
+        <tr class="row-hover">
+          <td class="td mono text-[12px] text-ink-900 font-semibold">${esc(a.time || '—')}</td>
+          <td class="td"><a href="/emr" class="font-semibold text-ink-900 hover:text-med-600">${esc(a.patient || '—')}</a><div class="text-[11px] text-ink-500 mono">${esc(a.mrn || '')}</div></td>
+          <td class="td text-ink-700">${esc(a.type || '')}${a.notes ? `<div class="text-[11px] text-ink-500">${esc(a.notes)}</div>` : ''}</td>
+          <td class="td text-ink-600">${esc(a.provider || '—')}</td>
+          <td class="td"><select class="st-sel" style="${STYLE[st] || STYLE.Scheduled}" data-status="${esc(a.id)}" aria-label="Status for ${esc(a.patient)}">${STATUSES.map(s => `<option${s === st ? ' selected' : ''}>${s}</option>`).join('')}</select></td>
+          <td class="td text-right"><button type="button" class="act" data-delete="${esc(a.id)}">Delete</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    $('rows').addEventListener('change', (e) => {
+      const id = e.target.dataset.status; if (!id) return;
+      const list = load(), a = list.find(x => x.id === id);
+      if (a) { a.status = e.target.value; save(list); P.toast(`${a.patient}: ${a.status}`); }
+      render();
+    });
+    $('rows').addEventListener('click', (e) => {
+      const id = e.target.dataset.delete; if (!id) return;
+      const list = load(), a = list.find(x => x.id === id);
+      if (!a || !confirm(`Delete ${a.patient}'s ${a.time} appointment?`)) return;
+      save(list.filter(x => x.id !== id)); P.toast('Appointment deleted'); render();
+    });
+    $('day-prev').addEventListener('click', () => { day = shift(day, -1); render(); });
+    $('day-next').addEventListener('click', () => { day = shift(day, 1); render(); });
+    $('day-today').addEventListener('click', () => { day = P.todayIso(); render(); });
+    $('day-pick').addEventListener('change', () => { if ($('day-pick').value) { day = $('day-pick').value; render(); } });
+    $('f-provider').addEventListener('change', render);
+
+    // ---- new appointment ----
+    function openModal() {
+      const patients = P.local().patients.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      if (!patients.length) { P.toast('Add a patient in the EMR first', 'error'); return; }
+      $('a-patient').innerHTML = patients.map(p => `<option value="${esc(p.mrn)}">${esc(p.name)} · ${esc(p.mrn)}</option>`).join('');
+      $('prov-list').innerHTML = providers().map(p => `<option value="${esc(p)}">`).join('');
+      $('a-date').value = day; $('a-time').value = '09:00';
+      $('a-provider').value = $('f-provider').value || '';
+      $('a-notes').value = ''; $('a-error').classList.add('hidden');
+      $('appt-modal').classList.remove('hidden'); $('appt-modal').classList.add('flex');
+      $('a-patient').focus();
+    }
+    function closeModal() { $('appt-modal').classList.add('hidden'); $('appt-modal').classList.remove('flex'); }
+    $('new-appt').addEventListener('click', openModal);
+    $('a-cancel').addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+    $('appt-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const p = P.local().patients.find(x => x.mrn === $('a-patient').value);
+      const date = $('a-date').value, time = $('a-time').value, provider = $('a-provider').value.trim();
+      const list = load();
+      const clash = list.find(a => a.date === date && a.time === time && a.provider === provider && norm(a.status) !== 'Cancelled');
+      if (clash) { $('a-error').textContent = `${provider} already has ${clash.patient} at ${time}.`; $('a-error').classList.remove('hidden'); return; }
+      list.push({ id: 'APT-' + Date.now().toString(36).toUpperCase(), patient: p.name, mrn: p.mrn, provider, date, time, type: $('a-type').value, status: 'Scheduled', notes: $('a-notes').value.trim() });
+      save(list);
+      closeModal(); day = date;
+      P.toast(`Booked ${p.name} for ${time}`);
+      fillProviders(); render();
+    });
+
+    function fillProviders() {
+      const cur = $('f-provider').value;
+      $('f-provider').innerHTML = '<option value="">All Providers</option>' + providers().map(p => `<option${p === cur ? ' selected' : ''}>${esc(p)}</option>`).join('');
+    }
+    const q = new URLSearchParams(location.search);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(q.get('date') || '')) day = q.get('date');
+    fillProviders(); render();
+    if (q.get('new') === '1') openModal();
+    window.addEventListener('storage', (e) => { if (e.key === KEY) render(); });   // booked from the EMR in another tab
   </script>
 </body>
 </html>

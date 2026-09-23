@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Clinic Onboarding</title>
+  <style>
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:#0d5bd7; }
+    .fld.bad { border-color:#c83838; }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .phase { background:#fff; border:1px solid #e4e6eb; border-radius:6px; overflow:hidden; }
+    .phase + .phase { margin-top:14px; }
+    .phase-h { display:flex; align-items:center; justify-content:space-between; padding:11px 18px; border-bottom:1px solid #eceef2; background:#fafbfc; }
+    .phase-h h2 { font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#4a505c; }
+    .phase-count { font-size:11.5px; color:#6b7280; font-weight:600; }
+    .phase-count.is-done { color:#0c8a4f; }
+    .step { position:relative; border-top:1px solid #eceef2; }
+    .phase-b .step:first-child { border-top:0; }
+    /* the timeline: a line from each step's dot down to the next one */
+    .step:not(:last-child)::after { content:''; position:absolute; left:30px; top:44px; bottom:-15px; width:2px; background:#e4e6eb; z-index:1; }
+    .step.is-done:not(:last-child)::after { background:#9fd9b8; }
+    .step.is-open { background:#fbfcff; box-shadow:inset 3px 0 0 #0d5bd7; }
+    .step-h { width:100%; display:flex; align-items:flex-start; gap:14px; padding:15px 18px; background:none; border:0; cursor:pointer; text-align:left; }
+    .step-h:hover .step-title { color:#0d5bd7; }
+    .num-dot { position:relative; z-index:2; width:26px; height:26px; border-radius:50%; border:2px solid #d4d7de; background:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; color:#6b7280; }
+    .num-dot.is-done { background:#0c8a4f; border-color:#0c8a4f; color:#fff; }
+    .step.is-open .num-dot:not(.is-done) { border-color:#0d5bd7; color:#fff; background:#0d5bd7; }
+    .step-title { display:block; font-size:13.5px; font-weight:600; color:#0f1116; line-height:1.35; }
+    .step.is-done:not(.is-open) .step-title { color:#6b7280; font-weight:500; }
+    .step-sub { display:block; font-size:12px; color:#6b7280; margin-top:2px; line-height:1.4; }
+    .step-right { display:flex; align-items:center; gap:10px; flex-shrink:0; margin-top:3px; }
+    .done-tag { font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#0c8a4f; background:#e3f6ea; padding:2px 7px; border-radius:999px; }
+    .edit-link { font-size:11.5px; font-weight:600; color:#0d5bd7; }
+    .chev { transition:transform .15s; color:#8b909c; }
+    .step.is-open .chev { transform:rotate(180deg); }
+    .step-b { display:none; padding:0 18px 18px 58px; }
+    .step.is-open .step-b { display:block; }
+    .step-card { background:#f7f8fa; border:1px solid #eceef2; border-radius:4px; padding:16px; }
+    .act { font-size:11px; font-weight:600; color:#0d5bd7; background:none; border:0; cursor:pointer; padding:0 4px; }
+    .act.risk { color:#c83838; }
+    .btn { font-size:12px; padding:7px 12px; border-radius:2px; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .btn-p { background:#0d5bd7; color:#fff; border:1px solid #0d5bd7; }
+    .btn-p:hover { background:#0a47b0; }
+    .btn-p:disabled { opacity:.5; cursor:default; }
+    .btn-s { background:#fff; color:#2c313b; border:1px solid #e4e6eb; }
+    .btn-s:hover { background:#f4f5f7; }
+    .mini { border:1px solid #e4e6eb; border-radius:2px; }
+    .mini .r { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 10px; border-top:1px solid #eceef2; font-size:12px; }
+    .mini .r:first-child { border-top:0; }
+    .note { font-size:11.5px; color:#6b7280; }
+    .side-step { width:100%; display:flex; align-items:center; gap:9px; padding:6px 16px; background:none; border:0; cursor:pointer; text-align:left; font-size:12.5px; color:#2c313b; }
+    .side-step:hover { background:#f4f5f7; }
+    .side-step.is-current { color:#0d5bd7; font-weight:600; }
+    .side-dot { width:16px; height:16px; border-radius:50%; border:1.5px solid #c7cad1; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; color:#8b909c; }
+    .side-dot.is-done { background:#0c8a4f; border-color:#0c8a4f; color:#fff; }
+    .fact { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px solid #eceef2; }
+    .fact:first-child { border-top:0; }
+    .fact dt { color:#6b7280; }
+    .fact dd { color:#0f1116; font-weight:600; text-align:right; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    html[data-theme-resolved="dark"] .side-step { color:#d6dae5; }
+    html[data-theme-resolved="dark"] .side-step:hover { background:#20242c; }
+    html[data-theme-resolved="dark"] .fact { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .fact dd { color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .phase { background:#1a1d24; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .phase-h { background:#161a21; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .phase-h h2 { color:#aab0bf; }
+    html[data-theme-resolved="dark"] .step { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .step.is-open { background:#1c2230; box-shadow:inset 3px 0 0 #3987e5; }
+    html[data-theme-resolved="dark"] .step-title { color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .num-dot { background:#1a1d24; border-color:#3a4150; color:#aab0bf; }
+    html[data-theme-resolved="dark"] .num-dot.is-done { background:#0c8a4f; border-color:#0c8a4f; color:#fff; }
+    html[data-theme-resolved="dark"] .step.is-open .num-dot:not(.is-done) { background:#2f6fe8; border-color:#2f6fe8; color:#fff; }
+    html[data-theme-resolved="dark"] .step:not(:last-child)::after { background:#2c313b; }
+    html[data-theme-resolved="dark"] .step.is-done:not(:last-child)::after { background:#1f5f3c; }
+    html[data-theme-resolved="dark"] .done-tag { background:#123424; color:#4cc38a; }
+    html[data-theme-resolved="dark"] .step-card { background:#14181f; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .btn-s { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .mini, html[data-theme-resolved="dark"] .mini .r { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .act { color:#6f9eff; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-4 flex-wrap">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Clinic Onboarding</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Set up the practice on Althais, one step at a time. Each step checks itself off when it's done.</p>
+      </div>
+      <div class="w-[280px]">
+        <div class="flex items-center justify-between text-[11.5px] mb-1"><span class="text-ink-500 font-semibold uppercase tracking-wider text-[10.5px]">Setup Progress</span><span id="prog-label" class="font-semibold text-ink-900 num">—</span></div>
+        <div class="w-full h-2 bg-shell rounded-sm overflow-hidden border border-line"><div id="prog-bar" class="h-full bg-med-600" style="width:0%;transition:width .3s"></div></div>
+      </div>
+    </div>
+
+    <div class="p-5 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
+      <div class="min-w-0">
+        <div id="readonly-note"></div>
+        <div id="all-done" class="hidden mb-4 px-4 py-3 rounded-sm border text-[13px] font-semibold" style="background:#d8f5e3;color:#0c8a4f;border-color:rgba(12,138,79,.25)">Setup complete. Your practice is ready to go.</div>
+        <div id="steps"></div>
+      </div>
+
+      <aside class="space-y-4 xl:sticky xl:top-[100px]">
+        <section class="bg-panel border border-line rounded-sm">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+            <h3 class="text-[13px] font-semibold text-ink-900">Setup Overview</h3>
+            <span id="side-left" class="text-[11px] text-ink-500"></span>
+          </div>
+          <ol id="side-steps" class="py-1"></ol>
+        </section>
+        <section class="bg-panel border border-line rounded-sm">
+          <div class="px-4 py-2.5 border-b border-line"><h3 class="text-[13px] font-semibold text-ink-900">Your Practice</h3></div>
+          <dl id="side-facts" class="px-4 py-2 text-[12px]"></dl>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Step bodies that are plain forms live here and are moved into their steps on load -->
+  <div class="hidden">
+    <div id="body-profile">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div><label class="lbl" for="pr-name">Legal Practice Name</label><input id="pr-name" class="fld" /></div>
+        <div><label class="lbl" for="pr-dba">Doing Business As</label><input id="pr-dba" class="fld" placeholder="Optional" /></div>
+        <div><label class="lbl" for="pr-npi">Group NPI (Type 2)</label><input id="pr-npi" class="fld mono" inputmode="numeric" maxlength="10" placeholder="10 digits" /></div>
+        <div><label class="lbl" for="pr-tin">Tax ID (EIN)</label><input id="pr-tin" class="fld mono" placeholder="12-3456789" /></div>
+        <div><label class="lbl" for="pr-specialty">Primary Specialty</label><input id="pr-specialty" class="fld" placeholder="e.g. Family Medicine" /></div>
+        <div><label class="lbl" for="pr-phone">Main Phone</label><input id="pr-phone" class="fld" type="tel" /></div>
+        <div class="md:col-span-2"><label class="lbl" for="pr-address">Billing Address</label><input id="pr-address" class="fld" placeholder="Street, city, state, ZIP" /></div>
+        <div><label class="lbl" for="pr-contact">Primary Contact</label><input id="pr-contact" class="fld" placeholder="Name" /></div>
+        <div><label class="lbl" for="pr-contact-email">Contact Email</label><input id="pr-contact-email" class="fld" type="email" /></div>
+      </div>
+      <div class="mt-3 flex items-center gap-3">
+        <button id="pr-save" data-admin-only type="button" class="btn btn-p">Save Profile</button>
+        <span id="pr-error" class="text-[12px] text-risk-600"></span>
+      </div>
+    </div>
+
+    <div id="body-locations">
+      <div class="mini mb-3" id="loc-list"></div>
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_1.6fr_1fr_auto] gap-2 items-end" data-admin-only>
+        <div><label class="lbl" for="loc-name">Name</label><input id="loc-name" class="fld" placeholder="Main Clinic" /></div>
+        <div><label class="lbl" for="loc-address">Address</label><input id="loc-address" class="fld" /></div>
+        <div><label class="lbl" for="loc-phone">Phone</label><input id="loc-phone" class="fld" type="tel" /></div>
+        <button id="loc-add" type="button" class="btn btn-p">Add Location</button>
+      </div>
+    </div>
+
+    <div id="body-payers">
+      <div class="mini mb-3" id="payer-list"></div>
+      <div class="grid grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr_auto] gap-2 items-end" data-admin-only>
+        <div class="col-span-2 md:col-span-1"><label class="lbl" for="py-name">Payer</label><input id="py-name" class="fld" list="payer-dl" placeholder="e.g. Medicare" /><datalist id="payer-dl"><option value="Medicare"><option value="Medicaid"><option value="UnitedHealthcare"><option value="BlueCross BlueShield"><option value="Aetna"><option value="Cigna"><option value="Humana"></datalist></div>
+        <div><label class="lbl" for="py-status">Status</label><select id="py-status" class="fld"><option>Not Started</option><option>Submitted</option><option>Approved</option><option>Denied</option></select></div>
+        <div><label class="lbl" for="py-submitted">Submitted</label><input id="py-submitted" type="date" class="fld num" /></div>
+        <div><label class="lbl" for="py-effective">Effective</label><input id="py-effective" type="date" class="fld num" /></div>
+        <div><label class="lbl" for="py-id">Provider / Group ID</label><input id="py-id" class="fld mono" /></div>
+        <button id="py-add" type="button" class="btn btn-p">Save Payer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script src="/static/js/practice-data.js"></script>
+  <script>
+    const S = window.StaffStore, P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = S.esc;
+    let DOC = null, editingPayer = null;
+    const open = new Set();
+    const PROFILE_FIELDS = { name: 'pr-name', dba: 'pr-dba', npi: 'pr-npi', tin: 'pr-tin', specialty: 'pr-specialty', phone: 'pr-phone', address: 'pr-address', contact: 'pr-contact', contactEmail: 'pr-contact-email' };
+
+    // NPIs carry a Luhn check digit (computed with the 80840 prefix), so typos are caught before a claim bounces.
+    function validNpi(npi) {
+      if (!/^\d{10}$/.test(npi)) return false;
+      const digits = ('80840' + npi).split('').map(Number);
+      let sum = 0;
+      for (let i = digits.length - 1, dbl = false; i >= 0; i--, dbl = !dbl) { let d = digits[i]; if (dbl) { d *= 2; if (d > 9) d -= 9; } sum += d; }
+      return sum % 10 === 0;
+    }
+    const validTin = (t) => /^\d{2}-?\d{7}$/.test(t);
+    const profileComplete = (c) => !!(c.name && c.npi && c.tin && c.address);
+
+    // ---- fee schedule: the same storage the EMR prices claims from (and Settings > Billing edits) ----
+    const FEE_KEY = P.ns + 'althais.fee_schedule.v1';
+    // the EMR's starting schedule (DEFAULT_FEE_SCHEDULE in dashboard.html), offered until you save your own
+    const DEFAULT_FEES = [
+      { code: '99213', desc: 'Office visit, established patient (low complexity)', rate: 109.32 },
+      { code: '99214', desc: 'Office visit, established patient (moderate complexity)', rate: 167.09 },
+      { code: '99215', desc: 'Office visit, established patient (high complexity)', rate: 224.86 },
+      { code: '99203', desc: 'Office visit, new patient (low complexity)', rate: 136.58 },
+      { code: '99204', desc: 'Office visit, new patient (moderate complexity)', rate: 211.61 },
+      { code: '99205', desc: 'Office visit, new patient (high complexity)', rate: 273.53 },
+      { code: '99285', desc: 'Emergency dept visit, high complexity', rate: 384.32 },
+      { code: '81001', desc: 'Urinalysis, automated with microscopy', rate: 5.29 },
+      { code: '73721', desc: 'MRI, lower extremity joint, without contrast', rate: 296.14 },
+    ];
+    function savedFees() { try { const v = JSON.parse(localStorage.getItem(FEE_KEY) || 'null'); return Array.isArray(v) && v.length ? v : null; } catch (e) { return null; } }
+    let FEES = (savedFees() || DEFAULT_FEES).map(r => Object.assign({}, r));
+
+    const patientCount = () => P.local().patients.length;
+    const hipaaPeople = () => DOC.people.filter(p => p.status !== 'inactive');
+    const hasHipaa = (p) => DOC.trainings.some(t => t.personId === p.id && t.category === 'HIPAA');
+
+    // ---- the nine steps: each one is done when the real thing exists ----
+    // grouped into phases on the page, in this order
+    const PHASES = [
+      { name: 'Practice Basics', keys: ['profile', 'locations'] },
+      { name: 'Your Team', keys: ['team', 'hipaa', 'roles'] },
+      { name: 'Billing & Patients', keys: ['payers', 'fees', 'clearinghouse', 'patients'] },
+    ];
+    const STEPS = [
+      { key: 'profile', label: 'Complete The Practice Profile', why: 'Your legal name, group NPI, Tax ID and billing address go on every claim.',
+        done: () => profileComplete(DOC.clinic),
+        status: () => profileComplete(DOC.clinic) ? 'Name, NPI, Tax ID and address on file' : 'Needs ' + ['name', 'npi', 'tin', 'address'].filter(k => !DOC.clinic[k]).map(k => ({ name: 'Name', npi: 'NPI', tin: 'Tax ID', address: 'Address' })[k]).join(', ') },
+      { key: 'locations', label: 'Add Your Locations', why: 'Staff, schedules and claims are tied to a location.',
+        done: () => DOC.clinic.locations.length > 0, status: () => P.plural(DOC.clinic.locations.length, 'location', 'locations') },
+      { key: 'team', label: 'Add Or Invite Your Team', why: 'Everyone who works with patients goes through onboarding: licenses, training and paperwork.',
+        done: () => DOC.people.length > 0, status: () => P.plural(DOC.people.length, 'person', 'people') + ' added' },
+      { key: 'hipaa', label: 'Assign HIPAA Training', why: 'Every staff member needs HIPAA training before they see patient records.',
+        done: () => hipaaPeople().length > 0 && hipaaPeople().every(hasHipaa),
+        status: () => hipaaPeople().length ? `${hipaaPeople().filter(hasHipaa).length} of ${hipaaPeople().length} assigned` : 'Add your team first' },
+      { key: 'roles', label: 'Review Roles & Permissions', why: 'Decide what each role should be able to see and do.',
+        done: () => !!DOC.clinic.rolesReviewedAt, status: () => DOC.clinic.rolesReviewedAt ? 'Reviewed ' + S.fmtDate(DOC.clinic.rolesReviewedAt) : 'Not reviewed yet' },
+      { key: 'payers', label: 'Start Payer Enrollment', why: 'Track credentialing with each insurer so claims don’t go out before you’re in network.',
+        done: () => DOC.clinic.payers.length > 0,
+        status: () => DOC.clinic.payers.length ? `${DOC.clinic.payers.filter(p => p.status === 'Approved').length} of ${DOC.clinic.payers.length} approved` : 'No payers yet' },
+      { key: 'fees', label: 'Set Up Your Fee Schedule', why: 'Your rate for each CPT code. The EMR uses it to price every claim.',
+        done: () => !!savedFees(), status: () => savedFees() ? P.plural(savedFees().length, 'code', 'codes') + ' saved' : 'Using the starter rates' },
+      { key: 'clearinghouse', label: 'Connect Your Clearinghouse', why: 'The clearinghouse sends your claims to payers. Record your account and mark it Live once enrollment is approved.',
+        done: () => (DOC.clinic.clearinghouse || {}).status === 'Live',
+        status: () => { const c = DOC.clinic.clearinghouse || {}; return c.vendor ? `${c.vendor} · ${c.status || 'Not Started'}` : 'Not set up'; } },
+      { key: 'patients', label: 'Import Or Add Patients', why: 'Bring your patient list into the EMR, one at a time or from a spreadsheet.',
+        done: () => patientCount() > 0, status: () => P.plural(patientCount(), 'patient', 'patients') + ' in the EMR' },
+    ];
+
+    // ---- rendering ----
+    const CHECK = '<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>';
+    function renderShell() {
+      $('steps').innerHTML = PHASES.map(ph => `
+        <section class="phase" aria-label="${esc(ph.name)}">
+          <div class="phase-h"><h2>${esc(ph.name)}</h2><span class="phase-count" id="pc-${ph.keys[0]}"></span></div>
+          <div class="phase-b">${ph.keys.map(k => { const s = STEPS.find(x => x.key === k), i = STEPS.indexOf(s); return `
+            <div class="step" id="step-${s.key}">
+              <button type="button" class="step-h" data-toggle="${s.key}" aria-expanded="false" aria-controls="b-${s.key}">
+                <span class="num-dot" id="dot-${s.key}">${i + 1}</span>
+                <span class="flex-1 min-w-0"><span class="step-title">${esc(s.label)}</span><span class="step-sub" id="st-${s.key}"></span></span>
+                <span class="step-right" id="sr-${s.key}"></span>
+              </button>
+              <div class="step-b" id="b-${s.key}"><div class="step-card" id="c-${s.key}"></div></div>
+            </div>`; }).join('')}</div>
+        </section>`).join('');
+      ['profile', 'locations', 'payers'].forEach(k => $('c-' + k).appendChild($('body-' + k)));
+    }
+
+    const CHEV = '<svg class="chev h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+    function renderStatus() {
+      const done = STEPS.filter(s => s.done()).length;
+      $('prog-label').textContent = `${done} of ${STEPS.length}`;
+      $('prog-bar').style.width = Math.round(done / STEPS.length * 100) + '%';
+      $('all-done').classList.toggle('hidden', done !== STEPS.length);
+      STEPS.forEach((s, i) => {
+        const d = s.done(), isOpen = open.has(s.key);
+        $('step-' + s.key).classList.toggle('is-done', d);
+        $('step-' + s.key).classList.toggle('is-open', isOpen);
+        $('step-' + s.key).querySelector('.step-h').setAttribute('aria-expanded', String(isOpen));
+        $('dot-' + s.key).classList.toggle('is-done', d);
+        $('dot-' + s.key).innerHTML = d ? CHECK : String(i + 1);
+        // open: say why it matters; closed: say where it stands
+        $('st-' + s.key).textContent = isOpen ? s.why : s.status();
+        $('sr-' + s.key).innerHTML = d && !isOpen ? '<span class="done-tag">Done</span><span class="edit-link">Edit</span>' : CHEV;
+      });
+      PHASES.forEach(ph => {
+        const n = ph.keys.filter(k => STEPS.find(s => s.key === k).done()).length, el = $('pc-' + ph.keys[0]);
+        el.textContent = n === ph.keys.length ? 'Complete' : `${n} of ${ph.keys.length} done`;
+        el.classList.toggle('is-done', n === ph.keys.length);
+      });
+      renderSide(done);
+    }
+
+    // ---- right side: every step at a glance, and what's on file so far ----
+    function renderSide(doneCount) {
+      const next = STEPS.find(s => !s.done());
+      $('side-left').textContent = doneCount === STEPS.length ? 'All done' : `${STEPS.length - doneCount} left`;
+      $('side-steps').innerHTML = STEPS.map((s, i) => {
+        const d = s.done();
+        return `<li><button type="button" class="side-step${next && next.key === s.key ? ' is-current' : ''}" data-jump="${s.key}">
+          <span class="side-dot${d ? ' is-done' : ''}">${d ? '<svg class="h-2.5 w-2.5" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>' : i + 1}</span>
+          <span class="${d ? 'text-ink-400 line-through' : ''}">${esc(s.label)}</span></button></li>`;
+      }).join('');
+      const c = DOC.clinic, ch = c.clearinghouse || {}, hp = hipaaPeople(), fees = savedFees();
+      const facts = [
+        ['Practice', c.name || '—'],
+        ['Group NPI', c.npi || '—'],
+        ['Tax ID', c.tin || '—'],
+        ['Locations', c.locations.length ? c.locations.map(l => l.name).join(', ') : '—'],
+        ['Team', DOC.people.length ? `${DOC.people.filter(p => p.status === 'active').length} active · ${DOC.people.filter(p => p.status !== 'active' && p.status !== 'inactive').length} onboarding` : '—'],
+        ['HIPAA Training', hp.length ? `${hp.filter(hasHipaa).length} of ${hp.length} assigned` : '—'],
+        ['Payers Approved', c.payers.length ? `${c.payers.filter(p => p.status === 'Approved').length} of ${c.payers.length}` : '—'],
+        ['Patients', String(patientCount())],
+        ['Fee Schedule', fees ? P.plural(fees.length, 'code', 'codes') : 'Starter rates'],
+        ['Clearinghouse', ch.vendor ? `${ch.vendor} · ${ch.status || 'Not Started'}` : '—'],
+      ];
+      $('side-facts').innerHTML = facts.map(([k, v]) => `<div class="fact"><dt>${esc(k)}</dt><dd title="${esc(v)}">${esc(v)}</dd></div>`).join('');
+    }
+    document.addEventListener('click', (e) => {
+      const j = e.target.closest('[data-jump]'); if (!j) return;
+      open.add(j.dataset.jump); renderStatus();
+      $('step-' + j.dataset.jump).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    function renderDynamic() {
+      const edit = S.canEdit();
+      const dis = edit ? '' : 'disabled';
+
+      // profile fields
+      Object.entries(PROFILE_FIELDS).forEach(([k, id]) => { if (document.activeElement !== $(id)) $(id).value = DOC.clinic[k] || ''; $(id).disabled = !edit; });
+
+      // locations
+      $('loc-list').innerHTML = DOC.clinic.locations.length ? DOC.clinic.locations.map((l, i) => `
+        <div class="r"><span><b class="text-ink-900">${esc(l.name)}</b> <span class="text-ink-500">${esc([l.address, l.phone].filter(Boolean).join(' · '))}</span></span>
+        ${edit ? `<button class="act risk" data-loc-del="${i}">Remove</button>` : ''}</div>`).join('') : '<div class="r text-ink-500">No locations yet.</div>';
+
+      // payers
+      $('payer-list').innerHTML = DOC.clinic.payers.length ? DOC.clinic.payers.map((p, i) => `
+        <div class="r"><span><b class="text-ink-900">${esc(p.name)}</b> ${S.pill(p.status)} <span class="text-ink-500">${esc([p.submitted ? 'Submitted ' + S.fmtDate(p.submitted) : '', p.effective ? 'Effective ' + S.fmtDate(p.effective) : '', p.providerId].filter(Boolean).join(' · '))}</span></span>
+        <span class="whitespace-nowrap">${edit ? `<button class="act" data-py-edit="${i}">Edit</button><button class="act risk" data-py-del="${i}">Remove</button>` : ''}</span></div>`).join('') : '<div class="r text-ink-500">No payers yet.</div>';
+
+      // team
+      const people = DOC.people.slice().sort((a, b) => a.name.localeCompare(b.name));
+      $('c-team').innerHTML = `
+        ${people.length ? `<div class="mini mb-3">${people.slice(0, 8).map(p => `<div class="r"><span><b class="text-ink-900">${esc(p.name)}</b> <span class="text-ink-500">${esc(p.role)}</span></span>${S.pill(S.status(p))}</div>`).join('')}
+          ${people.length > 8 ? `<div class="r text-ink-500">+ ${people.length - 8} more</div>` : ''}</div>` : ''}
+        <div class="grid grid-cols-1 md:grid-cols-[1.2fr_1.4fr_1fr_auto] gap-2 items-end" data-admin-only>
+          <div><label class="lbl" for="tm-name">Full Name</label><input id="tm-name" class="fld" ${dis} /></div>
+          <div><label class="lbl" for="tm-email">Email</label><input id="tm-email" type="email" class="fld" ${dis} /></div>
+          <div><label class="lbl" for="tm-role">Role</label><select id="tm-role" class="fld" ${dis}>${S.options(S.ROLES_LIST, 'Medical Assistant')}</select></div>
+          <button id="tm-add" type="button" class="btn btn-p" ${dis}>Add To Onboarding</button>
+        </div>
+        <p class="note mt-2">They start onboarding with their role's checklist. <a href="/staff/onboarding" class="font-semibold text-med-600">Open Onboarding →</a></p>`;
+
+      // hipaa
+      const hp = hipaaPeople(), missing = hp.filter(p => !hasHipaa(p));
+      $('c-hipaa').innerHTML = !hp.length ? '<p class="text-[12px] text-ink-600">Add your team in step 3 first.</p>' : `
+        <div class="mini mb-3">${hp.map(p => { const t = DOC.trainings.find(x => x.personId === p.id && x.category === 'HIPAA');
+          return `<div class="r"><span><b class="text-ink-900">${esc(p.name)}</b> <span class="text-ink-500">${esc(p.role)}</span></span>${t ? S.pill(S.trainingStatus(t)) : '<span class="text-[11.5px] text-warn-600 font-semibold">Not Assigned</span>'}</div>`; }).join('')}</div>
+        ${missing.length ? `<div class="flex items-end gap-2" data-admin-only>
+          <div><label class="lbl" for="hp-due">Due Date</label><input id="hp-due" type="date" class="fld num" value="${P.isoOffset(30)}" ${dis} /></div>
+          <button id="hp-assign" type="button" class="btn btn-p" ${dis}>Assign To ${P.plural(missing.length, 'Person', 'People')}</button>
+        </div>` : '<p class="text-[12px] text-ok-600 font-semibold">Everyone has HIPAA training assigned.</p>'}
+        <p class="note mt-2"><a href="/staff/training" class="font-semibold text-med-600">Open Training →</a></p>`;
+
+      // roles
+      $('c-roles').innerHTML = `
+        <div class="mini mb-3">${DOC.roles.map(r => { const n = S.PERMISSION_AREAS.filter(a => r.perms[a.key]).map(a => a.label);
+          return `<div class="r"><b class="text-ink-900">${esc(r.name)}</b><span class="text-ink-500 text-right">${n.length ? esc(n.join(', ')) : 'No access'}</span></div>`; }).join('')}</div>
+        <div class="flex items-center gap-2">
+          <button id="rl-review" data-admin-only type="button" class="btn btn-p">${DOC.clinic.rolesReviewedAt ? 'Mark Reviewed Again' : 'Looks Right, Mark As Reviewed'}</button>
+          <a href="/staff/roles" class="btn btn-s">Edit Roles &amp; Permissions</a>
+        </div>`;
+
+      // patients
+      const pc = patientCount();
+      $('c-patients').innerHTML = `
+        <p class="text-[12px] text-ink-700 mb-3">${pc ? `<b>${pc}</b> ${pc === 1 ? 'patient is' : 'patients are'} in the EMR.` : 'No patients yet.'}</p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <a href="/emr?import_patients=1" class="btn btn-p">Import From CSV</a>
+          <a href="/emr?new_patient=1" class="btn btn-s">+ Add A Patient</a>
+          <a href="/emr/patients" class="btn btn-s">View Patients</a>
+        </div>
+        <p class="note mt-2">The import takes a spreadsheet export from your old system and lets you match its columns.</p>`;
+
+      // fee schedule
+      $('c-fees').innerHTML = `
+        ${savedFees() ? '' : '<p class="text-[12px] text-warn-600 mb-2">These are starter rates. Change them to your contracted rates, then save.</p>'}
+        <div class="mini mb-2" id="fee-rows">${FEES.map((r, i) => `
+          <div class="r" style="gap:6px">
+            <input class="fld mono" style="width:90px" data-fee="${i}" data-k="code" value="${esc(r.code)}" aria-label="CPT code" ${dis}>
+            <input class="fld" style="flex:1" data-fee="${i}" data-k="desc" value="${esc(r.desc)}" aria-label="Description" ${dis}>
+            <span class="text-ink-500">$</span><input class="fld num text-right" style="width:100px" type="number" min="0" step="0.01" data-fee="${i}" data-k="rate" value="${esc(r.rate)}" aria-label="Rate" ${dis}>
+            ${edit ? `<button class="act risk" data-fee-del="${i}" aria-label="Remove ${esc(r.code)}">Remove</button>` : ''}
+          </div>`).join('')}</div>
+        <div class="flex items-center gap-3" data-admin-only>
+          <button id="fee-add" type="button" class="act" style="padding:0">+ Add CPT Code</button>
+          <button id="fee-save" type="button" class="btn btn-p ml-auto">Save Fee Schedule</button>
+        </div>
+        <p class="note mt-2">Also editable later in <a href="/settings?tab=billing" class="font-semibold text-med-600">Settings → Billing &amp; Claims</a>.</p>`;
+
+      // clearinghouse
+      const ch = DOC.clinic.clearinghouse || {};
+      const vendors = ['Claim.MD', 'Availity', 'Office Ally', 'Waystar', 'Optum (Change Healthcare)', 'Trizetto', 'Other'];
+      $('c-clearinghouse').innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><label class="lbl" for="ch-vendor">Clearinghouse</label><select id="ch-vendor" class="fld" ${dis}>${S.options(vendors, ch.vendor || '', 'Choose…')}</select></div>
+          <div><label class="lbl" for="ch-account">Account / Submitter ID</label><input id="ch-account" class="fld mono" value="${esc(ch.account || '')}" ${dis} /></div>
+          <div><label class="lbl" for="ch-status">Status</label><select id="ch-status" class="fld" ${dis}>${S.options(['Not Started', 'Applied', 'Testing', 'Live'], ch.status || 'Not Started')}</select></div>
+          <div><label class="lbl" for="ch-live">Go-Live Date</label><input id="ch-live" type="date" class="fld num" value="${esc(ch.goLive || '')}" ${dis} /></div>
+        </div>
+        <div class="mt-3" data-admin-only><button id="ch-save" type="button" class="btn btn-p">Save Clearinghouse</button></div>
+        <p class="note mt-2">Althais records your clearinghouse setup here. It doesn't connect to the clearinghouse itself; set the status to Live once they confirm your account can send claims.</p>`;
+
+      S.readOnlyBanner('readonly-note');
+    }
+
+    function renderAll() { renderDynamic(); renderStatus(); }
+
+    // Save, then move on to the next unfinished step if this one just got done.
+    async function saveStep(key, fn, msg) {
+      const wasDone = STEPS.find(s => s.key === key).done();
+      DOC = await S.save(fn, msg).catch(() => DOC);
+      afterChange(key, wasDone);
+    }
+    function afterChange(key, wasDone) {
+      const step = STEPS.find(s => s.key === key);
+      if (!wasDone && step.done()) {
+        open.delete(key);
+        const next = STEPS.find(s => !s.done());
+        if (next) { open.add(next.key); setTimeout(() => $('step-' + next.key).scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50); }
+      }
+      renderAll();
+    }
+
+    // ---- step actions ----
+    $('steps').addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-toggle]');
+      if (t) { const k = t.dataset.toggle; open.has(k) ? open.delete(k) : open.add(k); renderStatus(); return; }
+      const b = e.target.closest('button'); if (!b) return;
+
+      if (b.id === 'pr-save') {
+        const vals = {}; Object.entries(PROFILE_FIELDS).forEach(([k, id]) => { vals[k] = $(id).value.trim(); });
+        $('pr-npi').classList.toggle('bad', !!vals.npi && !validNpi(vals.npi));
+        $('pr-tin').classList.toggle('bad', !!vals.tin && !validTin(vals.tin));
+        if (vals.npi && !validNpi(vals.npi)) { $('pr-error').textContent = 'That NPI isn’t valid. Check the 10 digits.'; return; }
+        if (vals.tin && !validTin(vals.tin)) { $('pr-error').textContent = 'A Tax ID is 9 digits, like 12-3456789.'; return; }
+        $('pr-error').textContent = '';
+        if (vals.tin && !vals.tin.includes('-')) vals.tin = vals.tin.slice(0, 2) + '-' + vals.tin.slice(2);
+        return saveStep('profile', d => { Object.assign(d.clinic, vals); }, 'Profile saved');
+      }
+      if (b.id === 'loc-add') {
+        const name = $('loc-name').value.trim();
+        if (!name) { $('loc-name').focus(); return; }
+        if (DOC.clinic.locations.some(l => l.name.toLowerCase() === name.toLowerCase())) { S.toast('That location already exists', 'error'); return; }
+        const loc = { name, address: $('loc-address').value.trim(), phone: $('loc-phone').value.trim() };
+        ['loc-name', 'loc-address', 'loc-phone'].forEach(id => { $(id).value = ''; });
+        return saveStep('locations', d => { d.clinic.locations.push(loc); }, 'Location added');
+      }
+      if (b.dataset.locDel) {
+        const loc = DOC.clinic.locations[Number(b.dataset.locDel)];
+        if (!confirm(`Remove ${loc.name}?`)) return;
+        return saveStep('locations', d => { d.clinic.locations = d.clinic.locations.filter(l => l.name !== loc.name); }, 'Location removed');
+      }
+      if (b.id === 'py-add') {
+        const name = $('py-name').value.trim();
+        if (!name) { $('py-name').focus(); return; }
+        const rec = { name, status: $('py-status').value, submitted: $('py-submitted').value, effective: $('py-effective').value, providerId: $('py-id').value.trim() };
+        const idx = editingPayer;
+        if (idx == null && DOC.clinic.payers.some(p => p.name.toLowerCase() === name.toLowerCase())) { S.toast('That payer is already listed. Use Edit.', 'error'); return; }
+        editingPayer = null; $('py-add').textContent = 'Save Payer';
+        ['py-name', 'py-submitted', 'py-effective', 'py-id'].forEach(id => { $(id).value = ''; }); $('py-status').value = 'Not Started';
+        return saveStep('payers', d => { if (idx != null && d.clinic.payers[idx]) d.clinic.payers[idx] = rec; else d.clinic.payers.push(rec); }, idx != null ? 'Payer updated' : 'Payer added');
+      }
+      if (b.dataset.pyEdit) {
+        const p = DOC.clinic.payers[Number(b.dataset.pyEdit)];
+        editingPayer = Number(b.dataset.pyEdit);
+        $('py-name').value = p.name; $('py-status').value = p.status; $('py-submitted').value = p.submitted || ''; $('py-effective').value = p.effective || ''; $('py-id').value = p.providerId || '';
+        $('py-add').textContent = 'Update Payer'; $('py-name').focus();
+        return;
+      }
+      if (b.dataset.pyDel) {
+        const p = DOC.clinic.payers[Number(b.dataset.pyDel)];
+        if (!confirm(`Remove ${p.name}?`)) return;
+        editingPayer = null;
+        return saveStep('payers', d => { d.clinic.payers = d.clinic.payers.filter(x => x.name !== p.name); }, 'Payer removed');
+      }
+      if (b.id === 'tm-add') {
+        const name = $('tm-name').value.trim(), email = $('tm-email').value.trim().toLowerCase(), role = $('tm-role').value;
+        if (!name) { $('tm-name').focus(); return; }
+        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { S.toast('That email address doesn’t look right', 'error'); return; }
+        if (email && DOC.people.some(p => p.email === email)) { S.toast('Someone with that email is already added', 'error'); return; }
+        const person = { id: S.uid('p'), name, email, phone: '', role, employment: 'Full-Time', location: DOC.clinic.locations.length === 1 ? DOC.clinic.locations[0].name : '', start: '', status: 'onboarding', notes: '', requirements: S.requirementsFor(role), audit: [] };
+        S.audit(person, `Added to onboarding as ${role} from Clinic Onboarding`);
+        return saveStep('team', d => { d.people.push(person); }, name + ' added to onboarding');
+      }
+      if (b.id === 'hp-assign') {
+        const due = $('hp-due').value || P.isoOffset(30);
+        const ids = hipaaPeople().filter(p => !hasHipaa(p)).map(p => p.id);
+        return saveStep('hipaa', d => {
+          ids.forEach(id => {
+            if (d.trainings.some(t => t.personId === id && t.category === 'HIPAA')) return;
+            d.trainings.push({ id: S.uid('t'), personId: id, course: 'HIPAA Privacy & Security', category: 'HIPAA', due, completed: '', certificate: '' });
+            const p = S.person(d, id); p && S.audit(p, `Assigned HIPAA Privacy & Security (due ${due})`);
+          });
+        }, `HIPAA training assigned to ${P.plural(ids.length, 'person', 'people')}`);
+      }
+      if (b.id === 'rl-review') {
+        return saveStep('roles', d => { d.clinic.rolesReviewedAt = S.todayIso(); d.clinic.rolesReviewedBy = S.currentUserName(); }, 'Roles marked as reviewed');
+      }
+      if (b.id === 'fee-add') { readFees(); FEES.push({ code: '', desc: '', rate: 0 }); renderDynamic(); const last = document.querySelectorAll('[data-k="code"]'); last[last.length - 1].focus(); return; }
+      if (b.dataset.feeDel) { readFees(); FEES.splice(Number(b.dataset.feeDel), 1); renderDynamic(); return; }
+      if (b.id === 'fee-save') {
+        readFees();
+        const rows = FEES.filter(r => r.code.trim());
+        const bad = rows.find(r => !/^[A-Z0-9]{4,5}$/i.test(r.code.trim()) || !(Number(r.rate) >= 0));
+        if (bad) { S.toast(`Check ${bad.code || 'a row'}: codes are 5 characters and rates can't be negative`, 'error'); return; }
+        const seen = new Set(), dup = rows.find(r => seen.has(r.code) || !seen.add(r.code));
+        if (dup) { S.toast(`${dup.code} is listed twice`, 'error'); return; }
+        if (!rows.length) { S.toast('Add at least one CPT code', 'error'); return; }
+        const wasDone = STEPS.find(s => s.key === 'fees').done();
+        try { localStorage.setItem(FEE_KEY, JSON.stringify(rows.map(r => ({ code: r.code.trim().toUpperCase(), desc: r.desc.trim(), rate: Math.round(Number(r.rate) * 100) / 100 })))); }
+        catch (err) { S.toast('Could not save on this device', 'error'); return; }
+        FEES = savedFees().map(r => Object.assign({}, r));
+        S.toast('Fee schedule saved');
+        return afterChange('fees', wasDone);
+      }
+      if (b.id === 'ch-save') {
+        const rec = { vendor: $('ch-vendor').value, account: $('ch-account').value.trim(), status: $('ch-status').value, goLive: $('ch-live').value };
+        if (!rec.vendor) { S.toast('Choose your clearinghouse', 'error'); return; }
+        if (rec.status === 'Live' && !rec.account) { S.toast('Add the account / submitter ID before marking it Live', 'error'); return; }
+        if (rec.status === 'Live' && !rec.goLive) rec.goLive = S.todayIso();
+        return saveStep('clearinghouse', d => { d.clinic.clearinghouse = rec; }, 'Clearinghouse saved');
+      }
+    });
+    function readFees() {
+      document.querySelectorAll('[data-fee]').forEach(inp => { FEES[Number(inp.dataset.fee)][inp.dataset.k] = inp.value; });
+    }
+
+    S.load().then(d => {
+      DOC = d;
+      if (!DOC.clinic.name) DOC.clinic.name = (window.__ALTHAIS_USER__ || {}).organization || '';   // first visit: start from the org's name
+      renderShell();
+      const want = new URLSearchParams(location.search).get('step');
+      const first = STEPS.find(s => s.key === want) || STEPS.find(s => !s.done());
+      if (first) open.add(first.key);
+      renderAll();
+      if (want && first) $('step-' + first.key).scrollIntoView({ block: 'start' });
+    }).catch(e => { $('prog-label').textContent = e.message; });
+    // patients or fees changed in another tab (the EMR, Settings)
+    window.addEventListener('storage', (e) => { if (DOC && (e.key === FEE_KEY || /patients\.v1$/.test(e.key || ''))) { if (e.key === FEE_KEY && savedFees()) FEES = savedFees().map(r => Object.assign({}, r)); renderAll(); } });
+  </script>
+</body>
+</html>

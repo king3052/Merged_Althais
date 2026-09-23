@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Analytics</title>
+  <style>
+    /* chart roles: swap light/dark values in one place */
+    .viz-root {
+      --viz-surface: #ffffff; --viz-ink: #0f1116; --viz-ink-2: #4a505c; --viz-muted: #8b909c;
+      --viz-grid: #eceef2; --viz-axis: #c7cad1;
+      --series-1: #2a78d6; --series-2: #eb6834;
+    }
+    html[data-theme-resolved="dark"] .viz-root {
+      --viz-surface: #1a1d24; --viz-ink: #e7eaf2; --viz-ink-2: #b8bdcd; --viz-muted: #8b909c;
+      --viz-grid: #2c313b; --viz-axis: #3a4150;
+      --series-1: #3987e5; --series-2: #d95926;
+    }
+    .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; }
+    .card-h { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid #e4e6eb; }
+    .tbl-toggle { font-size:11px; font-weight:600; color:#0d5bd7; background:none; border:0; cursor:pointer; }
+    .hbar-row { display:grid; grid-template-columns: minmax(90px, 32%) 1fr auto; align-items:center; gap:10px; padding:5px 0; font-size:12px; }
+    .hbar-track { height:14px; position:relative; }
+    .hbar-fill { height:100%; background:var(--series-1); border-radius:0 4px 4px 0; min-width:2px; }
+    .hbar-row:hover .hbar-fill { filter:brightness(1.12); }
+    .legend { display:flex; gap:14px; font-size:11.5px; color:var(--viz-ink-2); }
+    .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+    #viz-tip { position:fixed; z-index:70; pointer-events:none; background:#0f1116; color:#fff; font-size:11.5px; line-height:1.45; padding:7px 9px; border-radius:4px; box-shadow:0 6px 18px rgba(0,0,0,.2); opacity:0; transition:opacity .08s; max-width:240px; }
+    #viz-tip b { font-weight:600; }
+    .stat { padding:14px 16px; }
+    .stat .v { font-size:22px; font-weight:600; color:var(--viz-ink); margin-top:3px; }
+    .stat .s { font-size:11px; color:#8b909c; margin-top:2px; }
+    html[data-theme-resolved="dark"] .flt { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .card-h { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .tbl-toggle { color:#6f9eff; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto viz-root">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Analytics</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Revenue, claims, visits and team, from your practice's own records.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="f-range" class="flt" aria-label="Date range">
+          <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option><option value="365" selected>Last 12 Months</option><option value="all">All Time</option>
+        </select>
+        <select id="f-provider" class="flt" aria-label="Provider"></select>
+      </div>
+    </div>
+
+    <div class="p-5 space-y-5">
+      <div id="stats" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3"></div>
+
+      <section class="bg-panel border border-line rounded-sm">
+        <div class="card-h"><h3 class="text-[13px] font-semibold text-ink-900">Billed vs. Collected By Month</h3>
+          <div class="flex items-center gap-4"><div class="legend"><span><i style="background:var(--series-1)"></i>Billed</span><span><i style="background:var(--series-2)"></i>Collected</span></div><button class="tbl-toggle" data-for="c-month">Table</button></div></div>
+        <div class="p-4" id="c-month"></div>
+      </section>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <section class="bg-panel border border-line rounded-sm">
+          <div class="card-h"><h3 class="text-[13px] font-semibold text-ink-900">Claims By Status</h3><button class="tbl-toggle" data-for="c-status">Table</button></div>
+          <div class="p-4" id="c-status"></div>
+        </section>
+        <section class="bg-panel border border-line rounded-sm">
+          <div class="card-h"><h3 class="text-[13px] font-semibold text-ink-900">Denial Rate By Payer</h3><button class="tbl-toggle" data-for="c-payer">Table</button></div>
+          <div class="p-4" id="c-payer"></div>
+        </section>
+        <section class="bg-panel border border-line rounded-sm">
+          <div class="card-h"><h3 class="text-[13px] font-semibold text-ink-900">Top Procedures By Amount Billed</h3><button class="tbl-toggle" data-for="c-cpt">Table</button></div>
+          <div class="p-4" id="c-cpt"></div>
+        </section>
+        <section class="bg-panel border border-line rounded-sm">
+          <div class="card-h"><h3 class="text-[13px] font-semibold text-ink-900">Visits By Day Of Week</h3><button class="tbl-toggle" data-for="c-weekday">Table</button></div>
+          <div class="p-4" id="c-weekday"></div>
+        </section>
+      </div>
+
+      <section class="bg-panel border border-line rounded-sm">
+        <div class="card-h"><h3 class="text-[13px] font-semibold text-ink-900">Provider Productivity</h3><span class="text-[11px] text-ink-500">E/M level is a coding-pattern signal, not a judgment on any visit</span></div>
+        <div class="overflow-x-auto thin-scroll"><table class="w-full"><thead><tr class="table-head">
+          <th class="td text-left">Provider</th><th class="td text-right">Claims</th><th class="td text-right">Billed</th><th class="td text-right">Collected</th><th class="td text-right">Denial rate</th><th class="td text-right">Avg E/M level</th><th class="td text-right">Visits</th>
+        </tr></thead><tbody id="t-providers"></tbody></table></div>
+      </section>
+
+      <section class="bg-panel border border-line rounded-sm">
+        <div class="card-h"><h3 class="text-[13px] font-semibold text-ink-900">Team &amp; Tasks</h3><span class="text-[11px] text-ink-500">Current, not affected by the date range</span></div>
+        <div id="team-stats" class="grid grid-cols-2 md:grid-cols-5"></div>
+      </section>
+    </div>
+  </div>
+  <div id="viz-tip" role="tooltip"></div>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script src="/static/js/practice-data.js"></script>
+  <script>
+    const P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = P.esc;
+    const L = P.local();
+    let STAFF = null, TASKS = null;
+    const tableMode = {};
+
+    // ---- tooltip (one element, fed by data-tip on any mark) ----
+    const tip = $('viz-tip');
+    document.addEventListener('mousemove', (e) => {
+      const m = e.target.closest('[data-tip]');
+      if (!m) { tip.style.opacity = 0; return; }
+      tip.innerHTML = m.dataset.tip;
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      tip.style.left = Math.min(window.innerWidth - w - 8, e.clientX + 14) + 'px';
+      tip.style.top = Math.max(8, e.clientY - h - 10) + 'px';
+      tip.style.opacity = 1;
+    });
+
+    // ---- filtering ----
+    function inRange(iso) {
+      const r = $('f-range').value;
+      if (r === 'all') return true;
+      if (!iso) return false;
+      const t = new Date(iso).getTime();
+      return !isNaN(t) && t >= Date.now() - Number(r) * 86400000 && t <= Date.now() + 86400000;
+    }
+    function data() {
+      const prov = $('f-provider').value;
+      return {
+        claims: L.claims.filter(c => inRange(c.ts) && (!prov || c.provider === prov)),
+        appts: L.appts.filter(a => inRange(a.date) && (!prov || a.provider === prov)),
+      };
+    }
+    const st = (c) => String(c.status || '').toLowerCase();
+    const sum = (list) => list.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+    const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0;
+
+    // ---- stat tiles ----
+    function renderStats(D) {
+      const billed = sum(D.claims), paid = D.claims.filter(c => st(c) === 'paid'), collected = sum(paid);
+      const denied = D.claims.filter(c => st(c) === 'denied' || st(c) === 'appealed').length;
+      const decided = D.claims.filter(c => ['paid', 'denied', 'appealed'].includes(st(c))).length;
+      const outstanding = sum(D.claims.filter(c => st(c) !== 'paid' && st(c) !== 'draft'));
+      const tiles = [
+        ['Billed', P.moneyShort(billed), P.plural(D.claims.length, 'claim', 'claims')],
+        ['Collected', P.moneyShort(collected), P.plural(paid.length, 'payment', 'payments')],
+        ['Collection rate', billed ? pct(collected, billed) + '%' : '—', 'of billed'],
+        ['Denial rate', decided ? pct(denied, decided) + '%' : '—', decided ? `${denied} of ${decided} decided` : 'no decisions yet'],
+        ['Outstanding', P.moneyShort(outstanding), 'submitted, not yet paid'],
+        ['Visits', D.appts.length, P.plural(new Set(D.appts.map(a => a.mrn)).size, 'patient', 'patients')],
+        ['Avg claim', D.claims.length ? P.moneyShort(billed / D.claims.length) : '—', 'billed per claim'],
+      ];
+      $('stats').innerHTML = tiles.map(([l, v, s]) => `<div class="bg-panel border border-line rounded-sm stat"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${l}</div><div class="v num">${esc(v)}</div><div class="s">${esc(s)}</div></div>`).join('');
+    }
+
+    // ---- chart pieces ----
+    function tableHtml(head, rows) {
+      return `<div class="overflow-x-auto"><table class="w-full"><thead><tr class="table-head">${head.map((h, i) => `<th class="td ${i ? 'text-right' : 'text-left'}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((v, i) => `<td class="td ${i ? 'text-right num' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    }
+    function empty(msg) { return `<div class="py-8 text-center text-[12px] text-ink-500">${esc(msg)}</div>`; }
+    /* horizontal bars, one series: label | bar | value (direct-labeled, so no legend) */
+    function hbars(id, rows, fmt, head, emptyMsg) {
+      const el = $(id);
+      if (!rows.length) { el.innerHTML = empty(emptyMsg); return; }
+      if (tableMode[id]) { el.innerHTML = tableHtml(head, rows.map(r => [r.label, fmt(r.value)].concat(r.extra || []))); return; }
+      const max = Math.max(...rows.map(r => r.value), 0) || 1;
+      el.innerHTML = rows.map(r => `
+        <div class="hbar-row" data-tip="<b>${esc(r.label)}</b><br>${esc(r.tip || fmt(r.value))}">
+          <div class="text-ink-700 truncate" title="${esc(r.label)}">${esc(r.label)}</div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(0.5, r.value / max * 100)}%"></div></div>
+          <div class="num text-ink-900 font-semibold text-right" style="min-width:64px">${esc(fmt(r.value))}</div>
+        </div>`).join('');
+    }
+    /* vertical grouped bars on one money/count axis */
+    function vbars(id, cats, series, fmt, head, emptyMsg) {
+      const el = $(id);
+      if (!cats.length || series.every(s => s.values.every(v => !v))) { el.innerHTML = empty(emptyMsg); return; }
+      if (tableMode[id]) { el.innerHTML = tableHtml(head, cats.map((c, i) => [c].concat(series.map(s => fmt(s.values[i]))))); return; }
+      const W = Math.max(el.clientWidth - 8, 320), H = 220, padL = 52, padB = 26, padT = 8;
+      const max = Math.max(...series.flatMap(s => s.values), 0) || 1;
+      // ticks land on round values (1, 2, 5… × 10ⁿ), never fractions of a count
+      let step = Math.pow(10, Math.floor(Math.log10(max)));
+      if (Math.ceil(max / step) > 5) step *= 2;
+      const nice = Math.ceil(max / step) * step, ticks = Math.round(nice / step);
+      const y = (v) => padT + (H - padT - padB) * (1 - v / nice);
+      const band = (W - padL) / cats.length, gap = 2, barW = Math.min(28, (band * 0.7 - gap * (series.length - 1)) / series.length);
+      let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(head.join(', '))}">`;
+      for (let i = 0; i <= ticks; i++) {
+        const v = step * i, yy = y(v);
+        svg += `<line x1="${padL}" x2="${W}" y1="${yy}" y2="${yy}" stroke="var(${i ? '--viz-grid' : '--viz-axis'})" stroke-width="1"/>`;
+        svg += `<text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="10.5" fill="var(--viz-muted)">${esc(fmt(v, true))}</text>`;
+      }
+      cats.forEach((c, i) => {
+        const x0 = padL + band * i + (band - (barW * series.length + gap * (series.length - 1))) / 2;
+        const tipHtml = `<b>${esc(c)}</b>` + series.map(s => `<br>${esc(s.name)}: ${esc(fmt(s.values[i]))}`).join('');
+        series.forEach((s, k) => {
+          const v = s.values[i], top = y(v), hgt = Math.max(0, y(0) - top), x = x0 + k * (barW + gap);
+          if (hgt > 0) svg += `<path d="M${x},${y(0)} V${top + Math.min(4, hgt)} Q${x},${top} ${x + Math.min(4, barW / 2)},${top} H${x + barW - Math.min(4, barW / 2)} Q${x + barW},${top} ${x + barW},${top + Math.min(4, hgt)} V${y(0)} Z" fill="var(${s.color})"/>`;
+        });
+        svg += `<rect x="${padL + band * i}" y="${padT}" width="${band}" height="${H - padT - padB}" fill="transparent" data-tip="${esc(tipHtml)}"/>`;
+        svg += `<text x="${padL + band * i + band / 2}" y="${H - 8}" text-anchor="middle" font-size="10.5" fill="var(--viz-muted)">${esc(c)}</text>`;
+      });
+      el.innerHTML = svg + '</svg>';
+    }
+    const money0 = (v, axis) => axis ? P.moneyShort(v) : P.money(v);
+
+    // ---- charts ----
+    function renderCharts(D) {
+      // months: the last 12 (or fewer for short ranges); claims keyed by created date
+      const r = $('f-range').value, months = r === '30' ? 2 : (r === '90' ? 4 : 12);
+      const keys = [], labels = [];
+      if (r === 'all' && D.claims.length) {
+        const first = D.claims.map(c => c.ts).filter(Boolean).sort()[0];
+        const d = new Date(first); d.setDate(1);
+        const end = new Date(); end.setDate(1);
+        while (d <= end && keys.length < 36) { keys.push(d.toISOString().slice(0, 7)); labels.push(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })); d.setMonth(d.getMonth() + 1); }
+      } else {
+        for (let i = months - 1; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); keys.push(d.toISOString().slice(0, 7)); labels.push(d.toLocaleDateString('en-US', { month: 'short' })); }
+      }
+      const byMonth = (list) => keys.map(k => sum(list.filter(c => String(c.ts || '').slice(0, 7) === k)));
+      vbars('c-month', labels, [
+        { name: 'Billed', color: '--series-1', values: byMonth(D.claims) },
+        { name: 'Collected', color: '--series-2', values: byMonth(D.claims.filter(c => st(c) === 'paid')) },
+      ], money0, ['Month', 'Billed', 'Collected'], 'No claims in this range.');
+
+      const ORDER = ['Draft', 'Pending Review', 'Ready to Submit', 'Submitted', 'Appealed', 'Denied', 'Paid'];
+      const statusRows = ORDER.map(s => ({ label: s, list: D.claims.filter(c => (c.status || '') === s) }))
+        .filter(x => x.list.length).map(x => ({ label: x.label, value: x.list.length, tip: `${P.plural(x.list.length, 'claim', 'claims')} · ${P.money(sum(x.list))}`, extra: [P.money(sum(x.list))] }));
+      hbars('c-status', statusRows, v => String(v), ['Status', 'Claims', 'Amount'], 'No claims in this range.');
+
+      const byPayer = {};
+      D.claims.forEach(c => { const p = c.payer || 'Unknown', e = byPayer[p] || (byPayer[p] = { n: 0, denied: 0, decided: 0 }); e.n++; if (['paid', 'denied', 'appealed'].includes(st(c))) e.decided++; if (st(c) === 'denied' || st(c) === 'appealed') e.denied++; });
+      const payerRows = Object.entries(byPayer).filter(([, e]) => e.decided).map(([p, e]) => ({ label: p, value: pct(e.denied, e.decided), tip: `${e.denied} denied of ${e.decided} decided (${P.plural(e.n, 'claim', 'claims')} total)`, extra: [e.denied, e.decided] }))
+        .sort((a, b) => b.value - a.value);
+      hbars('c-payer', payerRows, v => v + '%', ['Payer', 'Denial rate', 'Denied', 'Decided'], 'No paid or denied claims yet, so no denial rates.');
+
+      const byCpt = {};
+      D.claims.forEach(c => { const k = c.cpt || '—', e = byCpt[k] || (byCpt[k] = { amt: 0, n: 0 }); e.amt += Number(c.amount) || 0; e.n++; });
+      const cptRows = Object.entries(byCpt).map(([k, e]) => ({ label: 'CPT ' + k, value: e.amt, tip: `${P.money(e.amt)} across ${P.plural(e.n, 'claim', 'claims')}`, extra: [e.n] })).sort((a, b) => b.value - a.value).slice(0, 8);
+      hbars('c-cpt', cptRows, v => P.money(v), ['Procedure', 'Billed', 'Claims'], 'No claims in this range.');
+
+      const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const counts = DAYS.map(() => 0);
+      D.appts.forEach(a => { const d = new Date(a.date + 'T00:00:00'); if (!isNaN(d)) counts[(d.getDay() + 6) % 7]++; });
+      const lastWeekend = counts[5] + counts[6] ? 7 : 5;
+      vbars('c-weekday', DAYS.slice(0, lastWeekend), [{ name: 'Visits', color: '--series-1', values: counts.slice(0, lastWeekend) }], (v) => String(Math.round(v)), ['Day', 'Visits'], 'No visits in this range.');
+    }
+
+    function renderProviders(D) {
+      const EM = { '99202': 1, '99203': 2, '99204': 3, '99205': 4, '99212': 1, '99213': 2, '99214': 3, '99215': 4, '99281': 1, '99282': 2, '99283': 3, '99284': 4, '99285': 5 };
+      const by = {};
+      const row = (p) => by[p] || (by[p] = { claims: [], visits: 0 });
+      D.claims.forEach(c => row(c.provider || 'Unassigned').claims.push(c));
+      D.appts.forEach(a => { row(a.provider || 'Unassigned').visits++; });
+      const rows = Object.entries(by).sort((a, b) => sum(b[1].claims) - sum(a[1].claims));
+      $('t-providers').innerHTML = rows.length ? rows.map(([p, e]) => {
+        const decided = e.claims.filter(c => ['paid', 'denied', 'appealed'].includes(st(c))).length, denied = e.claims.filter(c => st(c) === 'denied' || st(c) === 'appealed').length;
+        const lv = e.claims.map(c => EM[String(c.cpt || '').trim()]).filter(v => v != null);
+        return `<tr class="row-hover"><td class="td font-semibold text-ink-900">${esc(p)}</td><td class="td text-right num">${e.claims.length}</td><td class="td text-right num">${P.money(sum(e.claims))}</td>
+          <td class="td text-right num">${P.money(sum(e.claims.filter(c => st(c) === 'paid')))}</td><td class="td text-right num">${decided ? pct(denied, decided) + '%' : '—'}</td>
+          <td class="td text-right num">${lv.length ? (lv.reduce((s, v) => s + v, 0) / lv.length).toFixed(1) : '—'}</td><td class="td text-right num">${e.visits}</td></tr>`;
+      }).join('') : `<tr><td colspan="7" class="td text-center text-ink-500" style="padding:24px">No claims or visits in this range.</td></tr>`;
+    }
+
+    function renderTeam() {
+      const active = STAFF ? STAFF.people.filter(p => p.status === 'active') : [];
+      const compliant = STAFF ? active.filter(p => StaffStore.personCompliance(STAFF, p) === 'Compliant').length : 0;
+      const onboarding = STAFF ? STAFF.people.filter(p => p.status !== 'active' && p.status !== 'inactive').length : 0;
+      const open = TASKS ? TASKS.tasks.filter(t => t.status !== 'done') : [];
+      const overdue = open.filter(t => t.due && P.daysUntil(t.due) < 0).length;
+      const doneWeek = TASKS ? TASKS.tasks.filter(t => t.status === 'done' && t.completedAt && Date.now() - new Date(t.completedAt).getTime() < 7 * 86400000).length : 0;
+      const tiles = [
+        ['Active staff', active.length, `${onboarding} onboarding`, '/staff/team'],
+        ['Staff compliant', active.length ? Math.round(compliant / active.length * 100) + '%' : '—', `${compliant} of ${active.length}`, '/staff/compliance'],
+        ['Open tasks', open.length, `${overdue} overdue`, '/overview/tasks?view=open'],
+        ['Done this week', doneWeek, 'tasks completed', '/overview/tasks?view=done'],
+        ['Patients', L.patients.length, 'in the EMR', '/emr/patients'],
+      ];
+      $('team-stats').innerHTML = tiles.map(([l, v, s, h]) => `<a href="${h}" class="stat block border-r border-line last:border-r-0 hover:bg-shell"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${l}</div><div class="v num">${esc(v)}</div><div class="s">${esc(s)}</div></a>`).join('');
+    }
+
+    function renderAll() { const D = data(); renderStats(D); renderCharts(D); renderProviders(D); renderTeam(); }
+
+    document.querySelectorAll('.tbl-toggle').forEach(b => b.addEventListener('click', () => {
+      tableMode[b.dataset.for] = !tableMode[b.dataset.for];
+      b.textContent = tableMode[b.dataset.for] ? 'Chart' : 'Table';
+      renderCharts(data());
+    }));
+    ['f-range', 'f-provider'].forEach(id => $(id).addEventListener('input', renderAll));
+    let resizeT; window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => renderCharts(data()), 150); });
+
+    const providers = [...new Set(L.claims.map(c => c.provider).concat(L.appts.map(a => a.provider)).filter(Boolean))].sort();
+    $('f-provider').innerHTML = '<option value="">All Providers</option>' + providers.map(p => `<option>${esc(p)}</option>`).join('');
+    renderAll();
+    Promise.all([window.StaffStore ? StaffStore.load().catch(() => null) : null, P.tasks.load().catch(() => null)]).then(([s, t]) => { STAFF = s; TASKS = t; renderTeam(); });
+  </script>
+</body>
+</html>

@@ -7,12 +7,16 @@
     .modal-overlay { background: rgba(15,17,22,0.45); }
     #profile-panel { transition: transform .22s ease; transform: translateX(100%); }
     #profile-panel.is-open { transform: translateX(0); }
-    #profile-backdrop { transition: opacity .22s ease; }
     .req-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid #eceef2; }
-    .req-check { width:18px; height:18px; border-radius:4px; border:1.5px solid #c7cad1; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-top:1px; }
+    .req-check { width:18px; height:18px; border-radius:4px; border:1.5px solid #c7cad1; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-top:1px; background:transparent; }
     .req-check.is-done { background:#0c8a4f; border-color:#0c8a4f; }
-    .req-check.is-missing { border-color:#c83838; }
+    .req-check:disabled { cursor:default; }
     .row-hover { cursor: pointer; }
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:#0d5bd7; }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .req-row { border-color:#2c313b; }
   </style>
 </head>
 <body class="bg-shell">
@@ -27,17 +31,18 @@
       </div>
       <div class="flex items-center gap-2">
         <a href="/staff/team" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold whitespace-nowrap">View Team</a>
-        <button id="invite-btn" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Invite Team Member</button>
+        <button id="invite-btn" data-admin-only type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Invite Team Member</button>
       </div>
     </div>
 
     <div class="p-5">
+      <div id="readonly-note"></div>
       <!-- Summary cards -->
-      <div class="grid grid-cols-4 gap-3 mb-5">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Invited</div>
           <div id="stat-invited" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Awaiting first login</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Nothing completed yet</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">In Progress</div>
@@ -47,20 +52,20 @@
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Ready for Review</div>
           <div id="stat-review" class="text-[22px] font-semibold text-warn-600 num mt-1">0</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Needs admin verification</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Needs admin approval</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Completed</div>
           <div id="stat-completed" class="text-[22px] font-semibold text-ok-600 num mt-1">0</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Approved &amp; added to Team</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Approved &amp; on the Team</div>
         </div>
       </div>
 
       <!-- Onboarding table -->
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Onboarding pipeline</h3>
-          <span id="ob-count-label" class="text-[11px] text-ink-500">0 in progress</span>
+          <h3 class="text-[13px] font-semibold text-ink-900">Onboarding Pipeline</h3>
+          <span id="ob-count-label" class="text-[11px] text-ink-500">Loading…</span>
         </div>
         <div class="overflow-x-auto thin-scroll">
           <table class="w-full">
@@ -78,8 +83,8 @@
             </thead>
             <tbody id="ob-rows"></tbody>
           </table>
-          <div id="ob-empty" class="px-4 py-10 text-center text-[12px] text-ink-500">
-            No team members invited yet. Click <span class="font-semibold text-med-600">+ Invite Team Member</span> to get started.
+          <div id="ob-empty" class="px-4 py-10 text-center text-[12px] text-ink-500" style="display:none">
+            No one is onboarding right now. Click <span class="font-semibold text-med-600">+ Invite Team Member</span> to start.
           </div>
         </div>
       </div>
@@ -88,56 +93,52 @@
 
   <!-- =================== INVITE MODAL =================== -->
   <div id="invite-modal" class="fixed inset-0 z-40 hidden items-center justify-center modal-overlay">
-    <div class="bg-white rounded-sm shadow-xl w-[420px] max-w-[92vw]">
+    <div class="bg-white rounded-sm shadow-xl w-[460px] max-w-[92vw] max-h-[92vh] overflow-y-auto thin-scroll">
       <div class="px-4 py-3 border-b border-line flex items-center justify-between">
         <h3 class="text-[13.5px] font-semibold text-ink-900">Invite Team Member</h3>
-        <button id="invite-close" type="button" class="text-ink-400 hover:text-ink-700">
+        <button id="invite-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="p-4 space-y-3">
-        <div>
-          <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Full name</label>
-          <input id="inv-name" type="text" placeholder="Jane Doe" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[13px] text-ink-900 outline-none focus:border-med-600" />
-        </div>
-        <div>
-          <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Email</label>
-          <input id="inv-email" type="email" placeholder="jane@clinic.com" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[13px] text-ink-900 outline-none focus:border-med-600" />
+        <div><label class="lbl" for="inv-name">Full name</label><input id="inv-name" type="text" placeholder="Jane Doe" class="fld" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="inv-email">Email</label><input id="inv-email" type="email" placeholder="jane@clinic.com" class="fld" /></div>
+          <div><label class="lbl" for="inv-phone">Phone</label><input id="inv-phone" type="tel" placeholder="(555) 555-0100" class="fld" /></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Role</label>
-            <select id="inv-role" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[12.5px] text-ink-900 outline-none focus:border-med-600">
-              <option>Physician</option>
-              <option>Nurse</option>
-              <option>Medical Assistant</option>
-              <option>Biller</option>
-              <option>Practice Manager</option>
-              <option>Volunteer</option>
-              <option>Student</option>
-              <option>Administrator</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Location</label>
-            <input id="inv-location" type="text" placeholder="Main Clinic" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[12.5px] text-ink-900 outline-none focus:border-med-600" />
-          </div>
+          <div><label class="lbl" for="inv-role">Role</label><select id="inv-role" class="fld"></select></div>
+          <div><label class="lbl" for="inv-employment">Employment type</label><select id="inv-employment" class="fld"></select></div>
         </div>
-        <div>
-          <label class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Start date</label>
-          <input id="inv-start" type="date" class="w-full rounded-sm border border-line bg-white px-3 py-2 text-[12.5px] num text-ink-900 outline-none focus:border-med-600" />
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="inv-location">Location</label><input id="inv-location" type="text" list="loc-list" placeholder="Main Clinic" class="fld" /><datalist id="loc-list"></datalist></div>
+          <div><label class="lbl" for="inv-start">Start date</label><input id="inv-start" type="date" class="fld num" /></div>
         </div>
+        <label class="flex items-start gap-2 pt-1 text-[12px] text-ink-700 cursor-pointer">
+          <input id="inv-account" type="checkbox" class="mt-0.5" />
+          <span>Also create an Althais login for them<span class="block text-[11px] text-ink-500">Emails them a temporary password. Needs an email address.</span></span>
+        </label>
+        <div id="inv-account-role-wrap" class="hidden">
+          <label class="lbl" for="inv-account-role">Login access level</label>
+          <select id="inv-account-role" class="fld">
+            <option value="viewer">Viewer: read-only</option>
+            <option value="provider">Provider: patients and claims, limited editing</option>
+            <option value="biller" selected>Biller: create and submit claims</option>
+            <option value="admin">Admin: full access</option>
+          </select>
+        </div>
+        <div id="inv-error" class="hidden text-[12px] text-risk-600"></div>
       </div>
       <div class="px-4 py-3 border-t border-line flex items-center justify-end gap-2">
         <button id="invite-cancel" type="button" class="text-[12px] px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Cancel</button>
-        <button id="invite-submit" type="button" class="text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Send Invitation</button>
+        <button id="invite-submit" type="button" class="text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Add To Onboarding</button>
       </div>
     </div>
   </div>
 
   <!-- =================== PROFILE SLIDE-OVER =================== -->
   <div id="profile-backdrop" class="fixed inset-0 z-40 hidden modal-overlay"></div>
-  <aside id="profile-panel" class="fixed top-0 right-0 z-50 h-screen w-[440px] max-w-[94vw] bg-white border-l border-line shadow-xl overflow-y-auto thin-scroll">
+  <aside id="profile-panel" class="fixed top-0 right-0 z-50 h-screen w-[460px] max-w-[94vw] bg-white border-l border-line shadow-xl overflow-y-auto thin-scroll" aria-label="Onboarding profile">
     <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
       <div class="flex items-center gap-2.5">
         <div id="pp-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px]">--</div>
@@ -146,7 +147,7 @@
           <div id="pp-role" class="text-[11px] text-ink-500">—</div>
         </div>
       </div>
-      <button id="pp-close" type="button" class="text-ink-400 hover:text-ink-700">
+      <button id="pp-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
@@ -160,22 +161,18 @@
 
       <div class="mt-4">
         <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Required checklist</div>
+        <p class="text-[11px] text-ink-400 mb-1">Licenses and certifications need an expiration date. Verifying them adds them to Credentials.</p>
         <div id="pp-checklist"></div>
       </div>
 
       <div class="mt-4">
-        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Missing items</div>
-        <div id="pp-missing" class="text-[12px] text-risk-600"></div>
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Contact</div>
+        <div id="pp-contact" class="text-[12px] text-ink-700"></div>
       </div>
 
       <div class="mt-4">
-        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Uploaded documents</div>
-        <div id="pp-docs" class="text-[12px] text-ink-500">No documents uploaded yet.</div>
-      </div>
-
-      <div class="mt-4">
-        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Notes</div>
-        <textarea rows="2" placeholder="Add an internal note…" class="w-full rounded-sm border border-line bg-white px-2.5 py-2 text-[12px] text-ink-900 outline-none focus:border-med-600"></textarea>
+        <label class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5 block" for="pp-notes">Notes</label>
+        <textarea id="pp-notes" rows="2" placeholder="Add an internal note…" class="fld"></textarea>
       </div>
 
       <div class="mt-4">
@@ -184,91 +181,48 @@
       </div>
 
       <div class="mt-5 border-t border-line pt-4 space-y-1.5">
-        <button class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
-          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Send reminder</button>
-        <button class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
-          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M12 3v12M7 10l5 5 5-5"/></svg>Request document</button>
-        <button id="pp-approve" type="button" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm bg-ok-600 hover:brightness-105 text-white text-[12px] font-semibold">
-          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>Approve onboarding</button>
-        <div class="flex gap-1.5">
-          <button class="flex-1 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">Edit role</button>
-          <button id="pp-remove" type="button" class="flex-1 px-2.5 py-1.5 rounded-sm border border-risk-600/30 bg-white hover:bg-risk-100 text-risk-600 text-[12px] font-semibold">Remove invitation</button>
+        <a id="pp-remind" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
+          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span>Send Reminder</span></a>
+        <a id="pp-request" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
+          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M12 3v12M7 10l5 5 5-5"/></svg><span>Request Missing Documents</span></a>
+        <button id="pp-approve" data-admin-only type="button" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm bg-ok-600 hover:brightness-105 text-white text-[12px] font-semibold">
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>Approve Onboarding</button>
+        <div class="flex gap-1.5" data-admin-only>
+          <select id="pp-role-select" class="fld flex-1" aria-label="Change role"></select>
+          <button id="pp-remove" type="button" class="flex-1 px-2.5 py-1.5 rounded-sm border border-risk-600/30 bg-white hover:bg-risk-100 text-risk-600 text-[12px] font-semibold">Remove Invitation</button>
         </div>
       </div>
     </div>
   </aside>
 
+  <script src="/static/js/staff-store.js"></script>
   <script>
+    const S = window.StaffStore;
     const $ = (id) => document.getElementById(id);
-    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    const esc = S.esc;
+    let DOC = null;
+    let activeId = null;
 
-    // ---- Role-based onboarding requirements --------------------------------
-    const REQUIREMENT_LABELS = {
-      personal: 'Personal information', role_info: 'Employment / volunteer role', hipaa: 'HIPAA training',
-      bls: 'BLS / CPR certification', license: 'Professional license', immunizations: 'Immunization records',
-      background: 'Background check', gov_id: 'Government-issued ID', policies: 'Signed clinic policies',
-      emergency_contact: 'Emergency contact', location: 'Assigned location', access: 'System access & permissions'
-    };
-    const ROLE_REQUIREMENTS = {
-      'Physician':         ['personal','role_info','license','bls','hipaa','background','immunizations','gov_id','policies','emergency_contact','location','access'],
-      'Nurse':             ['personal','role_info','license','bls','hipaa','background','immunizations','gov_id','policies','emergency_contact','location','access'],
-      'Medical Assistant': ['personal','role_info','bls','hipaa','background','immunizations','gov_id','policies','emergency_contact','location','access'],
-      'Biller':            ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact','access'],
-      'Practice Manager':  ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact','access'],
-      'Volunteer':         ['personal','role_info','hipaa','background','immunizations','gov_id','policies','emergency_contact'],
-      'Student':           ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact'],
-      'Administrator':     ['personal','role_info','hipaa','background','gov_id','policies','emergency_contact','access'],
-    };
-
-    let PEOPLE = [];
-    let nextId = 1;
-
-    function initials(name) { return (name || '').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?'; }
-
-    function computeProgress(p) {
-      const total = p.requirements.length;
-      const done = p.requirements.filter(r => r.done).length;
-      return total ? Math.round((done / total) * 100) : 0;
-    }
-    function computeStatus(p) {
-      const pct = computeProgress(p);
-      if (pct === 100) return p.approved ? 'Approved' : 'Needs Review';
-      if (p.requirements.some(r => r.expired)) return 'Expired Requirement';
-      if (pct === 0) return 'Invited';
-      return 'In Progress';
-    }
-    const STATUS_PILL = {
-      'Invited':            'background:#eceef2;color:#4a505c',
-      'In Progress':        'background:#e6efff;color:#0a47b0',
-      'Needs Review':       'background:#fff0d6;color:#b86a00',
-      'Approved':           'background:#d8f5e3;color:#0c8a4f',
-      'Expired Requirement':'background:#ffe1e1;color:#c83838',
-    };
+    const onboarding = () => DOC.people.filter(p => p.status !== 'active' && p.status !== 'inactive');
 
     function renderSummary() {
-      $('stat-invited').textContent = PEOPLE.filter(p => computeStatus(p) === 'Invited').length;
-      $('stat-inprogress').textContent = PEOPLE.filter(p => computeStatus(p) === 'In Progress').length;
-      $('stat-review').textContent = PEOPLE.filter(p => computeStatus(p) === 'Needs Review').length;
-      $('stat-completed').textContent = PEOPLE.filter(p => computeStatus(p) === 'Approved').length;
-      $('ob-count-label').textContent = `${PEOPLE.length} in pipeline`;
+      const list = onboarding();
+      const count = (st) => list.filter(p => S.status(p) === st).length;
+      $('stat-invited').textContent = count('Invited');
+      $('stat-inprogress').textContent = count('In Progress');
+      $('stat-review').textContent = count('Needs Review');
+      $('stat-completed').textContent = DOC.people.filter(p => p.status === 'active').length;
+      $('ob-count-label').textContent = list.length + ' in pipeline';
     }
 
     function renderTable() {
-      const tbody = $('ob-rows');
-      const empty = $('ob-empty');
-      if (!PEOPLE.length) {
-        tbody.innerHTML = '';
-        empty.style.display = 'block';
-        renderSummary();
-        return;
-      }
-      empty.style.display = 'none';
-      tbody.innerHTML = PEOPLE.map(p => {
-        const pct = computeProgress(p);
-        const status = computeStatus(p);
-        const missing = p.requirements.filter(r => !r.done).map(r => REQUIREMENT_LABELS[r.key]);
+      const list = onboarding();
+      $('ob-empty').style.display = list.length ? 'none' : 'block';
+      $('ob-rows').innerHTML = list.map(p => {
+        const pct = S.progress(p);
+        const missing = p.requirements.filter(r => !r.done).map(r => S.REQUIREMENT_LABELS[r.key]);
         return `
-        <tr class="row-hover" data-id="${p.id}">
+        <tr class="row-hover" data-id="${esc(p.id)}">
           <td class="td font-semibold text-ink-900">${esc(p.name)}</td>
           <td class="td text-ink-600">${esc(p.role)}</td>
           <td class="td text-ink-600">${esc(p.location || '—')}</td>
@@ -278,127 +232,256 @@
               <span class="text-ink-900 font-semibold text-[11.5px]">${pct}%</span>
             </div>
           </td>
-          <td class="td text-ink-500 text-[11.5px]">${missing.length ? esc(missing.slice(0,2).join(', ')) + (missing.length > 2 ? ` +${missing.length-2}` : '') : '—'}</td>
-          <td class="td text-ink-600 mono text-[11.5px]">${esc(p.start || '—')}</td>
-          <td class="td"><span class="pill" style="${STATUS_PILL[status]}">${status}</span></td>
-          <td class="td text-right"><button class="text-[11px] font-semibold text-med-600 hover:text-med-700" data-view="${p.id}">View</button></td>
+          <td class="td text-ink-500 text-[11.5px]">${missing.length ? esc(missing.slice(0, 2).join(', ')) + (missing.length > 2 ? ` +${missing.length - 2}` : '') : '—'}</td>
+          <td class="td text-ink-600 mono text-[11.5px]">${esc(S.fmtDate(p.start))}</td>
+          <td class="td">${S.pill(S.status(p))}</td>
+          <td class="td text-right"><button class="text-[11px] font-semibold text-med-600 hover:text-med-700" data-view="${esc(p.id)}">View</button></td>
         </tr>`;
       }).join('');
       renderSummary();
     }
 
+    function refresh() {
+      renderTable();
+      if (activeId) {
+        const p = S.person(DOC, activeId);
+        if (p && p.status !== 'active') renderProfile(p); else closeProfile();
+      }
+    }
+
     // ---- Invite modal -------------------------------------------------------
-    $('invite-btn').addEventListener('click', () => { $('invite-modal').classList.remove('hidden'); $('invite-modal').classList.add('flex'); });
+    function openInvite() {
+      $('inv-role').innerHTML = S.options(S.ROLES_LIST, 'Medical Assistant');
+      $('inv-employment').innerHTML = S.options(S.EMPLOYMENT_TYPES, 'Full-Time');
+      $('loc-list').innerHTML = S.locations(DOC).map(l => `<option value="${esc(l)}">`).join('');
+      $('inv-error').classList.add('hidden');
+      $('invite-modal').classList.remove('hidden'); $('invite-modal').classList.add('flex');
+      $('inv-name').focus();
+    }
+    function closeInvite() { $('invite-modal').classList.add('hidden'); $('invite-modal').classList.remove('flex'); }
+    function inviteError(msg) { $('inv-error').textContent = msg; $('inv-error').classList.remove('hidden'); }
+    $('invite-btn').addEventListener('click', openInvite);
     $('invite-close').addEventListener('click', closeInvite);
     $('invite-cancel').addEventListener('click', closeInvite);
-    function closeInvite() { $('invite-modal').classList.add('hidden'); $('invite-modal').classList.remove('flex'); }
+    $('inv-account').addEventListener('change', () => $('inv-account-role-wrap').classList.toggle('hidden', !$('inv-account').checked));
 
-    $('invite-submit').addEventListener('click', () => {
+    $('invite-submit').addEventListener('click', async () => {
       const name = $('inv-name').value.trim();
+      const email = $('inv-email').value.trim().toLowerCase();
       if (!name) { $('inv-name').focus(); return; }
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { inviteError('That email address doesn’t look right.'); return; }
+      if (DOC.people.some(p => email && p.email === email)) { inviteError('Someone with that email is already on the team or onboarding.'); return; }
+      const wantsLogin = $('inv-account').checked;
+      if (wantsLogin && !email) { inviteError('Add an email address to create a login.'); return; }
+
+      $('invite-submit').disabled = true;
+      let accountNote = '';
+      if (wantsLogin) {
+        try {
+          const fd = new FormData();
+          fd.append('email', email); fd.append('full_name', name); fd.append('role', $('inv-account-role').value);
+          const res = await fetch('/api/org/invite', { method: 'POST', body: fd, credentials: 'same-origin' });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) { inviteError(body.error || body.detail || 'Could not create the login.'); $('invite-submit').disabled = false; return; }
+          accountNote = 'Althais login created and emailed';
+        } catch (e) { inviteError('Could not reach the server to create the login.'); $('invite-submit').disabled = false; return; }
+      }
+
       const role = $('inv-role').value;
-      const reqKeys = ROLE_REQUIREMENTS[role] || ROLE_REQUIREMENTS['Administrator'];
       const person = {
-        id: nextId++,
-        name, role,
-        location: $('inv-location').value.trim(),
-        start: $('inv-start').value,
-        approved: false,
-        requirements: reqKeys.map(key => ({ key, done: false, expired: false })),
-        audit: [{ text: `Invitation sent to ${name}`, time: 'just now' }],
+        id: S.uid('p'), name, email, phone: $('inv-phone').value.trim(), role,
+        employment: $('inv-employment').value, location: $('inv-location').value.trim(), start: $('inv-start').value,
+        status: 'onboarding', notes: '', requirements: S.requirementsFor(role), audit: [],
       };
-      PEOPLE.push(person);
-      renderTable();
+      S.audit(person, `Added to onboarding as ${role}`);
+      if (accountNote) S.audit(person, accountNote);
+      try {
+        DOC = await S.save(d => {
+          if (d.clinic && person.location && !d.clinic.locations.some(l => l.name === person.location)) d.clinic.locations.push({ name: person.location, address: '' });
+          d.people.push(person);
+        }, name + ' added to onboarding');
+      } catch (e) { $('invite-submit').disabled = false; return; }
+      $('invite-submit').disabled = false;
       closeInvite();
-      $('inv-name').value = ''; $('inv-email').value = ''; $('inv-location').value = ''; $('inv-start').value = '';
+      ['inv-name', 'inv-email', 'inv-phone', 'inv-location', 'inv-start'].forEach(id => { $(id).value = ''; });
+      $('inv-account').checked = false; $('inv-account-role-wrap').classList.add('hidden');
+      refresh();
       openProfile(person.id);
     });
 
     // ---- Profile slide-over --------------------------------------------------
-    let activeId = null;
     function openProfile(id) {
-      const p = PEOPLE.find(x => x.id === id);
+      const p = S.person(DOC, id);
       if (!p) return;
       activeId = id;
-      $('pp-initials').textContent = initials(p.name);
-      $('pp-name').textContent = p.name;
-      $('pp-role').textContent = `${p.role}${p.location ? ' · ' + p.location : ''}`;
-      renderProfileBody(p);
+      renderProfile(p);
       $('profile-backdrop').classList.remove('hidden');
       $('profile-panel').classList.add('is-open');
     }
-    function renderProfileBody(p) {
-      const pct = computeProgress(p);
+    function credentialFor(p, reqKey) {
+      const type = S.credentialTypeForRequirement(reqKey, p.role);
+      return type ? DOC.credentials.find(c => c.personId === p.id && c.fromRequirement === reqKey) : null;
+    }
+    function renderProfile(p) {
+      const editable = S.canEdit();
+      const pct = S.progress(p);
+      $('pp-initials').textContent = S.initials(p.name);
+      $('pp-name').textContent = p.name;
+      $('pp-role').textContent = `${p.role}${p.location ? ' · ' + p.location : ''}${p.employment ? ' · ' + p.employment : ''}`;
       $('pp-pct').textContent = pct + '%';
       $('pp-bar').style.width = pct + '%';
-      $('pp-checklist').innerHTML = p.requirements.map(r => `
+      $('pp-checklist').innerHTML = p.requirements.map(r => {
+        const credType = S.credentialTypeForRequirement(r.key, p.role);
+        const cred = credentialFor(p, r.key);
+        const sub = r.done
+          ? `Verified${r.verifiedBy ? ' by ' + esc(r.verifiedBy) : ''}${cred && cred.expires ? ' · expires ' + esc(S.fmtDate(cred.expires)) : ''}`
+          : 'Pending';
+        const expiryInput = credType && !r.done && editable
+          ? `<div class="mt-1.5 flex items-center gap-1.5"><span class="text-[11px] text-ink-500">Expires</span><input type="date" class="fld num" style="width:150px;padding:4px 8px;font-size:11.5px" data-exp="${esc(r.key)}" aria-label="${esc(S.REQUIREMENT_LABELS[r.key])} expiration date"></div>`
+          : '';
+        return `
         <div class="req-row">
-          <div class="req-check ${r.done ? 'is-done' : (r.expired ? 'is-missing' : '')}" data-req="${r.key}">
+          <button type="button" class="req-check ${r.done ? 'is-done' : ''}" data-req="${esc(r.key)}" ${editable ? '' : 'disabled'} aria-label="${r.done ? 'Mark pending' : 'Mark verified'}: ${esc(S.REQUIREMENT_LABELS[r.key])}">
             ${r.done ? '<svg class="h-3 w-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>' : ''}
-          </div>
+          </button>
           <div class="flex-1 min-w-0">
-            <div class="text-[12.5px] font-medium text-ink-900">${esc(REQUIREMENT_LABELS[r.key])}</div>
-            <div class="text-[11px] text-ink-400">${r.done ? 'Verified' : (r.expired ? 'Expired — needs renewal' : 'Pending')}</div>
+            <div class="text-[12.5px] font-medium text-ink-900">${esc(S.REQUIREMENT_LABELS[r.key])}</div>
+            <div class="text-[11px] text-ink-400">${sub}</div>
+            ${expiryInput}
           </div>
-        </div>`).join('');
-      const missing = p.requirements.filter(r => !r.done).map(r => REQUIREMENT_LABELS[r.key]);
-      $('pp-missing').innerHTML = missing.length ? missing.map(m => `<div>• ${esc(m)}</div>`).join('') : '<span class="text-ok-600">All requirements complete.</span>';
-      $('pp-audit').innerHTML = (p.audit || []).map(a => `<div>${esc(a.time)} — ${esc(a.text)}</div>`).reverse().join('');
+        </div>`;
+      }).join('');
+      $('pp-contact').innerHTML = [p.email ? esc(p.email) : '<span class="text-ink-400">No email on file</span>', p.phone ? esc(p.phone) : '', p.start ? 'Starts ' + esc(S.fmtDate(p.start)) : '']
+        .filter(Boolean).map(x => `<div>${x}</div>`).join('');
+      $('pp-notes').value = p.notes || '';
+      $('pp-notes').disabled = !editable;
+      $('pp-audit').innerHTML = p.audit.slice().reverse().map(a => `<div>${esc(S.fmtDate(a.at))} — ${esc(a.text)}${a.by ? ' <span class="text-ink-400">(' + esc(a.by) + ')</span>' : ''}</div>`).join('') || '<div>No activity yet.</div>';
+
+      const missing = p.requirements.filter(r => !r.done).map(r => S.REQUIREMENT_LABELS[r.key]);
+      const remind = S.mailto(p, 'Your onboarding at ' + (window.__ALTHAIS_USER__ || {}).organization,
+        `Hi ${p.name.split(' ')[0]},\n\nA quick reminder to finish your onboarding. You're ${pct}% done.` + (missing.length ? `\n\nStill needed:\n- ${missing.join('\n- ')}` : '') + `\n\nThanks!`);
+      const request = S.mailto(p, 'Documents needed for your onboarding',
+        `Hi ${p.name.split(' ')[0]},\n\nPlease send us the following so we can complete your onboarding:\n- ${(missing.length ? missing : ['(nothing outstanding)']).join('\n- ')}\n\nThank you.`);
+      [['pp-remind', remind], ['pp-request', request]].forEach(([id, href]) => {
+        const a = $(id);
+        if (href) { a.href = href; a.style.opacity = ''; a.style.pointerEvents = ''; a.title = ''; }
+        else { a.removeAttribute('href'); a.style.opacity = '.5'; a.style.pointerEvents = 'none'; a.title = 'Add an email address first'; }
+      });
+      $('pp-request').style.display = missing.length ? '' : 'none';
+      $('pp-approve').disabled = pct < 100;
+      $('pp-approve').style.opacity = pct < 100 ? '.5' : '';
+      $('pp-approve').title = pct < 100 ? 'Verify every requirement first' : '';
+      $('pp-role-select').innerHTML = S.options(S.ROLES_LIST.map(r => ({ value: r, label: 'Role: ' + r })), p.role);
     }
 
-    document.getElementById('ob-rows').addEventListener('click', (e) => {
+    $('ob-rows').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-view]');
       const row = e.target.closest('tr[data-id]');
-      const id = btn ? Number(btn.dataset.view) : (row ? Number(row.dataset.id) : null);
+      const id = btn ? btn.dataset.view : (row ? row.dataset.id : null);
       if (id) openProfile(id);
     });
 
     $('pp-close').addEventListener('click', closeProfile);
     $('profile-backdrop').addEventListener('click', closeProfile);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeInvite(); } });
     function closeProfile() { $('profile-backdrop').classList.add('hidden'); $('profile-panel').classList.remove('is-open'); activeId = null; }
 
-    $('pp-checklist').addEventListener('click', (e) => {
+    // Checking off a requirement. Licenses/certifications become credential records (with their expiry),
+    // HIPAA becomes a completed training, so Credentials, Training and Compliance pick them up.
+    $('pp-checklist').addEventListener('click', async (e) => {
       const box = e.target.closest('[data-req]');
-      if (!box || activeId == null) return;
-      const p = PEOPLE.find(x => x.id === activeId);
-      const req = p.requirements.find(r => r.key === box.dataset.req);
-      req.done = !req.done;
-      req.expired = false;
-      p.audit.push({ text: `${REQUIREMENT_LABELS[req.key]} ${req.done ? 'verified' : 'marked pending'}`, time: 'just now' });
-      renderProfileBody(p);
-      renderTable();
+      if (!box || !activeId || !S.canEdit()) return;
+      const key = box.dataset.req;
+      const expInput = document.querySelector(`[data-exp="${key}"]`);
+      const expires = expInput ? expInput.value : '';
+      const cur = S.person(DOC, activeId).requirements.find(r => r.key === key);
+      const credType = S.credentialTypeForRequirement(key, S.person(DOC, activeId).role);
+      if (!cur.done && credType && key !== 'background' && !expires) {
+        expInput && expInput.focus();
+        S.toast('Add the expiration date first', 'error');
+        return;
+      }
+      DOC = await S.save(d => {
+        const p = S.person(d, activeId), r = p.requirements.find(x => x.key === key);
+        r.done = !r.done;
+        r.verifiedBy = r.done ? S.currentUserName() : '';
+        r.verifiedAt = r.done ? new Date().toISOString() : '';
+        S.audit(p, `${S.REQUIREMENT_LABELS[key]} ${r.done ? 'verified' : 'marked pending'}`);
+        if (credType) {
+          const existing = d.credentials.find(c => c.personId === p.id && c.fromRequirement === key);
+          if (r.done) {
+            const rec = existing || { id: S.uid('c'), personId: p.id, fromRequirement: key };
+            Object.assign(rec, { type: credType, expires: expires || rec.expires || '', status: 'verified', verifiedBy: S.currentUserName(), verifiedAt: S.todayIso() });
+            if (!existing) d.credentials.push(rec);
+          } else if (existing) {
+            existing.status = 'pending';
+          }
+        }
+        if (key === 'hipaa') {
+          const t = d.trainings.find(x => x.personId === p.id && x.category === 'HIPAA');
+          if (r.done && !t) d.trainings.push({ id: S.uid('t'), personId: p.id, course: 'HIPAA Privacy & Security', category: 'HIPAA', due: S.todayIso(), completed: S.todayIso(), certificate: '' });
+          if (r.done && t && !t.completed) t.completed = S.todayIso();
+        }
+      }).catch(() => DOC);
+      refresh();
     });
 
-    $('pp-approve').addEventListener('click', () => {
-      if (activeId == null) return;
-      const p = PEOPLE.find(x => x.id === activeId);
-      const pct = computeProgress(p);
-      if (pct < 100) { alert('All required items must be verified before approval.'); return; }
-      p.approved = true;
-      p.audit.push({ text: 'Onboarding approved — moved to Staff → Team', time: 'just now' });
-      renderProfileBody(p);
-      renderTable();
-      alert(`${p.name} is now fully onboarded and has been added to Staff → Team.`);
+    $('pp-notes').addEventListener('change', async () => {
+      if (!activeId) return;
+      const text = $('pp-notes').value;
+      DOC = await S.save(d => { S.person(d, activeId).notes = text; }, 'Note saved').catch(() => DOC);
+    });
+
+    $('pp-role-select').addEventListener('change', async () => {
+      if (!activeId) return;
+      const role = $('pp-role-select').value;
+      DOC = await S.save(d => {
+        const p = S.person(d, activeId);
+        if (p.role === role) return;
+        S.audit(p, `Role changed from ${p.role} to ${role}`);
+        p.role = role;
+        p.requirements = S.requirementsFor(role, p.requirements);
+      }, 'Role updated').catch(() => DOC);
+      refresh();
+    });
+
+    $('pp-approve').addEventListener('click', async () => {
+      if (!activeId) return;
+      const p = S.person(DOC, activeId);
+      if (S.progress(p) < 100) return;
+      DOC = await S.save(d => {
+        const x = S.person(d, activeId);
+        x.status = 'active';
+        x.activeSince = S.todayIso();
+        S.audit(x, 'Onboarding approved and added to Team');
+      }, p.name + ' approved and added to the Team').catch(() => DOC);
       closeProfile();
+      refresh();
     });
 
-    $('pp-remove').addEventListener('click', () => {
-      if (activeId == null) return;
-      const p = PEOPLE.find(x => x.id === activeId);
-      if (!confirm(`Remove invitation for ${p.name}?`)) return;
-      PEOPLE = PEOPLE.filter(x => x.id !== activeId);
-      renderTable();
+    $('pp-remove').addEventListener('click', async () => {
+      if (!activeId) return;
+      const p = S.person(DOC, activeId);
+      if (!confirm(`Remove ${p.name} from onboarding? Their checklist, credentials and training records are deleted too.`)) return;
+      const id = activeId;
+      DOC = await S.save(d => {
+        d.people = d.people.filter(x => x.id !== id);
+        d.credentials = d.credentials.filter(c => c.personId !== id);
+        d.trainings = d.trainings.filter(t => t.personId !== id);
+      }, 'Invitation removed').catch(() => DOC);
       closeProfile();
+      refresh();
     });
 
-    renderTable();
-
-    // Overview's "+ Add Staff" quick action links here with ?invite=1 so it
-    // drops straight into the invite flow instead of just landing on the page.
-    if (new URLSearchParams(location.search).get('invite') === '1') {
-      $('invite-modal').classList.remove('hidden');
-      $('invite-modal').classList.add('flex');
-    }
+    S.load().then(d => {
+      DOC = d;
+      S.readOnlyBanner('readonly-note');
+      refresh();
+      const q = new URLSearchParams(location.search);
+      // Overview's "+ Add Staff" quick action links here with ?invite=1 to open the invite form straight away.
+      if (q.get('invite') === '1' && S.canEdit()) openInvite();
+      if (q.get('person')) openProfile(q.get('person'));
+    }).catch(e => { $('ob-count-label').textContent = e.message; });
   </script>
 </body>
 </html>

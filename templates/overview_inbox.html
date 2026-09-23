@@ -6,6 +6,19 @@
   <style>
     .chip { font-size: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid #e4e6eb; background: #fff; color: #4a505c; cursor: pointer; }
     .chip.active { background: #0d5bd7; border-color: #0d5bd7; color: #fff; }
+    .chip .n { opacity:.75; margin-left:3px; }
+    .alert-row { display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border-bottom:1px solid #eceef2; }
+    .alert-row:last-child { border-bottom:0; }
+    .lvl { width:4px; align-self:stretch; border-radius:2px; flex-shrink:0; }
+    .act { font-size:11.5px; font-weight:600; background:none; border:0; cursor:pointer; padding:0; color:#0d5bd7; }
+    .act.muted { color:#6b7280; }
+    .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; }
+    html[data-theme-resolved="dark"] .chip { background:#1a1d24; border-color:#2c313b; color:#b8bdcd; }
+    html[data-theme-resolved="dark"] .chip.active { background:#2f6fe8; border-color:#2f6fe8; color:#fff; }
+    html[data-theme-resolved="dark"] .alert-row { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .act { color:#6f9eff; }
+    html[data-theme-resolved="dark"] .act.muted { color:#8b909c; }
+    html[data-theme-resolved="dark"] .flt { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
   </style>
 </head>
 <body class="bg-shell">
@@ -15,48 +28,97 @@
   <div class="max-w-[1560px] mx-auto">
     <div class="px-6 py-5 bg-panel border-b border-line">
       <h1 class="text-[18px] font-semibold text-ink-900">AI Inbox</h1>
-      <p class="text-[12px] text-ink-500 mt-0.5">Priority alerts Althea has flagged across patients, claims, and staff.</p>
+      <p class="text-[12px] text-ink-500 mt-0.5">What Althea has flagged across claims, patients and staff, most urgent first.</p>
     </div>
 
     <div class="p-5">
-      <div class="flex flex-wrap gap-1.5 mb-4">
-        <button class="chip active">All</button>
-        <button class="chip">High</button>
-        <button class="chip">Medium</button>
-        <button class="chip">Low</button>
+      <div class="flex flex-wrap items-center gap-1.5 mb-4">
+        <div id="chips" class="flex flex-wrap gap-1.5"></div>
+        <select id="f-category" class="flt ml-2" aria-label="Filter by area"><option value="">All Areas</option><option>Claims</option><option>Clinical</option><option>Staff</option></select>
+        <label class="ml-auto flex items-center gap-1.5 text-[12px] text-ink-600 cursor-pointer"><input id="show-dismissed" type="checkbox"> Show Dismissed</label>
       </div>
 
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Priority alerts</h3>
-          <span class="text-[11px] text-ink-500">0 alerts</span>
+          <h3 class="text-[13px] font-semibold text-ink-900">Priority Alerts</h3>
+          <span id="count" class="text-[11px] text-ink-500">Loading…</span>
         </div>
-        <ul id="alerts-list" class="divide-y divide-lineSoft text-[12px]"></ul>
+        <div id="alerts-list"></div>
       </div>
+      <p class="mt-3 text-[11px] text-ink-400">Alerts come from your own records: denied and at-risk claims, visits without notes, pending prior auths, missing insurance, and staff compliance. Dismissing one hides it for your whole team.</p>
     </div>
   </div>
 
+  <script src="/static/js/staff-store.js"></script>
+  <script src="/static/js/practice-data.js"></script>
   <script>
-    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
-    const ALERTS = [];
-    document.getElementById('alerts-list').innerHTML = ALERTS.length ? ALERTS.map(a => `
-      <li class="px-4 py-2.5 flex items-start gap-2.5">
-        <span class="pill flex-shrink-0" style="background:#ffe1e1;color:#c83838">${esc(a.level)}</span>
-        <span class="text-ink-700 leading-snug">${esc(a.text)}</span>
-      </li>
-    `).join('') : `
-      <li class="text-center" style="padding:40px 10px;">
-        <div class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-ok-100 text-ok-600">
-          <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
-        </div>
-        <div class="font-semibold text-ink-900 text-[13px]">No active alerts</div>
-        <div class="text-ink-400 text-[12px] mt-0.5">Althea will flag risks here as they come up across the practice.</div>
-      </li>`;
+    const P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = P.esc;
+    let DOC = null, STAFF = null, ALERTS = [], level = '';
+    const LEVEL_STYLE = { High: { bar: '#c83838', pill: 'background:#ffe1e1;color:#c83838' }, Medium: { bar: '#b86a00', pill: 'background:#fff0d6;color:#b86a00' }, Low: { bar: '#aab0bb', pill: 'background:#eceef2;color:#4a505c' } };
 
-    document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
-      document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-      c.classList.add('active');
-    }));
+    function render() {
+      const showDismissed = $('show-dismissed').checked, cat = $('f-category').value;
+      const openTask = {};
+      DOC.tasks.filter(t => t.status !== 'done' && t.alertId).forEach(t => { openTask[t.alertId] = t; });
+      const visible = ALERTS.filter(a => showDismissed ? DOC.dismissed[a.id] : !DOC.dismissed[a.id]).filter(a => !cat || a.category === cat);
+      const counts = { '': visible.length };
+      visible.forEach(a => { counts[a.level] = (counts[a.level] || 0) + 1; });
+      $('chips').innerHTML = ['', 'High', 'Medium', 'Low'].map(l => `<button type="button" class="chip${l === level ? ' active' : ''}" data-level="${l}">${l || 'All'}<span class="n">${counts[l] || 0}</span></button>`).join('');
+      const rows = visible.filter(a => !level || a.level === level);
+      $('count').textContent = `${rows.length} alert${rows.length === 1 ? '' : 's'}`;
+      if (!rows.length) {
+        $('alerts-list').innerHTML = `
+          <div class="text-center" style="padding:40px 10px;">
+            <div class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-ok-100 text-ok-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg></div>
+            <div class="font-semibold text-ink-900 text-[13px]">${showDismissed ? 'Nothing dismissed' : 'No active alerts'}</div>
+            <div class="text-ink-400 text-[12px] mt-0.5">${showDismissed ? 'Alerts you dismiss can be restored from here.' : 'Althea will flag risks here as they come up across the practice.'}</div>
+          </div>`;
+        return;
+      }
+      $('alerts-list').innerHTML = rows.map(a => {
+        const t = openTask[a.id], dis = DOC.dismissed[a.id];
+        return `
+        <div class="alert-row">
+          <span class="lvl" style="background:${LEVEL_STYLE[a.level].bar}" aria-hidden="true"></span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="pill" style="${LEVEL_STYLE[a.level].pill}">${a.level}</span>
+              <span class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${esc(a.category)}</span>
+            </div>
+            <div class="text-[13px] font-medium text-ink-900 mt-1">${esc(a.title)}</div>
+            <div class="text-[12px] text-ink-500 mt-0.5">${esc(a.detail)}</div>
+            <div class="flex items-center gap-4 mt-2">
+              <a href="${esc(a.href)}" class="act">${esc(a.hrefLabel || 'Open')} →</a>
+              ${t ? `<a href="/overview/tasks?view=open" class="act muted">Task Open: ${esc(t.assignee === P.currentUserName() ? 'You' : (t.assignee || 'Unassigned'))}</a>` : `<button type="button" class="act" data-task="${esc(a.id)}">+ Create Task</button>`}
+              ${dis ? `<button type="button" class="act muted" data-restore="${esc(a.id)}">Restore</button><span class="text-[11px] text-ink-400">Dismissed by ${esc(dis.by)} ${esc(P.relTime(dis.at))}</span>`
+                    : `<button type="button" class="act muted" data-dismiss="${esc(a.id)}">Dismiss</button>`}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    $('chips').addEventListener('click', (e) => { const c = e.target.closest('[data-level]'); if (c) { level = c.dataset.level; render(); } });
+    $('f-category').addEventListener('input', render);
+    $('show-dismissed').addEventListener('change', render);
+    $('alerts-list').addEventListener('click', async (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.task) { location.href = '/overview/tasks?alert=' + encodeURIComponent(b.dataset.task); return; }
+      const a = ALERTS.find(x => x.id === (b.dataset.dismiss || b.dataset.restore));
+      if (b.dataset.dismiss) DOC = await P.tasks.save(d => { d.dismissed[a.id] = { by: P.currentUserName(), at: new Date().toISOString() }; P.tasks.log(d, 'Dismissed alert: ' + a.title, '/overview/inbox'); }, 'Dismissed').catch(() => DOC);
+      if (b.dataset.restore) DOC = await P.tasks.save(d => { delete d.dismissed[a.id]; P.tasks.log(d, 'Restored alert: ' + a.title, '/overview/inbox'); }, 'Restored').catch(() => DOC);
+      render();
+    });
+
+    Promise.all([P.tasks.load(), window.StaffStore ? StaffStore.load().catch(() => null) : null]).then(([d, s]) => {
+      DOC = d; STAFF = s;
+      ALERTS = P.alerts(P.local(), STAFF);
+      const q = new URLSearchParams(location.search).get('level');
+      if (q && LEVEL_STYLE[q]) level = q;
+      render();
+    }).catch(e => { $('count').textContent = e.message; });
   </script>
 </body>
 </html>

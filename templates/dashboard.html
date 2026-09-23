@@ -594,15 +594,26 @@
             </div>
             <div class="flex items-center gap-1.5 rounded-sm border border-line bg-white px-2 py-1 text-[11.5px]">
               <svg class="h-3 w-3 text-ink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
-              <input class="bg-transparent outline-none w-44" placeholder="Filter by patient, payer, code…" />
+              <input id="claims-filter-input" type="search" class="bg-transparent outline-none w-44" placeholder="Filter by patient, payer, code…" aria-label="Filter claims" />
             </div>
-            <button class="text-[11.5px] px-2 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell flex items-center gap-1">
-              <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
-              Filters
-            </button>
-            <button class="text-[11.5px] px-2 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell flex items-center gap-1">
-              Columns
-            </button>
+            <div class="relative">
+              <button id="claims-filters-btn" type="button" aria-expanded="false" class="text-[11.5px] px-2 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell flex items-center gap-1">
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+                Filters<span id="claims-filters-count" class="hidden count-pill med ml-0.5"></span>
+              </button>
+              <div id="claims-filters-pop" class="hidden absolute right-0 top-full mt-1 z-30 w-[240px] bg-panel border border-line rounded-sm shadow-lg p-3 space-y-2 text-[11.5px]">
+                <label class="block"><span class="block text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Payer</span><select data-facet="payer" class="w-full rounded-sm border border-line bg-white px-2 py-1"></select></label>
+                <label class="block"><span class="block text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Provider</span><select data-facet="provider" class="w-full rounded-sm border border-line bg-white px-2 py-1"></select></label>
+                <label class="block"><span class="block text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Risk</span><select data-facet="risk" class="w-full rounded-sm border border-line bg-white px-2 py-1"></select></label>
+                <button id="claims-filters-clear" type="button" class="text-[11.5px] font-semibold text-med-600">Clear Filters</button>
+              </div>
+            </div>
+            <div class="relative">
+              <button id="claims-columns-btn" type="button" aria-expanded="false" class="text-[11.5px] px-2 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell flex items-center gap-1">
+                Columns
+              </button>
+              <div id="claims-columns-pop" class="hidden absolute right-0 top-full mt-1 z-30 w-[200px] bg-panel border border-line rounded-sm shadow-lg p-3 space-y-1.5 text-[12px]"></div>
+            </div>
           </div>
         </div>
 
@@ -1283,14 +1294,13 @@
             <h1 class="s-section-title" style="font-size: 22px;">Settings</h1>
           </div>
           <div class="flex items-center gap-2.5">
-            <input class="s-search" placeholder="Search settings…" style="width: 240px;" />
+            <input id="settings-search" type="search" class="s-search" placeholder="Search settings…" style="width: 240px;" aria-label="Search settings" />
             <select id="settings-practice-select" class="s-input" style="width: 200px;">
               <option>+ Add Organization…</option>
             </select>
-            <button class="s-btn s-btn-ghost" style="position:relative;padding: 8px 10px;">
+            <a href="/overview/inbox" class="s-btn s-btn-ghost" style="padding: 8px 10px;display:inline-flex;" title="AI Inbox" aria-label="Open AI Inbox">
               <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4v-3.3a6 6 0 0 0-12 0v3.3a2 2 0 0 1-.6 1.4L4 17h5"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
-              <span style="position:absolute; top:5px; right:6px; width:7px; height:7px; border-radius:50%; background:#ef4444; box-shadow:0 0 8px rgba(239,68,68,0.6);"></span>
-            </button>
+            </a>
             <div class="relative" id="settings-doc-dropdown" style="position:relative;">
               <button id="settings-doc-btn" type="button" class="s-btn s-btn-ghost" style="padding:8px 12px;display:inline-flex;align-items:center;gap:6px;">
                 <span id="settings-doc-name">Dr. R. Patel</span>
@@ -1688,7 +1698,7 @@
 
             <div class="s-divider"></div>
 
-            <h3 style="font-size:14px;font-weight:600;color:#0f1116;margin-bottom:6px;">Scrubber rules</h3>
+            <h3 style="font-size:14px;font-weight:600;color:#0f1116;margin-bottom:6px;">Scrubber Rules</h3>
             <div class="s-card" style="padding:0 22px;">
               <div class="s-row"><div><div class="s-row-label">Block On Missing Modifier 25</div></div><div class="toggle on" data-setting="block_missing_mod25"></div></div>
               <div class="s-row"><div><div class="s-row-label">Require Referring Provider For Imaging</div></div><div class="toggle on" data-setting="require_referring_provider"></div></div>
@@ -2078,11 +2088,11 @@
           <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
           Run AI Claim Scrubber On Selected
         </button>
-        <button class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800">
+        <button id="quick-export-batch" type="button" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800">
           <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          Export 837P batch
+          Export Claims Batch (CSV)
         </button>
-        <button class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800">
+        <button id="quick-appeal" type="button" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800">
           <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/></svg>
           Generate Appeal Letter
         </button>
@@ -3536,6 +3546,17 @@
         const want = location.pathname.replace(/\/+$/, '') === '/settings' ? 'settings' : byHash[initialHash];
         const tab = want && document.querySelector('.nav-tab[data-tab="' + want + '"]');
         if (tab) setTimeout(() => tab.click(), 0);   // after the rest of the page's script has run
+        // /settings?tab=billing opens straight to that Settings section (used by Staff > Clinic Onboarding)
+        const sub = want === 'settings' && new URLSearchParams(location.search).get('tab');
+        const subTab = sub && document.querySelector('#settings-view [data-settings-tab="' + sub + '"]');
+        if (subTab) setTimeout(() => subTab.click(), 0);
+        // /emr?patient=MRN opens that patient's chart (used by EMR > Patients)
+        const mrn = new URLSearchParams(location.search).get('patient');
+        if (mrn) setTimeout(() => { if (typeof setActivePatient === 'function') setActivePatient(mrn, { scroll: true }); }, 0);
+        // /emr?new_patient=1 opens the New Patient form (EMR > Patients "+ Add Patient")
+        if (new URLSearchParams(location.search).get('new_patient') === '1') setTimeout(() => { const b = document.getElementById('open-new-patient'); if (b) b.click(); }, 0);
+        // /emr?import_patients=1 opens the patient CSV import (Staff > Clinic Onboarding setup checklist)
+        if (new URLSearchParams(location.search).get('import_patients') === '1') setTimeout(() => { const b = document.getElementById('open-import-patients'); if (b) b.click(); }, 0);
       })();
 
       // ---- Settings inner-sidebar nav ----
@@ -3551,6 +3572,21 @@
           const active = document.querySelector(`#settings-view [data-section="${target}"]`);
           if (active) { active.style.animation = 'none'; void active.offsetWidth; active.style.animation = ''; }
         });
+      });
+
+      // ---- Settings search: keep only the tabs whose section mentions every typed word, and open the first ----
+      const sSearch = document.getElementById('settings-search');
+      if (sSearch) sSearch.addEventListener('input', () => {
+        const words = sSearch.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        let first = null;
+        sTabs.forEach(t => {
+          const sec = document.querySelector(`#settings-view [data-section="${t.getAttribute('data-settings-tab')}"]`);
+          const hay = ((sec ? sec.textContent : '') + ' ' + t.textContent).toLowerCase();
+          const hit = !words.length || words.every(w => hay.includes(w));
+          t.style.display = hit ? '' : 'none';
+          if (hit && !first) first = t;
+        });
+        if (words.length && first && !first.classList.contains('active')) first.click();
       });
 
       // ---- Settings toggle switches ----
@@ -3700,7 +3736,7 @@
               </div>
               <div style="display:flex;align-items:center;justify-content:space-between;">
                 <span class="s-row-sub">${asked ? "We'll reach out once it's ready" : 'Not built yet'}</span>
-                <button class="s-btn ${asked ? 's-btn-ghost' : 's-btn-primary'}" data-integration-key="${it.key}" style="padding:5px 10px;font-size:11.5px;" ${asked ? 'disabled' : ''}>${asked ? 'Requested ✓' : 'Request early access'}</button>
+                <button class="s-btn ${asked ? 's-btn-ghost' : 's-btn-primary'}" data-integration-key="${it.key}" style="padding:5px 10px;font-size:11.5px;" ${asked ? 'disabled' : ''}>${asked ? 'Requested ✓' : 'Request Early Access'}</button>
               </div>
             </div>`;
           }).join('');
@@ -4117,13 +4153,11 @@
           if (stopBtnBottom) stopBtnBottom.addEventListener('click', doStop);
         })();
 
-        // ── Encounter recording toggle (consent-gated, visual state only) ──
-        // Deliberately does NOT capture real audio or call any backend —
-        // the actual transcription/summarization endpoints aren't built or
-        // deployed in this app yet (that's a separate, bigger decision).
-        // This just gives honest, working Start/Stop feedback with a live
-        // timer, from either the top control or the mirrored one at the
-        // bottom of this step, so the panel doesn't look broken if clicked.
+        // ── Encounter recording (consent-gated) ──
+        // Uses the browser's own speech recognition (the same one Althea uses to scribe) to write a live
+        // transcript into the box below; nothing is recorded or sent until "Fill Note From Transcript" is
+        // pressed, which sends only the transcript text to /api/althea/extract. Where the browser has no
+        // speech recognition the transcript box still opens, so a transcript can be typed or pasted in.
         (function wireScribeRecording() {
           const consent = document.getElementById('scribe-consent');
           const recordBtn = document.getElementById('scribe-record-btn');
@@ -4137,6 +4171,24 @@
           let recording = false;
           let startedAt = null;
           let tickInterval = null;
+          const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+          let recognizer = null;
+          const transcriptWrap = document.getElementById('scribe-transcript-wrap');
+          const transcriptEl = document.getElementById('scribe-transcript');
+          const generateBtn = document.getElementById('scribe-generate-btn');
+          const generateStatus = document.getElementById('scribe-generate-status');
+          if (generateBtn) generateBtn.addEventListener('click', async () => {
+            const text = (transcriptEl.value || '').replace(/\s+/g, ' ').trim();
+            if (text.split(' ').filter(Boolean).length < 12) { generateStatus.textContent = 'Not enough transcript yet to write a note.'; return; }
+            if (typeof window.althaisFillNoteFromTranscript !== 'function') { generateStatus.textContent = 'Note filling isn’t available here.'; return; }
+            generateBtn.disabled = true; generateStatus.textContent = 'Writing the note…';
+            try {
+              const filled = await window.althaisFillNoteFromTranscript(text);
+              generateStatus.textContent = filled.length ? 'Filled: ' + filled.join(', ') + '.' : 'Nothing in the transcript matched a note field.';
+              if (filled.length) { const banner = document.getElementById('scribe-ai-banner'); if (banner) banner.classList.remove('hidden'); }
+            } catch (err) { generateStatus.textContent = err.message || 'Could not write the note just now.'; }
+            finally { generateBtn.disabled = false; }
+          });
 
           function formatElapsed() {
             const elapsed = Math.floor((Date.now() - startedAt) / 1000);
@@ -4161,7 +4213,18 @@
             recordBtn.textContent = 'Recording…';
             recordBtn.classList.add('opacity-70');
             consent.disabled = true; // don't allow un-consenting mid-recording
-            if (statusEl) statusEl.textContent = 'Recording — click Stop when the visit is complete.';
+            if (transcriptWrap) transcriptWrap.classList.remove('hidden');
+            if (SRClass) {
+              recognizer = new SRClass();
+              recognizer.lang = 'en-US'; recognizer.continuous = true; recognizer.interimResults = false;
+              recognizer.onresult = (e) => {
+                for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) transcriptEl.value = (transcriptEl.value + ' ' + e.results[i][0].transcript).trim();
+              };
+              recognizer.onend = () => { if (recording) { try { recognizer.start(); } catch (err) {} } };   // keep going through pauses
+              try { recognizer.start(); } catch (err) {}
+            }
+            if (statusEl) statusEl.textContent = SRClass ? 'Recording. The transcript fills in below. Click Stop when the visit is complete.'
+                                                         : 'This browser can’t transcribe speech. Type or paste the transcript below.';
           }
           function stopRecording() {
             if (!recording) return;
@@ -4170,6 +4233,7 @@
             if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
             if (timerTop) timerTop.classList.add('hidden');
             if (stopBottomWrap) stopBottomWrap.classList.add('hidden');
+            if (recognizer) { try { recognizer.stop(); } catch (err) {} recognizer = null; }
             recordBtn.textContent = 'Start Recording';
             recordBtn.classList.remove('opacity-70');
             consent.disabled = false;
@@ -4781,6 +4845,20 @@
           }
           await altheaCodingStage(w);
         }
+        // The visit note's own "Fill Note From Transcript" button uses the same extraction as scribing
+        // through Althea: it only copies what was said into the matching note fields.
+        window.althaisFillNoteFromTranscript = async function (text) {
+          const res = await fetch('/api/althea/extract', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target: 'soap_scribe', text }), credentials: 'same-origin'
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || data.error) throw new Error(data.error || 'Could not write the note just now.');
+          const fields = data.fields || {};
+          const filled = altheaApplyFields('soap_note', fields);
+          if (fields.encounter_type && altheaSetSelect('soap-encounter-type', fields.encounter_type)) filled.push('Encounter type');
+          return filled;
+        };
         // 3. Codes -----------------------------------------------------------------------
         async function altheaCodingStage(w) {
           w.stage = 'coding'; altheaSetActions([]);
@@ -7596,10 +7674,26 @@
       let claimsPage = 1;
       let activeFilter = 'all';
 
+      // Search box + Filters panel: column positions in the Claims Overview table
+      const CLAIM_COL = { patient: 1, provider: 2, cpt: 3, icd: 4, status: 5, payer: 6, risk: 8 };
+      let claimsQuery = '';
+      const claimsFacets = { payer: '', provider: '', risk: '' };
+      const cellText = (tr, col) => { const td = tr.children[col]; return td ? td.textContent.replace(/\s+/g, ' ').trim() : ''; };
+      function matchesSearchAndFacets(tr) {
+        if (claimsQuery) {
+          const hay = [CLAIM_COL.patient, CLAIM_COL.provider, CLAIM_COL.cpt, CLAIM_COL.icd, CLAIM_COL.payer].map(c => cellText(tr, c)).join(' ').toLowerCase();
+          if (!hay.includes(claimsQuery)) return false;
+        }
+        for (const k of Object.keys(claimsFacets)) if (claimsFacets[k] && cellText(tr, CLAIM_COL[k]) !== claimsFacets[k]) return false;
+        return true;
+      }
+
       function getVisibleRows() {
         const tbody = document.querySelector('#claims tbody');
         if (!tbody) return [];
         return [...tbody.querySelectorAll('tr')].filter(tr => {
+          if (tr.children.length < 10) return true;   // the empty-state row
+          if (!matchesSearchAndFacets(tr)) return false;
           if (!activeFilter || activeFilter === 'all') return true;
           const pill = tr.querySelector('.pill');
           const status = pill ? pill.textContent.trim().toLowerCase() : '';
@@ -7677,6 +7771,74 @@
           renderClaimsPagination(1);
         });
       });
+
+      // ---- Search box, Filters panel and Columns panel for the Claims Overview ----
+      (function wireClaimsToolbar() {
+        const input = document.getElementById('claims-filter-input');
+        if (input) input.addEventListener('input', () => { claimsQuery = input.value.trim().toLowerCase(); renderClaimsPagination(1); });
+
+        const pops = [['claims-filters-btn', 'claims-filters-pop'], ['claims-columns-btn', 'claims-columns-pop']];
+        function closePops(except) {
+          pops.forEach(([b, p]) => { if (p === except) return; document.getElementById(p).classList.add('hidden'); document.getElementById(b).setAttribute('aria-expanded', 'false'); });
+        }
+        pops.forEach(([b, p]) => {
+          document.getElementById(b).addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pop = document.getElementById(p), opening = pop.classList.contains('hidden');
+            closePops(p);
+            pop.classList.toggle('hidden', !opening);
+            document.getElementById(b).setAttribute('aria-expanded', String(opening));
+            if (opening && p === 'claims-filters-pop') fillFacets();
+          });
+          document.getElementById(p).addEventListener('click', (e) => e.stopPropagation());
+        });
+        document.addEventListener('click', () => closePops());
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePops(); });
+
+        // Filters: choices come from the claims actually in the table
+        const facetSelects = document.querySelectorAll('#claims-filters-pop [data-facet]');
+        function fillFacets() {
+          const rows = [...document.querySelectorAll('#claims tbody tr')].filter(tr => tr.children.length >= 10);
+          facetSelects.forEach(sel => {
+            const k = sel.dataset.facet;
+            const vals = [...new Set(rows.map(tr => cellText(tr, CLAIM_COL[k])).filter(v => v && v !== '—'))].sort();
+            sel.innerHTML = '<option value="">Any</option>' + vals.map(v => `<option${v === claimsFacets[k] ? ' selected' : ''}>${escapeHtml(v)}</option>`).join('');
+          });
+        }
+        function updateFacetCount() {
+          const n = Object.values(claimsFacets).filter(Boolean).length, badge = document.getElementById('claims-filters-count');
+          badge.textContent = n; badge.classList.toggle('hidden', !n);
+        }
+        facetSelects.forEach(sel => sel.addEventListener('change', () => { claimsFacets[sel.dataset.facet] = sel.value; updateFacetCount(); renderClaimsPagination(1); }));
+        document.getElementById('claims-filters-clear').addEventListener('click', () => {
+          Object.keys(claimsFacets).forEach(k => { claimsFacets[k] = ''; });
+          facetSelects.forEach(sel => { sel.value = ''; });
+          updateFacetCount(); renderClaimsPagination(1);
+        });
+
+        // Columns: show/hide, remembered on this device
+        const COLS = ['Patient', 'Provider', 'CPT', 'ICD-10', 'Status', 'Payer', 'Amount', 'Risk', 'AI Conf.', 'Last Updated'];
+        const COL_KEY = (window.__ALTHAIS_NS__ || 'local') + '::althais.ui.claimsHiddenColumns.v1';
+        let hidden = [];
+        try { hidden = JSON.parse(localStorage.getItem(COL_KEY) || '[]') || []; } catch (e) {}
+        const styleEl = document.createElement('style');
+        document.head.appendChild(styleEl);
+        function applyColumns() {
+          // table column n+2 (after the checkbox column) for COLS[n]
+          styleEl.textContent = hidden.map(name => `#claims table tr > :nth-child(${COLS.indexOf(name) + 2}) { display: none; }`).join('\n');
+          try { localStorage.setItem(COL_KEY, JSON.stringify(hidden)); } catch (e) {}
+        }
+        const colPop = document.getElementById('claims-columns-pop');
+        colPop.innerHTML = '<div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Show Columns</div>' +
+          COLS.map(c => `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-col="${escapeHtml(c)}" ${hidden.includes(c) ? '' : 'checked'}> ${escapeHtml(c)}</label>`).join('');
+        colPop.addEventListener('change', (e) => {
+          const c = e.target.dataset.col; if (!c) return;
+          hidden = e.target.checked ? hidden.filter(x => x !== c) : hidden.concat(c);
+          if (hidden.length === COLS.length) { hidden = hidden.filter(x => x !== 'Patient'); colPop.querySelector('[data-col="Patient"]').checked = true; }
+          applyColumns();
+        });
+        applyColumns();
+      })();
 
       renderClaimsPagination(1);
       recomputeKPIs();
@@ -8254,8 +8416,8 @@
         const psel = document.getElementById('settings-practice-select');
         if (psel) {
           const curP = psel.value;
-          psel.innerHTML = PRACTICES.map(p => '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>').join('') + '<option value="__add">+ Add organization…</option>';
-          if (curP) psel.value = curP;
+          psel.innerHTML = PRACTICES.map(p => '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>').join('') + '<option value="__add">+ Add Organization…</option>';
+          psel.value = activePracticeId || curP;
         }
       }
 
@@ -8435,11 +8597,28 @@
           fillPracticeInfo();
           renderPracticesStrip();
           renderActiveDoctor();
+          populateProviderSelects();   // adds it to the Settings header practice picker too
           // focus the first empty input so the doctor can fill in the rest
           const npi = document.getElementById('practice-npi'); if (npi) npi.focus();
           if (typeof logActivity === 'function') logActivity('add', `Practice added: <strong>${escapeHtml(newP.name)}</strong>`, '');
         });
       }
+
+      // Settings header practice picker: switch practices, or "+ Add organization…" runs the same add flow.
+      const practiceSelect = document.getElementById('settings-practice-select');
+      if (practiceSelect) practiceSelect.addEventListener('change', () => {
+        const v = practiceSelect.value;
+        if (v === '__add') {
+          practiceSelect.value = activePracticeId;
+          if (addPracticeBtn) addPracticeBtn.click();
+        } else if (v && v !== activePracticeId) {
+          activePracticeId = v;
+          localStorage.setItem(STORAGE_ACTIVE_PRACTICE, activePracticeId);
+          fillPracticeInfo();
+          renderPracticesStrip();
+          renderActiveDoctor();
+        }
+      });
 
       const deletePracticeBtn = document.getElementById('practice-delete');
       if (deletePracticeBtn) {
@@ -9940,6 +10119,36 @@
         showAppealLetter(0);
       });
 
+      // Right sidebar "Generate Appeal Letter": the open patient's denied claims, or every denied claim if they have none.
+      const quickAppeal = document.getElementById('quick-appeal');
+      if (quickAppeal) quickAppeal.addEventListener('click', () => {
+        const active = typeof getActive === 'function' ? getActive() : null;
+        const mine = (typeof SAVED_CLAIMS !== 'undefined' && active) ? SAVED_CLAIMS.filter(c => c.mrn === active.mrn && c.status === 'Denied') : [];
+        if (!mine.length) { if (appealAllBtn) appealAllBtn.click(); return; }
+        appealClaims = mine;
+        appealCache = new Array(appealClaims.length);
+        appealIndex = 0;
+        appealModal.classList.remove('hidden');
+        if (typeof logActivity === 'function') logActivity('add', `Appeal letter drafting for <strong>${escapeHtml(active.name)}</strong>`, '');
+        showAppealLetter(0);
+      });
+
+      // Right sidebar "Export Claims Batch": the claims that are ready to submit, as a CSV worksheet.
+      const quickExport = document.getElementById('quick-export-batch');
+      if (quickExport) quickExport.addEventListener('click', () => {
+        const all = typeof SAVED_CLAIMS !== 'undefined' ? SAVED_CLAIMS.filter(c => !c.isPlaceholder) : [];
+        const ready = all.filter(c => c.status === 'Ready to Submit');
+        if (!ready.length) { alert('No claims are Ready to Submit. Finish coding a claim first, then export the batch.'); return; }
+        const head = ['Claim ID', 'Patient', 'MRN', 'Provider', 'Payer', 'CPT', 'ICD-10', 'Amount', 'Status', 'Created'];
+        const lines = [head].concat(ready.map(c => [c.claimId, c.patient, c.mrn, c.provider, c.payer, c.cpt, c.icd, c.amount, c.status, c.ts]))
+          .map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(','));
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+        a.download = 'claims_batch_' + new Date().toISOString().slice(0, 10) + '.csv';
+        a.click();
+        if (typeof logActivity === 'function') logActivity('ok', `Exported a batch of <strong>${ready.length}</strong> ready-to-submit claim(s)`, 'CSV');
+      });
+
       function closeAppealModal() { if (appealModal) appealModal.classList.add('hidden'); }
       [appealClose, appealBackdrop].forEach(b => b && b.addEventListener('click', closeAppealModal));
       document.addEventListener('keydown', e => {
@@ -10268,7 +10477,7 @@
       // inline add-form and a delete-per-row table.
       const PR_LIST_CONFIG = {
         priorauth: {
-          title: 'Prior Authorizations', addLabel: 'New auth', noun: 'Prior authorization',
+          title: 'Prior Authorizations', addLabel: 'New Auth', noun: 'Prior authorization',
           store: 'priorAuths', statusKey: 'status',
           empty: 'No prior authorizations on file for this patient.',
           fields: [
@@ -10281,7 +10490,7 @@
           ]
         },
         appeals: {
-          title: 'Appeals', addLabel: 'New appeal', noun: 'Appeal',
+          title: 'Appeals', addLabel: 'New Appeal', noun: 'Appeal',
           store: 'appeals', statusKey: 'status',
           empty: 'No appeals filed for this patient.',
           fields: [
@@ -10294,7 +10503,7 @@
           ]
         },
         billing: {
-          title: 'Billing History', addLabel: 'New entry', noun: 'Billing entry',
+          title: 'Billing History', addLabel: 'New Entry', noun: 'Billing entry',
           store: 'billing', statusKey: 'type',
           empty: 'No billing activity recorded for this patient.',
           fields: [
@@ -10306,7 +10515,7 @@
           ]
         },
         labs: {
-          title: 'Labs', addLabel: 'New lab order', noun: 'Lab order',
+          title: 'Labs', addLabel: 'New Lab Order', noun: 'Lab order',
           store: 'labs', statusKey: 'status',
           empty: 'No lab orders on file for this patient.',
           fields: [
@@ -10320,7 +10529,7 @@
           ]
         },
         meds: {
-          title: 'Medications', addLabel: 'New medication', noun: 'Medication',
+          title: 'Medications', addLabel: 'New Medication', noun: 'Medication',
           store: 'meds', statusKey: 'status',
           empty: 'No medications on file for this patient.',
           fields: [
@@ -10333,7 +10542,7 @@
           ]
         },
         referrals: {
-          title: 'Referrals', addLabel: 'New referral', noun: 'Referral',
+          title: 'Referrals', addLabel: 'New Referral', noun: 'Referral',
           store: 'referrals', statusKey: 'status',
           empty: 'No referrals on file for this patient.',
           fields: [
@@ -10345,7 +10554,7 @@
           ]
         },
         careteam: {
-          title: 'Care Team', addLabel: 'Add member', noun: 'Care team member',
+          title: 'Care Team', addLabel: 'Add Member', noun: 'Care team member',
           store: 'careTeam', statusKey: 'primary',
           empty: 'No care team members assigned to this patient.',
           fields: [
@@ -10357,7 +10566,7 @@
           ]
         },
         encounters: {
-          title: 'Encounters', addLabel: 'New encounter', noun: 'Encounter',
+          title: 'Encounters', addLabel: 'New Encounter', noun: 'Encounter',
           store: 'encounters', statusKey: 'status',
           empty: 'No encounters recorded for this patient.',
           fields: [

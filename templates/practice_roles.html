@@ -4,9 +4,11 @@
   {% include "_head.html" %}
   <title>Althais — Roles & Permissions</title>
   <style>
-    .perm-cell { width:26px; height:26px; border-radius:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; margin:0 auto; border:1.5px solid #e4e6eb; }
+    .perm-cell { width:26px; height:26px; border-radius:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; margin:0 auto; border:1.5px solid #e4e6eb; background:transparent; }
     .perm-cell.is-on { background:#0c8a4f; border-color:#0c8a4f; }
     .perm-cell:hover { border-color:#0d5bd7; }
+    .perm-cell:disabled { cursor:default; }
+    html[data-theme-resolved="dark"] .perm-cell { border-color:#3a4150; }
   </style>
 </head>
 <body class="bg-shell">
@@ -14,85 +16,109 @@
   {% include "_nav.html" %}
 
   <div class="max-w-[1560px] mx-auto">
-    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
       <div>
         <h1 class="text-[18px] font-semibold text-ink-900">Roles &amp; Permissions</h1>
-        <p class="text-[12px] text-ink-500 mt-0.5">Control what each role can access across the practice.</p>
+        <p class="text-[12px] text-ink-500 mt-0.5">The practice's access policy for each staff role.</p>
       </div>
-      <button id="create-role-btn" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Create Role</button>
+      <div class="flex items-center gap-2">
+        <span id="reviewed-note" class="text-[11.5px] text-ink-500"></span>
+        <button id="review-btn" data-admin-only type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold whitespace-nowrap">Mark As Reviewed</button>
+        <button id="reset-btn" data-admin-only type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold">Reset To Defaults</button>
+        <button id="create-role-btn" data-admin-only type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Create Role</button>
+      </div>
     </div>
 
     <div class="p-5">
+      <div id="readonly-note"></div>
+      <div class="mb-4 px-3 py-2.5 rounded-sm border border-line bg-panel text-[12px] text-ink-600">
+        This matrix records who <em>should</em> have access to what. It doesn't change what anyone can do in Althais. That's set by each person's login access level (Viewer, Provider, Biller or Admin), shown on <a href="/staff/team" class="font-semibold text-med-600">Team</a>.
+      </div>
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Permission matrix</h3>
-          <span class="text-[11px] text-ink-500">Click a cell to toggle access</span>
+          <h3 class="text-[13px] font-semibold text-ink-900">Permission Matrix</h3>
+          <span class="text-[11px] text-ink-500" id="hint">Click a cell to toggle access</span>
         </div>
         <div class="overflow-x-auto thin-scroll">
           <table class="w-full">
-            <thead>
-              <tr class="table-head">
-                <th class="td text-left" style="min-width:160px;">Role</th>
-                <th class="td text-center">Patient Records</th>
-                <th class="td text-center">Clinical Notes</th>
-                <th class="td text-center">Coding</th>
-                <th class="td text-center">Claims</th>
-                <th class="td text-center">Revenue</th>
-                <th class="td text-center">Staff Records</th>
-                <th class="td text-center">Compliance</th>
-                <th class="td text-center">Settings</th>
-              </tr>
-            </thead>
-            <tbody id="roles-rows"></tbody>
+            <thead><tr class="table-head" id="roles-head"></tr></thead>
+            <tbody id="roles-rows"><tr><td class="td text-ink-500">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
   </div>
 
+  <script src="/static/js/staff-store.js"></script>
   <script>
+    const S = window.StaffStore;
     const $ = (id) => document.getElementById(id);
+    const esc = S.esc;
+    let DOC = null;
+    const BUILT_IN = new Set(S.DEFAULT_ROLES.map(r => r.name));
 
-    const AREAS = ['patients','notes','coding','claims','revenue','staff','compliance','settings'];
-    let ROLES = [
-      { name: 'Physician',        perms: { patients:1, notes:1, coding:1, claims:1, revenue:0, staff:0, compliance:0, settings:0 } },
-      { name: 'Nurse',            perms: { patients:1, notes:1, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
-      { name: 'Medical Assistant',perms: { patients:1, notes:1, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
-      { name: 'Biller',           perms: { patients:1, notes:0, coding:1, claims:1, revenue:1, staff:0, compliance:0, settings:0 } },
-      { name: 'Practice Manager', perms: { patients:1, notes:0, coding:0, claims:1, revenue:1, staff:1, compliance:1, settings:1 } },
-      { name: 'Volunteer',        perms: { patients:0, notes:0, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
-      { name: 'Student',          perms: { patients:1, notes:1, coding:0, claims:0, revenue:0, staff:0, compliance:0, settings:0 } },
-      { name: 'Administrator',    perms: { patients:1, notes:1, coding:1, claims:1, revenue:1, staff:1, compliance:1, settings:1 } },
-    ];
+    $('roles-head').innerHTML = '<th class="td text-left" style="min-width:170px;">Role</th>' + S.PERMISSION_AREAS.map(a => `<th class="td text-center">${esc(a.label)}</th>`).join('') + '<th class="td text-right">Staff</th>';
 
-    function renderRoles() {
-      $('roles-rows').innerHTML = ROLES.map((r, ri) => `
+    function render() {
+      const edit = S.canEdit();
+      const rev = DOC.clinic.rolesReviewedAt;
+      $('reviewed-note').textContent = rev ? `Reviewed ${S.fmtDate(rev)}${DOC.clinic.rolesReviewedBy ? ' by ' + DOC.clinic.rolesReviewedBy : ''}` : 'Not reviewed yet';
+      $('review-btn').textContent = rev ? 'Mark Reviewed Again' : 'Mark As Reviewed';
+      $('hint').textContent = edit ? 'Click a cell to toggle access' : '';
+      $('roles-rows').innerHTML = DOC.roles.map((r, ri) => {
+        const staff = DOC.people.filter(p => p.role === r.name && p.status !== 'inactive').length;
+        return `
         <tr>
-          <td class="td font-semibold text-ink-900">${r.name}</td>
-          ${AREAS.map(a => `
+          <td class="td font-semibold text-ink-900">${esc(r.name)}${!BUILT_IN.has(r.name) && edit ? ` <button type="button" class="ml-1 text-[11px] font-semibold text-risk-600" data-delete="${ri}">Delete</button>` : ''}</td>
+          ${S.PERMISSION_AREAS.map(a => `
             <td class="td text-center">
-              <div class="perm-cell ${r.perms[a] ? 'is-on' : ''}" data-role="${ri}" data-area="${a}">
-                ${r.perms[a] ? '<svg class="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>' : ''}
-              </div>
+              <button type="button" class="perm-cell ${r.perms[a.key] ? 'is-on' : ''}" data-role="${ri}" data-area="${a.key}" ${edit ? '' : 'disabled'} aria-label="${esc(r.name)}: ${esc(a.label)} ${r.perms[a.key] ? 'allowed' : 'not allowed'}" aria-pressed="${r.perms[a.key] ? 'true' : 'false'}">
+                ${r.perms[a.key] ? '<svg class="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>' : ''}
+              </button>
             </td>`).join('')}
-        </tr>`).join('');
+          <td class="td text-right num text-ink-600">${staff}</td>
+        </tr>`;
+      }).join('');
     }
-    renderRoles();
 
-    $('roles-rows').addEventListener('click', (e) => {
+    $('roles-rows').addEventListener('click', async (e) => {
+      const del = e.target.closest('[data-delete]');
+      if (del) {
+        const r = DOC.roles[Number(del.dataset.delete)];
+        if (!confirm(`Delete the ${r.name} role?`)) return;
+        DOC = await S.save(d => { d.roles = d.roles.filter(x => x.name !== r.name); }, 'Role deleted').catch(() => DOC);
+        return render();
+      }
       const cell = e.target.closest('.perm-cell');
-      if (!cell) return;
-      const r = ROLES[Number(cell.dataset.role)];
-      r.perms[cell.dataset.area] = r.perms[cell.dataset.area] ? 0 : 1;
-      renderRoles();
+      if (!cell || !S.canEdit()) return;
+      const name = DOC.roles[Number(cell.dataset.role)].name, area = cell.dataset.area;
+      DOC = await S.save(d => { const r = d.roles.find(x => x.name === name); r.perms[area] = r.perms[area] ? 0 : 1; markReviewed(d); }).catch(() => DOC);
+      render();
     });
 
-    $('create-role-btn').addEventListener('click', () => {
-      const name = prompt('New role name:');
-      if (!name) return;
-      ROLES.push({ name, perms: Object.fromEntries(AREAS.map(a => [a, 0])) });
-      renderRoles();
+    // Clinic Onboarding's "Review Roles & Permissions" step checks itself off from this.
+    function markReviewed(d) { d.clinic.rolesReviewedAt = S.todayIso(); d.clinic.rolesReviewedBy = S.currentUserName(); }
+    $('review-btn').addEventListener('click', async () => {
+      DOC = await S.save(markReviewed, 'Marked as reviewed').catch(() => DOC);
+      render();
     });
+
+    $('create-role-btn').addEventListener('click', async () => {
+      const name = (prompt('New role name:') || '').trim();
+      if (!name) return;
+      if (DOC.roles.some(r => r.name.toLowerCase() === name.toLowerCase())) { S.toast('That role already exists', 'error'); return; }
+      DOC = await S.save(d => { d.roles.push({ name, perms: Object.fromEntries(S.PERMISSION_AREAS.map(a => [a.key, 0])) }); }, 'Role created').catch(() => DOC);
+      render();
+    });
+
+    $('reset-btn').addEventListener('click', async () => {
+      if (!confirm('Reset every role to the default permissions? Custom roles are removed.')) return;
+      DOC = await S.save(d => { d.roles = JSON.parse(JSON.stringify(S.DEFAULT_ROLES)); }, 'Reset to defaults').catch(() => DOC);
+      render();
+    });
+
+    S.load().then(d => { DOC = d; S.readOnlyBanner('readonly-note'); render(); })
+      .catch(e => { $('roles-rows').innerHTML = `<tr><td class="td text-risk-600">${esc(e.message)}</td></tr>`; });
   </script>
 </body>
 </html>

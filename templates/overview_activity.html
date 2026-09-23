@@ -3,37 +3,116 @@
 <head>
   {% include "_head.html" %}
   <title>Althais — Recent Activity</title>
+  <style>
+    .chip { font-size: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid #e4e6eb; background: #fff; color: #4a505c; cursor: pointer; }
+    .chip.active { background: #0d5bd7; border-color: #0d5bd7; color: #fff; }
+    .chip .n { opacity:.75; margin-left:3px; }
+    .day { padding:8px 16px; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; font-weight:600; color:#6b7280; background:#f7f9fc; border-bottom:1px solid #eceef2; }
+    .ev { display:flex; align-items:flex-start; gap:10px; padding:10px 16px; border-bottom:1px solid #eceef2; }
+    .src { font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:3px; flex-shrink:0; margin-top:2px; min-width:46px; text-align:center; }
+    .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; }
+    html[data-theme-resolved="dark"] .chip { background:#1a1d24; border-color:#2c313b; color:#b8bdcd; }
+    html[data-theme-resolved="dark"] .chip.active { background:#2f6fe8; border-color:#2f6fe8; color:#fff; }
+    html[data-theme-resolved="dark"] .day { background:#14181f; border-color:#2c313b; color:#8b909c; }
+    html[data-theme-resolved="dark"] .ev { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .flt { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+  </style>
 </head>
 <body class="bg-shell">
 
   {% include "_nav.html" %}
 
   <div class="max-w-[1560px] mx-auto">
-    <div class="px-6 py-5 bg-panel border-b border-line">
-      <h1 class="text-[18px] font-semibold text-ink-900">Recent Activity</h1>
-      <p class="text-[12px] text-ink-500 mt-0.5">A log of actions on patients, claims, and staff across the practice.</p>
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Recent Activity</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">A log of actions on patients, claims, staff and tasks across the practice.</p>
+      </div>
+      <button id="export-btn" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold">Export CSV</button>
     </div>
 
     <div class="p-5">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <div id="chips" class="flex flex-wrap gap-1.5"></div>
+        <input id="search" type="search" placeholder="Search activity…" class="flt ml-auto w-[240px]" aria-label="Search activity" />
+      </div>
+
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Activity feed</h3>
-          <span class="text-[11px] text-ink-500">0 events</span>
+          <h3 class="text-[13px] font-semibold text-ink-900">Activity Feed</h3>
+          <span id="count" class="text-[11px] text-ink-500">Loading…</span>
         </div>
-        <ul id="activity-list" class="divide-y divide-lineSoft text-[12px]"></ul>
+        <div id="feed"></div>
+        <div id="more-wrap" class="hidden px-4 py-3 border-t border-line text-center"><button id="more" type="button" class="text-[12px] font-semibold text-med-600">Show More</button></div>
       </div>
+      <p class="mt-3 text-[11px] text-ink-400">EMR activity is the log kept on this device; Staff and Tasks history is shared by your whole team.</p>
     </div>
   </div>
 
+  <script src="/static/js/staff-store.js"></script>
+  <script src="/static/js/practice-data.js"></script>
   <script>
-    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
-    const ACTIVITY = [];
-    document.getElementById('activity-list').innerHTML = ACTIVITY.length ? ACTIVITY.map(a => `
-      <li class="px-4 py-2.5">
-        <div class="text-ink-700 leading-snug">${esc(a.text)}</div>
-        <div class="text-ink-400 text-[10.5px] mt-0.5">${esc(a.time)}</div>
-      </li>
-    `).join('') : `<li class="px-4 py-10 text-center text-[12px] text-ink-500">No recent activity. Actions on patients, claims, and staff will appear here as they happen.</li>`;
+    const P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = P.esc;
+    const PAGE = 60;
+    let EVENTS = [], source = '', shown = PAGE;
+    const SRC_STYLE = { EMR: 'background:#e6efff;color:#0a47b0', Staff: 'background:#d8f5e3;color:#0c8a4f', Tasks: 'background:#fff0d6;color:#b86a00' };
+
+    function dayLabel(ts) {
+      const d = new Date(ts), t = new Date(); t.setHours(0, 0, 0, 0);
+      const diff = Math.round((t - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+      if (diff === 0) return 'Today';
+      if (diff === 1) return 'Yesterday';
+      return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: d.getFullYear() === t.getFullYear() ? undefined : 'numeric' });
+    }
+    function filtered() {
+      const q = $('search').value.trim().toLowerCase();
+      return EVENTS.filter(e => (!source || e.source === source) && (!q || (e.text + ' ' + e.sub + ' ' + e.by).toLowerCase().includes(q)));
+    }
+    function render() {
+      const counts = { '': EVENTS.length };
+      EVENTS.forEach(e => { counts[e.source] = (counts[e.source] || 0) + 1; });
+      $('chips').innerHTML = [['', 'All'], ['EMR', 'Patients & Claims'], ['Staff', 'Staff'], ['Tasks', 'Tasks']]
+        .map(([k, l]) => `<button type="button" class="chip${k === source ? ' active' : ''}" data-src="${k}">${l}<span class="n">${counts[k] || 0}</span></button>`).join('');
+      const rows = filtered();
+      $('count').textContent = `${rows.length} event${rows.length === 1 ? '' : 's'}`;
+      if (!rows.length) {
+        $('feed').innerHTML = `<div class="px-4 py-10 text-center text-[12px] text-ink-500">${EVENTS.length ? 'No activity matches.' : 'No recent activity. Actions on patients, claims, staff and tasks will appear here as they happen.'}</div>`;
+        $('more-wrap').classList.add('hidden');
+        return;
+      }
+      let last = '', html = '';
+      rows.slice(0, shown).forEach(e => {
+        const day = dayLabel(e.ts);
+        if (day !== last) { html += `<div class="day">${esc(day)}</div>`; last = day; }
+        const time = new Date(e.ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        html += `
+          <a href="${esc(e.href)}" class="ev row-hover" style="text-decoration:none">
+            <span class="src" style="${SRC_STYLE[e.source]}">${esc(e.source)}</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12.5px] text-ink-900 leading-snug">${esc(e.text)}</div>
+              <div class="text-[11px] text-ink-500 mt-0.5">${[esc(e.sub), e.by ? 'by ' + esc(e.by) : ''].filter(Boolean).join(' · ')}</div>
+            </div>
+            <span class="text-[11px] text-ink-400 whitespace-nowrap num" title="${esc(new Date(e.ts).toLocaleString())}">${esc(time)}</span>
+          </a>`;
+      });
+      $('feed').innerHTML = html;
+      $('more-wrap').classList.toggle('hidden', rows.length <= shown);
+    }
+    $('chips').addEventListener('click', (e) => { const c = e.target.closest('[data-src]'); if (c) { source = c.dataset.src; shown = PAGE; render(); } });
+    $('search').addEventListener('input', () => { shown = PAGE; render(); });
+    $('more').addEventListener('click', () => { shown += PAGE; render(); });
+    $('export-btn').addEventListener('click', () => {
+      const rows = [['When', 'Source', 'Activity', 'Detail', 'By']].concat(filtered().map(e => [new Date(e.ts).toISOString(), e.source, e.text, e.sub, e.by]));
+      const csv = rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'activity_' + P.todayIso() + '.csv'; a.click();
+    });
+
+    Promise.all([P.tasks.load().catch(() => null), window.StaffStore ? StaffStore.load().catch(() => null) : null]).then(([t, s]) => {
+      EVENTS = P.activity(P.local(), s, t);
+      render();
+    });
   </script>
 </body>
 </html>

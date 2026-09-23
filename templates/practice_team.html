@@ -3,33 +3,54 @@
 <head>
   {% include "_head.html" %}
   <title>Althais — Team</title>
+  <style>
+    .modal-overlay { background: rgba(15,17,22,0.45); }
+    #person-panel { transition: transform .22s ease; transform: translateX(100%); }
+    #person-panel.is-open { transform: translateX(0); }
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:#0d5bd7; }
+    .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .sec { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin:18px 0 6px; }
+    .mini-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 0; border-bottom:1px solid #eceef2; font-size:12px; }
+    html[data-theme-resolved="dark"] .fld, html[data-theme-resolved="dark"] .flt { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .mini-row { border-color:#2c313b; }
+  </style>
 </head>
 <body class="bg-shell">
 
   {% include "_nav.html" %}
 
   <div class="max-w-[1560px] mx-auto">
-    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
       <div>
         <h1 class="text-[18px] font-semibold text-ink-900">Team</h1>
-        <p class="text-[12px] text-ink-500 mt-0.5">All active staff and volunteers across the practice.</p>
+        <p class="text-[12px] text-ink-500 mt-0.5">Everyone who has finished onboarding, with their compliance at a glance.</p>
       </div>
-      <a href="/staff/onboarding" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Invite Team Member</a>
+      <div class="flex items-center gap-2">
+        <button id="export-btn" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold whitespace-nowrap">Export CSV</button>
+        <button id="add-btn" data-admin-only type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold whitespace-nowrap">+ Add Existing Staff</button>
+        <a href="/staff/onboarding?invite=1" data-admin-only class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Invite Team Member</a>
+      </div>
     </div>
 
     <div class="p-5">
+      <div id="readonly-note"></div>
       <div class="flex flex-wrap items-center gap-2 mb-4">
-        <select class="text-[12px] border border-line rounded-sm px-2 py-1.5 bg-white text-ink-700"><option>All roles</option><option>Physician</option><option>Nurse</option><option>Medical Assistant</option><option>Biller</option><option>Practice Manager</option><option>Volunteer</option><option>Student</option><option>Administrator</option></select>
-        <select class="text-[12px] border border-line rounded-sm px-2 py-1.5 bg-white text-ink-700"><option>All locations</option><option>Main Clinic</option><option>North Branch</option></select>
-        <select class="text-[12px] border border-line rounded-sm px-2 py-1.5 bg-white text-ink-700"><option>All compliance</option><option>Compliant</option><option>Action needed</option></select>
-        <select class="text-[12px] border border-line rounded-sm px-2 py-1.5 bg-white text-ink-700"><option>All employment types</option><option>Full-time</option><option>Part-time</option><option>Volunteer</option><option>Contractor</option></select>
-        <select class="text-[12px] border border-line rounded-sm px-2 py-1.5 bg-white text-ink-700"><option>Active &amp; inactive</option><option>Active</option><option>Inactive</option></select>
+        <input id="f-search" type="search" placeholder="Search name or email…" class="flt w-[220px]" aria-label="Search team" />
+        <select id="f-role" class="flt" aria-label="Filter by role"></select>
+        <select id="f-location" class="flt" aria-label="Filter by location"></select>
+        <select id="f-compliance" class="flt" aria-label="Filter by compliance"><option value="">All Compliance</option><option>Compliant</option><option>Action Needed</option></select>
+        <select id="f-employment" class="flt" aria-label="Filter by employment type"></select>
+        <select id="f-status" class="flt" aria-label="Filter by status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="">Active &amp; Inactive</option></select>
       </div>
+
+      <div id="onboarding-note" class="hidden mb-3 text-[12px] text-ink-600"></div>
 
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Staff directory</h3>
-          <span class="text-[11px] text-ink-500">0 team members</span>
+          <h3 class="text-[13px] font-semibold text-ink-900">Staff Directory</h3>
+          <span id="team-count" class="text-[11px] text-ink-500">Loading…</span>
         </div>
         <div class="overflow-x-auto thin-scroll">
           <table class="w-full">
@@ -40,19 +61,294 @@
                 <th class="td text-left">Location</th>
                 <th class="td text-left">Compliance</th>
                 <th class="td text-left">Credentials</th>
-                <th class="td text-left">Upcoming Expirations</th>
-                <th class="td text-left">Account Access</th>
+                <th class="td text-left">Next Expiration</th>
+                <th class="td text-left">Althais Login</th>
                 <th class="td text-left">Status</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody id="team-rows"></tbody>
           </table>
-          <div class="px-4 py-10 text-center text-[12px] text-ink-500">
-            No team members yet. Approved onboarding profiles will appear here automatically — see <a href="/staff/onboarding" class="font-semibold text-med-600">Staff → Onboarding</a>.
-          </div>
+          <div id="team-empty" class="px-4 py-10 text-center text-[12px] text-ink-500" style="display:none"></div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- =================== ADD EXISTING STAFF =================== -->
+  <div id="add-modal" class="fixed inset-0 z-40 hidden items-center justify-center modal-overlay">
+    <div class="bg-white rounded-sm shadow-xl w-[460px] max-w-[92vw] max-h-[92vh] overflow-y-auto thin-scroll">
+      <div class="px-4 py-3 border-b border-line flex items-center justify-between">
+        <h3 class="text-[13.5px] font-semibold text-ink-900">Add Existing Staff</h3>
+        <button id="add-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-4 space-y-3">
+        <p class="text-[12px] text-ink-500">For people already working at the clinic. New hires should go through <a href="/staff/onboarding?invite=1" class="text-med-600 font-semibold">Onboarding</a>.</p>
+        <div><label class="lbl" for="a-name">Full name</label><input id="a-name" type="text" class="fld" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="a-email">Email</label><input id="a-email" type="email" class="fld" /></div>
+          <div><label class="lbl" for="a-phone">Phone</label><input id="a-phone" type="tel" class="fld" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="a-role">Role</label><select id="a-role" class="fld"></select></div>
+          <div><label class="lbl" for="a-employment">Employment type</label><select id="a-employment" class="fld"></select></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="a-location">Location</label><input id="a-location" type="text" list="a-loc-list" class="fld" /><datalist id="a-loc-list"></datalist></div>
+          <div><label class="lbl" for="a-start">Start date</label><input id="a-start" type="date" class="fld num" /></div>
+        </div>
+        <label class="flex items-start gap-2 text-[12px] text-ink-700 cursor-pointer">
+          <input id="a-done" type="checkbox" class="mt-0.5" />
+          <span>Their onboarding paperwork is already complete<span class="block text-[11px] text-ink-500">Otherwise each missing item shows up on Compliance until it's verified. Add license and certification expiry dates on Credentials either way.</span></span>
+        </label>
+        <div id="a-error" class="hidden text-[12px] text-risk-600"></div>
+      </div>
+      <div class="px-4 py-3 border-t border-line flex items-center justify-end gap-2">
+        <button id="add-cancel" type="button" class="text-[12px] px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Cancel</button>
+        <button id="add-submit" type="button" class="text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Add To Team</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PERSON PANEL =================== -->
+  <div id="person-backdrop" class="fixed inset-0 z-40 hidden modal-overlay"></div>
+  <aside id="person-panel" class="fixed top-0 right-0 z-50 h-screen w-[480px] max-w-[94vw] bg-white border-l border-line shadow-xl overflow-y-auto thin-scroll" aria-label="Team member">
+    <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
+      <div class="flex items-center gap-2.5">
+        <div id="pn-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px]">--</div>
+        <div>
+          <div id="pn-name" class="text-[13.5px] font-semibold text-ink-900">—</div>
+          <div id="pn-sub" class="text-[11px] text-ink-500">—</div>
+        </div>
+      </div>
+      <button id="pn-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="p-4" id="pn-body"></div>
+  </aside>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script>
+    const S = window.StaffStore;
+    const $ = (id) => document.getElementById(id);
+    const esc = S.esc;
+    let DOC = null, LOGINS = null, activeId = null;
+
+    function loginFor(p) {
+      if (!LOGINS) return null;
+      return p.email ? LOGINS.find(u => (u.email || '').toLowerCase() === p.email.toLowerCase()) : null;
+    }
+    function nextExpiration(p) {
+      const dates = [];
+      DOC.credentials.filter(c => c.personId === p.id && c.expires && c.status !== 'rejected').forEach(c => dates.push({ date: c.expires, label: S.credentialLabel(c.type) }));
+      DOC.trainings.filter(t => t.personId === p.id && !t.completed && t.due).forEach(t => dates.push({ date: t.due, label: t.course + ' due' }));
+      dates.sort((a, b) => a.date.localeCompare(b.date));
+      return dates[0] || null;
+    }
+
+    function fillFilters() {
+      const keep = (id) => $(id).value;
+      const r = keep('f-role'), l = keep('f-location'), e = keep('f-employment');
+      $('f-role').innerHTML = S.options(S.ROLES_LIST, r, 'All Roles');
+      $('f-location').innerHTML = S.options(S.locations(DOC), l, 'All Locations');
+      $('f-employment').innerHTML = S.options(S.EMPLOYMENT_TYPES, e, 'All Employment Types');
+    }
+
+    function filtered() {
+      const q = $('f-search').value.trim().toLowerCase();
+      const role = $('f-role').value, loc = $('f-location').value, comp = $('f-compliance').value, emp = $('f-employment').value, st = $('f-status').value;
+      return DOC.people.filter(p => {
+        if (p.status !== 'active' && p.status !== 'inactive') return false;
+        if (st && p.status !== st) return false;
+        if (role && p.role !== role) return false;
+        if (loc && p.location !== loc) return false;
+        if (emp && p.employment !== emp) return false;
+        if (comp && S.personCompliance(DOC, p) !== comp) return false;
+        if (q && !((p.name || '') + ' ' + (p.email || '')).toLowerCase().includes(q)) return false;
+        return true;
+      }).sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    function render() {
+      const rows = filtered();
+      const team = DOC.people.filter(p => p.status === 'active' || p.status === 'inactive');
+      $('team-count').textContent = rows.length === team.length ? `${team.length} team member${team.length === 1 ? '' : 's'}` : `${rows.length} of ${team.length} team members`;
+      const inPipeline = DOC.people.length - team.length;
+      $('onboarding-note').classList.toggle('hidden', !inPipeline);
+      $('onboarding-note').innerHTML = inPipeline ? `${inPipeline} more ${inPipeline === 1 ? 'person is' : 'people are'} still onboarding. <a href="/staff/onboarding" class="font-semibold text-med-600">View pipeline →</a>` : '';
+
+      $('team-empty').style.display = rows.length ? 'none' : 'block';
+      $('team-empty').innerHTML = team.length
+        ? 'No team members match these filters.'
+        : 'No team members yet. Approve someone in <a href="/staff/onboarding" class="font-semibold text-med-600">Onboarding</a>, or add existing staff.';
+
+      $('team-rows').innerHTML = rows.map(p => {
+        const creds = DOC.credentials.filter(c => c.personId === p.id);
+        const verified = creds.filter(c => S.credentialStatus(c) === 'Verified' || S.credentialStatus(c) === 'Expiring Soon').length;
+        const next = nextExpiration(p);
+        const days = next ? S.daysUntil(next.date) : null;
+        const tone = days == null ? 'text-ink-500' : (days < 0 ? 'text-risk-600' : (days <= S.EXPIRING_DAYS ? 'text-warn-600' : 'text-ink-600'));
+        const login = loginFor(p);
+        return `
+        <tr class="row-hover cursor-pointer" data-id="${esc(p.id)}">
+          <td class="td"><div class="font-semibold text-ink-900">${esc(p.name)}</div><div class="text-[11px] text-ink-500">${esc(p.email || '')}</div></td>
+          <td class="td text-ink-600">${esc(p.role)}${p.employment ? `<div class="text-[11px] text-ink-400">${esc(p.employment)}</div>` : ''}</td>
+          <td class="td text-ink-600">${esc(p.location || '—')}</td>
+          <td class="td">${p.status === 'active' ? S.pill(S.personCompliance(DOC, p)) : '<span class="text-ink-400">—</span>'}</td>
+          <td class="td text-ink-600 num">${creds.length ? `${verified} of ${creds.length} current` : '<span class="text-ink-400">None on file</span>'}</td>
+          <td class="td text-[12px] ${tone}">${next ? esc(S.fmtDate(next.date)) + `<div class="text-[11px] text-ink-400">${esc(next.label)}</div>` : '—'}</td>
+          <td class="td text-[12px] text-ink-600">${LOGINS == null ? '<span class="text-ink-400">—</span>' : (login ? esc(login.role) : '<span class="text-ink-400">No login</span>')}</td>
+          <td class="td">${S.pill(S.status(p))}</td>
+        </tr>`;
+      }).join('');
+      if (activeId) renderPanel();
+    }
+
+    // ---- person panel ----
+    function openPanel(id) {
+      if (!S.person(DOC, id)) return;
+      activeId = id; renderPanel();
+      $('person-backdrop').classList.remove('hidden'); $('person-panel').classList.add('is-open');
+    }
+    function closePanel() { $('person-backdrop').classList.add('hidden'); $('person-panel').classList.remove('is-open'); activeId = null; }
+    $('pn-close').addEventListener('click', closePanel);
+    $('person-backdrop').addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeAdd(); } });
+
+    function renderPanel() {
+      const p = S.person(DOC, activeId);
+      if (!p) { closePanel(); return; }
+      const edit = S.canEdit();
+      $('pn-initials').textContent = S.initials(p.name);
+      $('pn-name').textContent = p.name;
+      $('pn-sub').innerHTML = `${esc(p.role)} · ${S.status(p)}${p.activeSince ? ' since ' + esc(S.fmtDate(p.activeSince)) : ''}`;
+      const items = S.complianceItems(DOC).filter(i => i.person.id === p.id);
+      const creds = DOC.credentials.filter(c => c.personId === p.id);
+      const trainings = DOC.trainings.filter(t => t.personId === p.id);
+      const login = loginFor(p);
+      const dis = edit ? '' : 'disabled';
+
+      $('pn-body').innerHTML = `
+        ${p.status === 'active' ? `<div class="flex items-center justify-between"><span class="text-[12px] text-ink-600">Compliance</span>${S.pill(S.personCompliance(DOC, p))}</div>` : ''}
+        ${items.length ? `<div class="sec">Needs Attention</div>` + items.map(i => `<div class="mini-row"><span>${esc(i.label)}</span><span class="flex items-center gap-2">${S.pill(i.status)}</span></div>`).join('') : ''}
+
+        <div class="sec">Details</div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="pd-email">Email</label><input id="pd-email" class="fld" value="${esc(p.email || '')}" ${dis}></div>
+          <div><label class="lbl" for="pd-phone">Phone</label><input id="pd-phone" class="fld" value="${esc(p.phone || '')}" ${dis}></div>
+          <div><label class="lbl" for="pd-role">Role</label><select id="pd-role" class="fld" ${dis}>${S.options(S.ROLES_LIST, p.role)}</select></div>
+          <div><label class="lbl" for="pd-employment">Employment</label><select id="pd-employment" class="fld" ${dis}>${S.options(S.EMPLOYMENT_TYPES, p.employment || '', '—')}</select></div>
+          <div><label class="lbl" for="pd-location">Location</label><input id="pd-location" class="fld" list="a-loc-list" value="${esc(p.location || '')}" ${dis}></div>
+          <div><label class="lbl" for="pd-start">Start date</label><input id="pd-start" type="date" class="fld num" value="${esc(p.start || '')}" ${dis}></div>
+        </div>
+        ${edit ? '<button id="pd-save" type="button" class="mt-3 text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Save Details</button>' : ''}
+
+        <div class="sec">Althais login</div>
+        <div class="text-[12px] text-ink-600">${LOGINS == null ? 'Only admins can see logins.' : (login ? `Signs in as <b>${esc(login.email)}</b> with <b>${esc(login.role)}</b> access.` : 'No login. Invite them from Settings or when onboarding.')}</div>
+
+        <div class="sec">Credentials <a href="/staff/credentials?person=${encodeURIComponent(p.id)}" class="normal-case tracking-normal font-semibold text-med-600 ml-1">Manage →</a></div>
+        ${creds.length ? creds.map(c => `<div class="mini-row"><span>${esc(S.credentialLabel(c.type))}${c.number ? ` <span class="mono text-ink-400">${esc(c.number)}</span>` : ''}<div class="text-[11px] text-ink-400">Expires ${esc(S.fmtDate(c.expires))}</div></span>${S.pill(S.credentialStatus(c))}</div>`).join('') : '<div class="text-[12px] text-ink-400">None on file.</div>'}
+
+        <div class="sec">Training <a href="/staff/training?person=${encodeURIComponent(p.id)}" class="normal-case tracking-normal font-semibold text-med-600 ml-1">Manage →</a></div>
+        ${trainings.length ? trainings.map(t => `<div class="mini-row"><span>${esc(t.course)}<div class="text-[11px] text-ink-400">${t.completed ? 'Completed ' + esc(S.fmtDate(t.completed)) : 'Due ' + esc(S.fmtDate(t.due))}</div></span>${S.pill(S.trainingStatus(t))}</div>`).join('') : '<div class="text-[12px] text-ink-400">No training assigned.</div>'}
+
+        <div class="sec">Notes</div>
+        <textarea id="pd-notes" rows="3" class="fld" placeholder="Internal notes…" ${dis}>${esc(p.notes || '')}</textarea>
+
+        <div class="sec">History</div>
+        <div class="text-[11.5px] text-ink-500 space-y-1">${p.audit.slice().reverse().slice(0, 12).map(a => `<div>${esc(S.fmtDate(a.at))} — ${esc(a.text)}</div>`).join('') || 'No history.'}</div>
+
+        <div class="mt-5 pt-4 border-t border-line flex flex-wrap gap-1.5">
+          ${p.email ? `<a href="mailto:${encodeURIComponent(p.email)}" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800">Email</a>` : ''}
+          ${edit ? `<button id="pd-toggle" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800">${p.status === 'active' ? 'Mark Inactive' : 'Reactivate'}</button>
+          <button id="pd-remove" type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-risk-600/30 bg-white hover:bg-risk-100 text-risk-600 font-semibold ml-auto">Remove From Team</button>` : ''}
+        </div>`;
+
+      if (!edit) return;
+      $('pd-save').addEventListener('click', async () => {
+        const vals = { email: $('pd-email').value.trim().toLowerCase(), phone: $('pd-phone').value.trim(), role: $('pd-role').value, employment: $('pd-employment').value, location: $('pd-location').value.trim(), start: $('pd-start').value };
+        if (vals.email && DOC.people.some(x => x.id !== p.id && x.email === vals.email)) { S.toast('Someone else already uses that email', 'error'); return; }
+        DOC = await S.save(d => {
+          const x = S.person(d, p.id);
+          if (vals.role !== x.role) { S.audit(x, `Role changed from ${x.role} to ${vals.role}`); x.requirements = S.requirementsFor(vals.role, x.requirements); }
+          Object.assign(x, vals);
+          if (vals.location && !d.clinic.locations.some(l => l.name === vals.location)) d.clinic.locations.push({ name: vals.location, address: '' });
+        }, 'Details saved').catch(() => DOC);
+        fillFilters(); render();
+      });
+      $('pd-notes').addEventListener('change', async () => {
+        const text = $('pd-notes').value;
+        DOC = await S.save(d => { S.person(d, p.id).notes = text; }, 'Note saved').catch(() => DOC);
+      });
+      $('pd-toggle').addEventListener('click', async () => {
+        const toActive = p.status !== 'active';
+        DOC = await S.save(d => { const x = S.person(d, p.id); x.status = toActive ? 'active' : 'inactive'; S.audit(x, toActive ? 'Reactivated' : 'Marked inactive'); }, toActive ? 'Reactivated' : 'Marked inactive').catch(() => DOC);
+        render();
+      });
+      $('pd-remove').addEventListener('click', async () => {
+        if (!confirm(`Remove ${p.name} from the team? Their credentials and training records are deleted too. This doesn't delete any Althais login.`)) return;
+        DOC = await S.save(d => {
+          d.people = d.people.filter(x => x.id !== p.id);
+          d.credentials = d.credentials.filter(c => c.personId !== p.id);
+          d.trainings = d.trainings.filter(t => t.personId !== p.id);
+        }, 'Removed from team').catch(() => DOC);
+        closePanel(); fillFilters(); render();
+      });
+    }
+
+    $('team-rows').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) openPanel(tr.dataset.id); });
+    ['f-search', 'f-role', 'f-location', 'f-compliance', 'f-employment', 'f-status'].forEach(id => $(id).addEventListener('input', render));
+
+    // ---- add existing staff ----
+    function openAdd() {
+      $('a-role').innerHTML = S.options(S.ROLES_LIST, 'Medical Assistant');
+      $('a-employment').innerHTML = S.options(S.EMPLOYMENT_TYPES, 'Full-Time');
+      $('a-error').classList.add('hidden');
+      $('add-modal').classList.remove('hidden'); $('add-modal').classList.add('flex'); $('a-name').focus();
+    }
+    function closeAdd() { $('add-modal').classList.add('hidden'); $('add-modal').classList.remove('flex'); }
+    $('add-btn').addEventListener('click', openAdd);
+    $('add-close').addEventListener('click', closeAdd);
+    $('add-cancel').addEventListener('click', closeAdd);
+    $('add-submit').addEventListener('click', async () => {
+      const name = $('a-name').value.trim(), email = $('a-email').value.trim().toLowerCase();
+      const err = (m) => { $('a-error').textContent = m; $('a-error').classList.remove('hidden'); };
+      if (!name) { $('a-name').focus(); return; }
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err('That email address doesn’t look right.'); return; }
+      if (email && DOC.people.some(p => p.email === email)) { err('Someone with that email is already on the team or onboarding.'); return; }
+      const role = $('a-role').value, done = $('a-done').checked;
+      const person = {
+        id: S.uid('p'), name, email, phone: $('a-phone').value.trim(), role, employment: $('a-employment').value,
+        location: $('a-location').value.trim(), start: $('a-start').value, status: 'active', activeSince: S.todayIso(), notes: '',
+        requirements: S.requirementsFor(role).map(r => done ? Object.assign(r, { done: true, verifiedBy: S.currentUserName(), verifiedAt: new Date().toISOString() }) : r),
+        audit: [],
+      };
+      S.audit(person, done ? 'Added as existing staff (onboarding already complete)' : 'Added as existing staff');
+      DOC = await S.save(d => {
+        d.people.push(person);
+        if (person.location && !d.clinic.locations.some(l => l.name === person.location)) d.clinic.locations.push({ name: person.location, address: '' });
+      }, name + ' added to the team').catch(() => DOC);
+      closeAdd();
+      ['a-name', 'a-email', 'a-phone', 'a-location', 'a-start'].forEach(id => { $(id).value = ''; }); $('a-done').checked = false;
+      fillFilters(); render(); openPanel(person.id);
+    });
+
+    $('export-btn').addEventListener('click', () => {
+      const rows = filtered().map(p => {
+        const next = nextExpiration(p), login = loginFor(p);
+        return [p.name, p.email, p.phone, p.role, p.employment, p.location, S.status(p), p.status === 'active' ? S.personCompliance(DOC, p) : '', next ? next.label + ' ' + next.date : '', login ? login.role : '', p.start];
+      });
+      S.downloadCsv('team_' + S.todayIso() + '.csv', ['Name', 'Email', 'Phone', 'Role', 'Employment', 'Location', 'Status', 'Compliance', 'Next expiration', 'Althais login', 'Start date'], rows);
+    });
+
+    S.load().then(d => {
+      DOC = d;
+      S.readOnlyBanner('readonly-note');
+      $('a-loc-list').innerHTML = S.locations(DOC).map(l => `<option value="${esc(l)}">`).join('');
+      fillFilters(); render();
+      const q = new URLSearchParams(location.search).get('person');
+      if (q) openPanel(q);
+      // Logins are visible to admins only; everyone else just sees "—".
+      fetch('/api/org/users', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(list => { if (Array.isArray(list)) { LOGINS = list; render(); } }).catch(() => {});
+    }).catch(e => { $('team-count').textContent = e.message; });
+  </script>
 </body>
 </html>

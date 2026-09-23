@@ -376,6 +376,8 @@ _WORKSPACE_PAGES = {
     "/overview": "overview_dashboard.html",
     "/overview/inbox": "overview_inbox.html",
     "/overview/activity": "overview_activity.html",
+    "/overview/tasks": "overview_tasks.html",
+    "/overview/analytics": "overview_analytics.html",
     # EMR (top-level workspace pages; the full patient-chart SPA stays at /emr)
     "/emr/patients": "patients.html",
     "/emr/schedule": "schedule.html",
@@ -393,6 +395,7 @@ _WORKSPACE_PAGES = {
     "/staff/compliance": "practice_compliance.html",
     "/staff/training": "practice_training.html",
     "/staff/roles": "practice_roles.html",
+    "/staff/clinic-onboarding": "practice_clinic_onboarding.html",
 }
 
 
@@ -426,17 +429,6 @@ for _path, _template in _WORKSPACE_PAGES.items():
 # feature lives inside the EMR SPA (dashboard.html) today. Each one renders
 # the same shell (header/nav) and links through to the equivalent EMR view.
 _PLACEHOLDER_PAGES = {
-    "/overview/tasks": dict(
-        title="Tasks", subtitle="Action items and to-dos across the practice.",
-        description="A unified task list is on the way — assign follow-ups, track due dates, "
-                     "and clear your queue without leaving Althais.",
-    ),
-    "/overview/analytics": dict(
-        title="Analytics", subtitle="Practice-wide performance at a glance.",
-        description="Deeper practice analytics — visit volume, revenue trends, and provider "
-                     "productivity — are coming soon.",
-        emr_link="/overview", emr_link_label="View Revenue Snapshot on Dashboard",
-    ),
     "/emr/encounters": dict(
         title="Encounters", subtitle="Visit history and encounter timeline across all patients.",
         description="A dedicated encounters timeline is coming soon. For now, encounter history "
@@ -460,11 +452,6 @@ _PLACEHOLDER_PAGES = {
         description="A dedicated document library for this workspace is coming soon. Documents "
                      "are currently available within the EMR.",
         emr_link="/emr#documents-view", emr_link_label="Open Documents in EMR",
-    ),
-    "/staff/clinic-onboarding": dict(
-        title="Clinic Onboarding", subtitle="Set up a new clinic on Althais.",
-        description="Guided clinic setup — locations, payer enrollment, and practice "
-                     "configuration — is coming soon.",
     ),
 }
 
