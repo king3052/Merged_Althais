@@ -62,8 +62,8 @@
   try {
     Object.keys(localStorage).forEach(function (k) {
       // old un-namespaced keys (from before data isolation)
-      // (the light/dark choice is a preference of this browser, not data: it stays)
-      if (k === 'althais.theme.v1') return;
+      // (the light/dark choices and the admin console's color are preferences of this browser, not data: they stay)
+      if (k === 'althais.theme.v1' || k === 'althais.admin_theme.v1' || k === 'althais.admin_brand.v1') return;
       if (k.indexOf('althais.') === 0 || k === 'althais_active') localStorage.removeItem(k);
       // local:: fallback keys (used when there was no auth)
       if (k.indexOf('local::') === 0) localStorage.removeItem(k);

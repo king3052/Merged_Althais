@@ -1,8 +1,10 @@
 /* Althais colour theme (Light / Dark / System). Loaded in the <head> so the page never flashes the wrong colours.
-   Shares one setting (localStorage "althais.theme.v1") with the EMR's Settings > Appearance. */
+   The app shares one setting (localStorage "althais.theme.v1") with the EMR's Settings > Appearance; the admin
+   console has its own ("althais.admin_theme.v1"). */
 (function () {
   "use strict";
-  var KEY = "althais.theme.v1", root = document.documentElement;
+  /* the admin console (/admin) keeps its own theme, so it never changes a clinic's app on the same browser */
+  var KEY = /^\/admin(\/|$)/.test(location.pathname) ? "althais.admin_theme.v1" : "althais.theme.v1", root = document.documentElement;
   var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
   function stored() {
