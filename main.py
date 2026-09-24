@@ -42,7 +42,7 @@ from auth import (
     router as auth_router, current_user, require_user, COOKIE_NAME,
     current_admin, require_biller, require_admin_role,
     get_db, Base, engine, _org_namespace, OrgPatient, OrgClaim,
-    SessionLocal, org_products, has_product, ensure_product,
+    SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea,
 )
 from sqlalchemy.orm import Session
 from sqlalchemy import select as sa_select
@@ -338,6 +338,11 @@ def _user_products(user) -> set:
         return org_products(user, db)
 
 
+def _user_althea(user) -> bool:
+    with SessionLocal() as db:
+        return org_althea(user, db)
+
+
 def _app_user_json(user) -> str:
     return json.dumps({
         "full_name": user.full_name or "",
@@ -347,6 +352,7 @@ def _app_user_json(user) -> str:
         "provider_name": user.provider_name or "",
         # Althais products this user's organization has (see auth.org_products): the nav shows only these
         "products": sorted(_user_products(user)),
+        "althea": _user_althea(user),   # Althea switched on for this clinic (/admin)
     })
 
 
@@ -1434,7 +1440,7 @@ def althea_extract(payload: dict, user=Depends(require_user), db: Session = Depe
 
 @app.post("/api/althea")
 async def althea_command(request: Request, user=Depends(require_user), db: Session = Depends(get_db)):
-    ensure_product(user, db)   # Althea is part of the full suite
+    ensure_althea(user, db)   # switched on per clinic in /admin
     """
     Althea — a voice/text command interpreter scoped ONLY to this product's
     own functions (reading the schedule, a claims summary, pulling up claims,

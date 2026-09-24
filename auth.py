@@ -804,6 +804,20 @@ def org_products(user: User, db: Session) -> set:
     return {p for p in doc["products"] if p in PRODUCTS}
 
 
+def org_althea(user: User, db: Session) -> bool:
+    """Althea, the assistant, is switched on per clinic in /admin. Until it's set, it comes with the full suite only."""
+    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    if row and isinstance(doc.get("althea"), bool):
+        return doc["althea"]
+    return "suite" in org_products(user, db)
+
+
+def ensure_althea(user: User, db: Session) -> None:
+    if not org_althea(user, db):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Althea isn't switched on for your clinic.")
+
+
 def has_product(products: set, *needed: str) -> bool:
     """True when the org has the full suite, or any one of the tools named."""
     return "suite" in products or any(p in products for p in needed)
@@ -1084,6 +1098,9 @@ ADMIN_DEFAULTS = {
     "session_hours": 8,            # how long an admin sign-in lasts
     "hide_test_accounts": False,   # admin page display only
     "inactive_after_days": 30,     # admin page display only
+    "start_page": "overview",      # which admin page opens first
+    "brand_color": "#0d5bd7",      # the admin console's own color (Althais blue); clinics keep theirs
+    "compact": False,              # tighter table rows
 }
 
 
@@ -1110,6 +1127,10 @@ async def put_admin_settings(request: Request, db: Session = Depends(get_db), _:
     if body.get("new_clinic_plan") in PRODUCTS + ("none",): cur["new_clinic_plan"] = body["new_clinic_plan"]
     if body.get("session_hours") in (1, 4, 8, 12, 24): cur["session_hours"] = body["session_hours"]
     if body.get("inactive_after_days") in (14, 30, 60, 90): cur["inactive_after_days"] = body["inactive_after_days"]
+    if body.get("start_page") in ("overview", "orgs", "accounts", "plans"): cur["start_page"] = body["start_page"]
+    if "compact" in body: cur["compact"] = bool(body["compact"])
+    color = str(body.get("brand_color") or "")
+    if len(color) == 7 and color.startswith("#") and all(c in "0123456789abcdefABCDEF" for c in color[1:]): cur["brand_color"] = color.lower()
     row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == ADMIN_SETTINGS_KEY, OrgSettings.category == "admin_prefs"))
     if row:
         row.data = _json.dumps(cur)
@@ -1131,27 +1152,36 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
     for o in orgs.values():
         row, _doc = _load_doc(o["sample"], db, ENTITLEMENTS_CATEGORY)
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
-                    "products": sorted(org_products(o["sample"], db)), "custom": bool(row)})
+                    "products": sorted(org_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "custom": bool(row)})
     return sorted(out, key=lambda o: o["name"].lower())
 
 
 @router.post("/api/admin/orgs/products")
 async def admin_set_org_products(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
-    """Set which products an organization has. Choosing the full suite clears the single tools (it includes them)."""
+    """Set which products an organization has, and whether Althea is on. Choosing the full suite clears the single
+    tools (it includes them). Althea is separate: it can be on or off with any plan."""
     body = await request.json()
     key, products = str(body.get("org_key") or ""), body.get("products")
+    althea = body.get("althea")
+    if althea is not None and not isinstance(althea, bool):
+        return JSONResponse({"error": "althea must be true or false."}, status_code=400)
     if not key or not isinstance(products, list) or any(p not in PRODUCTS for p in products):
         return JSONResponse({"error": "Send an org_key and a list of products from: " + ", ".join(PRODUCTS)}, status_code=400)
     chosen = ["suite"] if "suite" in products else sorted(set(products))
     row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == key, OrgSettings.category == ENTITLEMENTS_CATEGORY))
     data = {"rev": 0, "products": chosen, "updatedAt": dt.datetime.now(timezone.utc).isoformat()}
+    if althea is not None:
+        data["althea"] = althea
     if row:
-        data["rev"] = (_json.loads(row.data or "{}").get("rev") or 0) + 1
+        prev = _json.loads(row.data or "{}")
+        data["rev"] = (prev.get("rev") or 0) + 1
+        if althea is None and isinstance(prev.get("althea"), bool):
+            data["althea"] = prev["althea"]   # not sent: keep what it was
         row.data = _json.dumps(data)
     else:
         db.add(OrgSettings(org_key=key, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(data)))
     db.commit()
-    return {"ok": True, "org_key": key, "products": chosen}
+    return {"ok": True, "org_key": key, "products": chosen, "althea": data.get("althea", "suite" in chosen)}
 
 # ──────────────────────────────────────────────────────────────────────────
 #  Demo request table + route

@@ -311,7 +311,14 @@
        other page: static/js/althea-ui.js. The behaviour is below. -->
   <script src="/static/js/althea-ui.js"></script>
   <script src="/static/js/althea-revenue.js"></script>
-  <script>if (window.__ALTHAIS_SUITE__ !== false) AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"] });</script>
+  <script>if ((window.__ALTHAIS_USER__ || {}).althea && window.__ALTHAIS_SUITE__ !== false) AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"] });</script>
+  <script>
+    // Settings > EMR can hide Althea on the EMR
+    if (document.getElementById('althea-fab')) fetch('/api/org/settings/emr_prefs', { credentials: 'same-origin' })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j && j.data && j.data.show_althea === false) document.getElementById('althea-fab').style.display = 'none'; })
+      .catch(() => {});
+  </script>
 
   <!-- =================== PATIENT CONTEXT BAR ===================
        Sits under the shared blue Althais header (injected by main.py _render_emr),
@@ -1401,6 +1408,12 @@
               ['settings-practice-select', 'settings-doc-dropdown'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
               if (sub && mine.length) sub.textContent = 'Settings for Althais ' + mine.join(', ') + ' and your practice.';
             }
+            if (!(window.__ALTHAIS_USER__ || {}).althea) document.addEventListener('DOMContentLoaded', () => {
+              document.querySelectorAll('#settings-view [data-althea-row]').forEach(r => {
+                r.querySelector('.toggle').remove();
+                r.querySelector('.s-row-sub').textContent = 'Not switched on for your clinic. Contact Althais to add it.';
+              });
+            });
             document.addEventListener('DOMContentLoaded', () => {
               const active = nav.querySelector('.s-tab.active');
               document.querySelectorAll('#settings-view [data-section]').forEach(sec => {
@@ -1427,6 +1440,7 @@
               <div class="s-row"><div><div class="s-row-label">Default Appointment Type</div><div class="s-row-sub">What a new booking starts as</div></div><select class="s-input" style="width:200px;" data-setting="default_appt_type"><option selected>Office Visit</option><option>Follow-up</option><option>New Patient</option><option>Telehealth</option><option>Procedure</option><option>Annual Wellness</option></select></div>
               <div class="s-row"><div><div class="s-row-label">Open On My Schedule</div><div class="s-row-sub">Providers see their own appointments first instead of everyone’s</div></div><div class="toggle on" data-setting="my_schedule_first"></div></div>
               <div class="s-row"><div><div class="s-row-label">Hide Cancelled Appointments</div><div class="s-row-sub">Leave cancelled visits out of the day’s list</div></div><div class="toggle" data-setting="hide_cancelled"></div></div>
+              <div class="s-row" data-althea-row><div><div class="s-row-label">Althea</div><div class="s-row-sub">Show Althea, the assistant, on the EMR</div></div><div class="toggle on" data-setting="show_althea"></div></div>
             </div>
           </section>
 
@@ -1444,6 +1458,7 @@
               <div class="s-row"><div><div class="s-row-label">Open More History By Default</div><div class="s-row-sub">Medications, allergies, past history and labs start expanded</div></div><div class="toggle" data-setting="open_history"></div></div>
               <div class="s-row"><div><div class="s-row-label">Confirm Before Signing</div><div class="s-row-sub">Ask once more before a note is signed</div></div><div class="toggle on" data-setting="confirm_sign"></div></div>
               <div class="s-row"><div><div class="s-row-label">Signature Credentials</div><div class="s-row-sub">Added after the signer’s name, e.g. MD, DO, NP</div></div><input class="s-input" style="width:200px;" data-setting="sign_credentials" placeholder="MD" /></div>
+              <div class="s-row" data-althea-row><div><div class="s-row-label">Althea</div><div class="s-row-sub">Show Althea, the assistant, on Scribe</div></div><div class="toggle on" data-setting="show_althea"></div></div>
             </div>
           </section>
 
@@ -1459,6 +1474,7 @@
               <div class="s-row"><div><div class="s-row-label">Hide Low-Confidence Codes</div><div class="s-row-sub">Only show suggestions at or above this confidence</div></div><select class="s-input" style="width:200px;" data-setting="min_confidence"><option value="0" selected>Show every suggestion</option><option value="50">50% and up</option><option value="70">70% and up</option><option value="85">85% and up</option></select></div>
               <div class="s-row"><div><div class="s-row-label">Check Codes Automatically</div><div class="s-row-sub">Run Check Codes as soon as codes are suggested</div></div><div class="toggle" data-setting="auto_check"></div></div>
               <div class="s-row"><div><div class="s-row-label">Show Reasons</div><div class="s-row-sub">The reason Althea gave for each code</div></div><div class="toggle on" data-setting="show_reasons"></div></div>
+              <div class="s-row" data-althea-row><div><div class="s-row-label">Althea</div><div class="s-row-sub">Show Althea, the assistant, on Code A Note</div></div><div class="toggle on" data-setting="show_althea"></div></div>
             </div>
           </section>
 
@@ -1475,6 +1491,7 @@
               <div class="s-row"><div><div class="s-row-label">Clearinghouse</div><div class="s-row-sub">Where your claims are sent</div></div><select class="s-input" style="width:200px;" data-setting="clearinghouse"><option value="Availity" selected>Availity</option><option value="Change Healthcare">Change Healthcare</option><option value="Office Ally">Office Ally</option><option value="Waystar">Waystar</option><option value="Claim.MD">Claim.MD</option></select></div>
               <div class="s-row"><div><div class="s-row-label">Scrub Claims Before Sending</div><div class="s-row-sub">Check each claim for errors before it goes out</div></div><div class="toggle on" data-setting="scrub_before_submit"></div></div>
               <div class="s-row"><div><div class="s-row-label">Appeal Letter Signature</div><div class="s-row-sub">Who appeal letters are signed by</div></div><input class="s-input" style="width:200px;" data-setting="appeal_signature" placeholder="Billing Manager" /></div>
+              <div class="s-row" data-althea-row><div><div class="s-row-label">Althea</div><div class="s-row-sub">Show Althea, the assistant, on Claims, Denials, Appeals and Payments</div></div><div class="toggle on" data-setting="show_althea"></div></div>
             </div>
           </section>
 
@@ -1488,6 +1505,7 @@
             <div class="s-card" style="padding:0 22px;">
               <div class="s-row"><div><div class="s-row-label">Credential Expiry Warning</div><div class="s-row-sub">Mark a license or certification as expiring this far ahead</div></div><select class="s-input" style="width:200px;" data-setting="credential_warn_days"><option value="30" selected>30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></div>
               <div class="s-row"><div><div class="s-row-label">Training Due Soon</div><div class="s-row-sub">Mark assigned training as due soon this far ahead</div></div><select class="s-input" style="width:200px;" data-setting="training_due_days"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></div></div>
+              <div class="s-row" data-althea-row><div><div class="s-row-label">Althea</div><div class="s-row-sub">Show Althea, the assistant, on the Staff pages</div></div><div class="toggle on" data-setting="show_althea"></div></div>
             </div>
           </section>
 

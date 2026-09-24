@@ -121,8 +121,8 @@
 
   var current = DEFAULT, serverDoc = null, editable = false;
   var cached = null, isAdmin = /^\/admin(\/|$)/.test(location.pathname);
-  /* the Althais admin console isn't a clinic: always Althais blue, never the last clinic's color on this browser */
-  if (!isAdmin) try { cached = norm(localStorage.getItem(CACHE_KEY)); } catch (e) {}
+  /* the Althais admin console isn't a clinic: its own color, never the last clinic's color on this browser */
+  try { cached = norm(localStorage.getItem(isAdmin ? "althais.admin_brand.v1" : CACHE_KEY)); } catch (e) {}   /* admin has its own color (admin Settings > Appearance) */
   apply(cached || DEFAULT);
 
   /* the practice's saved color, shared across logins */

@@ -15,9 +15,24 @@
 (function () {
   "use strict";
   if (document.getElementById("althea-fab") || !window.AltheaUI) return;   /* the EMR page mounts its own */
-  var plan = (window.__ALTHAIS_USER__ || {}).products;
-  if (Array.isArray(plan) && plan.indexOf("suite") === -1) return;        /* Althea is part of the full suite */
-  AltheaUI.mount();
+  var me = window.__ALTHAIS_USER__ || {};
+  if (!me.althea) return;                                                  /* switched on per clinic in /admin */
+  /* which tool this page belongs to: each tool's Settings can hide Althea on its own pages */
+  var path = location.pathname;
+  var TOOL = path === "/scribe" ? "scribe" : path === "/coding" ? "coding" : /^\/revenue\//.test(path) ? "insurance"
+    : /^\/staff\//.test(path) ? "team" : "emr";
+  var suite = (me.products || []).indexOf("suite") !== -1;
+  var CHIPS = suite ? null : {
+    scribe: ["How does Scribe work?", "How do I sign a note?", "Open Settings"],
+    coding: ["How do I code a note?", "What does the confidence score mean?", "Open Settings"],
+    insurance: ["Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?", "Show recent payments"],
+    team: ["How do I add a team member?", "Whose credentials expire soon?", "Open Settings"]
+  }[TOOL];
+  AltheaUI.mount(CHIPS ? { chips: CHIPS } : undefined);
+  fetch("/api/org/settings/" + TOOL + "_prefs", { credentials: "same-origin" })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { if (j && j.data && j.data.show_althea === false) { var f = document.getElementById("althea-fab"); if (f) f.style.display = "none"; } })
+    .catch(function () {});
 
   var user = window.__ALTHAIS_USER__ || {};
   var PROVIDER = window.__ALTHAIS_PROVIDER_NAME__ || user.provider_name || "";

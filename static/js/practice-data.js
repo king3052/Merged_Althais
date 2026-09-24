@@ -394,11 +394,11 @@
 
   /* ---------- each tool's own settings (Settings > EMR / Scribe / Coding / Insurance / Team) ---------- */
   var TOOL_DEFAULTS = {
-    emr: { default_appt_time: "09:00", default_appt_type: "Office Visit", my_schedule_first: true, hide_cancelled: false },
-    scribe: { default_visit_type: "Office Visit", record_language: "en-US", show_vitals: true, open_history: false, confirm_sign: true, sign_credentials: "" },
-    coding: { min_confidence: "0", auto_check: false, show_reasons: true, default_encounter: "office" },
-    insurance: { timely_filing_days: "90", denial_followup_days: "14", clearinghouse: "Availity", scrub_before_submit: true, appeal_signature: "" },
-    team: { credential_warn_days: "30", training_due_days: "14" }
+    emr: { default_appt_time: "09:00", default_appt_type: "Office Visit", my_schedule_first: true, hide_cancelled: false, show_althea: true },
+    scribe: { default_visit_type: "Office Visit", record_language: "en-US", show_vitals: true, open_history: false, confirm_sign: true, sign_credentials: "", show_althea: true },
+    coding: { min_confidence: "0", auto_check: false, show_reasons: true, default_encounter: "office", show_althea: true },
+    insurance: { timely_filing_days: "90", denial_followup_days: "14", clearinghouse: "Availity", scrub_before_submit: true, appeal_signature: "", show_althea: true },
+    team: { credential_warn_days: "30", training_due_days: "14", show_althea: true }
   };
   /* Resolves to the clinic's settings for one tool, with the defaults filled in. Never rejects. */
   function toolSettings(tool) {

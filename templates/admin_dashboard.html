@@ -48,6 +48,12 @@
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7280' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
     .s-input:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgb(var(--brand-rgb) / .12); }
     .s-note { font-size:11.5px; color:#6b7280; margin-top:10px; max-width:860px; }
+    .swatch { width:26px; height:26px; border-radius:6px; border:1px solid rgba(15,17,22,.12); cursor:pointer; position:relative; }
+    .swatch[aria-checked="true"] { outline:2px solid #0f1116; outline-offset:2px; }
+    html[data-theme-resolved="dark"] .swatch[aria-checked="true"] { outline-color:#e7eaf2; }
+    body.compact .td { padding-top:4px; padding-bottom:4px; }
+    body.compact .list-row { padding-top:6px; padding-bottom:6px; }
+    body.compact .initials { width:24px; height:24px; font-size:10px; }
     .toggle.lg { width:36px; height:20px; border-radius:12px; }
     .toggle.lg::after { width:16px; height:16px; }
     .toggle.lg.on::after { transform:translateX(16px); }
@@ -170,7 +176,7 @@
           <select id="org-filter" class="flt" aria-label="Filter by plan">
             <option value="all">All Plans</option><option value="suite">Full Suite</option><option value="tools">Single Tools</option><option value="none">No Access</option>
           </select>
-          <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool.</span>
+          <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea, the assistant, can be added to any plan.</span>
         </div>
         <div class="bg-panel border border-line rounded-sm">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
@@ -180,7 +186,7 @@
           <div class="overflow-x-auto thin-scroll">
             <table class="w-full">
               <thead><tr class="table-head">
-                <th class="td text-left">Organization</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td"></th>
+                <th class="td text-left">Organization</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td text-center" style="border-left:1px solid #e4e6eb">Althea</th><th class="td"></th>
               </tr></thead>
               <tbody id="org-rows"></tbody>
             </table>
@@ -216,8 +222,9 @@
           <div class="s-group">Clinics</div>
           <div class="s-tab active" data-stab="signups">Sign-Ups &amp; Plans</div>
           <div class="s-group">Admin Console</div>
-          <div class="s-tab" data-stab="security">Security</div>
+          <div class="s-tab" data-stab="appearance">Appearance</div>
           <div class="s-tab" data-stab="display">Display</div>
+          <div class="s-tab" data-stab="security">Security</div>
         </aside>
         <div class="s-content">
           <div data-spanel="signups">
@@ -240,11 +247,25 @@
                 <select class="s-input" data-aset="session_hours" data-num><option value="1">1 hour</option><option value="4">4 hours</option><option value="8">8 hours</option><option value="12">12 hours</option><option value="24">24 hours</option></select></div>
             </div>
           </div>
+          <div data-spanel="appearance" class="hidden">
+            <h2 class="s-title">Appearance</h2>
+            <p class="s-sub">How the admin console looks. Clinics keep their own colors.</p>
+            <div class="s-divider"></div>
+            <div class="s-card">
+              <div class="s-row"><div><div class="s-row-label">Theme</div><div class="s-row-sub">Saved on this browser, and shared with the app on this browser</div></div>
+                <select class="s-input" id="theme-pick"><option value="light">Light</option><option value="dark">Dark</option><option value="system">Match My Computer</option></select></div>
+              <div class="s-row" style="align-items:flex-start"><div><div class="s-row-label">Console Color</div><div class="s-row-sub">The admin console’s top bar and buttons</div></div>
+                <div id="color-pick" class="grid grid-cols-8 gap-1.5" role="radiogroup" aria-label="Console color"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Compact Rows</div><div class="s-row-sub">Fit more clinics and accounts on screen</div></div><button type="button" role="switch" class="toggle lg" data-aset="compact" aria-label="Compact rows"></button></div>
+            </div>
+          </div>
           <div data-spanel="display" class="hidden">
             <h2 class="s-title">Display</h2>
             <p class="s-sub">How the admin console lists clinics and accounts.</p>
             <div class="s-divider"></div>
             <div class="s-card">
+              <div class="s-row"><div><div class="s-row-label">Open On</div><div class="s-row-sub">The page the admin console opens to</div></div>
+                <select class="s-input" data-aset="start_page"><option value="overview">Overview</option><option value="orgs">Organizations &amp; Access</option><option value="accounts">Accounts</option><option value="plans">Plans &amp; Tools</option></select></div>
               <div class="s-row"><div><div class="s-row-label">Hide Test Accounts</div><div class="s-row-sub">Leave out emails ending in .test, .local or .example</div></div><button type="button" role="switch" class="toggle lg" data-aset="hide_test_accounts" aria-label="Hide test accounts"></button></div>
               <div class="s-row"><div><div class="s-row-label">Mark Accounts Inactive After</div><div class="s-row-sub">Accounts with no sign-in for this long show as Inactive</div></div>
                 <select class="s-input" data-aset="inactive_after_days" data-num><option value="14">14 days</option><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></div>
@@ -264,8 +285,8 @@
     const $ = id => document.getElementById(id);
     const PLAN_KEYS = ['suite', 'scribe', 'coding', 'insurance', 'staff'];
     const PLANS = {
-      suite:     { name: 'Full Suite', home: '/overview', blurb: 'All of Althais for the whole practice.',
-                   has: ['Overview: Tasks, Work Today, AI Inbox, Analytics, Recent Activity', 'EMR: patients, charts, schedule and Scribe', 'Revenue: claims, denials, appeals, payments, Coding Review', 'Staff workspace and Althea'] },
+      suite:     { name: 'Full Suite', home: '/overview', blurb: 'All of Althais for the whole practice. Comes with Althea unless it’s switched off.',
+                   has: ['Overview: Tasks, Work Today, AI Inbox, Analytics, Recent Activity', 'EMR: patients, charts, schedule and Scribe', 'Revenue: claims, denials, appeals, payments, Coding Review', 'Staff workspace'] },
       scribe:    { name: 'Scribe', home: '/scribe', blurb: 'Record a visit and get a signed SOAP note.',
                    has: ['Write A Note from a recording or transcript', 'Drafts, signing, copy and download', 'Settings for Scribe and the practice'] },
       coding:    { name: 'Coding', home: '/coding', blurb: 'Turn a note into CPT and ICD-10 codes.',
@@ -282,9 +303,10 @@
       plans: ['Plans & Tools', 'What each plan opens for a clinic.'],
       settings: ['Settings', 'Settings for the Althais admin console. They don’t change any clinic’s own Settings.'],
     };
-    let ASET = { signups_open: true, new_clinic_plan: 'suite', session_hours: 8, hide_test_accounts: false, inactive_after_days: 30 };
+    let ASET = { signups_open: true, new_clinic_plan: 'suite', session_hours: 8, hide_test_accounts: false, inactive_after_days: 30, start_page: 'overview', brand_color: '#0d5bd7', compact: false };
     let USERS = [], ORGS = [], query = '';
-    const draft = {};   // org_key -> products being edited
+    const draft = {};    // org_key -> products being edited
+    const draftA = {};   // org_key -> Althea on/off being edited
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
     function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
@@ -309,10 +331,11 @@
     }
     const PILL = { brand: 'background:var(--brand-100);color:var(--brand-text-strong)', muted: 'background:#eceef2;color:#4a505c', risk: 'background:#ffe1e1;color:#c83838', warn: 'background:#fff0d6;color:#b86a00' };
     const pill = (text, tone) => `<span class="pill" style="${PILL[tone]}">${esc(text)}</span>`;
-    function planLabel(products) {
-      if (!products || !products.length) return pill('No Access', 'risk');
-      if (products.includes('suite')) return pill('Full Suite', 'brand');
-      return products.map(p => pill(PLANS[p] ? PLANS[p].name : p, 'muted')).join(' ');
+    function planLabel(products, althea) {
+      const extra = althea ? ' ' + pill('Althea', 'brand') : '';
+      if (!products || !products.length) return pill('No Access', 'risk') + extra;
+      if (products.includes('suite')) return pill('Full Suite', 'brand') + extra;
+      return products.map(p => pill(PLANS[p] ? PLANS[p].name : p, 'muted')).join(' ') + extra;
     }
     function planOf(o) { const p = o.products; return !p.length ? 'none' : p.includes('suite') ? 'suite' : 'tools'; }
     const matches = text => !query || text.toLowerCase().includes(query);
@@ -349,7 +372,7 @@
 
       // a clinic with several tools counts under each one
       const counts = PLAN_KEYS.map(k => ({ label: PLANS[k].name, n: shownOrgs().filter(o => o.products.includes(k)).length }))
-        .concat([{ label: 'No Access', n: n.none }]);
+        .concat([{ label: 'No Access', n: n.none }, { label: '+ Althea', n: shownOrgs().filter(o => o.althea).length }]);
       const max = Math.max(1, ...counts.map(c => c.n));
       $('plan-mix').innerHTML = counts.map(c => `
         <div class="flex items-center gap-3 py-1.5">
@@ -376,7 +399,7 @@
           <div class="initials">${esc(initials(o.name))}</div>
           <div class="min-w-0 flex-1"><div class="text-[12.5px] font-medium text-ink-900 truncate">${esc(o.name)}</div>
             <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · last seen ${fmtRelative(last)}</div></div>
-          <div class="hidden sm:flex gap-1 flex-wrap justify-end">${planLabel(o.products)}</div>
+          <div class="hidden sm:flex gap-1 flex-wrap justify-end">${planLabel(o.products, o.althea)}</div>
           <div class="w-20 text-right"><div class="text-[13px] font-semibold text-ink-900 num">${logins.toLocaleString()}</div><div class="text-[10.5px] text-ink-400">logins</div></div>
         </div>`).join('') : '<div class="px-4 py-8 text-center text-[12px] text-ink-500">No clinics yet.</div>';
     }
@@ -384,12 +407,14 @@
     // ---- Organizations & access ----
     function orgRow(o) {
       const cur = draft[o.org_key] || o.products, suite = cur.includes('suite');
-      const dirty = draft[o.org_key] && draft[o.org_key].slice().sort().join() !== o.products.slice().sort().join();
+      const althea = o.org_key in draftA ? draftA[o.org_key] : o.althea;
+      const dirty = (draft[o.org_key] && draft[o.org_key].slice().sort().join() !== o.products.slice().sort().join()) || althea !== o.althea;
       const cells = PLAN_KEYS.map(k => {
         const on = k === 'suite' ? suite : (suite || cur.includes(k)), locked = k !== 'suite' && suite;
         return `<td class="td text-center"><button type="button" role="switch" aria-checked="${on}" class="toggle${on ? ' on' : ''}" data-org="${esc(o.org_key)}" data-plan="${k}"
           ${locked ? 'disabled title="Included in the full suite"' : ''} aria-label="${esc(o.name)}: ${PLANS[k].name}"></button></td>`;
-      }).join('');
+      }).join('') + `<td class="td text-center" style="border-left:1px solid #eceef2"><button type="button" role="switch" aria-checked="${althea}" class="toggle${althea ? ' on' : ''}" data-org="${esc(o.org_key)}" data-althea
+          aria-label="${esc(o.name)}: Althea" title="Althea, the assistant. Works with any plan."></button></td>`;
       return `<tr class="row-hover">
         <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(o.name))}</div><div class="min-w-0">
           <div class="font-semibold text-ink-900">${esc(o.name)}</div>
@@ -403,12 +428,14 @@
     function renderOrgs() {
       const f = $('org-filter').value;
       const list = shownOrgs().filter(o => (f === 'all' || planOf(o) === f) && matches(o.name + ' ' + o.users.join(' ')));
-      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(7, 'No organizations match.');
+      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(8, 'No organizations match.');
       $('org-count').textContent = `${list.length} of ${shownOrgs().length}`;
       $('n-orgs').textContent = shownOrgs().length || '';
     }
     $('org-filter').addEventListener('change', renderOrgs);
     $('org-rows').addEventListener('click', async e => {
+      const a = e.target.closest('[data-althea]');
+      if (a) { const o = ORGS.find(x => x.org_key === a.dataset.org); draftA[o.org_key] = !a.classList.contains('on'); renderOrgs(); return; }
       const t = e.target.closest('[data-plan]');
       if (t) {
         const o = ORGS.find(x => x.org_key === t.dataset.org), plan = t.dataset.plan, on = !t.classList.contains('on');
@@ -418,15 +445,16 @@
         draft[o.org_key] = cur; renderOrgs(); return;
       }
       const b = e.target.closest('[data-save-org]'); if (!b) return;
-      const key = b.dataset.saveOrg, o = ORGS.find(x => x.org_key === key), products = draft[key];
+      const key = b.dataset.saveOrg, o = ORGS.find(x => x.org_key === key), products = draft[key] || o.products;
+      const althea = key in draftA ? draftA[key] : o.althea;
       if (!products.length && !confirm(`Turn off every Althais tool for ${o.name}? Their people will see a "no active plan" page.`)) return;
       b.disabled = true; b.textContent = 'Saving…';
-      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products }) });
+      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products, althea }) });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) { location.href = '/admin/login'; return; }
       if (!res.ok) { toast(data.error || 'Could not save.', 'error'); renderOrgs(); return; }
-      o.products = data.products; delete draft[key]; renderAll();
-      toast(`Saved. ${o.name} now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}.`);
+      o.products = data.products; o.althea = data.althea; delete draft[key]; delete draftA[key]; renderAll();
+      toast(`Saved. ${o.name} now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}${o.althea ? ', with Althea' : ', without Althea'}.`);
     });
 
     // ---- Accounts ----
@@ -441,7 +469,7 @@
             <div class="font-semibold text-ink-900">${esc(u.full_name || '—')}</div>
             <div class="text-[11px] text-ink-500 mono">${esc(u.email)}</div></div></div></td>
           <td class="td text-ink-700">${esc(u.organization || '—')}</td>
-          <td class="td"><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products) : '—'}</div></td>
+          <td class="td"><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products, orgs[u.email].althea) : '—'}</div></td>
           <td class="td td-num text-right">${u.login_count}</td>
           <td class="td td-num text-right">${u.claims_submitted}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}${inactive(u) ? ' ' + pill('Inactive', 'muted') : ''}</td>
@@ -460,7 +488,13 @@
 
     // ---- Plans ----
     function renderPlans() {
-      $('plan-cards').innerHTML = PLAN_KEYS.map(k => {
+      const withAlthea = shownOrgs().filter(o => o.althea).length;
+      $('plan-cards').innerHTML = `<div class="bg-panel border border-line rounded-sm flex flex-col md:col-span-2 xl:col-span-3">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-2">
+            <h3 class="text-[13px] font-semibold text-ink-900">Althea Add-On</h3>${pill(withAlthea + (withAlthea === 1 ? ' clinic' : ' clinics'), withAlthea ? 'brand' : 'muted')}
+          </div>
+          <div class="px-4 py-3 text-[12.5px] text-ink-700">Althea, the assistant, can be switched on for any clinic in Organizations &amp; Access, whatever plan it has. Each clinic can then hide her on any of its tools in its own Settings. She answers from the tools the clinic has: an Insurance clinic can ask about claims and denials; a Scribe or Coding clinic gets help with its tool.</div>
+        </div>` + PLAN_KEYS.map(k => {
         const p = PLANS[k], n = shownOrgs().filter(o => o.products.includes(k)).length;
         return `<div class="bg-panel border border-line rounded-sm flex flex-col">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-2">
@@ -478,7 +512,21 @@
     }
 
     // ---- Settings ----
+    function applyLook() {
+      document.body.classList.toggle('compact', !!ASET.compact);
+      if (window.AlthaisBrand) AlthaisBrand.apply(ASET.brand_color);
+      try { localStorage.setItem('althais.admin_brand.v1', ASET.brand_color); } catch (e) {}
+      document.querySelectorAll('#color-pick .swatch').forEach(b => b.setAttribute('aria-checked', String(b.dataset.hex === ASET.brand_color)));
+    }
+    if (window.AlthaisBrand) $('color-pick').innerHTML = AlthaisBrand.PRESETS.map(p =>
+      `<button type="button" role="radio" class="swatch" data-hex="${p.hex.toLowerCase()}" style="background:${p.hex}" title="${esc(p.name)}" aria-label="${esc(p.name)}"></button>`).join('');
+    $('color-pick').addEventListener('click', e => { const b = e.target.closest('.swatch'); if (b) saveSetting('brand_color', b.dataset.hex); });
+    $('theme-pick').value = window.AlthaisTheme ? AlthaisTheme.mode() : 'light';
+    window.addEventListener('althais-theme', e => { $('theme-pick').value = e.detail.mode; });   // the header's moon/sun button
+    $('theme-pick').addEventListener('change', () => { if (window.AlthaisTheme) AlthaisTheme.set($('theme-pick').value); });
+
     function renderSettings() {
+      applyLook();
       document.querySelectorAll('[data-aset]').forEach(el => {
         const v = ASET[el.dataset.aset];
         if (el.classList.contains('toggle')) { el.classList.toggle('on', !!v); el.setAttribute('aria-checked', String(!!v)); }
@@ -507,7 +555,8 @@
         const [ru, ro, rs] = await Promise.all(['/api/admin/users', '/api/admin/orgs', '/api/admin/settings'].map(u => fetch(u, { credentials: 'same-origin' })));
         if (ru.status === 401 || ro.status === 401) { location.href = '/admin/login'; return; }
         USERS = await ru.json(); ORGS = await ro.json();
-        if (rs.ok) { ASET = await rs.json(); renderSettings(); }
+        if (rs.ok) { ASET = await rs.json(); renderSettings(); if (!location.hash && !load.opened) show(ASET.start_page); }
+        load.opened = true;
         renderAll();
       } catch {
         $('org-rows').innerHTML = empty(7, 'Could not load. Try Refresh.'); $('rows').innerHTML = empty(8, 'Could not load. Try Refresh.');

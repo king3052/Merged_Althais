@@ -25,7 +25,7 @@
     $("pw-hint").hidden = !reg;
     $("forgot-link").hidden = reg;
     $("form-eyebrow").textContent = reg ? "Get Started" : "Welcome";
-    $("form-title").innerHTML = reg ? 'Create your <span class="em">account.</span>' : 'Sign in to your<br /><span class="em">Althais workspace.</span>';
+    $("form-title").innerHTML = reg ? 'Create your <span class="em">account.</span>' : 'Sign in to your<br /><span class="em">Althais Workspace.</span>';
     $("form-sub").textContent = reg ? "Set up access for your practice." : "Enter your details to continue.";
     label.textContent = reg ? "Create Account" : "Sign In";
     $("toggle-prompt").textContent = reg ? "Already have an account?" : "New to Althais?";
