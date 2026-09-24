@@ -56,8 +56,8 @@
     const menus = window.__ALTHAIS_SUITE__ === false ? TOOL_NAVIGATION : NAVIGATION;
 
     const secondaryNav = document.getElementById('secondary-nav');
-    if (path === '/clinic-admin') {
-      // Clinic Admin's own sections (the page switches between them by #hash)
+    if (path === '/manager') {
+      // Manager's own sections (the page switches between them by #hash)
       secondaryNav.innerHTML = [['employees', 'Employees'], ['access', 'Roles & Access']]
         .map(([k, l]) => `<a class="nav-tab" data-ca-tab="${k}" href="#${k}">${l}</a>`).join('');
     } else if (activeWorkspace) {

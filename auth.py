@@ -80,7 +80,7 @@ class User(Base):
     claims_submitted: Mapped[int] = mapped_column(Integer, default=0)
     last_login: Mapped[dt.datetime] = mapped_column(DateTime, nullable=True, default=None)
     email_verified: Mapped[bool] = mapped_column(Integer, default=0)
-    # Managed by the clinic's admin on /clinic-admin: 0 = paused (can't sign in); tools = which of the clinic's
+    # Managed by the clinic's admin on /manager: 0 = paused (can't sign in); tools = which of the clinic's
     # Althais tools this person may use, comma-separated ("" = all of them).
     active: Mapped[int] = mapped_column(Integer, default=1)
     tools: Mapped[str] = mapped_column(String(255), default="")
@@ -692,7 +692,7 @@ def remove_team_member(
 
 
 # ──────────────────────────────────────────────────────────────────────────
-#  Clinic Admin (/clinic-admin): the clinic's own admins manage their employees'
+#  Manager (/manager): the clinic's own admins manage their employees'
 #  Althais logins — invite, role, provider name, which tools, pause, reset
 #  password, remove. A clinic always keeps at least one active admin.
 # ──────────────────────────────────────────────────────────────────────────

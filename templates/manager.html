@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Clinic Admin</title>
+  <title>Althais — Manager</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
     .fld:focus { border-color:var(--brand); }
@@ -38,7 +38,7 @@
   <div class="max-w-[1560px] mx-auto">
     <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
       <div>
-        <h1 class="text-[18px] font-semibold text-ink-900">Clinic Admin</h1>
+        <h1 class="text-[18px] font-semibold text-ink-900">Manager</h1>
         <p id="page-sub" class="text-[12px] text-ink-500 mt-0.5">Who in your clinic can use Althais, and what each person can do.</p>
       </div>
       <div class="flex items-center gap-2">
@@ -159,7 +159,7 @@
     const $ = (id) => document.getElementById(id);
     const esc = P.esc;
     const ROLES = {
-      admin:    { name: 'Admin',    blurb: 'Runs the clinic’s Althais: everything, plus Clinic Admin and Settings.', can: ['Everything in the clinic’s tools', 'Invite, pause and remove employees', 'Change roles and tool access', 'Change the clinic’s Settings'] },
+      admin:    { name: 'Admin',    blurb: 'Runs the clinic’s Althais: everything, plus Manager and Settings.', can: ['Everything in the clinic’s tools', 'Invite, pause and remove employees', 'Change roles and tool access', 'Change the clinic’s Settings'] },
       biller:   { name: 'Biller',   blurb: 'Works claims and billing.', can: ['Create, edit and submit claims', 'Edit patient billing details', 'Use the clinic’s tools'], cant: ['Manage employees'] },
       provider: { name: 'Provider', blurb: 'Sees patients and writes notes.', can: ['View patients and claims', 'Write and sign notes', 'Use the clinic’s tools'], cant: ['Submit claims', 'Manage employees'] },
       viewer:   { name: 'Viewer',   blurb: 'Read-only.', can: ['View patients and claim status'], cant: ['Edit anything', 'Manage employees'] },
