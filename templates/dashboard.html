@@ -311,7 +311,7 @@
        other page: static/js/althea-ui.js. The behaviour is below. -->
   <script src="/static/js/althea-ui.js"></script>
   <script src="/static/js/althea-revenue.js"></script>
-  <script>AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"] });</script>
+  <script>if (window.__ALTHAIS_SUITE__ !== false) AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"] });</script>
 
   <!-- =================== PATIENT CONTEXT BAR ===================
        Sits under the shared blue Althais header (injected by main.py _render_emr),
@@ -1364,6 +1364,28 @@
           <div class="s-tab" data-settings-tab="analytics"><span>Analytics</span></div>
           <div class="s-tab" data-settings-tab="api"><span>API &amp; Developer</span></div>
         </aside>
+        <script>
+          // A clinic on single tools gets the Settings those tools use; the rest belong to the full suite.
+          (function () {
+            const products = (window.__ALTHAIS_USER__ || {}).products || ['suite'];
+            if (products.includes('suite')) return;
+            const FOR = { billing: ['coding', 'insurance'], ai: ['scribe', 'coding', 'insurance'], comms: [], analytics: [] };
+            const nav = document.currentScript.previousElementSibling;
+            nav.querySelectorAll('[data-settings-tab]').forEach(t => {
+              const need = FOR[t.dataset.settingsTab];
+              if (need && !need.some(p => products.includes(p))) t.remove();
+            });
+            nav.querySelectorAll('.s-group').forEach(g => {   // drop a heading left with no tabs under it
+              const next = g.nextElementSibling;
+              if (!next || !next.classList.contains('s-tab')) g.remove();
+            });
+            document.addEventListener('DOMContentLoaded', () => {
+              document.querySelectorAll('#settings-view [data-section]').forEach(sec => {
+                if (!nav.querySelector('[data-settings-tab="' + sec.dataset.section + '"]')) sec.remove();
+              });
+            });
+          })();
+        </script>
 
         <!-- Settings content -->
         <div class="s-content">
@@ -3666,7 +3688,7 @@
       // ---- Settings "Back": /settings goes to the EMR; opened from the EMR's Settings tab, it returns to Overview ----
       const settingsBack = document.getElementById('settings-back');
       if (settingsBack) settingsBack.addEventListener('click', () => {
-        if (location.pathname.replace(/\/+$/, '') === '/settings') { location.href = '/emr'; return; }
+        if (location.pathname.replace(/\/+$/, '') === '/settings') { location.href = window.__ALTHAIS_SUITE__ === false ? (document.getElementById('nav-home') || {}).href || '/' : '/emr'; return; }
         const ov = document.querySelector('.nav-tab[data-tab="overview"]');
         if (ov) ov.click();
       });
@@ -6658,7 +6680,9 @@
       // is what actually makes patients visible to other people on the same
       // org, not just the browser that added them.
       let _patientSyncTimer = null;
+      const _hasEmr = window.__ALTHAIS_SUITE__ !== false;   // single-tool plans only open this page for Settings
       function syncPatientsToServer() {
+        if (!_hasEmr) return;
         clearTimeout(_patientSyncTimer);
         _patientSyncTimer = setTimeout(() => {
           fetch('/api/patients/bulk-sync', {
@@ -6672,6 +6696,7 @@
         }, 500);
       }
       function refreshPatientsFromServer() {
+        if (!_hasEmr) return;
         fetch('/api/patients', { credentials: 'same-origin' })
           .then(r => {
             if (!r.ok) return r.text().then(t => { throw new Error('GET /api/patients ' + r.status + ': ' + t); });

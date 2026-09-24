@@ -63,7 +63,7 @@
         return null;
       }
       if (p === '/scribe') return 'scribe';
-      if (p === '/coding' || p === '/revenue/coding') return 'coding';
+      if (p === '/coding') return 'coding';
       if (p.startsWith('/revenue/')) return 'insurance';
       if (p.startsWith('/staff/')) return 'staff';
       return null;
@@ -76,8 +76,8 @@
       document.getElementById('primary-tabs').innerHTML = mine.map(t => `<a class="primary-tab" data-workspace="${t.key}" href="${t.href}">${t.label}</a>`).join('');
       document.getElementById('nav-home').href = mine.length ? mine[0].href : '/no-access';
       if (mine.length === 1) { const n = document.getElementById('nav-tool-name'); n.textContent = mine[0].label; n.classList.remove('hidden'); }
-      const settings = document.querySelector('header .settings-btn');   // Settings is part of the full suite
-      if (settings) settings.style.display = 'none';
+      const settings = document.querySelector('header .settings-btn');   // every plan has Settings, trimmed to its tools
+      if (settings && !mine.length) settings.style.display = 'none';
     }
     document.querySelectorAll('.primary-tab').forEach(tab => { if (tab.dataset.workspace === active) tab.classList.add('active'); });
 

@@ -359,7 +359,9 @@ def _page_tools(path: str) -> tuple:
     """The single tools (besides the full suite) that include this page."""
     path = path.rstrip("/") or "/"
     if path == "/scribe": return ("scribe",)
-    if path in ("/coding", "/revenue/coding"): return ("coding",)
+    if path == "/coding": return ("coding",)
+    if path == "/settings": return ("scribe", "coding", "insurance", "staff")   # every plan has Settings
+    if path == "/revenue/coding": return ()          # Coding Review is part of the full suite, not the Coding tool
     if path.startswith("/revenue/"): return ("insurance",)
     if path.startswith("/staff/"): return ("staff",)
     return ()

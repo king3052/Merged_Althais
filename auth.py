@@ -661,13 +661,26 @@ def remove_team_member(
 # ──────────────────────────────────────────────────────────────────────────
 import json as _json
 
+# Kept by their own endpoints (and the admin console), never through the generic settings API:
+# otherwise a clinic could write its own plan, or skip the admins-only rule on staff and branding.
+_RESERVED_SETTINGS = {"entitlements", "staff", "tasks", "branding"}
+TOOL_PRODUCTS = ("scribe", "coding", "insurance", "staff")   # every single tool (Settings comes with each one)
+
+
+def _settings_access(user, db, category: str) -> None:
+    if category in _RESERVED_SETTINGS:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="This setting can't be changed here.")
+    ensure_product(user, db, *TOOL_PRODUCTS)   # any plan
+
+
 @router.get("/api/org/settings/{category}")
 def get_org_settings(
     category: str,
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    ensure_product(user, db)   # Settings is part of the full suite
+    _settings_access(user, db, category)
     row = db.scalar(
         select(OrgSettings).where(
             OrgSettings.org_key == user.organization,
@@ -695,7 +708,7 @@ async def save_org_settings(
     the given category. Any role can save — admins-only writes (like fee
     schedule or scrubber rules) are enforced by the frontend hiding the
     controls from non-admins; this endpoint just persists what's sent."""
-    ensure_product(user, db)   # Settings is part of the full suite
+    _settings_access(user, db, category)
     try:
         body = await request.json()
     except Exception:
