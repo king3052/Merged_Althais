@@ -1,16 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  {% include "_head.html" %}
-  <title>Althais — No Active Plan</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>No Active Plan | Althais</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon/althais-tab.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <script src="/static/js/theme.js"></script>
+  <link rel="stylesheet" href="/static/althais-landing.css" />
+  <link rel="stylesheet" href="/static/althais-demo.css" />
+  <link rel="stylesheet" href="/static/althais-dark.css" />
+  <style>
+    /* Same design as Book A Demo and sign-in: someone here can't use the app yet */
+    .na-main { min-height: calc(100vh - 68px - 70px); display: flex; align-items: center; padding-block: 72px; }
+    .na { max-width: 660px; }
+    .na h1.display { font-size: clamp(38px, 4.2vw, 56px); margin-top: 18px; }
+    .na .lede { margin-top: 24px; font-size: 18px; line-height: 1.65; color: var(--muted); max-width: 580px; }
+    .na-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+    .na-tools span { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+    .na-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 34px; }
+    .na-who { margin-top: 22px; font-size: 13.5px; color: var(--faint); }
+
+    /* the Contact Althais popup: the Book A Demo card on its own */
+    .ct-overlay { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12, 12, 14, .42); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+    .ct-overlay.open { display: flex; }
+    .ct-card { position: relative; width: 460px; max-width: 100%; max-height: calc(100vh - 40px); overflow-y: auto; }
+    .ct-close { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--muted); background: transparent; border: 1px solid transparent; cursor: pointer; }
+    .ct-close:hover { border-color: var(--line); color: var(--ink); }
+    .field textarea { width: 100%; min-height: 92px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font: 400 15px/1.5 var(--sans); color: var(--ink); resize: vertical; transition: border-color .15s, box-shadow .15s; }
+    .field textarea::placeholder { color: #b7b7b7; }
+    .field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    html[data-theme-resolved="dark"] .field textarea { background: var(--card); color: var(--ink); }
+    @media (max-width: 640px) { .ct-card.form-card { padding: 28px 22px 24px; } }
+  </style>
 </head>
-<body class="bg-shell">
-  {% include "_primary_nav.html" %}
-  <main class="max-w-[520px] mx-auto px-6 py-20 text-center">
-    <h1 class="text-[20px] font-semibold text-ink-900">Your organization doesn't have an active Althais plan</h1>
-    <p class="text-[13px] text-ink-600 mt-3 leading-relaxed">Your account is set up, but none of the Althais tools are turned on for your organization yet.
-      Contact us and we'll get you started with Scribe, Coding, Insurance, Team or the full Althais suite.</p>
-    <a href="mailto:support@althais.com?subject=Althais%20access" class="inline-block mt-6 text-[13px] font-semibold px-4 py-2 rounded-sm bg-med-600 text-white">Contact Althais</a>
-  </main>
+<body class="demo-page">
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+    <nav class="nav-links" aria-label="Account">
+      <form method="POST" action="/logout" style="margin:0">
+        <button type="submit" class="btn btn-ghost">Sign Out</button>
+      </form>
+    </nav>
+  </div>
+</header>
+
+<main class="na-main">
+  <div class="wrap">
+    <div class="na">
+      <div class="eyebrow">Your Account Is Ready</div>
+      <h1 class="display">Your organization doesn’t have an <span class="em">active Althais plan.</span></h1>
+      <p class="lede">Your account is set up, but none of the Althais tools are turned on for your organization yet. Contact us and we’ll get you started.</p>
+      <div class="na-tools" aria-label="Althais tools"><span>Scribe</span><span>Coding</span><span>Insurance</span><span>Team</span><span>Full Suite</span></div>
+      <div class="na-actions">
+        <button type="button" id="contact-open" class="btn btn-dark btn-lg">
+          Contact Althais
+          <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </button>
+      </div>
+      <p class="na-who">Signed in as {{ user.email }}{% if user.organization %} · {{ user.organization }}{% endif %}</p>
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="l"><a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a><span>© 2026 Althais Health, Inc.</span></div>
+  </div>
+</footer>
+
+<!-- Contact Althais: the Book A Demo form, without the extra information -->
+<div id="contact" class="ct-overlay" role="dialog" aria-modal="true" aria-labelledby="ct-title">
+  <div class="card form-card ct-card">
+    <button type="button" class="ct-close" id="contact-close" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+    </button>
+
+    <div id="success" class="success" hidden>
+      <div class="ok-ico" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h2>Message sent.</h2>
+      <p>Thank you. We’ll email you within one business day to get your organization set up.</p>
+      <button type="button" class="btn btn-dark btn-lg" id="contact-done">Done</button>
+    </div>
+
+    <div id="form-wrap">
+      <div class="eyebrow">Contact Althais</div>
+      <h2 class="form-title" id="ct-title">Where should we reach you?</h2>
+      <div id="msg" class="msg-err" role="alert" hidden></div>
+      <form id="contact-form" novalidate>
+        <div class="fields">
+          <div class="field">
+            <label for="full_name">Your name</label>
+            <input id="full_name" type="text" autocomplete="name" required placeholder="Dr. Jane Smith" value="{{ user.full_name or '' }}" />
+          </div>
+          <div class="field">
+            <label for="email">Work email</label>
+            <input id="email" type="email" autocomplete="email" required placeholder="jane@practice.com" value="{{ user.email }}" />
+          </div>
+          <div class="field">
+            <label for="practice_name">Practice name</label>
+            <input id="practice_name" type="text" autocomplete="organization" required placeholder="Mercy Cardiology" value="{{ user.organization or '' }}" />
+          </div>
+          <div class="field">
+            <label for="phone">Phone <span class="opt">optional</span></label>
+            <input id="phone" type="tel" autocomplete="tel" placeholder="+1 (555) 000-0000" />
+          </div>
+          <div class="field">
+            <label for="message">Message <span class="opt">optional</span></label>
+            <textarea id="message" maxlength="2000" placeholder="Which tools are you interested in?"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button id="btn" type="submit" class="btn btn-dark btn-lg submit">
+            <span id="btn-label">Contact Althais</span>
+            <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </button>
+          <p class="fine"><span class="dot"></span> We reply within one business day.</p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const overlay = $('contact'), fields = ['full_name', 'email', 'practice_name'];
+    let lastFocus = null;
+    function open() { lastFocus = document.activeElement; overlay.classList.add('open'); setTimeout(() => $(($('full_name').value ? 'phone' : 'full_name')).focus(), 30); }
+    function close() { overlay.classList.remove('open'); if (lastFocus) lastFocus.focus(); }
+    $('contact-open').addEventListener('click', open);
+    $('contact-close').addEventListener('click', close);
+    $('contact-done').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('open')) close(); });
+
+    function showMsg(text, bad) {
+      $('msg').textContent = text; $('msg').hidden = false;
+      fields.forEach(id => $(id).classList.toggle('bad', (bad || []).includes(id)));
+    }
+    fields.forEach(id => $(id).addEventListener('input', () => $(id).classList.remove('bad')));
+
+    $('contact-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('msg').hidden = true;
+      const v = (id) => $(id).value.trim();
+      const missing = fields.filter(id => !v(id));
+      if (missing.length) { showMsg('Add your name, work email and practice name to continue.', missing); $(missing[0]).focus(); return; }
+      if (!v('email').includes('@')) { showMsg('That email address does not look right. Please check it.', ['email']); $('email').focus(); return; }
+      $('btn').disabled = true; $('btn-label').textContent = 'Sending…';
+      try {
+        const res = await fetch('/api/contact-althais', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_name: v('full_name'), email: v('email'), practice_name: v('practice_name'), phone: v('phone'), message: v('message') }) });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) { $('form-wrap').hidden = true; $('success').hidden = false; $('contact-done').focus(); }
+        else showMsg(typeof (data.error || data.detail) === 'string' ? (data.error || data.detail) : 'Something went wrong on our end. Please try again.');
+      } catch (err) { showMsg('We could not reach the server. Check your connection and try again.'); }
+      finally { $('btn').disabled = false; $('btn-label').textContent = 'Contact Althais'; }
+    });
+  })();
+</script>
 </body>
 </html>

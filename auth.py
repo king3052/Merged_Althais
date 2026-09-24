@@ -1515,6 +1515,34 @@ class DemoRequest(Base):
 Base.metadata.create_all(engine)   # creates demo_requests if it doesn't exist
 
 
+@router.post("/api/contact-althais")
+async def contact_althais(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """The no-active-plan page's Contact Althais form: saved like a demo request and emailed to the team."""
+    import html as _html
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Something went wrong. Please try again."}, status_code=400)
+    val = lambda k, n: str(body.get(k) or "").strip()[:n]
+    name, email, practice, phone, message = val("full_name", 255), val("email", 255).lower(), val("practice_name", 255), val("phone", 64), val("message", 2000)
+    if not name or not practice or "@" not in email:
+        return JSONResponse({"error": "Add your name, work email and practice name to continue."}, status_code=400)
+    db.add(DemoRequest(full_name=name, email=email, practice_name=practice, phone=phone))
+    db.commit()
+    e = lambda t: _html.escape(t or "—")
+    send_email(
+        "kevinqu@althais.com",
+        f"Access request — {practice}",
+        _email_html(
+            "A signed-up clinic wants an Althais plan",
+            f"""<strong>Name:</strong> {e(name)}<br><strong>Email:</strong> {e(email)}<br><strong>Practice:</strong> {e(practice)}<br>
+            <strong>Phone:</strong> {e(phone)}<br><strong>Account:</strong> {e(user.email)} ({e(user.organization)})<br><br>
+            <strong>Message:</strong><br>{e(message).replace(chr(10), "<br>")}<br><br>Turn their tools on in the admin console, then reply to let them know.""",
+            f"mailto:{e(email)}", f"Reply to {e(name)}"),
+    )
+    return {"ok": True}
+
+
 @router.post("/request-demo")
 def request_demo(
     full_name: str = Form(...),

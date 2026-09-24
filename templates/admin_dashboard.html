@@ -546,8 +546,8 @@
       };
       const managers = d.members.filter(m => m.role === 'admin'), others = d.members.filter(m => m.role !== 'admin');
       $('emp-sub').textContent = `${d.members.length} ${d.members.length === 1 ? 'person' : 'people'} · ${managers.length} ${managers.length === 1 ? 'manager' : 'managers'}`;
-      $('emp-managers').innerHTML = managers.length ? managers.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No manager yet.</div>';
-      $('emp-list').innerHTML = others.length ? others.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No employees under them yet.</div>';
+      $('emp-managers').innerHTML = managers.length ? managers.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No Manager Yet.</div>';
+      $('emp-list').innerHTML = others.length ? others.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No Employees Under Them Yet.</div>';
     }
     function closeClinic() { $('emp-panel').classList.add('hidden'); $('emp-backdrop').classList.add('hidden'); }
     $('emp-close').addEventListener('click', closeClinic); $('emp-backdrop').addEventListener('click', closeClinic);
