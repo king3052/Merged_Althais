@@ -117,6 +117,7 @@
     const STYLE = { Scheduled: 'background:var(--brand-100);color:var(--brand-text-strong)', Confirmed: 'background:#d8f5e3;color:#0c8a4f', 'Checked In': 'background:#f1e8ff;color:#6b3fa0', Completed: 'background:#eceef2;color:#4a505c', 'No-show': 'background:#ffe1e1;color:#c83838', Cancelled: 'background:#f3f3f3;color:#9aa0ac' };
     const norm = (s) => (/^no-?show$/i.test(s || '') ? 'No-show' : (s || 'Scheduled'));
     let day = P.todayIso();
+    let PREFS = P.TOOL_DEFAULTS.emr;   // Settings > EMR
 
     const load = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
     const save = (list) => { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { P.toast('Could not save on this device', 'error'); } };
@@ -141,7 +142,7 @@
       $('k-week').textContent = mine.filter(a => a.date >= weekStart && a.date <= weekEnd && norm(a.status) !== 'Cancelled').length;
       $('k-noshow').textContent = mine.filter(a => norm(a.status) === 'No-show' && a.date >= shift(today, -7) && a.date <= today).length;
 
-      const rows = mine.filter(a => a.date === day).sort((x, y) => (x.time || '').localeCompare(y.time || ''));
+      const rows = mine.filter(a => a.date === day && !(PREFS.hide_cancelled && norm(a.status) === 'Cancelled')).sort((x, y) => (x.time || '').localeCompare(y.time || ''));
       $('count').textContent = `${rows.length} scheduled`;
       $('empty').style.display = rows.length ? 'none' : 'block';
       $('rows').innerHTML = rows.map(a => {
@@ -182,7 +183,7 @@
       if (!patients.length) { P.toast('Add a patient in the EMR first', 'error'); return; }
       $('a-patient').innerHTML = patients.map(p => `<option value="${esc(p.mrn)}">${esc(p.name)} · ${esc(p.mrn)}</option>`).join('');
       $('prov-list').innerHTML = providers().map(p => `<option value="${esc(p)}">`).join('');
-      $('a-date').value = day; $('a-time').value = '09:00';
+      $('a-date').value = day; $('a-time').value = PREFS.default_appt_time || '09:00'; $('a-type').value = PREFS.default_appt_type || 'Office Visit';
       $('a-provider').value = $('f-provider').value || '';
       $('a-notes').value = ''; $('a-error').classList.add('hidden');
       $('appt-modal').classList.remove('hidden'); $('appt-modal').classList.add('flex');
@@ -213,6 +214,13 @@
     const q = new URLSearchParams(location.search);
     if (/^\d{4}-\d{2}-\d{2}$/.test(q.get('date') || '')) day = q.get('date');
     fillProviders(); render();
+    P.toolSettings('emr').then(p => {
+      PREFS = p;
+      // providers open on their own appointments
+      const me = (window.__ALTHAIS_USER__ || {}).provider_name;
+      if (p.my_schedule_first && me && !$('f-provider').value && [...$('f-provider').options].some(o => o.value === me)) $('f-provider').value = me;
+      render();
+    });
     if (q.get('new') === '1') openModal();
     window.addEventListener('storage', (e) => { if (e.key === KEY) render(); });   // booked from the EMR in another tab
   </script>

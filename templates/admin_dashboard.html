@@ -27,6 +27,40 @@
     .nav-tab.active .n { color:inherit; opacity:.75; }
     .plan li { display:flex; gap:8px; font-size:12.5px; color:#2c313b; padding:3px 0; }
     .plan li::before { content:''; width:4px; height:4px; background:var(--brand); margin-top:7px; flex-shrink:0; }
+    /* Settings: same side tabs and rows as the app's Settings */
+    .s-nav { width:232px; flex-shrink:0; padding:16px 12px 24px; background:#fff; border-right:1px solid #e4e6eb; align-self:stretch; }
+    .s-group { font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8b909c; padding:14px 12px 6px; }
+    .s-group:first-child { padding-top:4px; }
+    .s-tab { display:flex; align-items:center; padding:8px 12px; margin-bottom:1px; font-size:13px; color:#4a505c; cursor:pointer; border-left:3px solid transparent; border-radius:0 6px 6px 0; transition:background .15s, color .15s; }
+    .s-tab:hover { background:#f1f3f7; color:#0f1116; }
+    .s-tab.active { background:var(--brand-100); color:var(--brand-text-strong); font-weight:600; border-left-color:var(--brand); }
+    .s-content { flex:1; min-width:0; padding:28px 40px 48px; }
+    .s-title { font-size:18px; font-weight:600; color:#0f1116; letter-spacing:-0.01em; }
+    .s-sub { font-size:12.5px; color:#6b7280; margin-top:4px; }
+    .s-divider { height:1px; background:#e4e6eb; margin:20px 0; }
+    .s-card { background:#fff; border:1px solid #e4e6eb; border-radius:8px; box-shadow:0 1px 2px rgba(15,17,22,.04); padding:0 22px; max-width:860px; }
+    .s-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 0; border-bottom:1px solid #eceef2; }
+    .s-row:last-child { border-bottom:0; }
+    .s-row-label { font-size:13px; color:#1a1d24; font-weight:500; }
+    .s-row-sub { font-size:11.5px; color:#6b7280; margin-top:2px; }
+    .s-input { background:#fff; border:1px solid #e4e6eb; color:#0f1116; border-radius:6px; padding:8px 12px; font-size:12.5px; outline:none; width:210px; }
+    select.s-input { -webkit-appearance:none; appearance:none; padding-right:28px; background-repeat:no-repeat; background-position:right 10px center;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7280' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+    .s-input:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgb(var(--brand-rgb) / .12); }
+    .s-note { font-size:11.5px; color:#6b7280; margin-top:10px; max-width:860px; }
+    .toggle.lg { width:36px; height:20px; border-radius:12px; }
+    .toggle.lg::after { width:16px; height:16px; }
+    .toggle.lg.on::after { transform:translateX(16px); }
+    @media (max-width: 760px) { .s-shell { flex-direction:column; } .s-nav { width:100%; } .s-content { padding:20px 16px 40px; } .s-row { flex-wrap:wrap; } }
+    html[data-theme-resolved="dark"] .s-nav { background:#14181f; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .s-tab { color:#aab0bf; }
+    html[data-theme-resolved="dark"] .s-tab:hover { background:#1f242c; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .s-tab.active { background:var(--brand-dark-tint); color:var(--brand-dark-link-soft); }
+    html[data-theme-resolved="dark"] .s-title, html[data-theme-resolved="dark"] .s-row-label { color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .s-card { background:#1a1d24; border-color:#2c313b; box-shadow:none; }
+    html[data-theme-resolved="dark"] .s-row, html[data-theme-resolved="dark"] .s-divider { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .s-divider { background:#2c313b; }
+    html[data-theme-resolved="dark"] .s-input { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
     html[data-theme-resolved="dark"] .flt, html[data-theme-resolved="dark"] .btn-line { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
     html[data-theme-resolved="dark"] .btn-line:hover { background:#20242c; }
     html[data-theme-resolved="dark"] .btn-save:disabled { border-color:#2c313b; color:#525866; }
@@ -55,6 +89,10 @@
           <svg class="theme-moon h-[16px] w-[16px]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           <svg class="theme-sun h-[16px] w-[16px]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         </button>
+        <a href="#settings" title="Settings" aria-label="Settings" class="settings-btn group flex items-center gap-2 h-8 px-2.5 lg:pr-3 rounded-md border border-white/15 bg-white/[0.07] text-white/90 hover:text-white hover:bg-white/[0.16] hover:border-white/30 transition-colors text-[12.5px] font-medium">
+          <svg class="h-[18px] w-[18px] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="hidden lg:inline">Settings</span>
+        </a>
         <div class="h-5 w-px bg-white/25"></div>
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded-sm bg-white/15 text-white text-[11px] font-semibold flex items-center justify-center flex-shrink-0">AD</div>
@@ -84,7 +122,7 @@
         <h1 id="page-title" class="text-[18px] font-semibold text-ink-900">Overview</h1>
         <p id="page-sub" class="text-[12px] text-ink-500 mt-0.5">Accounts, clinics and usage across Althais.</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div id="page-tools" class="flex items-center gap-2">
         <input id="search" type="search" placeholder="Search clinics or people…" class="flt w-[240px] max-w-[60vw]" aria-label="Search clinics or people" />
         <button id="refresh" type="button" class="btn-line">Refresh</button>
       </div>
@@ -171,6 +209,51 @@
       </div>
     </section>
 
+    <!-- Settings: the Althais team's own, not any clinic's -->
+    <section data-section="settings" class="hidden">
+      <div class="s-shell flex" style="min-height:calc(100vh - 175px)">
+        <aside class="s-nav">
+          <div class="s-group">Clinics</div>
+          <div class="s-tab active" data-stab="signups">Sign-Ups &amp; Plans</div>
+          <div class="s-group">Admin Console</div>
+          <div class="s-tab" data-stab="security">Security</div>
+          <div class="s-tab" data-stab="display">Display</div>
+        </aside>
+        <div class="s-content">
+          <div data-spanel="signups">
+            <h2 class="s-title">Sign-Ups &amp; Plans</h2>
+            <p class="s-sub">Who can create an Althais account, and what a new clinic gets.</p>
+            <div class="s-divider"></div>
+            <div class="s-card">
+              <div class="s-row"><div><div class="s-row-label">Allow New Sign-Ups</div><div class="s-row-sub">When off, the Create An Account form tells people to contact Althais</div></div><button type="button" role="switch" class="toggle lg" data-aset="signups_open" aria-label="Allow new sign-ups"></button></div>
+              <div class="s-row"><div><div class="s-row-label">Plan For New Clinics</div><div class="s-row-sub">What a brand-new clinic can use. People joining an existing clinic get that clinic’s plan.</div></div>
+                <select class="s-input" data-aset="new_clinic_plan"><option value="suite">Full Suite</option><option value="scribe">Scribe</option><option value="coding">Coding</option><option value="insurance">Insurance</option><option value="staff">Team</option><option value="none">No Access Until Switched On</option></select></div>
+            </div>
+            <p class="s-note">Changing the plan for new clinics doesn’t change any clinic that already exists. Use Organizations &amp; Access for those.</p>
+          </div>
+          <div data-spanel="security" class="hidden">
+            <h2 class="s-title">Security</h2>
+            <p class="s-sub">The admin console itself.</p>
+            <div class="s-divider"></div>
+            <div class="s-card">
+              <div class="s-row"><div><div class="s-row-label">Admin Sign-In Lasts</div><div class="s-row-sub">After this, you sign in to the admin console again. Applies from your next sign-in.</div></div>
+                <select class="s-input" data-aset="session_hours" data-num><option value="1">1 hour</option><option value="4">4 hours</option><option value="8">8 hours</option><option value="12">12 hours</option><option value="24">24 hours</option></select></div>
+            </div>
+          </div>
+          <div data-spanel="display" class="hidden">
+            <h2 class="s-title">Display</h2>
+            <p class="s-sub">How the admin console lists clinics and accounts.</p>
+            <div class="s-divider"></div>
+            <div class="s-card">
+              <div class="s-row"><div><div class="s-row-label">Hide Test Accounts</div><div class="s-row-sub">Leave out emails ending in .test, .local or .example</div></div><button type="button" role="switch" class="toggle lg" data-aset="hide_test_accounts" aria-label="Hide test accounts"></button></div>
+              <div class="s-row"><div><div class="s-row-label">Mark Accounts Inactive After</div><div class="s-row-sub">Accounts with no sign-in for this long show as Inactive</div></div>
+                <select class="s-input" data-aset="inactive_after_days" data-num><option value="14">14 days</option><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Plans -->
     <section data-section="plans" class="hidden">
       <div id="plan-cards" class="p-5 grid md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
@@ -197,7 +280,9 @@
       orgs: ['Organizations & Access', 'Which Althais tools each clinic can use.'],
       accounts: ['Accounts', 'Everyone with an Althais login. Deleting an account can’t be undone.'],
       plans: ['Plans & Tools', 'What each plan opens for a clinic.'],
+      settings: ['Settings', 'Settings for the Althais admin console. They don’t change any clinic’s own Settings.'],
     };
+    let ASET = { signups_open: true, new_clinic_plan: 'suite', session_hours: 8, hide_test_accounts: false, inactive_after_days: 30 };
     let USERS = [], ORGS = [], query = '';
     const draft = {};   // org_key -> products being edited
 
@@ -231,6 +316,10 @@
     }
     function planOf(o) { const p = o.products; return !p.length ? 'none' : p.includes('suite') ? 'suite' : 'tools'; }
     const matches = text => !query || text.toLowerCase().includes(query);
+    const inactive = u => !u.last_login || (Date.now() - new Date(u.last_login)) / 864e5 > Number(ASET.inactive_after_days);
+    const isTest = email => /\.(test|local|example)$/i.test(email || '');
+    const shownUsers = () => ASET.hide_test_accounts ? USERS.filter(u => !isTest(u.email)) : USERS;
+    const shownOrgs = () => ASET.hide_test_accounts ? ORGS.filter(o => !o.users.every(isTest)) : ORGS;
     const empty = (cols, text) => `<tr><td colspan="${cols}" class="px-4 py-10 text-center text-[12px] text-ink-500">${text}</td></tr>`;
 
     // ---- sub-menu tabs, kept in the address so a refresh stays put ----
@@ -239,25 +328,27 @@
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
       document.querySelectorAll('[data-section]').forEach(s => s.classList.toggle('hidden', s.dataset.section !== tab));
       $('page-title').textContent = PAGES[tab][0]; $('page-sub').textContent = PAGES[tab][1];
+      $('page-tools').classList.toggle('hidden', tab === 'settings');
+      document.querySelector('.settings-btn').classList.toggle('bg-white/[0.16]', tab === 'settings');
     }
     window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
     // ---- Overview ----
     function renderOverview() {
       const week = Date.now() - 7 * 864e5;
-      $('stat-users').textContent = USERS.length;
-      const newWeek = USERS.filter(u => u.created_at && new Date(u.created_at) > week).length;
+      $('stat-users').textContent = shownUsers().length;
+      const newWeek = shownUsers().filter(u => u.created_at && new Date(u.created_at) > week).length;
       $('stat-users-d').textContent = newWeek ? `${newWeek} new this week` : 'none new this week';
-      const n = { suite: 0, tools: 0, none: 0 }; ORGS.forEach(o => n[planOf(o)]++);
-      $('stat-orgs').textContent = ORGS.length;
+      const n = { suite: 0, tools: 0, none: 0 }; shownOrgs().forEach(o => n[planOf(o)]++);
+      $('stat-orgs').textContent = shownOrgs().length;
       $('stat-orgs-d').textContent = `${n.suite} full suite · ${n.tools} single tools`;
-      $('stat-logins').textContent = USERS.reduce((s, u) => s + (u.login_count || 0), 0).toLocaleString();
-      const activeWeek = USERS.filter(u => u.last_login && new Date(u.last_login) > week).length;
+      $('stat-logins').textContent = shownUsers().reduce((s, u) => s + (u.login_count || 0), 0).toLocaleString();
+      const activeWeek = shownUsers().filter(u => u.last_login && new Date(u.last_login) > week).length;
       $('stat-logins-d').textContent = `${activeWeek} ${activeWeek === 1 ? 'person' : 'people'} active this week`;
-      $('stat-claims').textContent = USERS.reduce((s, u) => s + (u.claims_submitted || 0), 0).toLocaleString();
+      $('stat-claims').textContent = shownUsers().reduce((s, u) => s + (u.claims_submitted || 0), 0).toLocaleString();
 
       // a clinic with several tools counts under each one
-      const counts = PLAN_KEYS.map(k => ({ label: PLANS[k].name, n: ORGS.filter(o => o.products.includes(k)).length }))
+      const counts = PLAN_KEYS.map(k => ({ label: PLANS[k].name, n: shownOrgs().filter(o => o.products.includes(k)).length }))
         .concat([{ label: 'No Access', n: n.none }]);
       const max = Math.max(1, ...counts.map(c => c.n));
       $('plan-mix').innerHTML = counts.map(c => `
@@ -267,7 +358,7 @@
           <div class="w-8 text-right text-[12px] font-semibold text-ink-900 num">${c.n}</div>
         </div>`).join('');
 
-      const recent = USERS.slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5);
+      const recent = shownUsers().slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5);
       $('recent').innerHTML = recent.length ? recent.map(u => `
         <div class="list-row">
           <div class="initials">${esc(initials(u.full_name || u.email))}</div>
@@ -276,8 +367,8 @@
           <div class="text-[11px] text-ink-500 whitespace-nowrap">${fmtRelative(u.created_at)}</div>
         </div>`).join('') : '<div class="px-4 py-8 text-center text-[12px] text-ink-500">No accounts yet.</div>';
 
-      const byEmail = {}; USERS.forEach(u => { byEmail[u.email] = u; });
-      const active = ORGS.map(o => ({ o, logins: o.users.reduce((s, e) => s + ((byEmail[e] || {}).login_count || 0), 0),
+      const byEmail = {}; shownUsers().forEach(u => { byEmail[u.email] = u; });
+      const active = shownOrgs().map(o => ({ o, logins: o.users.reduce((s, e) => s + ((byEmail[e] || {}).login_count || 0), 0),
           last: o.users.map(e => (byEmail[e] || {}).last_login).filter(Boolean).sort().pop() }))
         .sort((a, b) => b.logins - a.logins).slice(0, 5);
       $('active').innerHTML = active.length ? active.map(({ o, logins, last }) => `
@@ -311,10 +402,10 @@
     }
     function renderOrgs() {
       const f = $('org-filter').value;
-      const list = ORGS.filter(o => (f === 'all' || planOf(o) === f) && matches(o.name + ' ' + o.users.join(' ')));
+      const list = shownOrgs().filter(o => (f === 'all' || planOf(o) === f) && matches(o.name + ' ' + o.users.join(' ')));
       $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(7, 'No organizations match.');
-      $('org-count').textContent = `${list.length} of ${ORGS.length}`;
-      $('n-orgs').textContent = ORGS.length || '';
+      $('org-count').textContent = `${list.length} of ${shownOrgs().length}`;
+      $('n-orgs').textContent = shownOrgs().length || '';
     }
     $('org-filter').addEventListener('change', renderOrgs);
     $('org-rows').addEventListener('click', async e => {
@@ -340,10 +431,10 @@
 
     // ---- Accounts ----
     function renderAccounts() {
-      const orgs = {}; ORGS.forEach(o => o.users.forEach(e => { orgs[e] = o; }));
-      const list = USERS.filter(u => matches([u.email, u.full_name, u.organization].join(' ')));
-      $('n-accounts').textContent = USERS.length || '';
-      $('acct-count').textContent = `${list.length} of ${USERS.length}`;
+      const orgs = {}; shownOrgs().forEach(o => o.users.forEach(e => { orgs[e] = o; }));
+      const list = shownUsers().filter(u => matches([u.email, u.full_name, u.organization].join(' ')));
+      $('n-accounts').textContent = shownUsers().length || '';
+      $('acct-count').textContent = `${list.length} of ${shownUsers().length}`;
       $('rows').innerHTML = list.length ? list.map(u => `
         <tr class="row-hover">
           <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(u.full_name || u.email))}</div><div class="min-w-0">
@@ -353,7 +444,7 @@
           <td class="td"><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products) : '—'}</div></td>
           <td class="td td-num text-right">${u.login_count}</td>
           <td class="td td-num text-right">${u.claims_submitted}</td>
-          <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}</td>
+          <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}${inactive(u) ? ' ' + pill('Inactive', 'muted') : ''}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtDate(u.created_at)}</td>
           <td class="td text-right"><button type="button" data-del="${u.id}" class="text-[11px] font-semibold text-ink-400 hover:text-risk-600">Delete</button></td>
         </tr>`).join('') : empty(8, 'No accounts match.');
@@ -370,7 +461,7 @@
     // ---- Plans ----
     function renderPlans() {
       $('plan-cards').innerHTML = PLAN_KEYS.map(k => {
-        const p = PLANS[k], n = ORGS.filter(o => o.products.includes(k)).length;
+        const p = PLANS[k], n = shownOrgs().filter(o => o.products.includes(k)).length;
         return `<div class="bg-panel border border-line rounded-sm flex flex-col">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-2">
             <h3 class="text-[13px] font-semibold text-ink-900">${p.name}</h3>${pill(n + (n === 1 ? ' clinic' : ' clinics'), n ? 'brand' : 'muted')}
@@ -386,13 +477,37 @@
       }).join('');
     }
 
+    // ---- Settings ----
+    function renderSettings() {
+      document.querySelectorAll('[data-aset]').forEach(el => {
+        const v = ASET[el.dataset.aset];
+        if (el.classList.contains('toggle')) { el.classList.toggle('on', !!v); el.setAttribute('aria-checked', String(!!v)); }
+        else el.value = String(v);
+      });
+    }
+    async function saveSetting(key, value) {
+      const res = await fetch('/api/admin/settings', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [key]: value }) });
+      if (res.status === 401) { location.href = '/admin/login'; return; }
+      if (!res.ok) { toast('Could not save the setting.', 'error'); renderSettings(); return; }
+      ASET = await res.json(); renderSettings(); renderAll(); toast('Saved');
+    }
+    document.querySelectorAll('[data-aset]').forEach(el => {
+      if (el.classList.contains('toggle')) el.addEventListener('click', () => saveSetting(el.dataset.aset, !el.classList.contains('on')));
+      else el.addEventListener('change', () => saveSetting(el.dataset.aset, 'num' in el.dataset ? Number(el.value) : el.value));
+    });
+    document.querySelectorAll('[data-stab]').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('[data-stab]').forEach(x => x.classList.toggle('active', x === t));
+      document.querySelectorAll('[data-spanel]').forEach(p => p.classList.toggle('hidden', p.dataset.spanel !== t.dataset.stab));
+    }));
+
     function renderAll() { renderOverview(); renderOrgs(); renderAccounts(); renderPlans(); }
 
     async function load() {
       try {
-        const [ru, ro] = await Promise.all([fetch('/api/admin/users', { credentials: 'same-origin' }), fetch('/api/admin/orgs', { credentials: 'same-origin' })]);
+        const [ru, ro, rs] = await Promise.all(['/api/admin/users', '/api/admin/orgs', '/api/admin/settings'].map(u => fetch(u, { credentials: 'same-origin' })));
         if (ru.status === 401 || ro.status === 401) { location.href = '/admin/login'; return; }
         USERS = await ru.json(); ORGS = await ro.json();
+        if (rs.ok) { ASET = await rs.json(); renderSettings(); }
         renderAll();
       } catch {
         $('org-rows').innerHTML = empty(7, 'Could not load. Try Refresh.'); $('rows').innerHTML = empty(8, 'Could not load. Try Refresh.');

@@ -1291,6 +1291,9 @@
         #settings-view .s-tab { margin-bottom: 1px; border-left: 3px solid transparent; border-radius: 0 6px 6px 0; }
         #settings-view .s-content { flex: 1; min-width: 0; padding: 28px 40px 48px; overflow-x: hidden; }
         #settings-view .s-content > section { max-width: 940px; }
+        /* a tool's own settings are a short list of rows: keep each label near its control */
+        #settings-view .s-content > section[data-section$="_prefs"] { max-width: 720px; }
+        #settings-view .s-content > section[data-section$="_prefs"] .s-divider { margin: 18px 0; }
         #settings-view .s-card { background: #fff; box-shadow: 0 1px 2px rgba(15,17,22,.04); }
         #settings-view .s-back { font-size: 12px; font-weight: 600; color: #6b7280; background: none; border: 0; padding: 0; margin-bottom: 4px; cursor: pointer; }
         #settings-view .s-back:hover { color: var(--brand-text); }
@@ -1308,13 +1311,13 @@
 
       <!-- Settings header -->
       <div class="s-grid-bg border-b" style="border-color:#e4e6eb; padding: 18px 28px;">
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <button type="button" id="settings-back" class="s-back">← Back</button>
             <h1 class="s-section-title" style="font-size: 22px;">Settings</h1>
             <p class="s-section-sub" style="margin-top:2px;">Your practice, team, billing and preferences.</p>
           </div>
-          <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-2.5 flex-wrap">
             <label class="s-search-wrap">
               <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
               <input id="settings-search" type="search" class="s-search" placeholder="Search settings…" style="width: 220px;" aria-label="Search settings" />
@@ -1348,6 +1351,7 @@
         <!-- Settings sidebar -->
         <aside class="s-nav">
           <div class="s-group">Your Tools</div>
+          <div class="s-tab" data-settings-tab="emr_prefs"><span>EMR</span></div>
           <div class="s-tab" data-settings-tab="scribe_prefs"><span>Scribe</span></div>
           <div class="s-tab" data-settings-tab="coding_prefs"><span>Coding</span></div>
           <div class="s-tab" data-settings-tab="insurance_prefs"><span>Insurance</span></div>
@@ -1375,7 +1379,7 @@
           (function () {
             const products = (window.__ALTHAIS_USER__ || {}).products || ['suite'];
             const suite = products.includes('suite');
-            const FOR = { scribe_prefs: ['scribe'], coding_prefs: ['coding'], insurance_prefs: ['insurance'], team_prefs: ['staff'],
+            const FOR = { emr_prefs: [], scribe_prefs: ['scribe'], coding_prefs: ['coding'], insurance_prefs: ['insurance'], team_prefs: ['staff'],
                           billing: ['coding', 'insurance'], integrations: ['insurance'], ai: [], notifications: [], comms: [], analytics: [], api: [] };
             const nav = document.currentScript.previousElementSibling;
             if (!suite) nav.querySelectorAll('[data-settings-tab]').forEach(t => {
@@ -1393,6 +1397,8 @@
               const names = { scribe: 'Scribe', coding: 'Coding', insurance: 'Insurance', staff: 'Team' };
               const mine = products.map(p => names[p]).filter(Boolean);
               const sub = document.querySelector('#settings-view .s-section-sub');
+              // the practice and provider pickers belong to the EMR
+              ['settings-practice-select', 'settings-doc-dropdown'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
               if (sub && mine.length) sub.textContent = 'Settings for Althais ' + mine.join(', ') + ' and your practice.';
             }
             document.addEventListener('DOMContentLoaded', () => {
@@ -1409,6 +1415,21 @@
         <div class="s-content">
 
           <!-- ========== PRACTICE ========== -->
+          <!-- ========== EMR (tool settings, full suite) ========== -->
+          <section data-section="emr_prefs" class="hidden">
+            <div>
+              <h2 class="s-section-title">EMR</h2>
+              <p class="s-section-sub">Patients and the schedule. Saved for everyone in the practice.</p>
+            </div>
+            <div class="s-divider"></div>
+            <div class="s-card" style="padding:0 22px;">
+              <div class="s-row"><div><div class="s-row-label">Default Appointment Time</div><div class="s-row-sub">Where a new booking starts</div></div><select class="s-input" style="width:200px;" data-setting="default_appt_time"><option value="07:00">7:00 AM</option><option value="08:00">8:00 AM</option><option value="09:00" selected>9:00 AM</option><option value="10:00">10:00 AM</option><option value="13:00">1:00 PM</option></select></div>
+              <div class="s-row"><div><div class="s-row-label">Default Appointment Type</div><div class="s-row-sub">What a new booking starts as</div></div><select class="s-input" style="width:200px;" data-setting="default_appt_type"><option selected>Office Visit</option><option>Follow-up</option><option>New Patient</option><option>Telehealth</option><option>Procedure</option><option>Annual Wellness</option></select></div>
+              <div class="s-row"><div><div class="s-row-label">Open On My Schedule</div><div class="s-row-sub">Providers see their own appointments first instead of everyone’s</div></div><div class="toggle on" data-setting="my_schedule_first"></div></div>
+              <div class="s-row"><div><div class="s-row-label">Hide Cancelled Appointments</div><div class="s-row-sub">Leave cancelled visits out of the day’s list</div></div><div class="toggle" data-setting="hide_cancelled"></div></div>
+            </div>
+          </section>
+
           <!-- ========== SCRIBE (tool settings) ========== -->
           <section data-section="scribe_prefs" class="hidden">
             <div>
@@ -3802,7 +3823,7 @@
       // lazily loaded the first time its tab is opened, and any tracked
       // control auto-saves (debounced) on change.
       (function orgSettingsSync() {
-        const SYNCED_CATEGORIES = ['ai', 'billing', 'comms', 'security', 'scribe_prefs', 'coding_prefs', 'insurance_prefs', 'team_prefs'];
+        const SYNCED_CATEGORIES = ['ai', 'billing', 'comms', 'security', 'emr_prefs', 'scribe_prefs', 'coding_prefs', 'insurance_prefs', 'team_prefs'];
         const loadedOnce = new Set();
 
         function collectSection(category) {

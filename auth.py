@@ -400,6 +400,9 @@ def register(
     db: Session = Depends(get_db),
 ):
     email = (email or "").strip().lower()
+    prefs = admin_settings(db)   # Althais admin console > Settings
+    if not prefs["signups_open"]:
+        return JSONResponse({"error": "New sign-ups are paused right now. Contact Althais to get access."}, status_code=403)
     if not email or "@" not in email:
         return JSONResponse({"error": "Enter a valid email address."}, status_code=400)
     if len(password) < 8:
@@ -407,16 +410,25 @@ def register(
     if db.scalar(select(User).where(User.email == email)):
         return JSONResponse({"error": "An account with that email already exists."}, status_code=400)
 
+    org = organization.strip()
+    new_clinic = not org or not db.scalar(select(User).where(User.organization == org))
     user = User(
         email=email,
         password_hash=hash_password(password),
         full_name=full_name.strip(),
-        organization=organization.strip(),
+        organization=org,
         email_verified=0,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # A brand-new clinic starts on the plan chosen in the admin console (joining an existing clinic keeps its plan)
+    if new_clinic and prefs["new_clinic_plan"] != "suite":
+        plan = [] if prefs["new_clinic_plan"] == "none" else [prefs["new_clinic_plan"]]
+        db.add(OrgSettings(org_key=_doc_org_key(user), category=ENTITLEMENTS_CATEGORY,
+                           data=_json.dumps({"rev": 0, "products": plan, "updatedAt": dt.datetime.now(timezone.utc).isoformat()})))
+        db.commit()
 
     # Send verification email
     token = secrets.token_urlsafe(48)
@@ -663,7 +675,7 @@ import json as _json
 
 # Kept by their own endpoints (and the admin console), never through the generic settings API:
 # otherwise a clinic could write its own plan, or skip the admins-only rule on staff and branding.
-_RESERVED_SETTINGS = {"entitlements", "staff", "tasks", "branding"}
+_RESERVED_SETTINGS = {"entitlements", "staff", "tasks", "branding", "admin_prefs"}
 TOOL_PRODUCTS = ("scribe", "coding", "insurance", "staff")   # every single tool (Settings comes with each one)
 
 
@@ -983,9 +995,9 @@ ADMIN_COOKIE   = "althais_admin_session"
 ADMIN_TOKEN_TTL_HOURS = 8
 
 
-def create_admin_token() -> str:
+def create_admin_token(hours: int = ADMIN_TOKEN_TTL_HOURS) -> str:
     now = dt.datetime.now(timezone.utc)
-    payload = {"sub": "admin", "iat": now, "exp": now + timedelta(hours=ADMIN_TOKEN_TTL_HOURS)}
+    payload = {"sub": "admin", "iat": now, "exp": now + timedelta(hours=hours)}
     return jwt.encode(payload, SECRET_KEY + "_admin", algorithm="HS256")
 
 
@@ -1012,16 +1024,17 @@ def require_admin(request: Request):
 
 
 @router.post("/admin/login")
-def admin_login(username: str = Form(...), password: str = Form(...)):
+def admin_login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     if not ADMIN_PASSWORD:
         return JSONResponse({"error": "Admin not configured."}, status_code=503)
     if username != ADMIN_USERNAME or password != ADMIN_PASSWORD:
         return JSONResponse({"error": "Invalid admin credentials."}, status_code=401)
+    hours = admin_settings(db)["session_hours"]   # admin console > Settings
     resp = JSONResponse({"ok": True, "redirect": "/admin"})
     resp.set_cookie(
-        key=ADMIN_COOKIE, value=create_admin_token(),
+        key=ADMIN_COOKIE, value=create_admin_token(hours),
         httponly=True, samesite="lax", secure=COOKIE_SECURE,
-        max_age=ADMIN_TOKEN_TTL_HOURS * 3600, path="/"
+        max_age=hours * 3600, path="/"
     )
     return resp
 
@@ -1058,6 +1071,52 @@ def admin_delete_user(user_id: int, request: Request, db: Session = Depends(get_
     db.delete(user)
     db.commit()
     return {"ok": True}
+
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Admin console settings (the Althais team's own, not any clinic's). Kept under
+#  a key no organization can have and never served by the clinic settings API.
+# ──────────────────────────────────────────────────────────────────────────
+ADMIN_SETTINGS_KEY = "__althais_admin__"
+ADMIN_DEFAULTS = {
+    "signups_open": True,          # new accounts can register
+    "new_clinic_plan": "suite",    # plan a brand-new clinic starts on ("none" = no access until switched on)
+    "session_hours": 8,            # how long an admin sign-in lasts
+    "hide_test_accounts": False,   # admin page display only
+    "inactive_after_days": 30,     # admin page display only
+}
+
+
+def admin_settings(db: Session) -> dict:
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == ADMIN_SETTINGS_KEY, OrgSettings.category == "admin_prefs"))
+    try:
+        saved = _json.loads(row.data) if row else {}
+    except Exception:
+        saved = {}
+    return {**ADMIN_DEFAULTS, **{k: v for k, v in saved.items() if k in ADMIN_DEFAULTS}}
+
+
+@router.get("/api/admin/settings")
+def get_admin_settings(db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    return admin_settings(db)
+
+
+@router.put("/api/admin/settings")
+async def put_admin_settings(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    body = await request.json()
+    cur = admin_settings(db)
+    if "signups_open" in body: cur["signups_open"] = bool(body["signups_open"])
+    if "hide_test_accounts" in body: cur["hide_test_accounts"] = bool(body["hide_test_accounts"])
+    if body.get("new_clinic_plan") in PRODUCTS + ("none",): cur["new_clinic_plan"] = body["new_clinic_plan"]
+    if body.get("session_hours") in (1, 4, 8, 12, 24): cur["session_hours"] = body["session_hours"]
+    if body.get("inactive_after_days") in (14, 30, 60, 90): cur["inactive_after_days"] = body["inactive_after_days"]
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == ADMIN_SETTINGS_KEY, OrgSettings.category == "admin_prefs"))
+    if row:
+        row.data = _json.dumps(cur)
+    else:
+        db.add(OrgSettings(org_key=ADMIN_SETTINGS_KEY, category="admin_prefs", data=_json.dumps(cur)))
+    db.commit()
+    return cur
 
 
 @router.get("/api/admin/orgs")
