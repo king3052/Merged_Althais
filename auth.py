@@ -189,6 +189,25 @@ class OrgSettings(Base):
     __table_args__ = (UniqueConstraint("org_key", "category", name="uq_org_settings_org_category"),)
 
 
+class AdminAuditLog(Base):
+    """
+    A record of consequential actions taken from the Althais admin console —
+    changing a clinic's plan, toggling Althea/Manager, deleting an account,
+    changing admin console settings. Nothing here governs behavior; it's
+    purely a record so "who changed X and when" has an answer, since this
+    console can delete accounts and cut off a clinic's product access.
+    """
+    __tablename__ = "admin_audit_log"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    actor_email: Mapped[str] = mapped_column(String(255), default="")
+    action: Mapped[str] = mapped_column(String(64), index=True)   # e.g. "org_products_changed", "account_deleted"
+    target: Mapped[str] = mapped_column(String(255), default="")  # org_key, user email, or setting name
+    detail: Mapped[str] = mapped_column(Text, default="")         # short human-readable description
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime, default=lambda: dt.datetime.now(timezone.utc), index=True
+    )
+
+
 Base.metadata.create_all(engine)
 
 # create_all() only creates tables that don't exist yet — it does NOT add
@@ -296,6 +315,61 @@ def _set_session_cookie(resp: JSONResponse, user_id: int) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────
+#  Admin "View As" impersonation
+#
+#  Design goal: reuse the exact same session cookie and decode path every
+#  normal login already uses (COOKIE_NAME, decode_token, current_user,
+#  require_user, require_biller, ...) so impersonation needs ZERO changes
+#  to any of the many routes and dependencies that already check who's
+#  logged in — an impersonation session just *is* a normal, valid session
+#  for the target user, with two differences: it expires in minutes
+#  instead of hours (enforced by the JWT's own `exp` claim, not just the
+#  cookie's max_age, so it can't accidentally outlive its window), and it
+#  carries an extra `imp`/`by` claim that normal token consumers ignore
+#  but the banner helper below reads to show who's impersonating and when
+#  it ends.
+# ──────────────────────────────────────────────────────────────────────────
+IMPERSONATION_MINUTES = 30
+
+def create_impersonation_token(user_id: int, admin_username: str, minutes: int = IMPERSONATION_MINUTES) -> str:
+    now = dt.datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id), "iat": now, "exp": now + timedelta(minutes=minutes),
+        "imp": True, "by": admin_username,
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+
+
+def _set_impersonation_cookie(resp, user_id: int, admin_username: str, minutes: int = IMPERSONATION_MINUTES) -> None:
+    resp.set_cookie(
+        key=COOKIE_NAME,   # same cookie the app already reads — see design note above
+        value=create_impersonation_token(user_id, admin_username, minutes),
+        httponly=True, samesite="lax", secure=COOKIE_SECURE,
+        max_age=minutes * 60,
+        path="/",
+    )
+
+
+def impersonation_info(request: Request):
+    """
+    Jinja global (registered on the template environment in main.py) —
+    returns {"by": admin_username, "expires_at": iso string} if the
+    current session cookie is an impersonation session, else None. Used
+    to show a persistent, unmissable banner on every page while active;
+    the banner is the only place this matters, so failing safe (treating
+    a bad/expired token as "not impersonating") is the right default.
+    """
+    token = request.cookies.get(COOKIE_NAME)
+    if not token:
+        return None
+    data = decode_token(token)
+    if not data or not data.get("imp"):
+        return None
+    exp = data.get("exp")
+    expires_at = dt.datetime.fromtimestamp(exp, tz=timezone.utc).isoformat() if exp else None
+    return {"by": data.get("by", "an admin"), "expires_at": expires_at}
+
+
 #  Dependencies
 # ──────────────────────────────────────────────────────────────────────────
 def current_user(request: Request, db: Session = Depends(get_db)):
@@ -986,6 +1060,7 @@ def _can_edit_doc(user: User, admin_only: bool) -> bool:
 # ──────────────────────────────────────────────────────────────────────────
 PRODUCTS = ("suite", "scribe", "coding", "insurance", "staff")
 ENTITLEMENTS_CATEGORY = "entitlements"
+BILLING_INFO_CATEGORY = "billing_info"   # admin-entered contract value per org — separate from entitlements
 
 
 # Pages and features a clinic's manager can switch off for one person: key -> (label, the tool it belongs to, pages).
@@ -1270,6 +1345,26 @@ def resend_verification(user: User = Depends(require_user), db: Session = Depend
 #  so there's no user account to compromise.
 # ──────────────────────────────────────────────────────────────────────────
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+
+def log_admin_action(db: Session, action: str, target: str = "", detail: str = ""):
+    """
+    Record a consequential admin-console action. Best-effort: a logging
+    failure should never block the actual action, so this swallows its
+    own errors rather than raising.
+
+    Note: the admin console currently has a single shared login
+    (ADMIN_USERNAME from the environment), not per-person accounts, so
+    every entry is attributed to that shared identity — this answers
+    "what changed and when," not yet "which of the founders did it."
+    Worth splitting into separate admin logins later if that distinction
+    starts to matter.
+    """
+    try:
+        db.add(AdminAuditLog(actor_email=ADMIN_USERNAME, action=action, target=target, detail=detail))
+        db.commit()
+    except Exception:
+        db.rollback()
+
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")   # must be set in production
 ADMIN_COOKIE   = "althais_admin_session"
 ADMIN_TOKEN_TTL_HOURS = 8
@@ -1326,6 +1421,48 @@ def admin_logout():
     return resp
 
 
+@router.post("/admin/impersonate/{user_id}")
+def admin_impersonate(user_id: int, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """
+    Start a time-limited "View As" session for one clinic member — for
+    support debugging, so a founder can see exactly what that person sees
+    without needing their password. Sets a real, ordinary session cookie
+    for that user (so every existing page and permission check behaves
+    normally), just short-lived and flagged so the banner shows. The
+    admin's own admin-console login (a separate cookie) is untouched, so
+    ending impersonation always lands back in a working admin session.
+    """
+    user = db.get(User, user_id)
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found")
+    if not bool(getattr(user, "active", 1)):
+        return JSONResponse({"error": "This account is paused — reactivate it first if you need to view as this person."}, status_code=400)
+    log_admin_action(db, "impersonation_started", target=user.email,
+                      detail=f"Viewing as {user.email} ({user.organization or 'no organization'}) for {IMPERSONATION_MINUTES} min")
+    resp = JSONResponse({"ok": True, "redirect": "/"})
+    _set_impersonation_cookie(resp, user.id, ADMIN_USERNAME)
+    return resp
+
+
+@router.post("/admin/end-impersonation")
+def admin_end_impersonation(request: Request, db: Session = Depends(get_db)):
+    """
+    End a "View As" session. No admin check here on purpose — if you're
+    impersonating, you're not carrying the admin cookie's privileges in
+    this request, just the target user's normal session, so this simply
+    clears that session and sends you back to admin sign-in. (The admin
+    console itself was never logged out — its cookie is separate — so in
+    practice this just needs one click to get back.)
+    """
+    info = impersonation_info(request)
+    if info:
+        log_admin_action(db, "impersonation_ended", target=info.get("by", ""), detail="Ended a View As session")
+    resp = JSONResponse({"ok": True, "redirect": "/admin"})
+    resp.delete_cookie(COOKIE_NAME, path="/")
+    return resp
+
+
 @router.get("/api/admin/users")
 def admin_users(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     """Return all users with stats for the admin dashboard."""
@@ -1350,9 +1487,34 @@ def admin_delete_user(user_id: int, request: Request, db: Session = Depends(get_
     if not user:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="User not found")
+    deleted_email, deleted_org = user.email, (user.organization or "no organization")
     db.delete(user)
     db.commit()
+    log_admin_action(db, "account_deleted", target=deleted_email, detail=f"Deleted account {deleted_email} ({deleted_org})")
     return {"ok": True}
+
+
+@router.put("/api/admin/users/{user_id}/active")
+async def admin_set_user_active(user_id: int, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """
+    Pause or reactivate an account without deleting it — a reversible
+    alternative to Delete. The Accounts table already displays a 'Paused'
+    status for `active == false`, but until now there was no way to
+    actually set it from the console; Delete (irreversible) was the only
+    real option.
+    """
+    body = await request.json()
+    if "active" not in body or not isinstance(body["active"], bool):
+        return JSONResponse({"error": "Send {\"active\": true or false}."}, status_code=400)
+    user = db.get(User, user_id)
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found")
+    user.active = 1 if body["active"] else 0
+    db.commit()
+    log_admin_action(db, "account_paused" if not body["active"] else "account_reactivated",
+                      target=user.email, detail=f"{'Paused' if not body['active'] else 'Reactivated'} {user.email} ({user.organization or 'no organization'})")
+    return {"ok": True, "active": bool(user.active)}
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -1417,7 +1579,85 @@ async def put_admin_settings(request: Request, db: Session = Depends(get_db), _:
     else:
         db.add(OrgSettings(org_key=ADMIN_SETTINGS_KEY, category="admin_prefs", data=_json.dumps(cur)))
     db.commit()
+    # Only the settings with real business consequence get logged — skip
+    # cosmetic ones (theme, brand color, compact rows) as noise.
+    if "signups_open" in body:
+        log_admin_action(db, "admin_setting_changed", target="signups_open",
+                          detail=f"New sign-ups {'opened' if cur['signups_open'] else 'closed'}")
+    if "new_clinic_plan" in body:
+        log_admin_action(db, "admin_setting_changed", target="new_clinic_plan",
+                          detail=f"Default plan for new clinics set to {cur['new_clinic_plan']}")
     return cur
+
+
+@router.get("/api/admin/audit-log")
+def admin_audit_log(db: Session = Depends(get_db), _: bool = Depends(require_admin), limit: int = 100):
+    """Most recent consequential admin actions, newest first."""
+    limit = max(1, min(limit, 500))
+    rows = db.scalars(
+        select(AdminAuditLog).order_by(AdminAuditLog.created_at.desc()).limit(limit)
+    ).all()
+    return [{
+        "id": r.id, "actor_email": r.actor_email, "action": r.action,
+        "target": r.target, "detail": r.detail,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    } for r in rows]
+
+
+def _csv_response(filename: str, header: list, rows: list) -> "StreamingResponse":
+    import csv, io
+    from fastapi.responses import StreamingResponse
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(header)
+    writer.writerows(rows)
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/api/admin/export/accounts.csv")
+def admin_export_accounts_csv(db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    users = db.scalars(select(User).order_by(User.created_at.desc())).all()
+    rows = [[
+        u.email, u.full_name or "", u.organization or "", u.role or "admin",
+        "yes" if bool(getattr(u, "active", 1)) else "no",
+        u.login_count or 0, u.claims_submitted or 0,
+        u.last_login.isoformat() if u.last_login else "",
+        u.created_at.isoformat() if u.created_at else "",
+    ] for u in users]
+    return _csv_response(
+        "althais_accounts.csv",
+        ["email", "full_name", "organization", "role", "active", "login_count", "claims_submitted", "last_login", "created_at"],
+        rows,
+    )
+
+
+@router.get("/api/admin/export/orgs.csv")
+def admin_export_orgs_csv(db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    orgs = {}
+    for u in db.scalars(select(User).order_by(User.created_at)).all():
+        key = _doc_org_key(u)
+        o = orgs.setdefault(key, {"org_key": key, "name": (u.organization or "").strip() or f"{u.email} (no organization)", "users": [], "sample": u})
+        o["users"].append(u.email)
+    rows = []
+    for o in orgs.values():
+        products = sorted(clinic_products(o["sample"], db))
+        rows.append([
+            o["org_key"], o["name"], len(o["users"]), ", ".join(o["users"]),
+            "suite" if "suite" in products else ", ".join(products) or "none",
+            "yes" if org_althea(o["sample"], db) else "no",
+            "yes" if org_manager(o["sample"], db) else "no",
+        ])
+    rows.sort(key=lambda r: r[1].lower())
+    return _csv_response(
+        "althais_organizations.csv",
+        ["org_key", "name", "user_count", "users", "products", "althea", "manager"],
+        rows,
+    )
 
 
 @router.get("/api/branding/palette")
@@ -1463,9 +1703,44 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
     out = []
     for o in orgs.values():
         row, _doc = _load_doc(o["sample"], db, ENTITLEMENTS_CATEGORY)
+        billing_row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == o["org_key"], OrgSettings.category == BILLING_INFO_CATEGORY))
+        mrr = 0
+        if billing_row:
+            try:
+                mrr = float(_json.loads(billing_row.data or "{}").get("mrr") or 0)
+            except Exception:
+                mrr = 0
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
-                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "custom": bool(row)})
+                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "custom": bool(row),
+                    "mrr": mrr})
     return sorted(out, key=lambda o: o["name"].lower())
+
+
+@router.put("/api/admin/orgs/mrr")
+async def admin_set_org_mrr(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """
+    Record the actual signed contract value for a clinic, in dollars per
+    month — entered by an admin, not computed or guessed. Nothing in the
+    product tracks real billing yet, so this is deliberately just a number
+    you type in after a deal closes, kept separate from entitlements so
+    changing a clinic's plan never silently touches its contract value.
+    """
+    body = await request.json()
+    key = str(body.get("org_key") or "")
+    try:
+        mrr = float(body.get("mrr") or 0)
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "mrr must be a number."}, status_code=400)
+    if not key or mrr < 0:
+        return JSONResponse({"error": "Send an org_key and a non-negative mrr."}, status_code=400)
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == key, OrgSettings.category == BILLING_INFO_CATEGORY))
+    if row:
+        row.data = _json.dumps({"mrr": mrr})
+    else:
+        db.add(OrgSettings(org_key=key, category=BILLING_INFO_CATEGORY, data=_json.dumps({"mrr": mrr})))
+    db.commit()
+    log_admin_action(db, "org_mrr_changed", target=key, detail=f"{key}: MRR set to ${mrr:,.2f}")
+    return {"ok": True, "org_key": key, "mrr": mrr}
 
 
 @router.post("/api/admin/orgs/products")
@@ -1496,6 +1771,10 @@ async def admin_set_org_products(request: Request, db: Session = Depends(get_db)
     else:
         db.add(OrgSettings(org_key=key, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(data)))
     db.commit()
+    plan_desc = "the full suite" if "suite" in chosen else (", ".join(chosen) if chosen else "no access")
+    log_admin_action(db, "org_products_changed", target=key,
+                      detail=f"{key}: {plan_desc}" + (f", Althea {'on' if data.get('althea') else 'off'}" if althea is not None else "")
+                              + (f", Manager {'on' if data.get('manager') else 'off'}" if manager is not None else ""))
     return {"ok": True, "org_key": key, "products": chosen, "althea": data.get("althea", "suite" in chosen), "manager": data.get("manager", True)}
 
 # ──────────────────────────────────────────────────────────────────────────

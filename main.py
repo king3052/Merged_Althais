@@ -43,7 +43,13 @@ from auth import (
     current_admin, require_biller, require_admin_role,
     get_db, Base, engine, _org_namespace, OrgPatient, OrgClaim,
     SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea, org_manager, ensure_area, area_for_path, member_blocked, AREAS,
+    impersonation_info,
 )
+# Exposes impersonation_info(request) to every template (via _head.html /
+# _nav.html) without touching the dozens of page routes that render them —
+# Jinja2Templates already puts `request` in every template's context, so
+# `{% if impersonation_info(request) %}` just works anywhere.
+templates.env.globals["impersonation_info"] = impersonation_info
 from sqlalchemy.orm import Session
 from sqlalchemy import select as sa_select
 import datetime as dt
@@ -878,7 +884,9 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
     if not cid:
         return JSONResponse({"error": "claim id required"}, status_code=400)
     row = db.scalar(sa_select(OrgClaim).where(OrgClaim.org_key == org, OrgClaim.claim_id == cid))
+    new_status = body.get("status")
     if row:
+        just_submitted = new_status == "Submitted" and row.status != "Submitted"
         row.patient_name  = body.get("patientName", row.patient_name)
         row.mrn           = body.get("mrn", row.mrn)
         row.payer         = body.get("payer", row.payer)
@@ -890,6 +898,7 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
         row.flags         = json.dumps(body.get("flags", json.loads(row.flags or "[]")))
         row.appeal_letter = body.get("appealLetter", row.appeal_letter)
     else:
+        just_submitted = new_status == "Submitted"
         created_str = body.get("createdAt", "")
         try:
             created = dt.datetime.fromisoformat(created_str.replace("Z", "+00:00")) if created_str else dt.datetime.now(timezone.utc)
@@ -904,6 +913,11 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
             flags=json.dumps(body.get("flags", [])),
             appeal_letter=body.get("appealLetter", ""), created_at=created,
         ))
+    # Track submissions on the user who actually submitted it — powers the
+    # "Claims" stat on the admin Overview page, which was previously a
+    # column that existed but nothing ever wrote to (always showed 0).
+    if just_submitted:
+        user.claims_submitted = (user.claims_submitted or 0) + 1
     db.commit()
     return {"ok": True}
 
