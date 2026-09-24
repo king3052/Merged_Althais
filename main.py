@@ -42,7 +42,7 @@ from auth import (
     router as auth_router, current_user, require_user, COOKIE_NAME,
     current_admin, require_biller, require_admin_role,
     get_db, Base, engine, _org_namespace, OrgPatient, OrgClaim,
-    SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea, org_manager,
+    SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea, org_manager, ensure_area, area_for_path, member_blocked, AREAS,
 )
 from sqlalchemy.orm import Session
 from sqlalchemy import select as sa_select
@@ -319,7 +319,7 @@ async def apple_touch_icon():
 async def root(request: Request, user=Depends(current_user)):
     # Logged-in users go straight to their plan's home (the Overview for the full suite), others see the landing page
     if user:
-        return RedirectResponse(url=_home_for(_user_products(user)), status_code=302)
+        return RedirectResponse(url=_home_for_user(user), status_code=302)
     with open("templates/landing.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
@@ -359,6 +359,9 @@ def _app_user_json(user) -> str:
         "products": sorted(_user_products(user)),
         "althea": _user_althea(user),   # Althea switched on for this clinic (/admin)
         "manager": _user_manager(user),  # the clinic's admins get Manager (/manager); switched in /admin
+        # pages and features this person's clinic manager switched off (Manager > employee), and their pages
+        "blocked": sorted(member_blocked(user)),
+        "blocked_pages": sorted({pg for a in member_blocked(user) for pg in AREAS[a][2]}),
     })
 
 
@@ -389,11 +392,31 @@ def _home_for(products: set) -> str:
 
 
 def _gate(request: Request, user):
-    """Redirect to the user's own home when their plan doesn't include this page, else None."""
+    """Redirect to the user's own home when their plan doesn't include this page, or their clinic's manager
+    switched it off for them, else None."""
     products = _user_products(user)
-    if has_product(products, *_page_tools(request.url.path)):
+    area = area_for_path(request.url.path)
+    if has_product(products, *_page_tools(request.url.path)) and area not in member_blocked(user):
         return None
-    return RedirectResponse(url=_home_for(products), status_code=302)
+    return RedirectResponse(url=_home_for_user(user, products), status_code=302)
+
+
+def _home_for_user(user, products=None) -> str:
+    """The plan's home, or the first page this person still has when their manager switched that off."""
+    products = products if products is not None else _user_products(user)
+    blocked = member_blocked(user)
+    home = _home_for(products)
+    if home == "/no-access" or area_for_path(home) not in blocked:
+        return home
+    for key, (_, tool, pages) in AREAS.items():
+        if key in blocked or not pages or tool == "*":
+            continue
+        if tool == "suite" and "suite" not in products:
+            continue
+        if tool not in ("suite", "*") and not has_product(products, tool):
+            continue
+        return pages[0]
+    return "/settings" if "settings" not in blocked else "/no-access"
 
 
 @app.get("/onboarding")
@@ -567,7 +590,7 @@ async def manager_page(request: Request, user=Depends(current_user)):
     if not getattr(user, "onboarding_complete", 1):
         return RedirectResponse(url="/onboarding", status_code=302)
     if (user.role or "admin") != "admin" or not _user_manager(user):
-        return RedirectResponse(url=_home_for(_user_products(user)), status_code=302)
+        return RedirectResponse(url=_home_for_user(user), status_code=302)
     return _gate(request, user) or templates.TemplateResponse(request, "manager.html", {"user": user, "user_json": _app_user_json(user)})
 
 
@@ -575,8 +598,8 @@ async def manager_page(request: Request, user=Depends(current_user)):
 async def no_access(request: Request, user=Depends(current_user)):
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    if _user_products(user):
-        return RedirectResponse(url=_home_for(_user_products(user)), status_code=302)
+    if _home_for_user(user) != "/no-access":   # they do have somewhere to go
+        return RedirectResponse(url=_home_for_user(user), status_code=302)
     return templates.TemplateResponse(request, "no_access.html", {"user": user, "user_json": _app_user_json(user)})
 
 
@@ -651,6 +674,7 @@ def _claim_dict(c: OrgClaim) -> dict:
 @app.get("/api/patients")
 def api_list_patients(user=Depends(require_user), db: Session = Depends(get_db)):
     ensure_product(user, db)   # full suite (the EMR)
+    ensure_area(user, "patients", "schedule")
     org = _org_namespace(user)
     rows = db.scalars(sa_select(OrgPatient).where(OrgPatient.org_key == org).order_by(OrgPatient.name)).all()
     return [_patient_dict(r) for r in rows]
@@ -659,6 +683,7 @@ def api_list_patients(user=Depends(require_user), db: Session = Depends(get_db))
 @app.post("/api/patients")
 async def api_save_patient(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db)   # full suite (the EMR)
+    ensure_area(user, "patients", "schedule")
     body = await request.json()
     org = _org_namespace(user)
     mrn = (body.get("mrn") or "").strip()
@@ -689,6 +714,7 @@ async def api_save_patient(request: Request, user=Depends(require_biller), db: S
 @app.post("/api/patients/bulk-sync")
 async def api_bulk_sync_patients(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db)   # full suite (the EMR)
+    ensure_area(user, "patients", "schedule")
     """
     Full mirror sync — the dashboard calls this every time its local patient
     list changes (add, edit, delete, any field). The org's server-side patient
@@ -755,6 +781,7 @@ async def api_import_patients(
     re-run just what failed.
     """
     ensure_product(user, db)   # full suite (the EMR)
+    ensure_area(user, "patients", "schedule")
     org = _org_namespace(user)
     filename = (file.filename or "").lower()
     raw = await file.read()
@@ -821,6 +848,7 @@ async def api_import_patients(
 @app.delete("/api/patients/{mrn}")
 def api_delete_patient(mrn: str, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db)   # full suite (the EMR)
+    ensure_area(user, "patients", "schedule")
     org = _org_namespace(user)
     row = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == org, OrgPatient.mrn == mrn))
     if row:
@@ -834,6 +862,7 @@ def api_delete_patient(mrn: str, user=Depends(require_biller), db: Session = Dep
 @app.get("/api/claims")
 def api_list_claims(user=Depends(require_user), db: Session = Depends(get_db)):
     ensure_product(user, db, "insurance")
+    ensure_area(user, "claims")
     org = _org_namespace(user)
     rows = db.scalars(sa_select(OrgClaim).where(OrgClaim.org_key == org).order_by(OrgClaim.created_at.desc())).all()
     return [_claim_dict(r) for r in rows]
@@ -842,6 +871,7 @@ def api_list_claims(user=Depends(require_user), db: Session = Depends(get_db)):
 @app.post("/api/claims")
 async def api_save_claim(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db, "insurance")
+    ensure_area(user, "claims")
     body = await request.json()
     org = _org_namespace(user)
     cid = (body.get("id") or body.get("claim_id") or "").strip()
@@ -881,6 +911,7 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
 @app.delete("/api/claims/{claim_id}")
 def api_delete_claim(claim_id: str, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db, "insurance")
+    ensure_area(user, "claims")
     org = _org_namespace(user)
     row = db.scalar(sa_select(OrgClaim).where(OrgClaim.org_key == org, OrgClaim.claim_id == claim_id))
     if row:
@@ -892,6 +923,7 @@ def api_delete_claim(claim_id: str, user=Depends(require_biller), db: Session = 
 @app.post("/api/code-note")
 async def code_note(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db, "coding")
+    ensure_area(user, "code_a_note")
     try:
         data = await request.json()
         # Defaults to ER/urgent care since that's the primary target segment,
@@ -1061,6 +1093,7 @@ Clinical note:
 @app.post("/api/validate-claim")
 async def validate_claim(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db, "coding", "insurance")
+    ensure_area(user, "code_a_note", "coding_review", "claims")
     try:
         data = await request.json()
         prompt = f"""You are a medical billing compliance expert reviewing a claim before submission.
@@ -1141,6 +1174,7 @@ Clinical note: {data.get('note', '')}"""
 @app.post("/api/appeal-letter")
 async def appeal_letter(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     ensure_product(user, db, "insurance")
+    ensure_area(user, "appeals")
     try:
         data = await request.json()
         prompt = f"""You are an expert medical billing specialist drafting a formal insurance claim appeal letter.
@@ -1412,6 +1446,7 @@ def _merge_scribe(parts: list) -> dict:
 @app.post("/api/althea/extract")
 def althea_extract(payload: dict, user=Depends(require_user), db: Session = Depends(get_db)):
     ensure_product(user, db, "scribe")
+    ensure_area(user, "scribe")
     target = payload.get("target") if isinstance(payload, dict) else None
     if target not in _EXTRACT_FIELDS:
         return JSONResponse({"error": "Nothing to fill in."}, status_code=400)
@@ -1490,6 +1525,7 @@ _TOOL_NAMES = {"scribe": "Scribe", "coding": "Coding", "insurance": "Insurance",
 @app.post("/api/althea")
 async def althea_command(request: Request, user=Depends(require_user), db: Session = Depends(get_db)):
     ensure_althea(user, db)   # switched on per clinic in /admin
+    ensure_area(user, "althea")
     """
     Althea — a voice/text command interpreter scoped ONLY to this product's
     own functions (reading the schedule, a claims summary, pulling up claims,

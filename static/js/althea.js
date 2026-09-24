@@ -17,6 +17,7 @@
   if (document.getElementById("althea-fab") || !window.AltheaUI) return;   /* the EMR page mounts its own */
   var me = window.__ALTHAIS_USER__ || {};
   if (!me.althea) return;                                                  /* switched on per clinic in /admin */
+  if ((me.blocked || []).indexOf("althea") !== -1) return;                 /* switched off for this person in Manager */
   /* which tool this page belongs to: each tool's Settings can hide Althea on its own pages */
   var path = location.pathname;
   var TOOL = path === "/scribe" ? "scribe" : path === "/coding" ? "coding" : /^\/revenue\//.test(path) ? "insurance"

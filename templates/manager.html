@@ -19,6 +19,13 @@
     .modal-overlay { background:rgba(15,17,22,.45); }
     .tool-opt { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid #e4e6eb; border-radius:2px; font-size:12.5px; color:#2c313b; cursor:pointer; }
     .tool-opt input { accent-color:var(--brand); }
+    .area-group { font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#8b909c; margin:10px 0 5px; }
+    .area-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+    .area-opt { display:flex; align-items:center; gap:7px; padding:5px 8px; border:1px solid #e4e6eb; border-radius:2px; font-size:12px; color:#2c313b; cursor:pointer; }
+    .area-opt input { accent-color:var(--brand); }
+    .area-opt.off { color:#8b909c; background:#fafbfc; text-decoration:line-through; }
+    html[data-theme-resolved="dark"] .area-opt { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .area-opt.off { color:#6b7280; }
     .role-card { background:#fff; border:1px solid #e4e6eb; border-radius:2px; }
     .can li { display:flex; gap:8px; font-size:12px; color:#2c313b; padding:2px 0; }
     .can li::before { content:''; width:4px; height:4px; background:var(--brand); margin-top:7px; flex-shrink:0; }
@@ -119,6 +126,11 @@
         <label class="tool-opt mb-1.5"><input type="checkbox" id="p-all-tools" checked /> <span><b class="font-semibold">Everything your clinic has</b></span></label>
         <div id="p-tools" class="grid grid-cols-2 gap-1.5"></div>
       </div>
+      <div id="p-areas-wrap">
+        <span class="lbl">Pages And Features</span>
+        <p class="text-[11.5px] text-ink-500 -mt-0.5 mb-2">Untick anything they shouldn’t use or see. It disappears from their menus and can’t be opened.</p>
+        <div id="p-areas"></div>
+      </div>
       <div id="p-error" class="hidden text-[12px] text-risk-600"></div>
       <div class="flex items-center justify-end gap-2 pt-2">
         <button id="p-cancel" type="button" class="btn">Cancel</button>
@@ -173,7 +185,8 @@
     const pill = (t, style) => `<span class="pill" style="${style}">${esc(t)}</span>`;
     // "Everything your clinic has" covers the full suite; the boxes narrow someone to single tools
     const toolOptions = () => DATA.products.includes('suite') ? ['scribe', 'coding', 'insurance', 'staff'] : DATA.products.filter(p => TOOL_NAMES[p] && p !== 'suite');
-    const toolsLabel = (m) => !m.tools.length ? '<span class="text-ink-500">All Tools</span>' : m.tools.map(t => pill(TOOL_NAMES[t] || t, 'background:var(--brand-100);color:var(--brand-text-strong)')).join(' ');
+    const toolsLabel = (m) => (!m.tools.length ? '<span class="text-ink-500">All Tools</span>' : m.tools.map(t => pill(TOOL_NAMES[t] || t, 'background:var(--brand-100);color:var(--brand-text-strong)')).join(' '))
+      + (m.blocked && m.blocked.length ? ' ' + pill(m.blocked.length + ' off', 'background:#fff0d6;color:#b86a00') : '');
 
     async function api(method, url, body) {
       const res = await fetch(url, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
@@ -240,7 +253,21 @@
       $('p-all-tools').checked = all;
       $('p-tools').innerHTML = opts.map(t => `<label class="tool-opt"><input type="checkbox" value="${t}" ${all || selected.includes(t) ? 'checked' : ''} ${all ? 'disabled' : ''}/> ${TOOL_NAMES[t]}</label>`).join('');
     }
-    $('p-all-tools').addEventListener('change', () => renderTools($('p-all-tools').checked ? [] : toolOptions().slice(0, 1)));
+    $('p-all-tools').addEventListener('change', () => { const b = pickedBlocked(); renderTools($('p-all-tools').checked ? [] : toolOptions().slice(0, 1)); renderAreas(b); });
+    // pages and features, for the tools this person has
+    const GROUP = { suite: 'Full Suite', scribe: 'Scribe', coding: 'Coding', insurance: 'Insurance', staff: 'Team', '*': 'Everywhere' };
+    function renderAreas(blocked) {
+      const clinic = DATA.products, suite = clinic.includes('suite');
+      const tools = pickedTools().length ? pickedTools() : (suite ? ['suite', 'scribe', 'coding', 'insurance', 'staff'] : clinic);
+      const has = (tool) => tool === '*' || (tool === 'suite' ? suite && !pickedTools().length : tools.includes(tool) || (suite && !pickedTools().length));
+      const areas = (DATA.areas || []).filter(a => has(a.tool) && (a.key !== 'althea' || DATA.althea));
+      const groups = [...new Set(areas.map(a => a.tool))];
+      $('p-areas').innerHTML = groups.map(g => `<div class="area-group">${GROUP[g] || g}</div><div class="area-grid">` + areas.filter(a => a.tool === g).map(a =>
+        `<label class="area-opt${blocked.includes(a.key) ? ' off' : ''}"><input type="checkbox" value="${a.key}" ${blocked.includes(a.key) ? '' : 'checked'}/> ${esc(a.label)}</label>`).join('') + '</div>').join('');
+    }
+    $('p-areas').addEventListener('change', e => { const l = e.target.closest('.area-opt'); if (l) l.classList.toggle('off', !e.target.checked); });
+    const pickedBlocked = () => [...$('p-areas').querySelectorAll('input:not(:checked)')].map(i => i.value);
+    $('p-tools').addEventListener('change', () => renderAreas(pickedBlocked()));
     const pickedTools = () => $('p-all-tools').checked ? [] : [...$('p-tools').querySelectorAll('input:checked')].map(i => i.value);
     function roleHelp() { const r = ROLES[$('p-role').value]; $('p-role-help').textContent = r ? r.name + ': ' + r.blurb : ''; }
     $('p-role').addEventListener('change', roleHelp);
@@ -257,6 +284,8 @@
       $('p-role').disabled = !!(m && m.is_me);
       renderTools(m ? m.tools : []);
       $('p-all-tools').disabled = !!(m && m.is_me);
+      renderAreas(m ? (m.blocked || []) : []);
+      $('p-areas-wrap').classList.toggle('hidden', !!(m && m.is_me));
       roleHelp();
       $('p-save').textContent = m ? 'Save Changes' : 'Send Invite';
       $('p-manage').classList.toggle('hidden', !m || m.is_me);
@@ -282,11 +311,11 @@
       try {
         if (editing) {
           const body = { full_name: $('p-name').value, provider_name: $('p-provider').value };
-          if (!editing.is_me) { body.role = $('p-role').value; body.tools = tools; }
+          if (!editing.is_me) { body.role = $('p-role').value; body.tools = tools; body.blocked = pickedBlocked(); }
           const d = await api('PATCH', '/api/clinic/members/' + editing.id, body);
           Object.assign(editing, d.member); closePanel(); render(); P.toast('Saved');
         } else {
-          const d = await api('POST', '/api/clinic/members', { email: $('p-email').value, full_name: $('p-name').value, role: $('p-role').value, provider_name: $('p-provider').value, tools });
+          const d = await api('POST', '/api/clinic/members', { email: $('p-email').value, full_name: $('p-name').value, role: $('p-role').value, provider_name: $('p-provider').value, tools, blocked: pickedBlocked() });
           DATA.members.push(d.member); closePanel(); render();
           if (d.temp_password) showPassword('Invite Created', `Email isn’t set up on this Althais, so send ${d.member.email} this temporary password yourself:`, d.temp_password);
           else P.toast('Invite sent to ' + d.member.email);

@@ -72,6 +72,19 @@
       if (p.startsWith('/staff/')) return 'staff';
       return null;
     }
+    // pages this person's clinic manager switched off: tabs skip them, or disappear when nothing is left
+    const blockedPages = u.blocked_pages || [], blocked = u.blocked || [];
+    const isBlocked = (href) => { const h = href.split('#')[0].split('?')[0]; return blockedPages.some(pg => h === pg || (pg !== '/emr' && h.startsWith(pg + '/'))); };
+    window.__ALTHAIS_IS_BLOCKED__ = isBlocked;
+    const PAGES_OF = {
+      overview: ['/overview', '/overview/tasks', '/overview/inbox', '/overview/analytics', '/overview/activity'],
+      emr: ['/emr/patients', '/emr/schedule', '/scribe', '/emr'],
+      revenue: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence', '/revenue/coding', '/coding'],
+      staff: ['/staff/team', '/staff/onboarding', '/staff/clinic-onboarding', '/staff/credentials', '/staff/compliance', '/staff/training', '/staff/roles'],
+      scribe: ['/scribe'], coding: ['/coding'],
+      insurance: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence'],
+    };
+    const firstOpen = (ws) => (PAGES_OF[ws] || []).find(pg => !isBlocked(pg));
     const active = workspaceFor(path);
     window.__ALTHAIS_WORKSPACE__ = active;
     window.__ALTHAIS_SUITE__ = suite;
@@ -83,6 +96,14 @@
       const settings = document.querySelector('header .settings-btn');   // every plan has Settings, trimmed to its tools
       if (settings && !mine.length) settings.style.display = 'none';
     }
+    if (blockedPages.length) document.querySelectorAll('.primary-tab').forEach(tab => {
+      if (!isBlocked(tab.getAttribute('href'))) return;
+      const next = firstOpen(tab.dataset.workspace);
+      if (next) tab.setAttribute('href', next); else tab.remove();
+    });
+    if (blocked.includes('settings')) { const st = document.querySelector('header .settings-btn'); if (st) st.style.display = 'none'; }
+    const home = document.getElementById('nav-home');
+    if (home && isBlocked(home.getAttribute('href'))) { const t = document.querySelector('.primary-tab'); home.href = t ? t.getAttribute('href') : '/settings'; }
     document.querySelectorAll('.primary-tab').forEach(tab => { if (tab.dataset.workspace === active) tab.classList.add('active'); });
     // the clinic's admins manage their employees on /manager
     const ca = document.getElementById('manager-btn');

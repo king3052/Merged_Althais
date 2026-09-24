@@ -216,7 +216,7 @@
           <div class="overflow-x-auto thin-scroll">
             <table class="w-full">
               <thead><tr class="table-head">
-                <th class="td text-left">Account</th><th class="td text-left">Organization</th><th class="td text-left">Plan</th><th class="td text-right">Logins</th><th class="td text-right">Claims</th><th class="td text-left">Last Login</th><th class="td text-left">Joined</th><th class="td"></th>
+                <th class="td text-left">Account</th><th class="td text-left">Organization</th><th class="td text-left">Role</th><th class="td text-left">Plan</th><th class="td text-right">Logins</th><th class="td text-right">Claims</th><th class="td text-left">Last Login</th><th class="td text-left">Joined</th><th class="td"></th>
               </tr></thead>
               <tbody id="rows"></tbody>
             </table>
@@ -299,6 +299,24 @@
       <div id="plan-cards" class="p-5 grid md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
     </section>
   </div>
+
+  <!-- =================== A CLINIC'S EMPLOYEES =================== -->
+  <div id="emp-backdrop" class="fixed inset-0 z-40 hidden" style="background:rgba(15,17,22,.45)"></div>
+  <aside id="emp-panel" class="fixed top-0 right-0 z-50 h-screen w-[560px] max-w-[96vw] bg-panel border-l border-line shadow-xl overflow-y-auto thin-scroll hidden" aria-label="Clinic employees">
+    <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
+      <div class="flex items-center gap-2.5"><div id="emp-initials" class="initials">—</div>
+        <div><div id="emp-title" class="text-[13.5px] font-semibold text-ink-900">Clinic</div><div id="emp-sub" class="text-[11px] text-ink-500"></div></div></div>
+      <button id="emp-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="p-4">
+      <div id="emp-plan" class="flex gap-1 flex-wrap mb-3"></div>
+      <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Managers</div>
+      <div id="emp-managers" class="bg-panel border border-line rounded-sm mb-4"></div>
+      <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Employees Under Them</div>
+      <div id="emp-list" class="bg-panel border border-line rounded-sm"></div>
+      <p class="text-[11.5px] text-ink-500 mt-3">The clinic’s managers (its Admins) set these in Manager. This view is read-only.</p>
+    </div>
+  </aside>
 
   <script>
     const $ = id => document.getElementById(id);
@@ -462,7 +480,7 @@
           aria-label="${esc(o.name)}: Manager" title="Manager: the clinic’s admins handle their own employees at /manager"></button></td>`;
       return `<tr class="row-hover">
         <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(o.name))}</div><div class="min-w-0">
-          <div class="font-semibold text-ink-900">${esc(o.name)}</div>
+          <button type="button" data-emp="${esc(o.org_key)}" class="font-semibold text-ink-900 hover:text-med-600 text-left" title="See this clinic’s employees">${esc(o.name)}</button>
           <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}</div></div></div></td>
         ${cells}
         <td class="td text-right whitespace-nowrap">
@@ -506,6 +524,36 @@
       toast(`Saved. ${o.name} now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}${o.althea ? ', with Althea' : ', without Althea'}${o.manager ? '' : ', and Manager off'}.`);
     });
 
+    // ---- A clinic's employees (read-only): its managers and the people under them ----
+    const ROLE_NAME = { admin: 'Manager', biller: 'Biller', provider: 'Provider', viewer: 'Viewer' };
+    async function openClinic(key) {
+      const o = ORGS.find(x => x.org_key === key); if (!o) return;
+      $('emp-title').textContent = o.name; $('emp-initials').textContent = initials(o.name);
+      $('emp-sub').textContent = 'Loading…'; $('emp-managers').innerHTML = ''; $('emp-list').innerHTML = '';
+      $('emp-plan').innerHTML = planLabel(o.products, o.althea) + ' ' + pill(o.manager ? 'Manager On' : 'Manager Off', o.manager ? 'brand' : 'warn');
+      $('emp-panel').classList.remove('hidden'); $('emp-backdrop').classList.remove('hidden');
+      const res = await fetch('/api/admin/org-members?org_key=' + encodeURIComponent(key), { credentials: 'same-origin' });
+      if (res.status === 401) { location.href = '/admin/login'; return; }
+      const d = await res.json();
+      const row = (m) => {
+        const status = !m.active ? pill('Paused', 'muted') : !m.last_login ? pill('Invited', 'warn') : pill('Active', 'brand');
+        const tools = m.tools.length ? m.tools.map(t => pill(PLANS[t] ? PLANS[t].name : t, 'muted')).join(' ') : '<span class="text-[11px] text-ink-500">All the clinic’s tools</span>';
+        const off = m.blocked.length ? `<div class="text-[11px] mt-1" style="color:#b86a00">Turned off: ${m.blocked.map(a => esc(d.areas[a] || a)).join(', ')}</div>` : '';
+        return `<div class="list-row" style="align-items:flex-start"><div class="initials">${esc(initials(m.full_name || m.email))}</div>
+          <div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><span class="text-[12.5px] font-semibold text-ink-900">${esc(m.full_name || m.email)}</span>${status}</div>
+            <div class="text-[11px] text-ink-500">${esc(m.email)} · ${ROLE_NAME[m.role] || m.role}${m.provider_name ? ' · ' + esc(m.provider_name) : ''} · last sign-in ${fmtRelative(m.last_login)}</div>
+            <div class="flex gap-1 flex-wrap mt-1">${tools}</div>${off}</div></div>`;
+      };
+      const managers = d.members.filter(m => m.role === 'admin'), others = d.members.filter(m => m.role !== 'admin');
+      $('emp-sub').textContent = `${d.members.length} ${d.members.length === 1 ? 'person' : 'people'} · ${managers.length} ${managers.length === 1 ? 'manager' : 'managers'}`;
+      $('emp-managers').innerHTML = managers.length ? managers.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No manager yet.</div>';
+      $('emp-list').innerHTML = others.length ? others.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No employees under them yet.</div>';
+    }
+    function closeClinic() { $('emp-panel').classList.add('hidden'); $('emp-backdrop').classList.add('hidden'); }
+    $('emp-close').addEventListener('click', closeClinic); $('emp-backdrop').addEventListener('click', closeClinic);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeClinic(); });
+    document.addEventListener('click', e => { const b = e.target.closest('[data-emp]'); if (b) openClinic(b.dataset.emp); });
+
     // ---- Accounts ----
     function renderAccounts() {
       const orgs = {}; shownOrgs().forEach(o => o.users.forEach(e => { orgs[e] = o; }));
@@ -517,14 +565,15 @@
           <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(u.full_name || u.email))}</div><div class="min-w-0">
             <div class="font-semibold text-ink-900">${esc(u.full_name || '—')}</div>
             <div class="text-[11px] text-ink-500 mono">${esc(u.email)}</div></div></div></td>
-          <td class="td text-ink-700">${esc(u.organization || '—')}</td>
+          <td class="td text-ink-700">${orgs[u.email] ? `<button type="button" data-emp="${esc(orgs[u.email].org_key)}" class="hover:text-med-600 text-left">${esc(u.organization || '—')}</button>` : esc(u.organization || '—')}</td>
+          <td class="td">${u.role === 'admin' ? pill('Manager', 'brand') : esc(ROLE_NAME[u.role] || u.role || '—')}${u.active === false ? ' ' + pill('Paused', 'muted') : ''}</td>
           <td class="td"><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products, orgs[u.email].althea) : '—'}</div></td>
           <td class="td td-num text-right">${u.login_count}</td>
           <td class="td td-num text-right">${u.claims_submitted}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}${inactive(u) ? ' ' + pill('Inactive', 'muted') : ''}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtDate(u.created_at)}</td>
           <td class="td text-right"><button type="button" data-del="${u.id}" class="text-[11px] font-semibold text-ink-400 hover:text-risk-600">Delete</button></td>
-        </tr>`).join('') : empty(8, 'No accounts match.');
+        </tr>`).join('') : empty(9, 'No accounts match.');
     }
     $('rows').addEventListener('click', async e => {
       const btn = e.target.closest('[data-del]'); if (!btn) return;

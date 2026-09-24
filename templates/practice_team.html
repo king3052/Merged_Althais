@@ -347,7 +347,7 @@
       const q = new URLSearchParams(location.search).get('person');
       if (q) openPanel(q);
       // Logins are visible to admins only; everyone else just sees "—".
-      fetch('/api/org/users', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(list => { if (Array.isArray(list)) { LOGINS = list; render(); } }).catch(() => {});
+      if (((window.__ALTHAIS_USER__ || {}).role || 'admin') === 'admin') fetch('/api/org/users', { credentials: 'same-origin' })   // only managers can see logins.then(r => r.ok ? r.json() : null).then(list => { if (Array.isArray(list)) { LOGINS = list; render(); } }).catch(() => {});
     }).catch(e => { $('team-count').textContent = e.message; });
   </script>
 </body>

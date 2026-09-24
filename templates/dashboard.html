@@ -311,7 +311,7 @@
        other page: static/js/althea-ui.js. The behaviour is below. -->
   <script src="/static/js/althea-ui.js"></script>
   <script src="/static/js/althea-revenue.js"></script>
-  <script>if ((window.__ALTHAIS_USER__ || {}).althea && window.__ALTHAIS_SUITE__ !== false) AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"] });</script>
+  <script>if ((window.__ALTHAIS_USER__ || {}).althea && ((window.__ALTHAIS_USER__ || {}).blocked || []).indexOf('althea') === -1 && window.__ALTHAIS_SUITE__ !== false) AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"] });</script>
   <script>
     // Settings > EMR can hide Althea on the EMR
     if (document.getElementById('althea-fab')) fetch('/api/org/settings/emr_prefs', { credentials: 'same-origin' })

@@ -84,6 +84,8 @@ class User(Base):
     # Althais tools this person may use, comma-separated ("" = all of them).
     active: Mapped[int] = mapped_column(Integer, default=1)
     tools: Mapped[str] = mapped_column(String(255), default="")
+    # Pages and features (AREAS keys, comma-separated) the clinic's manager switched off for this person.
+    blocked: Mapped[str] = mapped_column(String(1024), default="")
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
@@ -212,7 +214,8 @@ try:
 except Exception:
     pass  # column already exists
 
-for _ddl in ("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1", "ALTER TABLE users ADD COLUMN tools VARCHAR(255) DEFAULT ''"):
+for _ddl in ("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1", "ALTER TABLE users ADD COLUMN tools VARCHAR(255) DEFAULT ''",
+             "ALTER TABLE users ADD COLUMN blocked VARCHAR(1024) DEFAULT ''"):
     try:
         with engine.connect() as _conn:
             _conn.execute(text(_ddl))
@@ -710,7 +713,7 @@ def _require_clinic_admin(user: User, db: Session):
 def _member_json(u: User, me: User) -> dict:
     return {"id": u.id, "email": u.email, "full_name": u.full_name or "", "role": u.role or "admin",
             "provider_name": u.provider_name or "", "active": bool(getattr(u, "active", 1)),
-            "tools": sorted(member_tools(u)), "login_count": u.login_count or 0,
+            "tools": sorted(member_tools(u)), "blocked": sorted(member_blocked(u)), "login_count": u.login_count or 0,
             "last_login": u.last_login.isoformat() if u.last_login else None,
             "created_at": u.created_at.isoformat() if u.created_at else None,
             "invited": not u.last_login, "is_me": u.id == me.id}
@@ -749,6 +752,7 @@ def clinic_members(user: User = Depends(require_user), db: Session = Depends(get
     _require_clinic_admin(user, db)
     clinic = clinic_products(user, db)
     return {"clinic": user.organization or "", "products": sorted(clinic), "althea": org_althea(user, db),
+            "areas": [{"key": k, "label": v[0], "tool": v[1]} for k, v in AREAS.items()],
             "members": [_member_json(u, user) for u in _clinic_members(user, db)]}
 
 
@@ -769,7 +773,8 @@ async def clinic_invite(request: Request, user: User = Depends(require_user), db
     temp = secrets.token_urlsafe(9)
     new = User(email=email, password_hash=hash_password(temp), full_name=str(body.get("full_name") or "").strip(),
                organization=user.organization, role=role, provider_name=str(body.get("provider_name") or "").strip(),
-               tools=_clean_tools(body.get("tools"), clinic_products(user, db)), email_verified=0, active=1)
+               tools=_clean_tools(body.get("tools"), clinic_products(user, db)), email_verified=0, active=1,
+               blocked=",".join(sorted({a for a in (body.get("blocked") or []) if a in AREAS})))
     db.add(new); db.commit(); db.refresh(new)
     emailed = _temp_password_email(new, user, temp, invite=True)
     out = {"ok": True, "member": _member_json(new, user), "emailed": emailed}
@@ -807,6 +812,11 @@ async def clinic_update_member(member_id: int, request: Request, user: User = De
         if target.id == user.id and body["tools"]:
             return JSONResponse({"error": "You can’t limit your own tools."}, status_code=400)
         target.tools = _clean_tools(body["tools"], clinic_products(user, db))
+    if "blocked" in body:
+        if target.id == user.id and body["blocked"]:
+            return JSONResponse({"error": "You can’t switch things off for yourself."}, status_code=400)
+        raw = body["blocked"] if isinstance(body["blocked"], list) else []
+        target.blocked = ",".join(sorted({a for a in raw if a in AREAS}))
     db.commit()
     return {"ok": True, "member": _member_json(target, user)}
 
@@ -859,10 +869,12 @@ _RESERVED_SETTINGS = {"entitlements", "staff", "tasks", "branding", "admin_prefs
 TOOL_PRODUCTS = ("scribe", "coding", "insurance", "staff")   # every single tool (Settings comes with each one)
 
 
-def _settings_access(user, db, category: str) -> None:
+def _settings_access(user, db, category: str, write: bool = False) -> None:
     if category in _RESERVED_SETTINGS:
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="This setting can't be changed here.")
+    if write:
+        ensure_area(user, "settings")   # switched off: they can't change settings (pages still read how the clinic set things up)
     ensure_product(user, db, *TOOL_PRODUCTS)   # any plan
 
 
@@ -900,7 +912,7 @@ async def save_org_settings(
     the given category. Any role can save — admins-only writes (like fee
     schedule or scrubber rules) are enforced by the frontend hiding the
     controls from non-admins; this endpoint just persists what's sent."""
-    _settings_access(user, db, category)
+    _settings_access(user, db, category, write=True)
     try:
         body = await request.json()
     except Exception:
@@ -976,6 +988,52 @@ PRODUCTS = ("suite", "scribe", "coding", "insurance", "staff")
 ENTITLEMENTS_CATEGORY = "entitlements"
 
 
+# Pages and features a clinic's manager can switch off for one person: key -> (label, the tool it belongs to, pages).
+# Tool "suite" = full-suite only; "*" = every plan. main.py _gate and the API handlers enforce these.
+AREAS = {
+    "overview":           ("Overview", "suite", ["/overview"]),
+    "patients":           ("Patients & Charts", "suite", ["/emr/patients", "/emr/encounters", "/emr/charting", "/emr/second-brain", "/emr/documents", "/emr"]),
+    "schedule":           ("Schedule", "suite", ["/emr/schedule"]),
+    "scribe":             ("Write A Note", "scribe", ["/scribe"]),
+    "code_a_note":        ("Code A Note", "coding", ["/coding"]),
+    "coding_review":      ("Coding Review", "suite", ["/revenue/coding"]),
+    "claims":             ("Claims", "insurance", ["/revenue/claims"]),
+    "denials":            ("Denials", "insurance", ["/revenue/denials"]),
+    "appeals":            ("Appeals", "insurance", ["/revenue/appeals"]),
+    "payments":           ("Payments", "insurance", ["/revenue/payments"]),
+    "payer_intelligence": ("Payer Intelligence", "insurance", ["/revenue/payer-intelligence"]),
+    "team":               ("Team", "staff", ["/staff/team"]),
+    "onboarding":         ("Onboarding", "staff", ["/staff/onboarding"]),
+    "clinic_onboarding":  ("Clinic Onboarding", "staff", ["/staff/clinic-onboarding"]),
+    "credentials":        ("Credentials", "staff", ["/staff/credentials"]),
+    "compliance":         ("Compliance", "staff", ["/staff/compliance"]),
+    "training":           ("Training", "staff", ["/staff/training"]),
+    "roles":              ("Roles", "staff", ["/staff/roles"]),
+    "althea":             ("Althea", "*", []),
+    "settings":           ("Settings", "*", ["/settings"]),
+}
+
+
+def area_for_path(path: str):
+    path = path.rstrip("/") or "/"
+    for key, (_, _, pages) in AREAS.items():
+        for pg in pages:
+            if path == pg or (pg != "/emr" and path.startswith(pg + "/")):
+                return key
+    return None
+
+
+def member_blocked(user: User) -> set:
+    return {a for a in (getattr(user, "blocked", "") or "").split(",") if a in AREAS}
+
+
+def ensure_area(user: User, *areas: str) -> None:
+    """For API handlers: 403 when the clinic's manager switched off every one of these for this person."""
+    if areas and set(areas) <= member_blocked(user):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Your clinic’s manager has turned this off for you.")
+
+
 def member_tools(user: User) -> set:
     """The tools the clinic's admin limited this person to (empty = no limit)."""
     return {t for t in (getattr(user, "tools", "") or "").split(",") if t in PRODUCTS}
@@ -1032,12 +1090,13 @@ def ensure_product(user: User, db: Session, *needed: str) -> None:
         raise HTTPException(status_code=403, detail="Your Althais plan doesn't include this tool.")
 
 
-def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str, products=None, validate=None):
+def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str, products=None, validate=None, areas=()):
     """GET/PUT a versioned per-organization document. `products`: None = any plan; otherwise the tools (besides the
     full suite, which can always use it) that may, so () means full suite only."""
     def check(user, db):
         if products is not None:
             ensure_product(user, db, *products)
+        ensure_area(user, *areas)   # switched off for this person only when every one of these is
     @router.get(path)
     def get_doc(user: User = Depends(require_user), db: Session = Depends(get_db)):
         check(user, db)
@@ -1070,7 +1129,8 @@ def _register_doc_routes(path: str, category: str, admin_only: bool, denied_mess
         return JSONResponse({"ok": True, "data": body})
 
 
-_register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.", products=("staff",))
+_register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.", products=("staff",),
+                     areas=("team", "onboarding", "clinic_onboarding", "credentials", "compliance", "training", "roles"))
 _register_doc_routes("/api/tasks", "tasks", admin_only=False, denied_message="", products=())
 _register_doc_routes("/api/branding", "branding", admin_only=True, denied_message="Only admins can change the brand color.",
                      validate=lambda body, db: _check_brand_color(body, db))
@@ -1275,6 +1335,8 @@ def admin_users(request: Request, db: Session = Depends(get_db), _: bool = Depen
         "email": u.email,
         "full_name": u.full_name,
         "organization": u.organization,
+        "role": u.role or "admin",
+        "active": bool(getattr(u, "active", 1)),
         "login_count": u.login_count or 0,
         "claims_submitted": u.claims_submitted or 0,
         "last_login": u.last_login.isoformat() if u.last_login else None,
@@ -1374,6 +1436,20 @@ def _check_brand_color(body: dict, db: Session):
     if not prefs["clinic_custom_color"] and color != BRAND_DEFAULT and color not in prefs["clinic_palette"]:
         return "That color isn’t one of the options Althais offers right now."
     return None
+
+
+@router.get("/api/admin/org-members")
+def admin_org_members(org_key: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Everyone in one clinic, for the founders' console: role (Admin = the clinic's manager), status, tools, switched-off areas."""
+    members = [u for u in db.scalars(select(User).order_by(User.created_at)).all() if _doc_org_key(u) == org_key]
+    return {"org_key": org_key,
+            "areas": {k: v[0] for k, v in AREAS.items()},
+            "members": [{"id": u.id, "email": u.email, "full_name": u.full_name or "", "role": u.role or "admin",
+                         "provider_name": u.provider_name or "", "active": bool(getattr(u, "active", 1)),
+                         "tools": sorted(member_tools(u)), "blocked": sorted(member_blocked(u)),
+                         "login_count": u.login_count or 0,
+                         "last_login": u.last_login.isoformat() if u.last_login else None,
+                         "created_at": u.created_at.isoformat() if u.created_at else None} for u in members]}
 
 
 @router.get("/api/admin/orgs")

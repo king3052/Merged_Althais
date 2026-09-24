@@ -61,7 +61,8 @@
       secondaryNav.innerHTML = [['employees', 'Employees'], ['access', 'Roles & Access']]
         .map(([k, l]) => `<a class="nav-tab" data-ca-tab="${k}" href="#${k}">${l}</a>`).join('');
     } else if (activeWorkspace) {
-      const items = (menus[activeWorkspace] || { items: [] }).items;
+      const isBlocked = window.__ALTHAIS_IS_BLOCKED__ || (() => false);
+      const items = (menus[activeWorkspace] || { items: [] }).items.filter(item => !isBlocked(item.href));   // switched off by their manager
       secondaryNav.innerHTML = items.map(item => {
         const itemPath = item.href.replace(/\/+$/, '') || '/';
         const isActive = path === itemPath;
