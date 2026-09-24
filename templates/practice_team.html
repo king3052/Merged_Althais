@@ -185,7 +185,7 @@
         const verified = creds.filter(c => S.credentialStatus(c) === 'Verified' || S.credentialStatus(c) === 'Expiring Soon').length;
         const next = nextExpiration(p);
         const days = next ? S.daysUntil(next.date) : null;
-        const tone = days == null ? 'text-ink-500' : (days < 0 ? 'text-risk-600' : (days <= S.EXPIRING_DAYS ? 'text-warn-600' : 'text-ink-600'));
+        const tone = days == null ? 'text-ink-500' : (days < 0 ? 'text-risk-600' : (days <= S.expiringDays() ? 'text-warn-600' : 'text-ink-600'));
         const login = loginFor(p);
         return `
         <tr class="row-hover cursor-pointer" data-id="${esc(p.id)}">

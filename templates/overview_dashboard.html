@@ -547,7 +547,7 @@
         var alerts = [];
         if (n('Expired')) alerts.push({ tone: 'risk', label: plural(n('Expired'), 'credential expired', 'credentials expired'), detail: 'Staff shouldn’t work with patients on an expired license or certification.', href: '/staff/compliance' });
         if (n('Overdue')) alerts.push({ tone: 'risk', label: plural(n('Overdue'), 'training overdue', 'trainings overdue'), detail: 'Past the due date. Complete or reschedule.', href: '/staff/training' });
-        if (n('Expiring Soon')) alerts.push({ tone: 'warn', label: plural(n('Expiring Soon'), 'credential expires', 'credentials expire') + ' within ' + StaffStore.EXPIRING_DAYS + ' days', detail: 'Start renewals now.', href: '/staff/credentials' });
+        if (n('Expiring Soon')) alerts.push({ tone: 'warn', label: plural(n('Expiring Soon'), 'credential expires', 'credentials expire') + ' within ' + StaffStore.expiringDays() + ' days', detail: 'Start renewals now.', href: '/staff/credentials' });
         if (n('Missing Requirement')) alerts.push({ tone: 'warn', label: plural(n('Missing Requirement'), 'missing staff requirement', 'missing staff requirements'), detail: 'Active staff with unverified onboarding items.', href: '/staff/compliance' });
         if (review) alerts.push({ tone: 'med', label: plural(review, 'person is', 'people are') + ' ready for onboarding approval', detail: 'Every requirement is verified. Approve to add them to the Team.', href: '/staff/onboarding' });
         if (n('Pending Verification')) alerts.push({ tone: 'med', label: plural(n('Pending Verification'), 'credential needs', 'credentials need') + ' verification', detail: 'Check the documents and mark them verified.', href: '/staff/credentials?status=Pending%20Verification' });

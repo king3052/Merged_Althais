@@ -93,7 +93,7 @@
             <div><label class="lbl" for="f-cc">Chief Complaint</label><input id="f-cc" class="fld" data-key="cc" /></div>
             <div><label class="lbl" for="f-hpi">History Of Present Illness</label><textarea id="f-hpi" rows="3" class="fld" data-key="hpi"></textarea></div>
             <div><label class="lbl" for="f-ros">Review Of Systems</label><textarea id="f-ros" rows="2" class="fld" data-key="ros"></textarea></div>
-            <div>
+            <div id="vitals-block">
               <span class="lbl">Vitals</span>
               <div class="grid grid-cols-5 gap-2">
                 <input id="f-bp" class="fld num" placeholder="BP 120/80" aria-label="Blood pressure" data-vital="bp" />
@@ -106,7 +106,7 @@
             <div><label class="lbl" for="f-exam">Exam</label><textarea id="f-exam" rows="3" class="fld" data-key="exam"></textarea></div>
             <div><label class="lbl" for="f-assessment">Assessment</label><textarea id="f-assessment" rows="2" class="fld" data-key="assessment"></textarea></div>
             <div><label class="lbl" for="f-plan">Plan</label><textarea id="f-plan" rows="3" class="fld" data-key="plan"></textarea></div>
-            <details>
+            <details id="more-history">
               <summary class="cursor-pointer text-[12px] font-semibold text-ink-600 select-none">More History (Medications, Allergies, Past History, Labs)</summary>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 <div><label class="lbl" for="f-meds">Current Medications</label><textarea id="f-meds" rows="2" class="fld" data-key="medications"></textarea></div>
@@ -148,6 +148,7 @@
     const u = window.__ALTHAIS_USER__ || {};
     const FIELD_MAP = { chief_complaint: 'cc', hpi: 'hpi', ros: 'ros', exam: 'exam', assessment: 'assessment', plan: 'plan', medications: 'medications', allergies: 'allergies', pmh: 'pmh', psh: 'psh', fh: 'fh', sh: 'sh', labs: 'labs' };
     let openId = null;
+    let PREFS = P.TOOL_DEFAULTS.scribe;   // Settings > Scribe
 
     const loadNotes = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
     const saveNotes = (list) => { try { localStorage.setItem(KEY, JSON.stringify(list)); return true; } catch (e) { P.toast('Could not save on this device', 'error'); return false; } };
@@ -166,7 +167,7 @@
       $('v-mrn').value = n && n.mrn && !String(n.mrn).startsWith('scribe-') ? n.mrn : '';
       $('v-date').value = (n && n.date) || P.todayIso();
       $('v-provider').value = (n && n.provider) || u.provider_name || u.full_name || '';
-      $('v-type').value = (n && n.type) || st.visitType || 'Office Visit';
+      $('v-type').value = (n && n.type) || st.visitType || PREFS.default_visit_type || 'Office Visit';
       document.querySelectorAll('[data-key]').forEach(el => { el.value = st[el.dataset.key] || ''; el.classList.remove('filled'); });
       document.querySelectorAll('[data-vital]').forEach(el => { el.value = (st.vitals || {})[el.dataset.vital] || ''; el.classList.remove('filled'); });
       $('transcript').value = (n && n.transcript) || '';
@@ -203,13 +204,16 @@
         desc: st.cc || (st.assessment || '').slice(0, 120) || 'Visit note', cpt: n.cpt || '', structured: st, transcript: $('transcript').value,
         status, updatedAt: new Date().toISOString(),
       });
-      if (status === 'Signed') { n.signedBy = P.currentUserName(); n.signedAt = new Date().toISOString(); }
+      if (status === 'Signed') { n.signedBy = P.currentUserName() + (PREFS.sign_credentials ? ', ' + PREFS.sign_credentials : ''); n.signedAt = new Date().toISOString(); }
       if (!saveNotes(list)) return null;
       openId = n.id;
       return n;
     }
     $('save-btn').addEventListener('click', () => { const n = persist('Draft'); if (n) { $('save-status').textContent = 'Draft saved.'; fill(n); renderList(); } });
-    $('sign-btn').addEventListener('click', () => { const n = persist('Signed'); if (n) { P.toast('Note signed'); fill(n); $('save-status').textContent = 'Signed ' + P.relTime(n.signedAt) + '.'; renderList(); } });
+    $('sign-btn').addEventListener('click', () => {
+      const open = openId && loadNotes().find(x => x.id === openId);   // an amendment already asks
+      if (PREFS.confirm_sign && !(open && open.status === 'Signed') && !confirm('Sign this note? A signed note can only be changed as an amendment.')) return;
+      const n = persist('Signed'); if (n) { P.toast('Note signed'); fill(n); $('save-status').textContent = 'Signed ' + P.relTime(n.signedAt) + '.'; renderList(); } });
     $('copy-btn').addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(asText()); P.toast('Note copied'); } catch (e) { P.toast('Copying is blocked in this browser. Use Download instead.', 'error'); }
     });
@@ -236,7 +240,7 @@
     }
     $('rec-btn').addEventListener('click', () => {
       if (recording) return stopRec();
-      rec = new SR(); rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = false;
+      rec = new SR(); rec.lang = PREFS.record_language || 'en-US'; rec.continuous = true; rec.interimResults = false;
       rec.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) $('transcript').value = ($('transcript').value + ' ' + e.results[i][0].transcript).trim(); };
       rec.onend = () => { if (recording) { try { rec.start(); } catch (e) {} } };
       rec.onerror = (e) => { if (e.error === 'not-allowed') { stopRec(); $('rec-status').textContent = 'Microphone access was blocked.'; } };
@@ -296,6 +300,12 @@
     $('note-search').addEventListener('input', renderList);
 
     fill(null); renderList();
+    P.toolSettings('scribe').then(p => {
+      PREFS = p;
+      $('vitals-block').classList.toggle('hidden', !p.show_vitals);
+      $('more-history').open = !!p.open_history;
+      if (!openId && !$('v-patient').value) $('v-type').value = p.default_visit_type || 'Office Visit';
+    });
   </script>
 </body>
 </html>

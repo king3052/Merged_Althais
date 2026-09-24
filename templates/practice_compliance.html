@@ -90,7 +90,7 @@
       items.forEach(i => { counts[i.status] = (counts[i.status] || 0) + 1; });
       $('kpis').innerHTML = CARDS.map(c => `
         <button type="button" class="kcard bg-panel border border-line rounded-sm p-3.5${statusFilter === c.key ? ' is-on' : ''}" data-card="${esc(c.key)}" ${c.key === 'compliant' ? 'disabled style="cursor:default"' : ''}>
-          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">${esc(c.label)}</div>
+          <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold leading-tight">${esc(c.key === 'Expiring Soon' ? `Expiring in ${S.expiringDays()} days` : c.label)}</div>
           <div class="text-[20px] font-semibold ${c.tone} num mt-1">${c.key === 'compliant' ? `${compliant}<span class="text-[12px] text-ink-400 font-medium"> of ${active.length}</span>` : (counts[c.key] || 0)}</div>
         </button>`).join('');
 
@@ -104,7 +104,7 @@
         : (items.length ? 'Nothing matches these filters.' : '<span class="text-ok-600 font-semibold">Everyone is compliant.</span> Expiring credentials and overdue training will show up here automatically.');
       $('rows').innerHTML = rows.map(i => {
         const l = linkFor(i);
-        const dayTone = i.days == null ? 'text-ink-400' : (i.days < 0 ? 'text-risk-600' : (i.days <= S.EXPIRING_DAYS ? 'text-warn-600' : 'text-ink-600'));
+        const dayTone = i.days == null ? 'text-ink-400' : (i.days < 0 ? 'text-risk-600' : (i.days <= S.expiringDays() ? 'text-warn-600' : 'text-ink-600'));
         return `
         <tr class="row-hover">
           <td class="td"><a href="/staff/team?person=${encodeURIComponent(i.person.id)}" class="font-semibold text-ink-900 hover:text-med-600">${esc(i.person.name)}</a><div class="text-[11px] text-ink-500">${esc(i.person.role)}</div></td>

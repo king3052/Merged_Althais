@@ -101,7 +101,9 @@
     const P = window.PracticeData;
     const $ = (id) => document.getElementById(id);
     const esc = P.esc;
-    let CODES = [];
+    let CODES = [], HELD = [];   // HELD: suggestions under the Settings > Coding confidence floor, set aside until asked for
+    let PREFS = P.TOOL_DEFAULTS.coding;   // Settings > Coding
+    P.toolSettings('coding').then(p => { PREFS = p; if (!$('note').value.trim()) $('enc').value = p.default_encounter || 'office'; render(); });
     const TYPE_STYLE = { 'CPT': 'background:var(--brand-100);color:var(--brand-text-strong)', 'ICD-10': 'background:#eceef2;color:#4a505c' };
     const confColor = (c) => c >= 85 ? '#0c8a4f' : c >= 70 ? '#b86a00' : '#c83838';
     // the AI endpoints pass provider errors through verbatim; show people something readable
@@ -132,21 +134,22 @@
     function render() {
       $('code-count').textContent = CODES.length ? `(${CODES.filter(c => c.type === 'CPT').length} CPT · ${CODES.filter(c => c.type !== 'CPT').length} ICD-10)` : '';
       ['copy', 'csv', 'check'].forEach(id => { $(id).disabled = !CODES.length; });
-      if (!CODES.length) { $('codes').innerHTML = '<div class="px-4 py-10 text-center text-[12px] text-ink-500">No codes yet. Suggest codes from a note, or add them below.</div>'; return; }
+      if (!CODES.length && !HELD.length) { $('codes').innerHTML = '<div class="px-4 py-10 text-center text-[12px] text-ink-500">No codes yet. Suggest codes from a note, or add them below.</div>'; return; }
       const order = (c) => (c.type === 'CPT' ? 0 : 1);
+      const hidden = HELD.length;
       $('codes').innerHTML = CODES.map((c, i) => ({ c, i })).sort((a, b) => order(a.c) - order(b.c)).map(({ c, i }) => `
         <div class="code-row">
           <span class="type" style="${TYPE_STYLE[c.type] || TYPE_STYLE['ICD-10']}">${esc(c.type)}</span>
           <div><div class="mono text-[14px] font-semibold text-ink-900">${esc(c.code)}${c.modifier ? `<span class="text-ink-500">-${esc(c.modifier)}</span>` : ''}</div>${c.units > 1 ? `<div class="text-[11px] text-ink-500">× ${c.units} units</div>` : ''}</div>
           <div class="min-w-0">
             <div class="text-[12.5px] text-ink-900">${esc(c.description || '—')}</div>
-            ${c.justification ? `<div class="text-[11.5px] text-ink-500 mt-0.5">${esc(c.justification)}</div>` : ''}
+            ${c.justification && PREFS.show_reasons ? `<div class="text-[11.5px] text-ink-500 mt-0.5">${esc(c.justification)}</div>` : ''}
             ${c.documentation_gap ? `<div class="text-[11.5px] mt-1" style="color:#b86a00">Documentation gap: ${esc(c.documentation_gap)}</div>` : ''}
             ${c.format_warning ? `<div class="text-[11.5px] mt-1 text-risk-600">${esc(c.format_warning)}</div>` : ''}
           </div>
           <div>${c.confidence != null ? `<div class="text-[11px] text-ink-500">Confidence <b class="text-ink-900 num">${c.confidence}%</b></div><div class="conf-bar"><span style="width:${c.confidence}%;background:${confColor(c.confidence)}"></span></div>` : '<div class="text-[11px] text-ink-400">Added by you</div>'}</div>
           <button type="button" class="x" data-remove="${i}" aria-label="Remove ${esc(c.code)}" title="Remove">×</button>
-        </div>`).join('');
+        </div>`).join('') + (hidden ? `<div class="px-4 py-3 text-[12px] text-ink-500 border-t border-line">${hidden} lower-confidence ${hidden === 1 ? 'suggestion is' : 'suggestions are'} hidden by your Coding settings (under ${Number(PREFS.min_confidence) || 0}%). <button type="button" id="show-all" class="font-semibold text-med-600">Show Them</button></div>` : '');
       $('check-card').classList.add('hidden');
     }
 
@@ -159,16 +162,18 @@
           body: JSON.stringify({ note, encounter_type: $('enc').value, is_new_patient: $('new-pt').checked, is_critical_care: $('crit').checked, duration_minutes: $('mins').value || null }) });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.error) throw new Error(friendly(res, data, 'Couldn’t suggest codes just now. The coding service isn’t responding; try again in a minute.'));
-        CODES = (data.codes || []).map(c => Object.assign({ units: 1 }, c));
+        const min = Number(PREFS.min_confidence) || 0, all = (data.codes || []).map(c => Object.assign({ units: 1 }, c));
+        CODES = all.filter(c => c.confidence == null || c.confidence >= min); HELD = all.filter(c => !CODES.includes(c));
         $('time-note').classList.toggle('hidden', !data.time_coding_note);
         $('time-note').textContent = data.time_coding_note || '';
-        $('suggest-status').textContent = CODES.length ? `${CODES.length} code${CODES.length === 1 ? '' : 's'} suggested. Review each one.` : 'No billable codes found in this note.';
+        $('suggest-status').textContent = all.length ? `${all.length} code${all.length === 1 ? '' : 's'} suggested. Review each one.` : 'No billable codes found in this note.';
         render();
+        if (CODES.length && PREFS.auto_check) $('check').click();
       } catch (e) { $('suggest-status').textContent = e.message; }
       finally { $('suggest').disabled = false; }
     });
 
-    $('codes').addEventListener('click', (e) => { const b = e.target.closest('[data-remove]'); if (b) { CODES.splice(Number(b.dataset.remove), 1); render(); } });
+    $('codes').addEventListener('click', (e) => { if (e.target.id === 'show-all') { CODES = CODES.concat(HELD); HELD = []; render(); return; } const b = e.target.closest('[data-remove]'); if (b) { CODES.splice(Number(b.dataset.remove), 1); render(); } });
     $('add').addEventListener('click', () => {
       const code = $('add-code').value.trim().toUpperCase(), type = $('add-type').value;
       if (!code) { $('add-code').focus(); return; }

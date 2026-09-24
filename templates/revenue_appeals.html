@@ -237,6 +237,10 @@
           return;
         }
         currentLetter = data.letter || '';
+        // Settings > Insurance: sign the letter the way the practice chose
+        const ins = await fetch('/api/org/settings/insurance_prefs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null);
+        const sig = ins && ins.data && String(ins.data.appeal_signature || '').trim();
+        if (sig && !currentLetter.includes(sig)) currentLetter = currentLetter.replace(/\s+$/, '') + '\n\n' + sig;
         textEl.textContent = currentLetter;
         paperEl.classList.remove('hidden');
       } catch (e) {

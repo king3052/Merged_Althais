@@ -129,7 +129,12 @@
   function load(force) {
     if (doc && !force) return Promise.resolve(doc);
     if (loading && !force) return loading;
-    loading = fetch("/api/staff", { credentials: "same-origin" })
+    /* Settings > Team sets how early a credential counts as expiring soon, and training as due soon */
+    var prefs = fetch("/api/org/settings/team_prefs", { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { var d = (j && j.data) || {}; if (Number(d.credential_warn_days) > 0) EXPIRING_DAYS = Number(d.credential_warn_days); if (Number(d.training_due_days) > 0) TRAINING_DUE_DAYS = Number(d.training_due_days); })
+      .catch(function () {});
+    loading = Promise.all([fetch("/api/staff", { credentials: "same-origin" }), prefs]).then(function (a) { return a[0]; })
       .then(function (r) { if (!r.ok) throw new Error("Could not load staff records (" + r.status + ")."); return r.json(); })
       .then(function (res) { doc = normalize(res.data); editable = !!res.can_edit; loading = null; return doc; })
       .catch(function (e) { loading = null; throw e; });
@@ -290,7 +295,7 @@
   window.StaffStore = {
     ROLES_LIST: ROLES_LIST, EMPLOYMENT_TYPES: EMPLOYMENT_TYPES, REQUIREMENT_LABELS: REQUIREMENT_LABELS, ROLE_REQUIREMENTS: ROLE_REQUIREMENTS,
     CREDENTIAL_TYPES: CREDENTIAL_TYPES, TRAINING_CATEGORIES: TRAINING_CATEGORIES, TRAINING_CATALOG: TRAINING_CATALOG,
-    PERMISSION_AREAS: PERMISSION_AREAS, DEFAULT_ROLES: DEFAULT_ROLES, EXPIRING_DAYS: EXPIRING_DAYS,
+    PERMISSION_AREAS: PERMISSION_AREAS, DEFAULT_ROLES: DEFAULT_ROLES, expiringDays: function () { return EXPIRING_DAYS; },
     load: load, update: update, save: save, canEdit: function () { return editable; }, doc: function () { return doc; },
     requirementsFor: requirementsFor, progress: progress, status: status, audit: audit, person: person,
     credentialTypeForRequirement: credentialTypeForRequirement, credentialLabel: credentialLabel, credentialStatus: credentialStatus, trainingStatus: trainingStatus,

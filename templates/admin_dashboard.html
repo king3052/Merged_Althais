@@ -1,262 +1,528 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="/static/js/brand.js"></script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Althais Admin — Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { theme: { extend: {
-      fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] },
-      colors: {
-        shell: '#f4f5f7', panel: '#ffffff', line: '#e4e6eb', lineSoft: '#eceef2',
-        ink: { 900: '#0f1116', 700: '#2c313b', 500: '#6b7280', 400: '#8b909c' },
-        med: { 700: 'rgb(var(--brand-700-rgb) / <alpha-value>)', 600: 'rgb(var(--brand-rgb) / <alpha-value>)', 500: 'rgb(var(--brand-500-rgb) / <alpha-value>)', 100: 'rgb(var(--brand-100-rgb) / <alpha-value>)', 50: 'rgb(var(--brand-50-rgb) / <alpha-value>)' },
-        ok: { 600: '#0c8a4f', 100: '#d8f5e3' }, risk: { 600: '#c83838', 100: '#ffe1e1' }
-      }
-    } } };
-  </script>
+  {% include "_head.html" %}
+  <title>Althais — Admin Console</title>
   <style>
-    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
+    /* The Althais team's console: a dark bar sets it apart from any clinic's app; the page below uses the
+       same side-tab layout, cards and type as Settings. */
+    body { font-feature-settings: 'cv11', 'ss01'; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    /* ---- Top bar ---- */
+    .c-bar { position: sticky; top: 0; z-index: 30; height: 56px; background: #0f1116; color: #e7eaf2; border-bottom: 1px solid #1f232b; display: flex; align-items: center; padding: 0 20px; gap: 14px; }
+    .c-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+    .c-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--brand); display: flex; align-items: center; justify-content: center; }
+    .c-mark svg { width: 15px; height: 15px; fill: var(--brand-on); }
+    .c-word { font-size: 14px; font-weight: 600; letter-spacing: .2em; }
+    .c-console { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: #aab0bf; border: 1px solid #2c313b; border-radius: 999px; padding: 3px 9px; }
+    .c-ic { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #aab0bf; background: transparent; border: 1px solid transparent; cursor: pointer; transition: all .15s; }
+    .c-ic:hover { background: #1a1d24; border-color: #2c313b; color: #fff; }
+    .c-ic svg { width: 17px; height: 17px; }
+    .c-who { display: flex; align-items: center; gap: 9px; padding-left: 12px; border-left: 1px solid #2c313b; }
+    .c-who .av { width: 30px; height: 30px; border-radius: 50%; background: #262b35; color: #e7eaf2; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .c-who .nm { font-size: 12.5px; font-weight: 600; color: #e7eaf2; line-height: 1.2; }
+    .c-who .rl { font-size: 11px; color: #8b909c; line-height: 1.2; }
+    .theme-btn .theme-sun { display: none; }
+    html[data-theme-resolved="dark"] .theme-btn .theme-sun { display: block; }
+    html[data-theme-resolved="dark"] .theme-btn .theme-moon { display: none; }
+
+    /* ---- Side menu ---- */
+    .c-shell { display: flex; min-height: calc(100vh - 56px); }
+    .c-nav { width: 264px; flex-shrink: 0; background: #fff; border-right: 1px solid #e4e6eb; position: sticky; top: 56px; height: calc(100vh - 56px); display: flex; flex-direction: column; padding: 16px 12px; }
+    .c-search { position: relative; margin-bottom: 8px; }
+    .c-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #8b909c; pointer-events: none; }
+    .c-search input { width: 100%; background: #f4f5f7; border: 1px solid #e4e6eb; border-radius: 8px; padding: 8px 12px 8px 32px; font-size: 12.5px; color: #0f1116; outline: none; font-family: inherit; transition: all .15s; }
+    .c-search input:focus { background: #fff; border-color: var(--brand); box-shadow: 0 0 0 3px rgb(var(--brand-rgb) / .12); }
+    .c-group { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b909c; padding: 16px 10px 6px; }
+    .a-tab { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; margin-bottom: 2px; font-size: 13px; font-weight: 500; color: #4a505c; background: none; border: 0; border-radius: 8px; cursor: pointer; text-align: left; transition: background .15s, color .15s; font-family: inherit; white-space: nowrap; }
+    .a-tab svg { width: 17px; height: 17px; flex-shrink: 0; color: #8b909c; transition: color .15s; }
+    .a-tab:hover { background: #f1f3f7; color: #0f1116; }
+    .a-tab.active { background: var(--brand-100); color: var(--brand-text-strong); font-weight: 600; }
+    .a-tab.active svg { color: var(--brand-text-strong); }
+    .a-tab .n { margin-left: auto; font-size: 11px; font-weight: 600; color: #6b7280; background: #eceef2; border-radius: 999px; padding: 0 7px; line-height: 18px; font-variant-numeric: tabular-nums; }
+    .a-tab.active .n { background: rgb(var(--brand-rgb) / .14); color: inherit; }
+    .c-nav-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid #eceef2; }
+
+    /* ---- Content ---- */
+    .c-main { flex: 1; min-width: 0; padding: 32px 44px 56px; }
+    .c-main > section { max-width: 1080px; margin: 0 auto; animation: aFade .25s ease both; }
+    @keyframes aFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .c-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+    .c-eyebrow { font-size: 11.5px; font-weight: 600; color: var(--brand-text); letter-spacing: .02em; }
+    .c-h1 { font-size: 26px; font-weight: 650; color: #0f1116; letter-spacing: -0.022em; line-height: 1.15; margin-top: 4px; }
+    .c-lede { font-size: 13.5px; color: #6b7280; margin-top: 6px; max-width: 620px; line-height: 1.5; }
+    .a-card { background: #fff; border: 1px solid #e4e6eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(15,17,22,.04); }
+    .a-card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #eceef2; }
+    .a-card-t { font-size: 14px; font-weight: 600; color: #0f1116; letter-spacing: -0.005em; }
+    .a-card-s { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .a-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; font-weight: 600; }
+    .a-stat { padding: 18px 20px; display: flex; flex-direction: column; }
+    .a-stat .top { display: flex; align-items: center; justify-content: space-between; }
+    .a-stat .ico { width: 30px; height: 30px; border-radius: 8px; background: var(--brand-50); color: var(--brand-text-strong); display: flex; align-items: center; justify-content: center; }
+    .a-stat .ico svg { width: 16px; height: 16px; }
+    .a-stat .v { font-size: 30px; font-weight: 650; color: #0f1116; margin-top: 10px; font-variant-numeric: tabular-nums; letter-spacing: -0.025em; line-height: 1; }
+    .a-stat .d { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    .a-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap; }
+    .a-btn svg { width: 14px; height: 14px; }
+    .a-btn-primary { background: var(--brand); color: var(--brand-on); border: 1px solid var(--brand-700); }
+    .a-btn-primary:hover { background: var(--brand-700); }
+    .a-btn-primary:disabled { background: transparent; color: #aab0bb; border-color: #e4e6eb; cursor: default; }
+    .a-btn-ghost { background: #fff; color: #2c313b; border: 1px solid #e4e6eb; }
+    .a-btn-ghost:hover { background: #f4f5f7; border-color: #c7cad1; }
+    .a-link-risk { font-size: 12px; font-weight: 600; color: #8b909c; background: none; border: 0; cursor: pointer; font-family: inherit; }
+    .a-link-risk:hover { color: #c83838; }
+    .a-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 16px; white-space: nowrap; }
+    .a-pill-brand { background: var(--brand-100); color: var(--brand-text-strong); }
+    .a-pill-muted { background: #eceef2; color: #4a505c; }
+    .a-pill-risk { background: #ffe1e1; color: #c83838; }
+    .a-pill-warn { background: #fff0d6; color: #b86a00; }
+    .a-chip { font-size: 12.5px; font-weight: 500; padding: 6px 12px; border-radius: 999px; border: 1px solid #e4e6eb; background: #fff; color: #4a505c; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .a-chip:hover { border-color: #c7cad1; }
+    .a-chip.active { background: #0f1116; border-color: #0f1116; color: #fff; }
+    .a-chip .n { opacity: .6; margin-left: 4px; font-variant-numeric: tabular-nums; }
+    .a-table { width: 100%; border-collapse: collapse; }
+    .a-table th { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: #6b7280; font-weight: 600; background: #f9fafb; padding: 10px 16px; border-bottom: 1px solid #e4e6eb; text-align: left; white-space: nowrap; }
+    .a-table td { padding: 12px 16px; font-size: 12.5px; color: #1a1d24; border-bottom: 1px solid #eceef2; vertical-align: middle; }
+    .a-table tr:last-child td { border-bottom: 0; }
+    .a-table tbody tr:hover td { background: #fafbfc; }
+    .a-table .c { text-align: center; }
+    .a-table .r { text-align: right; }
+    .a-empty { padding: 40px 16px; text-align: center; font-size: 12.5px; color: #6b7280; }
+    .toggle { width: 36px; height: 20px; background: #d4d7de; border-radius: 12px; position: relative; cursor: pointer; transition: background .2s; border: 0; padding: 0; display: inline-block; vertical-align: middle; }
+    .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 2px rgba(15,17,22,.18); }
+    .toggle.on { background: var(--brand); }
+    .toggle.on::after { transform: translateX(16px); }
+    .toggle:disabled { opacity: .4; cursor: default; }
+    .toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .a-avatar { width: 32px; height: 32px; border-radius: 9px; background: var(--brand-50); color: var(--brand-text-strong); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .a-bar { height: 8px; border-radius: 4px; background: #eceef2; overflow: hidden; }
+    .a-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--brand); }
+    .a-list-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #eceef2; }
+    .a-list-row:last-child { border-bottom: 0; }
+    .a-plan { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .a-plan ul { font-size: 13px; color: #2c313b; display: grid; gap: 7px; }
+    .a-plan li { display: flex; gap: 9px; align-items: flex-start; }
+    .a-plan li svg { width: 15px; height: 15px; color: var(--brand-text); flex-shrink: 0; margin-top: 2px; }
+    .a-url { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--brand-text); }
+    .a-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; background: #0f1116; color: #fff; font-size: 12.5px; font-weight: 500; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.2); transition: all .2s; pointer-events: none; z-index: 50; }
+    .a-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 900px) {
+      .c-shell { flex-direction: column; }
+      .c-nav { width: 100%; height: auto; position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 10px 12px; border-right: 0; border-bottom: 1px solid #e4e6eb; }
+      .c-search { width: 100%; margin-bottom: 4px; }
+      .c-group, .c-nav-foot { display: none; }
+      .a-tab { width: auto; }
+      .c-main { padding: 22px 16px 44px; }
+      .c-who .txt, .c-console { display: none; }
+    }
+
+    /* ---- Dark ---- */
+    html[data-theme-resolved="dark"] .c-bar { background: #0b0d12; border-color: #1f232b; }
+    html[data-theme-resolved="dark"] .c-nav { background: #14181f; border-color: #2c313b; }
+    html[data-theme-resolved="dark"] .c-search input { background: #1a1d24; border-color: #2c313b; color: #e7eaf2; }
+    html[data-theme-resolved="dark"] .a-tab { color: #aab0bf; }
+    html[data-theme-resolved="dark"] .a-tab:hover { background: #1f242c; color: #e7eaf2; }
+    html[data-theme-resolved="dark"] .a-tab.active { background: var(--brand-dark-tint); color: var(--brand-dark-link-soft); }
+    html[data-theme-resolved="dark"] .a-tab.active svg { color: var(--brand-dark-link-soft); }
+    html[data-theme-resolved="dark"] .a-tab .n { background: #22262e; color: #aab0bf; }
+    html[data-theme-resolved="dark"] .c-nav-foot { border-color: #2c313b; }
+    html[data-theme-resolved="dark"] .c-h1, html[data-theme-resolved="dark"] .a-card-t, html[data-theme-resolved="dark"] .a-stat .v { color: #e7eaf2; }
+    html[data-theme-resolved="dark"] .c-eyebrow { color: var(--brand-dark-link); }
+    html[data-theme-resolved="dark"] .a-card { background: #1a1d24; border-color: #2c313b; box-shadow: none; }
+    html[data-theme-resolved="dark"] .a-card-h, html[data-theme-resolved="dark"] .a-list-row, html[data-theme-resolved="dark"] .a-table td { border-color: #2c313b; }
+    html[data-theme-resolved="dark"] .a-table td { color: #d6dae5; }
+    html[data-theme-resolved="dark"] .a-table th { background: #14181f; border-color: #2c313b; color: #8b909c; }
+    html[data-theme-resolved="dark"] .a-table tbody tr:hover td { background: #20242c; }
+    html[data-theme-resolved="dark"] .a-btn-ghost, html[data-theme-resolved="dark"] .a-chip { background: #14181f; border-color: #2c313b; color: #d6dae5; }
+    html[data-theme-resolved="dark"] .a-chip.active { background: #e7eaf2; border-color: #e7eaf2; color: #0f1116; }
+    html[data-theme-resolved="dark"] .a-btn-ghost:hover { background: #20242c; }
+    html[data-theme-resolved="dark"] .a-btn-primary:disabled { background: transparent; border-color: #2c313b; color: #525866; }
+    html[data-theme-resolved="dark"] .a-pill-brand, html[data-theme-resolved="dark"] .a-avatar, html[data-theme-resolved="dark"] .a-stat .ico { background: var(--brand-dark-tint); color: var(--brand-dark-link-soft); }
+    html[data-theme-resolved="dark"] .a-pill-muted, html[data-theme-resolved="dark"] .a-bar { background: #22262e; color: #aab0bf; }
+    html[data-theme-resolved="dark"] .a-pill-risk { background: #3a1616; color: #f0918f; }
+    html[data-theme-resolved="dark"] .a-pill-warn { background: #3a2c10; color: #e8b158; }
+    html[data-theme-resolved="dark"] .toggle { background: #3a404c; }
+    html[data-theme-resolved="dark"] .toggle.on { background: var(--brand); }
+    html[data-theme-resolved="dark"] .a-plan ul { color: #d6dae5; }
+    html[data-theme-resolved="dark"] .a-plan li svg, html[data-theme-resolved="dark"] .a-url { color: var(--brand-dark-link); }
+    html[data-theme-resolved="dark"] .a-toast { background: #e7eaf2; color: #0f1116; }
   </style>
-  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
-  <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
-  <link rel="stylesheet" href="/static/css/brand-theme.css" />
 </head>
-<body class="bg-shell min-h-screen">
-  <!-- Top bar -->
-  <header class="bg-med-700 text-white px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="text-[14px] font-bold tracking-widest uppercase">ALTHAIS</span>
-      <span class="text-[12px] text-med-100 border-l border-white/30 pl-3">Admin</span>
+<body class="bg-shell text-ink-800">
+  <header class="c-bar">
+    <a href="/admin" class="c-brand" aria-label="Althais Admin Console">
+      <span class="c-mark"><svg viewBox="161 142 1032 1001" aria-hidden="true"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg></span>
+      <span class="c-word">ALTHAIS</span>
+    </a>
+    <span class="c-console">Admin Console</span>
+    <div class="ml-auto flex items-center gap-2">
+      <button type="button" id="refresh" class="c-ic" title="Refresh" aria-label="Refresh">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+      </button>
+      <button type="button" data-theme-toggle class="c-ic theme-btn" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+        <svg class="theme-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="theme-sun" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <div class="c-who ml-1">
+        <span class="av">AD</span>
+        <span class="txt"><span class="nm block">Althais Admin</span><span class="rl block">Althais team</span></span>
+      </div>
+      <button type="button" id="logout" class="c-ic" title="Sign Out" aria-label="Sign Out">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
     </div>
-    <button id="logout" class="text-[12px] bg-white/10 hover:bg-white/20 rounded-sm px-3 py-1.5 transition">Sign out</button>
   </header>
 
-  <main class="max-w-[1100px] mx-auto px-6 py-8">
-    <h1 class="text-[20px] font-semibold text-ink-900">Overview</h1>
-    <p class="text-[13px] text-ink-500 mt-1">All registered accounts and usage across Althais.</p>
+  <div class="c-shell">
+    <aside class="c-nav" aria-label="Admin sections">
+      <label class="c-search">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
+        <input id="search" type="search" placeholder="Search clinics or people…" aria-label="Search clinics or people" />
+      </label>
+      <div class="c-group">Workspace</div>
+      <button type="button" class="a-tab active" data-tab="overview">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Overview</button>
+      <div class="c-group">Customers</div>
+      <button type="button" class="a-tab" data-tab="orgs">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 10h.01M15 10h.01"/></svg>
+        Organizations &amp; Access <span class="n" id="n-orgs"></span></button>
+      <button type="button" class="a-tab" data-tab="accounts">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>
+        Accounts <span class="n" id="n-accounts"></span></button>
+      <div class="c-group">Plans</div>
+      <button type="button" class="a-tab" data-tab="plans">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
+        Plans &amp; Tools</button>
+      <div class="c-nav-foot">
+        <a href="/login" class="a-tab" target="_blank" rel="noopener">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+          Open The App</a>
+      </div>
+    </aside>
 
-    <!-- Stat cards -->
-    <div id="stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-      <div class="bg-panel border border-line rounded-md p-4">
-        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Total accounts</div>
-        <div id="stat-users" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
-      </div>
-      <div class="bg-panel border border-line rounded-md p-4">
-        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Organizations</div>
-        <div id="stat-orgs" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
-      </div>
-      <div class="bg-panel border border-line rounded-md p-4">
-        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Total logins</div>
-        <div id="stat-logins" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
-      </div>
-      <div class="bg-panel border border-line rounded-md p-4">
-        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Claims submitted</div>
-        <div id="stat-claims" class="text-[24px] font-semibold text-ink-900 mt-1 mono">—</div>
-      </div>
-    </div>
-
-    <!-- Organizations & access: which Althais products each clinic has bought -->
-    <div class="bg-panel border border-line rounded-md mt-6 overflow-hidden">
-      <div class="px-4 py-3 border-b border-line flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 class="text-[13px] font-semibold text-ink-900">Organizations &amp; Access</h2>
-          <p class="text-[11.5px] text-ink-500 mt-0.5">Turn on what each clinic bought. The full suite includes every tool; new clinics start on the full suite.</p>
+    <main class="c-main">
+      <!-- Overview -->
+      <section data-section="overview">
+        <div class="c-top">
+          <div>
+            <div class="c-eyebrow" id="today"></div>
+            <h1 class="c-h1" id="greeting">Overview</h1>
+            <p class="c-lede">Accounts, clinics and usage across Althais.</p>
+          </div>
         </div>
-        <input id="org-search" type="text" placeholder="Filter organizations…" class="text-[12px] border border-line rounded-sm px-2.5 py-1.5 w-56 bg-white" />
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr class="bg-shell">
-              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Organization</th>
-              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Full Suite</th>
-              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Scribe</th>
-              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Coding</th>
-              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Insurance</th>
-              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Team</th>
-              <th class="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody id="org-rows">
-            <tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="a-card a-stat"><div class="top"><span class="a-label">Accounts</span><span class="ico"><svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/></svg></span></div><div class="v" id="stat-users">—</div><div class="d" id="stat-users-d">&nbsp;</div></div>
+          <div class="a-card a-stat"><div class="top"><span class="a-label">Organizations</span><span class="ico"><svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg></span></div><div class="v" id="stat-orgs">—</div><div class="d" id="stat-orgs-d">&nbsp;</div></div>
+          <div class="a-card a-stat"><div class="top"><span class="a-label">Total Logins</span><span class="ico"><svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></span></div><div class="v" id="stat-logins">—</div><div class="d" id="stat-logins-d">&nbsp;</div></div>
+          <div class="a-card a-stat"><div class="top"><span class="a-label">Claims Submitted</span><span class="ico"><svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M14 3v6h6M9 14l2 2 4-4"/></svg></span></div><div class="v" id="stat-claims">—</div><div class="d">Across every clinic</div></div>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-4 mt-4">
+          <div class="a-card">
+            <div class="a-card-h"><div><div class="a-card-t">Clinics By Plan</div><div class="a-card-s">A clinic with several tools counts under each one</div></div>
+              <button type="button" class="a-btn a-btn-ghost" data-go="plans">View Plans</button></div>
+            <div id="plan-mix" class="px-5 py-3"></div>
+          </div>
+          <div class="a-card">
+            <div class="a-card-h"><div><div class="a-card-t">Newest Accounts</div><div class="a-card-s">The latest people to sign up</div></div>
+              <button type="button" class="a-btn a-btn-ghost" data-go="accounts">View All</button></div>
+            <div id="recent"></div>
+          </div>
+        </div>
+        <div class="a-card mt-4">
+          <div class="a-card-h"><div><div class="a-card-t">Most Active Clinics</div><div class="a-card-s">Ranked by logins across their people</div></div>
+            <button type="button" class="a-btn a-btn-ghost" data-go="orgs">Manage Access</button></div>
+          <div id="active"></div>
+        </div>
+      </section>
 
-    <!-- Users table -->
-    <div class="bg-panel border border-line rounded-md mt-6 overflow-hidden">
-      <div class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-[13px] font-semibold text-ink-900">Accounts</h2>
-        <input id="search" type="text" placeholder="Filter by email or org…" class="text-[12px] border border-line rounded-sm px-2.5 py-1.5 w-64 bg-white" />
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr class="bg-shell">
-              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Account</th>
-              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Organization</th>
-              <th class="text-right px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Logins</th>
-              <th class="text-right px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Claims</th>
-              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Last login</th>
-              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Joined</th>
-              <th class="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody id="rows">
-            <tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </main>
+      <!-- Organizations & access -->
+      <section data-section="orgs" class="hidden">
+        <div class="c-top">
+          <div>
+            <div class="c-eyebrow">Customers</div>
+            <h1 class="c-h1">Organizations &amp; Access</h1>
+            <p class="c-lede">Turn on what each clinic bought, then Save. The full suite includes every tool, and new clinics start on it.</p>
+          </div>
+        </div>
+        <div id="org-chips" class="flex flex-wrap gap-2"></div>
+        <div class="a-card mt-3 overflow-hidden">
+          <div class="overflow-x-auto thin-scroll">
+            <table class="a-table">
+              <thead><tr>
+                <th>Organization</th><th class="c">Full Suite</th><th class="c">Scribe</th><th class="c">Coding</th><th class="c">Insurance</th><th class="c">Team</th><th class="r"></th>
+              </tr></thead>
+              <tbody id="org-rows"><tr><td colspan="7" class="a-empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Accounts -->
+      <section data-section="accounts" class="hidden">
+        <div class="c-top">
+          <div>
+            <div class="c-eyebrow">Customers</div>
+            <h1 class="c-h1">Accounts</h1>
+            <p class="c-lede">Everyone with an Althais login. Deleting an account can't be undone.</p>
+          </div>
+        </div>
+        <div class="a-card overflow-hidden">
+          <div class="overflow-x-auto thin-scroll">
+            <table class="a-table">
+              <thead><tr>
+                <th>Account</th><th>Organization</th><th>Plan</th><th class="r">Logins</th><th class="r">Claims</th><th>Last Login</th><th>Joined</th><th class="r"></th>
+              </tr></thead>
+              <tbody id="rows"><tr><td colspan="8" class="a-empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Plans -->
+      <section data-section="plans" class="hidden">
+        <div class="c-top">
+          <div>
+            <div class="c-eyebrow">Plans</div>
+            <h1 class="c-h1">Plans &amp; Tools</h1>
+            <p class="c-lede">What each plan opens for a clinic. Every plan also has Settings for its own tools.</p>
+          </div>
+        </div>
+        <div id="plan-cards" class="grid md:grid-cols-2 gap-4"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="a-toast" role="status" aria-live="polite"></div>
 
   <script>
     const $ = id => document.getElementById(id);
-    let ALL = [];
+    const PLAN_KEYS = ['suite', 'scribe', 'coding', 'insurance', 'staff'];
+    const PLANS = {
+      suite:     { name: 'Full Suite', home: '/overview', blurb: 'All of Althais for the whole practice.',
+                   has: ['Overview: Tasks, Work Today, AI Inbox, Analytics and Recent Activity', 'EMR: patients, charts, schedule and Scribe', 'Revenue: claims, denials, appeals, payments and Coding Review', 'Staff workspace and Althea, the assistant'] },
+      scribe:    { name: 'Scribe', home: '/scribe', blurb: 'Record a visit and get a signed SOAP note.',
+                   has: ['Write A Note from a recording or transcript', 'Save drafts, sign, copy and download notes', 'Settings for practice, users and AI'] },
+      coding:    { name: 'Coding', home: '/coding', blurb: 'Turn a note into CPT and ICD-10 codes.',
+                   has: ['Code A Note with confidence and reasons', 'Check Codes before a claim goes out', 'Settings, including Billing & Claims'] },
+      insurance: { name: 'Insurance', home: '/revenue/claims', blurb: 'Claims, denials, appeals and payments.',
+                   has: ['Claims with import and EDI submission', 'Denials, appeals and appeal letters', 'Payments and payer intelligence', 'Settings, including Billing & Claims'] },
+      staff:     { name: 'Team', home: '/staff/team', blurb: 'Run the clinic’s people and setup.',
+                   has: ['Team, onboarding and clinic setup', 'Credentials, training and compliance', 'Roles and permissions'] },
+    };
+    let USERS = [], ORGS = [], orgFilter = 'all', query = '';
+    const draft = {};   // org_key -> products being edited
 
-    function fmtDate(iso) {
-      if (!iso) return '—';
-      const d = new Date(iso);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+    function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
     function fmtRelative(iso) {
-      if (!iso) return 'never';
-      const d = new Date(iso), now = new Date();
-      const mins = Math.round((now - d) / 60000);
-      if (mins < 1) return 'just now';
+      if (!iso) return 'Never';
+      const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+      if (mins < 1) return 'Just now';
       if (mins < 60) return mins + 'm ago';
-      const hrs = Math.round(mins / 60);
-      if (hrs < 24) return hrs + 'h ago';
-      const days = Math.round(hrs / 24);
-      if (days < 30) return days + 'd ago';
+      const hrs = Math.round(mins / 60); if (hrs < 24) return hrs + 'h ago';
+      const days = Math.round(hrs / 24); if (days < 30) return days + 'd ago';
       return fmtDate(iso);
     }
-    function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
-
-    function render(list) {
-      const rows = $('rows');
-      if (!list.length) {
-        rows.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">No accounts found.</td></tr>';
-        return;
-      }
-      rows.innerHTML = list.map(u => `
-        <tr class="border-t border-lineSoft hover:bg-shell">
-          <td class="px-4 py-2.5">
-            <div class="text-[12.5px] font-medium text-ink-900">${esc(u.full_name || '—')}</div>
-            <div class="text-[11px] text-ink-500 mono">${esc(u.email)}</div>
-          </td>
-          <td class="px-4 py-2.5 text-[12.5px] text-ink-700">${esc(u.organization || '—')}</td>
-          <td class="px-4 py-2.5 text-right text-[12.5px] mono text-ink-900">${u.login_count}</td>
-          <td class="px-4 py-2.5 text-right text-[12.5px] mono text-ink-900">${u.claims_submitted}</td>
-          <td class="px-4 py-2.5 text-[12px] text-ink-500">${fmtRelative(u.last_login)}</td>
-          <td class="px-4 py-2.5 text-[12px] text-ink-500">${fmtDate(u.created_at)}</td>
-          <td class="px-4 py-2.5 text-right">
-            <button data-del="${u.id}" class="text-[11px] text-ink-400 hover:text-risk-600 font-medium">Delete</button>
-          </td>
-        </tr>
-      `).join('');
+    function initials(s) { return (s || '?').replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'; }
+    function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
+    function planLabel(products) {
+      if (!products || !products.length) return '<span class="a-pill a-pill-risk">No Access</span>';
+      if (products.includes('suite')) return '<span class="a-pill a-pill-brand">Full Suite</span>';
+      return products.map(p => `<span class="a-pill a-pill-muted">${esc(PLANS[p] ? PLANS[p].name : p)}</span>`).join(' ');
     }
+    function planOf(o) { const p = o.products; return !p.length ? 'none' : p.includes('suite') ? 'suite' : 'tools'; }
+    const orgByEmail = () => { const m = {}; ORGS.forEach(o => o.users.forEach(e => { m[e] = o; })); return m; };
 
-    function applyStats(list) {
-      $('stat-users').textContent = list.length;
-      $('stat-orgs').textContent = new Set(list.map(u => (u.organization || '').toLowerCase()).filter(Boolean)).size;
-      $('stat-logins').textContent = list.reduce((s, u) => s + (u.login_count || 0), 0);
-      $('stat-claims').textContent = list.reduce((s, u) => s + (u.claims_submitted || 0), 0);
+    // ---- Side tabs (Settings-style), remembered in the address so a refresh stays put ----
+    function show(tab) {
+      if (!document.querySelector(`[data-section="${tab}"]`)) tab = 'overview';
+      document.querySelectorAll('.a-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      document.querySelectorAll('[data-section]').forEach(s => s.classList.toggle('hidden', s.dataset.section !== tab));
+      if (location.hash.slice(1) !== tab) history.replaceState(null, '', tab === 'overview' ? location.pathname : '#' + tab);
     }
+    document.querySelectorAll('.a-tab').forEach(t => t.addEventListener('click', () => show(t.dataset.tab)));
+    document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) show(g.dataset.go); });
 
-    async function load() {
-      try {
-        const res = await fetch('/api/admin/users', { credentials: 'same-origin' });
-        if (res.status === 401) { window.location.href = '/admin/login'; return; }
-        ALL = await res.json();
-        applyStats(ALL);
-        render(ALL);
-      } catch {
-        $('rows').innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-risk-600">Failed to load.</td></tr>';
-      }
+    // ---- Overview ----
+    function renderOverview() {
+      const week = Date.now() - 7 * 864e5;
+      $('stat-users').textContent = USERS.length;
+      const newWeek = USERS.filter(u => u.created_at && new Date(u.created_at) > week).length;
+      $('stat-users-d').textContent = newWeek ? `${newWeek} new this week` : 'None new this week';
+      $('stat-orgs').textContent = ORGS.length;
+      const tools = ORGS.filter(o => planOf(o) === 'tools').length;
+      $('stat-orgs-d').textContent = `${ORGS.length - tools - ORGS.filter(o => planOf(o) === 'none').length} full suite · ${tools} single tools`;
+      $('stat-logins').textContent = USERS.reduce((s, u) => s + (u.login_count || 0), 0).toLocaleString();
+      const activeWeek = USERS.filter(u => u.last_login && new Date(u.last_login) > week).length;
+      $('stat-logins-d').textContent = `${activeWeek} ${activeWeek === 1 ? 'person' : 'people'} active this week`;
+      $('stat-claims').textContent = USERS.reduce((s, u) => s + (u.claims_submitted || 0), 0).toLocaleString();
+
+      // Clinics by plan: one bar per plan, counting a clinic under every tool it has
+      const counts = PLAN_KEYS.map(k => ({ k, n: ORGS.filter(o => o.products.includes(k)).length }));
+      counts.push({ k: 'none', n: ORGS.filter(o => !o.products.length).length });
+      const max = Math.max(1, ...counts.map(c => c.n));
+      $('plan-mix').innerHTML = counts.map(c => `
+        <div class="flex items-center gap-3 py-2">
+          <div class="w-[96px] text-[13px] text-ink-700 flex-shrink-0">${c.k === 'none' ? 'No Access' : PLANS[c.k].name}</div>
+          <div class="a-bar flex-1"><span style="width:${c.n ? Math.max(3, c.n / max * 100) : 0}%"></span></div>
+          <div class="w-8 text-right text-[12.5px] font-semibold text-ink-900 num">${c.n}</div>
+        </div>`).join('');
+
+      const recent = USERS.slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5);
+      $('recent').innerHTML = recent.length ? recent.map(u => `
+        <div class="a-list-row">
+          <div class="a-avatar">${esc(initials(u.full_name || u.email))}</div>
+          <div class="min-w-0 flex-1"><div class="text-[12.5px] font-medium text-ink-900 truncate">${esc(u.full_name || u.email)}</div>
+            <div class="text-[11.5px] text-ink-500 truncate">${esc(u.organization || 'No organization')}</div></div>
+          <div class="text-[11.5px] text-ink-500 whitespace-nowrap">${fmtRelative(u.created_at)}</div>
+        </div>`).join('') : '<div class="a-empty">No accounts yet.</div>';
+
+      const byEmail = {}; USERS.forEach(u => { byEmail[u.email] = u; });
+      const active = ORGS.map(o => ({ o, logins: o.users.reduce((s, e) => s + ((byEmail[e] || {}).login_count || 0), 0),
+          last: o.users.map(e => (byEmail[e] || {}).last_login).filter(Boolean).sort().pop() }))
+        .sort((a, b) => b.logins - a.logins).slice(0, 5);
+      $('active').innerHTML = active.length ? active.map(({ o, logins, last }) => `
+        <div class="a-list-row">
+          <div class="a-avatar">${esc(initials(o.name))}</div>
+          <div class="min-w-0 flex-1"><div class="text-[12.5px] font-medium text-ink-900 truncate">${esc(o.name)}</div>
+            <div class="text-[11.5px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · Last seen ${fmtRelative(last).toLowerCase()}</div></div>
+          <div class="hidden sm:flex gap-1 flex-wrap justify-end">${planLabel(o.products)}</div>
+          <div class="w-20 text-right"><div class="text-[13px] font-semibold text-ink-900 num">${logins.toLocaleString()}</div><div class="text-[10.5px] text-ink-500">Logins</div></div>
+        </div>`).join('') : '<div class="a-empty">No clinics yet.</div>';
     }
-
-    $('search').addEventListener('input', e => {
-      const q = e.target.value.trim().toLowerCase();
-      render(ALL.filter(u => (u.email || '').toLowerCase().includes(q) || (u.organization || '').toLowerCase().includes(q)));
-    });
-
-    $('rows').addEventListener('click', async e => {
-      const btn = e.target.closest('[data-del]');
-      if (!btn) return;
-      const id = btn.getAttribute('data-del');
-      const u = ALL.find(x => String(x.id) === id);
-      if (!confirm(`Delete account ${u ? u.email : ''}? This cannot be undone.`)) return;
-      const res = await fetch('/api/admin/users/' + id, { method: 'DELETE', credentials: 'same-origin' });
-      if (res.ok) { ALL = ALL.filter(x => String(x.id) !== id); applyStats(ALL); render(ALL); }
-      else alert('Delete failed.');
-    });
-
-    $('logout').addEventListener('click', async () => {
-      await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin' });
-      window.location.href = '/admin/login';
-    });
 
     // ---- Organizations & access ----
-    const PLAN_KEYS = ['suite', 'scribe', 'coding', 'insurance', 'staff'];
-    let ORGS = [];
-    const draft = {};   // org_key -> products being edited
     function orgRow(o) {
       const cur = draft[o.org_key] || o.products, suite = cur.includes('suite');
       const dirty = draft[o.org_key] && draft[o.org_key].slice().sort().join() !== o.products.slice().sort().join();
       const cells = PLAN_KEYS.map(k => {
         const on = k === 'suite' ? suite : (suite || cur.includes(k));
-        return `<td class="px-2 py-2.5 text-center"><input type="checkbox" data-org="${esc(o.org_key)}" data-plan="${k}" ${on ? 'checked' : ''} ${k !== 'suite' && suite ? 'disabled title="Included in the full suite"' : ''} aria-label="${esc(o.name)}: ${k}"></td>`;
+        const locked = k !== 'suite' && suite;
+        return `<td class="c"><button type="button" role="switch" aria-checked="${on}" class="toggle${on ? ' on' : ''}" data-org="${esc(o.org_key)}" data-plan="${k}"
+          ${locked ? 'disabled title="Included in the full suite"' : ''} aria-label="${esc(o.name)}: ${PLANS[k].name}"></button></td>`;
       }).join('');
-      const none = !cur.length;
-      return `<tr class="border-t border-lineSoft">
-        <td class="px-4 py-2.5"><div class="text-[12.5px] font-medium text-ink-900">${esc(o.name)}</div>
-          <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}</div></td>
+      return `<tr>
+        <td><div class="flex items-center gap-3"><div class="a-avatar">${esc(initials(o.name))}</div><div class="min-w-0">
+          <div class="text-[12.5px] font-medium text-ink-900">${esc(o.name)}</div>
+          <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}</div></div></div></td>
         ${cells}
-        <td class="px-4 py-2.5 text-right whitespace-nowrap">
-          ${none ? '<span class="text-[11px] text-risk-600 font-semibold mr-2">No access</span>' : ''}
-          <button data-save-org="${esc(o.org_key)}" class="text-[11.5px] font-semibold px-2.5 py-1 rounded-sm ${dirty ? 'bg-med-600 text-white' : 'text-ink-400'}" ${dirty ? '' : 'disabled'}>Save</button>
+        <td class="r whitespace-nowrap">
+          ${!cur.length ? '<span class="a-pill a-pill-risk mr-2">No Access</span>' : dirty ? '<span class="a-pill a-pill-warn mr-2">Unsaved</span>' : ''}
+          <button type="button" data-save-org="${esc(o.org_key)}" class="a-btn a-btn-primary" ${dirty ? '' : 'disabled'}>Save</button>
         </td></tr>`;
     }
+    function matchesQuery(text) { return !query || text.toLowerCase().includes(query); }
     function renderOrgs() {
-      const q = $('org-search').value.trim().toLowerCase();
-      const list = ORGS.filter(o => !q || (o.name + ' ' + o.users.join(' ')).toLowerCase().includes(q));
-      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">No organizations.</td></tr>';
+      const n = { all: ORGS.length, suite: 0, tools: 0, none: 0 }; ORGS.forEach(o => n[planOf(o)]++);
+      $('org-chips').innerHTML = [['all', 'All'], ['suite', 'Full Suite'], ['tools', 'Single Tools'], ['none', 'No Access']]
+        .map(([k, l]) => `<button type="button" class="a-chip${orgFilter === k ? ' active' : ''}" data-filter="${k}">${l}<span class="n">${n[k]}</span></button>`).join('');
+      const list = ORGS.filter(o => (orgFilter === 'all' || planOf(o) === orgFilter) && matchesQuery(o.name + ' ' + o.users.join(' ')));
+      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : '<tr><td colspan="7" class="a-empty">No organizations match.</td></tr>';
+      $('n-orgs').textContent = ORGS.length || '';
     }
-    async function loadOrgs() {
-      const res = await fetch('/api/admin/orgs', { credentials: 'same-origin' });
-      if (res.status === 401) { window.location.href = '/admin/login'; return; }
-      ORGS = await res.json(); renderOrgs();
-    }
-    $('org-search').addEventListener('input', renderOrgs);
-    $('org-rows').addEventListener('change', e => {
-      const cb = e.target.closest('[data-plan]'); if (!cb) return;
-      const o = ORGS.find(x => x.org_key === cb.dataset.org);
-      let cur = (draft[o.org_key] || o.products).filter(p => p !== 'suite' || cb.dataset.plan === 'suite');
-      if (cb.dataset.plan === 'suite') cur = cb.checked ? ['suite'] : [];
-      else cur = cb.checked ? [...new Set(cur.concat(cb.dataset.plan))] : cur.filter(p => p !== cb.dataset.plan);
-      draft[o.org_key] = cur; renderOrgs();
-    });
+    $('org-chips').addEventListener('click', e => { const c = e.target.closest('[data-filter]'); if (c) { orgFilter = c.dataset.filter; renderOrgs(); } });
     $('org-rows').addEventListener('click', async e => {
+      const t = e.target.closest('[data-plan]');
+      if (t) {
+        const o = ORGS.find(x => x.org_key === t.dataset.org), plan = t.dataset.plan, on = !t.classList.contains('on');
+        let cur = (draft[o.org_key] || o.products).filter(p => p !== 'suite');
+        if (plan === 'suite') cur = on ? ['suite'] : [];
+        else cur = on ? [...new Set(cur.concat(plan))] : cur.filter(p => p !== plan);
+        draft[o.org_key] = cur; renderOrgs(); return;
+      }
       const b = e.target.closest('[data-save-org]'); if (!b) return;
       const key = b.dataset.saveOrg, o = ORGS.find(x => x.org_key === key), products = draft[key];
       if (!products.length && !confirm(`Turn off every Althais tool for ${o.name}? Their people will see a "no active plan" page.`)) return;
+      b.disabled = true; b.textContent = 'Saving…';
       const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products }) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { alert(data.error || 'Could not save.'); return; }
-      o.products = data.products; delete draft[key]; renderOrgs();
+      if (res.status === 401) { location.href = '/admin/login'; return; }
+      if (!res.ok) { alert(data.error || 'Could not save.'); renderOrgs(); return; }
+      o.products = data.products; delete draft[key]; renderAll();
+      toast(`Saved. ${o.name} now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}.`);
     });
 
+    // ---- Accounts ----
+    function renderAccounts() {
+      const orgs = orgByEmail();
+      const list = USERS.filter(u => matchesQuery([u.email, u.full_name, u.organization].join(' ')));
+      $('n-accounts').textContent = USERS.length || '';
+      $('rows').innerHTML = list.length ? list.map(u => `
+        <tr>
+          <td><div class="flex items-center gap-3"><div class="a-avatar">${esc(initials(u.full_name || u.email))}</div><div class="min-w-0">
+            <div class="text-[12.5px] font-medium text-ink-900">${esc(u.full_name || '—')}</div>
+            <div class="text-[11px] text-ink-500 mono">${esc(u.email)}</div></div></div></td>
+          <td class="text-ink-700">${esc(u.organization || '—')}</td>
+          <td><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products) : '—'}</div></td>
+          <td class="r num">${u.login_count}</td>
+          <td class="r num">${u.claims_submitted}</td>
+          <td class="text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}</td>
+          <td class="text-ink-500 whitespace-nowrap">${fmtDate(u.created_at)}</td>
+          <td class="r"><button type="button" data-del="${u.id}" class="a-link-risk">Delete</button></td>
+        </tr>`).join('') : '<tr><td colspan="8" class="a-empty">No accounts match.</td></tr>';
+    }
+    $('rows').addEventListener('click', async e => {
+      const btn = e.target.closest('[data-del]'); if (!btn) return;
+      const id = btn.dataset.del, u = USERS.find(x => String(x.id) === id);
+      if (!confirm(`Delete the account ${u ? u.email : ''}? This can't be undone.`)) return;
+      const res = await fetch('/api/admin/users/' + id, { method: 'DELETE', credentials: 'same-origin' });
+      if (!res.ok) { alert('Could not delete the account.'); return; }
+      await load(); toast(`Deleted ${u ? u.email : 'the account'}.`);
+    });
+
+    // ---- Plans ----
+    function renderPlans() {
+      $('plan-cards').innerHTML = PLAN_KEYS.map(k => {
+        const p = PLANS[k], n = ORGS.filter(o => o.products.includes(k)).length;
+        return `<div class="a-card a-plan${k === 'suite' ? ' md:col-span-2' : ''}">
+          <div class="flex items-start justify-between gap-3">
+            <div><div class="a-card-t">${p.name}</div><div class="a-card-s">${p.blurb}</div></div>
+            <span class="a-pill ${n ? 'a-pill-brand' : 'a-pill-muted'}">${n} ${n === 1 ? 'clinic' : 'clinics'}</span>
+          </div>
+          <ul>${p.has.map(h => `<li>${CHECK}${esc(h)}</li>`).join('')}</ul>
+          <div class="flex items-center justify-between gap-3 pt-2 mt-auto border-t border-lineSoft">
+            <span class="a-label">Opens At</span><span class="a-url">app.althais.com${p.home}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    const CHECK = '<svg fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
+    function renderAll() { renderOverview(); renderOrgs(); renderAccounts(); renderPlans(); }
+
+    async function load() {
+      try {
+        const [ru, ro] = await Promise.all([fetch('/api/admin/users', { credentials: 'same-origin' }), fetch('/api/admin/orgs', { credentials: 'same-origin' })]);
+        if (ru.status === 401 || ro.status === 401) { location.href = '/admin/login'; return; }
+        USERS = await ru.json(); ORGS = await ro.json();
+        renderAll();
+      } catch {
+        ['org-rows', 'rows'].forEach(id => { $(id).innerHTML = '<tr><td colspan="8" class="a-empty text-risk-600">Could not load. Try Refresh.</td></tr>'; });
+      }
+    }
+
+    $('search').addEventListener('input', e => {
+      query = e.target.value.trim().toLowerCase();
+      const on = document.querySelector('.a-tab.active').dataset.tab;
+      if (query && (on === 'overview' || on === 'plans')) show('orgs');
+      renderOrgs(); renderAccounts();
+    });
+    $('refresh').addEventListener('click', async () => { await load(); toast('Up to date.'); });
+    $('logout').addEventListener('click', async () => {
+      await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin' });
+      location.href = '/admin/login';
+    });
+
+    const hr = new Date().getHours();
+    $('greeting').textContent = hr < 12 ? 'Good Morning' : hr < 18 ? 'Good Afternoon' : 'Good Evening';
+    $('today').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    show(location.hash.slice(1) || 'overview');
+    window.addEventListener('hashchange', () => show(location.hash.slice(1) || 'overview'));
     load();
-    loadOrgs();
   </script>
 </body>
 </html>

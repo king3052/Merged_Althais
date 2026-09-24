@@ -120,13 +120,13 @@
   }
 
   var current = DEFAULT, serverDoc = null, editable = false;
-  var cached = null;
-  try { cached = norm(localStorage.getItem(CACHE_KEY)); } catch (e) {}
+  var cached = null, isAdmin = /^\/admin(\/|$)/.test(location.pathname);
+  /* the Althais admin console isn't a clinic: always Althais blue, never the last clinic's color on this browser */
+  if (!isAdmin) try { cached = norm(localStorage.getItem(CACHE_KEY)); } catch (e) {}
   apply(cached || DEFAULT);
 
   /* the practice's saved color, shared across logins */
-  /* the Althais admin console isn't a clinic, so it has no brand color to fetch */
-  var loaded = (/^\/admin(\/|$)/.test(location.pathname) ? Promise.resolve(null)
+  var loaded = (isAdmin ? Promise.resolve(null)
       : fetch("/api/branding", { credentials: "same-origin" }).then(function (r) { return r.ok ? r.json() : null; }))   /* signed out: keep the cached color */
     .then(function (res) {
       if (!res) return current;

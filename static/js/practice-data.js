@@ -392,7 +392,24 @@
     clearTimeout(el._t); el._t = setTimeout(function () { el.style.opacity = "0"; }, 2600);
   }
 
+  /* ---------- each tool's own settings (Settings > Scribe / Coding / Insurance / Team) ---------- */
+  var TOOL_DEFAULTS = {
+    scribe: { default_visit_type: "Office Visit", record_language: "en-US", show_vitals: true, open_history: false, confirm_sign: true, sign_credentials: "" },
+    coding: { min_confidence: "0", auto_check: false, show_reasons: true, default_encounter: "office" },
+    insurance: { timely_filing_days: "90", denial_followup_days: "14", clearinghouse: "Availity", scrub_before_submit: true, appeal_signature: "" },
+    team: { credential_warn_days: "30", training_due_days: "14" }
+  };
+  /* Resolves to the clinic's settings for one tool, with the defaults filled in. Never rejects. */
+  function toolSettings(tool) {
+    var base = Object.assign({}, TOOL_DEFAULTS[tool] || {});
+    return fetch("/api/org/settings/" + tool + "_prefs", { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { return Object.assign(base, (j && j.data) || {}); })
+      .catch(function () { return base; });
+  }
+
   window.PracticeData = {
+    TOOL_DEFAULTS: TOOL_DEFAULTS, toolSettings: toolSettings,
     ns: NS, local: local, tasks: tasks, alerts: alerts, activity: activity, LEVEL_RANK: LEVEL_RANK,
     worklist: worklist, myIdentity: myIdentity, isMine: isMine, OWNER_ROLES: OWNER_ROLES, KIND_LABEL: KIND_LABEL,
     esc: esc, todayIso: todayIso, isoOffset: isoOffset, money: money, moneyShort: moneyShort, fmtDate: fmtDate, relTime: relTime,

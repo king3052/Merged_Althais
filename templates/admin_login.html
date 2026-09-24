@@ -1,71 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="/static/js/brand.js"></script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Althais Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { theme: { extend: {
-      fontFamily: { sans: ['Inter', 'sans-serif'] },
-      colors: {
-        shell: '#f4f5f7', panel: '#ffffff', line: '#e4e6eb',
-        ink: { 900: '#0f1116', 700: '#2c313b', 500: '#6b7280' },
-        med: { 700: 'rgb(var(--brand-700-rgb) / <alpha-value>)', 600: 'rgb(var(--brand-rgb) / <alpha-value>)', 500: 'rgb(var(--brand-500-rgb) / <alpha-value>)', 100: 'rgb(var(--brand-100-rgb) / <alpha-value>)', 50: 'rgb(var(--brand-50-rgb) / <alpha-value>)' },
-        risk: { 600: '#c83838', 100: '#ffe1e1' }
-      }
-    } } };
-  </script>
-  <style>body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }</style>
-  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/althais-tab-16.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
-  <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
-  <link rel="stylesheet" href="/static/css/brand-theme.css" />
+  {% include "_head.html" %}
+  <title>Althais — Admin Sign In</title>
+  <style>
+    .c-bar { height: 56px; background: #0f1116; color: #e7eaf2; border-bottom: 1px solid #1f232b; display: flex; align-items: center; padding: 0 20px; gap: 14px; }
+    .c-brand { display: flex; align-items: center; gap: 10px; color: inherit; }
+    .c-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--brand); display: flex; align-items: center; justify-content: center; }
+    .c-mark svg { width: 15px; height: 15px; fill: var(--brand-on); }
+    .c-word { font-size: 14px; font-weight: 600; letter-spacing: .2em; }
+    .c-console { font-size: 11px; font-weight: 600; color: #aab0bf; border: 1px solid #2c313b; border-radius: 999px; padding: 3px 9px; }
+    .c-ic { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #aab0bf; background: transparent; border: 1px solid transparent; cursor: pointer; }
+    .c-ic:hover { background: #1a1d24; border-color: #2c313b; color: #fff; }
+    .c-ic svg { width: 17px; height: 17px; }
+    .theme-btn .theme-sun { display: none; }
+    html[data-theme-resolved="dark"] .theme-btn .theme-sun { display: block; }
+    html[data-theme-resolved="dark"] .theme-btn .theme-moon { display: none; }
+    html[data-theme-resolved="dark"] .c-bar { background: #0b0d12; }
+    .l-card { background: #fff; border: 1px solid #e4e6eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(15,17,22,.04), 0 12px 32px -16px rgba(15,17,22,.18); }
+    .l-label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; font-weight: 600; margin-bottom: 6px; }
+    .l-input { width: 100%; background: #fff; border: 1px solid #e4e6eb; color: #0f1116; border-radius: 8px; padding: 9px 12px; font-size: 13px; outline: none; font-family: inherit; transition: border-color .15s, box-shadow .15s; }
+    .l-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgb(var(--brand-rgb) / .12); }
+    .l-btn { width: 100%; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; background: var(--brand); color: var(--brand-on); border: 1px solid var(--brand-700); cursor: pointer; font-family: inherit; transition: background .15s; }
+    .l-btn:hover { background: var(--brand-700); }
+    .l-btn:disabled { opacity: .7; cursor: default; }
+    html[data-theme-resolved="dark"] .l-card { background: #1a1d24; border-color: #2c313b; box-shadow: none; }
+    html[data-theme-resolved="dark"] .l-input { background: #14181f; border-color: #2c313b; color: #e7eaf2; }
+  </style>
 </head>
-<body class="bg-shell min-h-screen flex items-center justify-center px-4">
-  <div class="w-full max-w-[360px]">
-    <div class="text-center mb-8">
-      <div class="text-[11px] font-bold tracking-widest text-med-600 uppercase">ALTHAIS</div>
-      <div class="text-[13px] font-semibold text-ink-900 mt-1">Admin Portal</div>
+<body class="bg-shell text-ink-800 min-h-screen flex flex-col">
+  <header class="c-bar">
+    <a href="/" class="c-brand" aria-label="Althais">
+      <span class="c-mark"><svg viewBox="161 142 1032 1001" aria-hidden="true"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg></span>
+      <span class="c-word">ALTHAIS</span>
+    </a>
+    <span class="c-console">Admin Console</span>
+    <button type="button" data-theme-toggle class="c-ic theme-btn ml-auto" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+      <svg class="theme-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="theme-sun" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-[380px]">
+      <h1 class="text-[26px] font-semibold text-ink-900 tracking-[-0.022em]">Admin Sign In</h1>
+      <p class="text-[12.5px] text-ink-500 mt-1">For the Althais team: clinics, plans and accounts.</p>
+      <div class="l-card p-6 mt-5">
+        <div id="msg" class="hidden mb-4 text-[12.5px] rounded-md px-3 py-2 bg-risk-100 text-risk-600" role="alert"></div>
+        <form id="form" class="space-y-4" novalidate>
+          <div>
+            <label class="l-label" for="username">Username</label>
+            <input id="username" type="text" autocomplete="username" class="l-input" placeholder="admin" autofocus />
+          </div>
+          <div>
+            <label class="l-label" for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" class="l-input" placeholder="••••••••" />
+          </div>
+          <button type="submit" id="btn" class="l-btn">Sign In To Admin</button>
+        </form>
+      </div>
+      <p class="text-center text-[12px] text-ink-500 mt-4"><a href="/login" class="hover:text-med-600 font-medium">← Back To App Sign In</a></p>
     </div>
-    <div class="bg-panel border border-line rounded-lg shadow-sm p-6">
-      <div id="msg" class="hidden mb-4 text-[12.5px] rounded-sm px-3 py-2 bg-risk-100 text-risk-600"></div>
-      <form id="form" class="space-y-4" novalidate>
-        <div>
-          <label class="block text-[11px] font-semibold text-ink-700 mb-1.5">Username</label>
-          <input id="username" type="text" autocomplete="username" class="w-full text-[13px] border border-line rounded-md px-3 py-2 bg-white text-ink-900" placeholder="admin" />
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-ink-700 mb-1.5">Password</label>
-          <input id="password" type="password" autocomplete="current-password" class="w-full text-[13px] border border-line rounded-md px-3 py-2 bg-white text-ink-900" placeholder="••••••••" />
-        </div>
-        <button type="submit" id="btn" class="w-full text-[13px] font-semibold bg-med-600 text-white rounded-md py-2.5 hover:bg-med-700 transition">Sign in to Admin</button>
-      </form>
-    </div>
-    <p class="text-center text-[11px] text-ink-500 mt-4">
-      <a href="/login" class="hover:underline">← Back to app login</a>
-    </p>
-  </div>
+  </main>
+
   <script>
     const $ = id => document.getElementById(id);
     $('form').addEventListener('submit', async e => {
       e.preventDefault();
       $('msg').classList.add('hidden');
-      $('btn').disabled = true; $('btn').textContent = 'Signing in…';
+      $('btn').disabled = true; $('btn').textContent = 'Signing In…';
       const body = new URLSearchParams();
       body.set('username', $('username').value.trim());
       body.set('password', $('password').value);
       try {
-        const res = await fetch('/admin/login', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body.toString(), credentials: 'same-origin' });
+        const res = await fetch('/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString(), credentials: 'same-origin' });
         const data = await res.json().catch(() => ({}));
-        if (res.ok && data.ok) { window.location.href = data.redirect || '/admin'; return; }
+        if (res.ok && data.ok) { location.href = data.redirect || '/admin'; return; }
         $('msg').textContent = data.error || 'Invalid credentials.';
         $('msg').classList.remove('hidden');
-      } catch { $('msg').textContent = 'Network error.'; $('msg').classList.remove('hidden'); }
-      finally { $('btn').disabled = false; $('btn').textContent = 'Sign in to Admin'; }
+      } catch { $('msg').textContent = 'Network error. Try again.'; $('msg').classList.remove('hidden'); }
+      finally { $('btn').disabled = false; $('btn').textContent = 'Sign In To Admin'; }
     });
   </script>
 </body>

@@ -151,10 +151,19 @@
       'Paid':            { bg: '#d8f5e3', fg: '#0c8a4f', mark: '✓' },
     };
 
+    // Settings > Insurance: how old an unsent claim or an open denial can get before it's flagged
+    let INS = { timely_filing_days: '90', denial_followup_days: '14' };
+    fetch('/api/org/settings/insurance_prefs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null)
+      .then(j => { if (j && j.data) { INS = Object.assign(INS, j.data); render(); } }).catch(() => {});
     function ageOf(c) {
       if (!c.ts) return '—';
       var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
       if (days <= 0) return 'today';
+      const s = (c.status || '').toLowerCase();
+      if (/ready to submit|pending review/.test(s) && days > Number(INS.timely_filing_days))
+        return '<span class="text-risk-600 font-semibold" title="Unsent past your ' + esc(INS.timely_filing_days) + '-day filing warning">' + days + 'd · File Now</span>';
+      if (s === 'denied' && days > Number(INS.denial_followup_days))
+        return '<span class="text-warn-600 font-semibold" title="Denied over ' + esc(INS.denial_followup_days) + ' days ago">' + days + 'd · Follow Up</span>';
       return days + 'd';
     }
 

@@ -171,9 +171,10 @@ async def pilot_page():
 
 # ── Admin pages ──────────────────────────────────────────────────────────────
 @app.get("/admin/login")
-async def admin_login_page():
-    with open("templates/admin_login.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+async def admin_login_page(request: Request):
+    if current_admin(request):
+        return RedirectResponse(url="/admin", status_code=302)
+    return templates.TemplateResponse(request, "admin_login.html", {})
 
 
 @app.get("/admin")
@@ -181,8 +182,7 @@ async def admin_page(request: Request):
     # Not an admin → bounce to admin login
     if not current_admin(request):
         return RedirectResponse(url="/admin/login", status_code=302)
-    with open("templates/admin_dashboard.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    return templates.TemplateResponse(request, "admin_dashboard.html", {})
 
 
 @app.post("/logout")
