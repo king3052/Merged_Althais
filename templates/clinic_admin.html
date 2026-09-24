@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Clinic Admin</title>
+  <style>
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:var(--brand); }
+    .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .sec { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin:18px 0 6px; }
+    .btn { font-size:12px; padding:6px 10px; border-radius:2px; border:1px solid #e4e6eb; background:#fff; color:#2c313b; font-weight:600; white-space:nowrap; cursor:pointer; }
+    .btn:hover { background:#f4f5f7; }
+    .btn-p { background:var(--brand); border-color:var(--brand); color:var(--brand-on); }
+    .btn-p:hover { background:var(--brand-700); }
+    .btn-risk { color:#c83838; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .initials { width:28px; height:28px; border-radius:2px; background:var(--brand-100); color:var(--brand-text-strong); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .modal-overlay { background:rgba(15,17,22,.45); }
+    .tool-opt { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid #e4e6eb; border-radius:2px; font-size:12.5px; color:#2c313b; cursor:pointer; }
+    .tool-opt input { accent-color:var(--brand); }
+    .role-card { background:#fff; border:1px solid #e4e6eb; border-radius:2px; }
+    .can li { display:flex; gap:8px; font-size:12px; color:#2c313b; padding:2px 0; }
+    .can li::before { content:''; width:4px; height:4px; background:var(--brand); margin-top:7px; flex-shrink:0; }
+    .can li.no { color:#8b909c; }
+    .can li.no::before { background:#c7cad1; }
+    .pw { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:15px; letter-spacing:.04em; background:#f4f5f7; border:1px solid #e4e6eb; border-radius:2px; padding:10px 12px; user-select:all; }
+    html[data-theme-resolved="dark"] .fld, html[data-theme-resolved="dark"] .flt, html[data-theme-resolved="dark"] .btn, html[data-theme-resolved="dark"] .tool-opt { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .btn-p { background:var(--brand); border-color:var(--brand); color:var(--brand-on); }
+    html[data-theme-resolved="dark"] .role-card { background:#1a1d24; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .can li { color:#d6dae5; }
+    html[data-theme-resolved="dark"] .initials { background:var(--brand-dark-tint); color:var(--brand-dark-link-soft); }
+    html[data-theme-resolved="dark"] .pw { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+  </style>
+</head>
+<body class="bg-shell">
+  {% include "_nav.html" %}
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Clinic Admin</h1>
+        <p id="page-sub" class="text-[12px] text-ink-500 mt-0.5">Who in your clinic can use Althais, and what each person can do.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="invite-btn" type="button" class="btn btn-p">+ Invite Employee</button>
+      </div>
+    </div>
+
+    <!-- =================== EMPLOYEES =================== -->
+    <section data-ca="employees">
+      <div class="bg-panel border-b border-line">
+        <div class="flex flex-wrap">
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Employees</div><div id="k-all" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Admins</div><div id="k-admins" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Signed In This Week</div><div id="k-week" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Invited, Not Signed In</div><div id="k-invited" class="text-[20px] font-semibold text-warn-600 num mt-0.5">—</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Paused</div><div id="k-paused" class="text-[20px] font-semibold text-ink-500 num mt-0.5">—</div></div>
+        </div>
+      </div>
+      <div class="p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <input id="f-search" type="search" placeholder="Search name or email…" class="flt w-[220px]" aria-label="Search employees" />
+          <select id="f-role" class="flt" aria-label="Filter by role"><option value="">All Roles</option><option value="admin">Admin</option><option value="biller">Biller</option><option value="provider">Provider</option><option value="viewer">Viewer</option></select>
+          <select id="f-status" class="flt" aria-label="Filter by status"><option value="">All Statuses</option><option value="active">Active</option><option value="invited">Invited</option><option value="paused">Paused</option></select>
+        </div>
+        <div class="bg-panel border border-line rounded-sm">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+            <h3 class="text-[13px] font-semibold text-ink-900">Employees With Althais Logins</h3>
+            <span id="count" class="text-[11px] text-ink-500">Loading…</span>
+          </div>
+          <div class="overflow-x-auto thin-scroll">
+            <table class="w-full">
+              <thead><tr class="table-head">
+                <th class="td text-left">Employee</th><th class="td text-left">Role</th><th class="td text-left">Provider Name</th><th class="td text-left">Tools</th><th class="td text-left">Status</th><th class="td text-left">Last Sign-In</th><th class="td"></th>
+              </tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="text-[11.5px] text-ink-500 mt-3">These are the people who can sign in to Althais. Staff records like licenses and training live in Staff &gt; Team for clinics with the Team tool.</p>
+      </div>
+    </section>
+
+    <!-- =================== ROLES & ACCESS =================== -->
+    <section data-ca="access" class="hidden">
+      <div class="p-5 grid lg:grid-cols-3 gap-4">
+        <div class="bg-panel border border-line rounded-sm lg:col-span-1">
+          <div class="px-4 py-2.5 border-b border-line"><h3 class="text-[13px] font-semibold text-ink-900">Your Clinic’s Plan</h3></div>
+          <div class="px-4 py-3">
+            <div id="plan-pills" class="flex gap-1 flex-wrap"></div>
+            <p class="text-[12px] text-ink-500 mt-3">Every employee can use these unless you limit them to some tools. To change your plan, contact Althais.</p>
+          </div>
+        </div>
+        <div class="lg:col-span-2 grid md:grid-cols-2 gap-4" id="role-cards"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- =================== INVITE / EDIT PANEL =================== -->
+  <div id="backdrop" class="fixed inset-0 z-40 hidden modal-overlay"></div>
+  <aside id="panel" class="fixed top-0 right-0 z-50 h-screen w-[460px] max-w-[94vw] bg-white border-l border-line shadow-xl overflow-y-auto thin-scroll hidden" aria-label="Employee">
+    <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
+      <div class="flex items-center gap-2.5">
+        <div id="p-initials" class="initials">+</div>
+        <div><div id="p-title" class="text-[13.5px] font-semibold text-ink-900">Invite Employee</div><div id="p-sub" class="text-[11px] text-ink-500"></div></div>
+      </div>
+      <button id="p-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="p-4 pb-28 space-y-3">
+      <div><label class="lbl" for="p-name">Full Name</label><input id="p-name" class="fld" autocomplete="off" /></div>
+      <div><label class="lbl" for="p-email">Work Email</label><input id="p-email" type="email" class="fld" autocomplete="off" /></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="lbl" for="p-role">Role</label><select id="p-role" class="fld"><option value="provider">Provider</option><option value="biller">Biller</option><option value="viewer">Viewer</option><option value="admin">Admin</option></select></div>
+        <div><label class="lbl" for="p-provider">Provider Name</label><input id="p-provider" class="fld" placeholder="e.g. Dr. R. Patel" /></div>
+      </div>
+      <p id="p-role-help" class="text-[11.5px] text-ink-500"></p>
+      <div>
+        <span class="lbl">Tools They Can Use</span>
+        <label class="tool-opt mb-1.5"><input type="checkbox" id="p-all-tools" checked /> <span><b class="font-semibold">Everything your clinic has</b></span></label>
+        <div id="p-tools" class="grid grid-cols-2 gap-1.5"></div>
+      </div>
+      <div id="p-error" class="hidden text-[12px] text-risk-600"></div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button id="p-cancel" type="button" class="btn">Cancel</button>
+        <button id="p-save" type="button" class="btn btn-p">Send Invite</button>
+      </div>
+
+      <div id="p-manage" class="hidden">
+        <div class="sec">Account</div>
+        <div class="bg-panel border border-line rounded-sm divide-y divide-line">
+          <div class="px-3 py-2.5 flex items-center justify-between gap-3"><div><div class="text-[12.5px] font-semibold text-ink-900">Reset Password</div><div class="text-[11.5px] text-ink-500">Send them a new temporary password</div></div><button id="p-reset" type="button" class="btn">Reset</button></div>
+          <div class="px-3 py-2.5 flex items-center justify-between gap-3"><div><div id="p-pause-t" class="text-[12.5px] font-semibold text-ink-900">Pause Access</div><div id="p-pause-s" class="text-[11.5px] text-ink-500">They can’t sign in until you turn it back on. Nothing is deleted.</div></div><button id="p-pause" type="button" class="btn">Pause</button></div>
+          <div class="px-3 py-2.5 flex items-center justify-between gap-3"><div><div class="text-[12.5px] font-semibold text-risk-600">Remove From Clinic</div><div class="text-[11.5px] text-ink-500">Deletes their login. The clinic’s records stay.</div></div><button id="p-remove" type="button" class="btn btn-risk">Remove</button></div>
+        </div>
+        <div id="p-stats" class="text-[11.5px] text-ink-500 mt-3"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =================== TEMPORARY PASSWORD =================== -->
+  <div id="pw-modal" class="fixed inset-0 z-[60] hidden items-center justify-center modal-overlay">
+    <div class="bg-white rounded-sm shadow-xl w-[420px] max-w-[92vw]">
+      <div class="px-4 py-3 border-b border-line"><h3 id="pw-title" class="text-[13.5px] font-semibold text-ink-900">Temporary Password</h3></div>
+      <div class="p-4 space-y-3">
+        <p id="pw-text" class="text-[12.5px] text-ink-700"></p>
+        <div id="pw-value" class="pw"></div>
+        <p class="text-[11.5px] text-ink-500">This is the only time it’s shown. They’ll be asked to set their own after signing in.</p>
+      </div>
+      <div class="px-4 py-3 border-t border-line flex justify-end gap-2">
+        <button id="pw-copy" type="button" class="btn">Copy</button>
+        <button id="pw-done" type="button" class="btn btn-p">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/practice-data.js"></script>
+  <script>
+    const P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = P.esc;
+    const ROLES = {
+      admin:    { name: 'Admin',    blurb: 'Runs the clinic’s Althais: everything, plus Clinic Admin and Settings.', can: ['Everything in the clinic’s tools', 'Invite, pause and remove employees', 'Change roles and tool access', 'Change the clinic’s Settings'] },
+      biller:   { name: 'Biller',   blurb: 'Works claims and billing.', can: ['Create, edit and submit claims', 'Edit patient billing details', 'Use the clinic’s tools'], cant: ['Manage employees'] },
+      provider: { name: 'Provider', blurb: 'Sees patients and writes notes.', can: ['View patients and claims', 'Write and sign notes', 'Use the clinic’s tools'], cant: ['Submit claims', 'Manage employees'] },
+      viewer:   { name: 'Viewer',   blurb: 'Read-only.', can: ['View patients and claim status'], cant: ['Edit anything', 'Manage employees'] },
+    };
+    const TOOL_NAMES = { suite: 'Full Suite', scribe: 'Scribe', coding: 'Coding', insurance: 'Insurance', staff: 'Team' };
+    let DATA = { members: [], products: [], clinic: '' }, editing = null;
+
+    const initials = (s) => (s || '?').replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+    const status = (m) => !m.active ? 'paused' : m.invited ? 'invited' : 'active';
+    const STATUS_PILL = { active: ['Active', 'background:#d8f5e3;color:#0c8a4f'], invited: ['Invited', 'background:#fff0d6;color:#b86a00'], paused: ['Paused', 'background:#eceef2;color:#4a505c'] };
+    const pill = (t, style) => `<span class="pill" style="${style}">${esc(t)}</span>`;
+    // "Everything your clinic has" covers the full suite; the boxes narrow someone to single tools
+    const toolOptions = () => DATA.products.includes('suite') ? ['scribe', 'coding', 'insurance', 'staff'] : DATA.products.filter(p => TOOL_NAMES[p] && p !== 'suite');
+    const toolsLabel = (m) => !m.tools.length ? '<span class="text-ink-500">All Tools</span>' : m.tools.map(t => pill(TOOL_NAMES[t] || t, 'background:var(--brand-100);color:var(--brand-text-strong)')).join(' ');
+
+    async function api(method, url, body) {
+      const res = await fetch(url, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) { location.href = '/login'; throw new Error('Signed out'); }
+      if (!res.ok) throw new Error(data.error || data.detail || 'Something went wrong. Try again.');
+      return data;
+    }
+
+    // ---- sections (sub-menu tabs) ----
+    function showTab() {
+      const tab = location.hash.slice(1) === 'access' ? 'access' : 'employees';
+      document.querySelectorAll('[data-ca]').forEach(s => s.classList.toggle('hidden', s.dataset.ca !== tab));
+      document.querySelectorAll('[data-ca-tab]').forEach(a => a.classList.toggle('active', a.dataset.caTab === tab));
+    }
+    window.addEventListener('hashchange', showTab);
+
+    // ---- employees ----
+    function render() {
+      const M = DATA.members, week = Date.now() - 7 * 864e5;
+      $('k-all').textContent = M.length;
+      $('k-admins').textContent = M.filter(m => m.role === 'admin' && m.active).length;
+      $('k-week').textContent = M.filter(m => m.last_login && new Date(m.last_login) > week).length;
+      $('k-invited').textContent = M.filter(m => m.active && m.invited).length;
+      $('k-paused').textContent = M.filter(m => !m.active).length;
+      if (DATA.clinic) $('page-sub').textContent = `${DATA.clinic} · Who can use Althais, and what each person can do.`;
+
+      const q = $('f-search').value.trim().toLowerCase(), r = $('f-role').value, st = $('f-status').value;
+      const list = M.filter(m => (!q || (m.full_name + ' ' + m.email).toLowerCase().includes(q)) && (!r || m.role === r) && (!st || status(m) === st));
+      $('count').textContent = `${list.length} of ${M.length}`;
+      $('rows').innerHTML = list.length ? list.map(m => {
+        const [sl, ss] = STATUS_PILL[status(m)];
+        return `<tr class="row-hover cursor-pointer" data-id="${m.id}">
+          <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(m.full_name || m.email))}</div><div class="min-w-0">
+            <div class="font-semibold text-ink-900">${esc(m.full_name || m.email)}${m.is_me ? ' <span class="text-[11px] font-normal text-ink-500">(you)</span>' : ''}</div>
+            <div class="text-[11px] text-ink-500">${esc(m.email)}</div></div></div></td>
+          <td class="td">${esc(ROLES[m.role] ? ROLES[m.role].name : m.role)}</td>
+          <td class="td text-ink-700">${esc(m.provider_name || '—')}</td>
+          <td class="td"><div class="flex gap-1 flex-wrap">${toolsLabel(m)}</div></td>
+          <td class="td">${pill(sl, ss)}</td>
+          <td class="td text-ink-500 whitespace-nowrap">${m.last_login ? esc(P.relTime(m.last_login)) : 'Never'}</td>
+          <td class="td text-right"><button type="button" class="text-[11px] font-semibold text-med-600 hover:text-med-700" data-edit="${m.id}">Manage</button></td>
+        </tr>`;
+      }).join('') : `<tr><td colspan="7" class="px-4 py-10 text-center text-[12px] text-ink-500">${M.length ? 'No employees match.' : 'No employees yet. Invite your first one.'}</td></tr>`;
+      renderAccess();
+    }
+    ['f-search', 'f-role', 'f-status'].forEach(id => $(id).addEventListener('input', render));
+    $('rows').addEventListener('click', e => { const tr = e.target.closest('[data-id]'); if (tr) openPanel(DATA.members.find(m => String(m.id) === tr.dataset.id)); });
+
+    // ---- roles & access ----
+    function renderAccess() {
+      $('plan-pills').innerHTML = DATA.products.map(p => pill(TOOL_NAMES[p] || p, 'background:var(--brand-100);color:var(--brand-text-strong)')).join(' ')
+        + ' ' + pill(DATA.althea ? 'Althea On' : 'No Althea', DATA.althea ? 'background:#d8f5e3;color:#0c8a4f' : 'background:#eceef2;color:#4a505c');
+      $('role-cards').innerHTML = Object.entries(ROLES).map(([k, r]) => {
+        const n = DATA.members.filter(m => m.role === k && m.active).length;
+        return `<div class="role-card"><div class="px-4 py-2.5 border-b border-line flex items-center justify-between"><h3 class="text-[13px] font-semibold text-ink-900">${r.name}</h3>${pill(n + (n === 1 ? ' person' : ' people'), 'background:#eceef2;color:#4a505c')}</div>
+          <div class="px-4 py-3"><p class="text-[12px] text-ink-500 mb-2">${r.blurb}</p><ul class="can">${r.can.map(c => `<li>${esc(c)}</li>`).join('')}${(r.cant || []).map(c => `<li class="no">Can’t: ${esc(c)}</li>`).join('')}</ul></div></div>`;
+      }).join('');
+    }
+
+    // ---- invite / edit panel ----
+    function renderTools(selected) {
+      const opts = toolOptions(), all = !selected.length;
+      $('p-all-tools').checked = all;
+      $('p-tools').innerHTML = opts.map(t => `<label class="tool-opt"><input type="checkbox" value="${t}" ${all || selected.includes(t) ? 'checked' : ''} ${all ? 'disabled' : ''}/> ${TOOL_NAMES[t]}</label>`).join('');
+    }
+    $('p-all-tools').addEventListener('change', () => renderTools($('p-all-tools').checked ? [] : toolOptions().slice(0, 1)));
+    const pickedTools = () => $('p-all-tools').checked ? [] : [...$('p-tools').querySelectorAll('input:checked')].map(i => i.value);
+    function roleHelp() { const r = ROLES[$('p-role').value]; $('p-role-help').textContent = r ? r.name + ': ' + r.blurb : ''; }
+    $('p-role').addEventListener('change', roleHelp);
+
+    function openPanel(m) {
+      editing = m || null;
+      $('p-error').classList.add('hidden');
+      $('p-title').textContent = m ? (m.full_name || m.email) : 'Invite Employee';
+      $('p-sub').textContent = m ? m.email : 'They get an email with a temporary password.';
+      $('p-initials').textContent = m ? initials(m.full_name || m.email) : '+';
+      $('p-name').value = m ? m.full_name : ''; $('p-email').value = m ? m.email : '';
+      $('p-email').disabled = !!m;
+      $('p-role').value = m ? m.role : 'provider'; $('p-provider').value = m ? m.provider_name : '';
+      $('p-role').disabled = !!(m && m.is_me);
+      renderTools(m ? m.tools : []);
+      $('p-all-tools').disabled = !!(m && m.is_me);
+      roleHelp();
+      $('p-save').textContent = m ? 'Save Changes' : 'Send Invite';
+      $('p-manage').classList.toggle('hidden', !m || m.is_me);
+      if (m) {
+        $('p-pause-t').textContent = m.active ? 'Pause Access' : 'Turn Access Back On';
+        $('p-pause-s').textContent = m.active ? 'They can’t sign in until you turn it back on. Nothing is deleted.' : 'They can sign in again with their current password.';
+        $('p-pause').textContent = m.active ? 'Pause' : 'Turn On';
+        $('p-stats').textContent = `Joined ${m.created_at ? P.fmtDate(m.created_at.slice(0, 10)) : '—'} · ${m.login_count} sign-in${m.login_count === 1 ? '' : 's'}`;
+      }
+      $('panel').classList.remove('hidden'); $('backdrop').classList.remove('hidden');
+      (m ? $('p-name') : $('p-email')).focus();
+    }
+    function closePanel() { $('panel').classList.add('hidden'); $('backdrop').classList.add('hidden'); editing = null; }
+    ['p-close', 'p-cancel', 'backdrop'].forEach(id => $(id).addEventListener('click', closePanel));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePanel(); $('pw-modal').classList.add('hidden'); $('pw-modal').classList.remove('flex'); } });
+    $('invite-btn').addEventListener('click', () => openPanel(null));
+    function fail(msg) { $('p-error').textContent = msg; $('p-error').classList.remove('hidden'); }
+
+    $('p-save').addEventListener('click', async () => {
+      const tools = pickedTools();
+      if (!$('p-all-tools').checked && !tools.length) return fail('Pick at least one tool, or give them everything.');
+      $('p-save').disabled = true;
+      try {
+        if (editing) {
+          const body = { full_name: $('p-name').value, provider_name: $('p-provider').value };
+          if (!editing.is_me) { body.role = $('p-role').value; body.tools = tools; }
+          const d = await api('PATCH', '/api/clinic/members/' + editing.id, body);
+          Object.assign(editing, d.member); closePanel(); render(); P.toast('Saved');
+        } else {
+          const d = await api('POST', '/api/clinic/members', { email: $('p-email').value, full_name: $('p-name').value, role: $('p-role').value, provider_name: $('p-provider').value, tools });
+          DATA.members.push(d.member); closePanel(); render();
+          if (d.temp_password) showPassword('Invite Created', `Email isn’t set up on this Althais, so send ${d.member.email} this temporary password yourself:`, d.temp_password);
+          else P.toast('Invite sent to ' + d.member.email);
+        }
+      } catch (e) { fail(e.message); }
+      finally { $('p-save').disabled = false; }
+    });
+    $('p-reset').addEventListener('click', async () => {
+      if (!editing || !confirm(`Reset ${editing.full_name || editing.email}’s password? Their current one stops working.`)) return;
+      try {
+        const d = await api('POST', `/api/clinic/members/${editing.id}/reset-password`);
+        if (d.temp_password) showPassword('Password Reset', `Email isn’t set up on this Althais, so send ${editing.email} this temporary password yourself:`, d.temp_password);
+        else P.toast('New password emailed to ' + editing.email);
+      } catch (e) { fail(e.message); }
+    });
+    $('p-pause').addEventListener('click', async () => {
+      if (!editing) return;
+      const on = !editing.active;
+      if (!on && !confirm(`Pause ${editing.full_name || editing.email}? They’re signed out and can’t sign in until you turn it back on.`)) return;
+      try { const d = await api('PATCH', '/api/clinic/members/' + editing.id, { active: on }); Object.assign(editing, d.member); closePanel(); render(); P.toast(on ? 'Access turned back on' : 'Access paused'); }
+      catch (e) { fail(e.message); }
+    });
+    $('p-remove').addEventListener('click', async () => {
+      if (!editing || !confirm(`Remove ${editing.full_name || editing.email} from your clinic? Their login is deleted. This can’t be undone.`)) return;
+      try { await api('DELETE', '/api/clinic/members/' + editing.id); DATA.members = DATA.members.filter(m => m.id !== editing.id); closePanel(); render(); P.toast('Removed'); }
+      catch (e) { fail(e.message); }
+    });
+
+    // ---- temporary password dialog ----
+    function showPassword(title, text, pw) {
+      $('pw-title').textContent = title; $('pw-text').textContent = text; $('pw-value').textContent = pw;
+      $('pw-modal').classList.remove('hidden'); $('pw-modal').classList.add('flex');
+    }
+    $('pw-done').addEventListener('click', () => { $('pw-modal').classList.add('hidden'); $('pw-modal').classList.remove('flex'); $('pw-value').textContent = ''; });
+    $('pw-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('pw-value').textContent); P.toast('Copied'); } catch (e) { P.toast('Copying is blocked. Select the password and copy it.', 'error'); } });
+
+    showTab();
+    api('GET', '/api/clinic/members').then(d => { DATA = d; render(); })
+      .catch(e => { $('rows').innerHTML = `<tr><td colspan="7" class="px-4 py-10 text-center text-[12px] text-risk-600">${esc(e.message)}</td></tr>`; });
+  </script>
+</body>
+</html>

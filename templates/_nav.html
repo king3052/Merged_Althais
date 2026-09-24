@@ -56,7 +56,11 @@
     const menus = window.__ALTHAIS_SUITE__ === false ? TOOL_NAVIGATION : NAVIGATION;
 
     const secondaryNav = document.getElementById('secondary-nav');
-    if (activeWorkspace) {
+    if (path === '/clinic-admin') {
+      // Clinic Admin's own sections (the page switches between them by #hash)
+      secondaryNav.innerHTML = [['employees', 'Employees'], ['access', 'Roles & Access']]
+        .map(([k, l]) => `<a class="nav-tab" data-ca-tab="${k}" href="#${k}">${l}</a>`).join('');
+    } else if (activeWorkspace) {
       const items = (menus[activeWorkspace] || { items: [] }).items;
       secondaryNav.innerHTML = items.map(item => {
         const itemPath = item.href.replace(/\/+$/, '') || '/';

@@ -366,7 +366,7 @@ def _page_tools(path: str) -> tuple:
     path = path.rstrip("/") or "/"
     if path == "/scribe": return ("scribe",)
     if path == "/coding": return ("coding",)
-    if path == "/settings": return ("scribe", "coding", "insurance", "staff")   # every plan has Settings
+    if path in ("/settings", "/clinic-admin"): return ("scribe", "coding", "insurance", "staff")   # every plan has these
     if path == "/revenue/coding": return ()          # Coding Review is part of the full suite, not the Coding tool
     if path.startswith("/revenue/"): return ("insurance",)
     if path.startswith("/staff/"): return ("staff",)
@@ -545,6 +545,18 @@ async def insurance_home():
 @app.get("/team")
 async def team_home():
     return RedirectResponse(url="/staff/team", status_code=302)
+
+
+@app.get("/clinic-admin")
+async def clinic_admin_page(request: Request, user=Depends(current_user)):
+    """The clinic's own admin page: its admins manage their employees' Althais logins (auth.py /api/clinic/*)."""
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    if not getattr(user, "onboarding_complete", 1):
+        return RedirectResponse(url="/onboarding", status_code=302)
+    if (user.role or "admin") != "admin":
+        return RedirectResponse(url=_home_for(_user_products(user)), status_code=302)
+    return _gate(request, user) or templates.TemplateResponse(request, "clinic_admin.html", {"user": user, "user_json": _app_user_json(user)})
 
 
 @app.get("/no-access")

@@ -80,6 +80,10 @@ class User(Base):
     claims_submitted: Mapped[int] = mapped_column(Integer, default=0)
     last_login: Mapped[dt.datetime] = mapped_column(DateTime, nullable=True, default=None)
     email_verified: Mapped[bool] = mapped_column(Integer, default=0)
+    # Managed by the clinic's admin on /clinic-admin: 0 = paused (can't sign in); tools = which of the clinic's
+    # Althais tools this person may use, comma-separated ("" = all of them).
+    active: Mapped[int] = mapped_column(Integer, default=1)
+    tools: Mapped[str] = mapped_column(String(255), default="")
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
@@ -208,6 +212,14 @@ try:
 except Exception:
     pass  # column already exists
 
+for _ddl in ("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1", "ALTER TABLE users ADD COLUMN tools VARCHAR(255) DEFAULT ''"):
+    try:
+        with engine.connect() as _conn:
+            _conn.execute(text(_ddl))
+            _conn.commit()
+    except Exception:
+        pass  # column already exists
+
 # org_patients existed before the `data`/`updated_at` columns were added for
 # full-object sync (allergies, insurance meta, problems, etc.) — same
 # safe-ALTER pattern as above, harmless once already applied.
@@ -293,9 +305,12 @@ def current_user(request: Request, db: Session = Depends(get_db)):
     if not data:
         return None
     try:
-        return db.get(User, int(data["sub"]))
+        u = db.get(User, int(data["sub"]))
     except (KeyError, ValueError, TypeError):
         return None
+    if u is not None and getattr(u, "active", 1) == 0:
+        return None   # paused by the clinic's admin
+    return u
 
 
 def require_user(request: Request, db: Session = Depends(get_db)) -> User:
@@ -468,6 +483,8 @@ def login(
     # so an attacker can't tell which emails have accounts.
     if not user or not verify_password(password, user.password_hash):
         return JSONResponse({"error": "Invalid email or password."}, status_code=401)
+    if getattr(user, "active", 1) == 0:
+        return JSONResponse({"error": "Your clinic’s admin has paused this account. Ask them to turn it back on."}, status_code=403)
 
     # Track login stats
     user.login_count = (user.login_count or 0) + 1
@@ -555,15 +572,25 @@ def change_password(
 # ──────────────────────────────────────────────────────────────────────────
 #  Org user management (admin role only)
 # ──────────────────────────────────────────────────────────────────────────
+def _same_clinic(a: User, b: User) -> bool:
+    """Same clinic. People with no clinic name are each on their own, never grouped together."""
+    return _doc_org_key(a) == _doc_org_key(b)
+
+
+def _clinic_members(user: User, db: Session) -> list:
+    if not (user.organization or "").strip():
+        return [user]
+    return [u for u in db.scalars(select(User).where(User.organization == user.organization).order_by(User.created_at)).all()
+            if _same_clinic(u, user)]
+
+
 @router.get("/api/org/users")
 def org_users(user: User = Depends(require_user), db: Session = Depends(get_db)):
     """List all users in the same organization. Admins only."""
     if (user.role or "admin") != "admin":
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Admin role required.")
-    users = db.scalars(
-        select(User).where(User.organization == user.organization).order_by(User.created_at)
-    ).all()
+    users = _clinic_members(user, db)
     return [{"id": u.id, "email": u.email, "full_name": u.full_name, "role": u.role or "admin",
              "created_at": u.created_at.isoformat() if u.created_at else None} for u in users]
 
@@ -583,7 +610,7 @@ def update_user_role(
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=f"Invalid role. Choose from: {list(ROLE_LEVELS.keys())}")
     target = db.get(User, user_id)
-    if not target or target.organization != user.organization:
+    if not target or not _same_clinic(target, user):
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="User not found.")
     if target.id == user.id:
@@ -653,7 +680,7 @@ def remove_team_member(
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Admin role required.")
     target = db.get(User, user_id)
-    if not target or target.organization != user.organization:
+    if not target or not _same_clinic(target, user):
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="User not found.")
     if target.id == user.id:
@@ -662,6 +689,157 @@ def remove_team_member(
     db.delete(target)
     db.commit()
     return {"ok": True, "removed_user_id": user_id}
+
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Clinic Admin (/clinic-admin): the clinic's own admins manage their employees'
+#  Althais logins — invite, role, provider name, which tools, pause, reset
+#  password, remove. A clinic always keeps at least one active admin.
+# ──────────────────────────────────────────────────────────────────────────
+ROLE_LABELS = {"admin": "Admin", "biller": "Biller", "provider": "Provider", "viewer": "Viewer"}
+
+
+def _require_clinic_admin(user: User):
+    if (user.role or "admin") != "admin":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Only your clinic’s admins can manage employees.")
+
+
+def _member_json(u: User, me: User) -> dict:
+    return {"id": u.id, "email": u.email, "full_name": u.full_name or "", "role": u.role or "admin",
+            "provider_name": u.provider_name or "", "active": bool(getattr(u, "active", 1)),
+            "tools": sorted(member_tools(u)), "login_count": u.login_count or 0,
+            "last_login": u.last_login.isoformat() if u.last_login else None,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "invited": not u.last_login, "is_me": u.id == me.id}
+
+
+def _clean_tools(raw, clinic: set) -> str:
+    """Only tools the clinic has; everything the clinic has is the same as no limit."""
+    if not isinstance(raw, list):
+        return ""
+    offer = set(PRODUCTS) if "suite" in clinic else clinic
+    picked = {t for t in raw if t in offer}
+    if not picked or picked >= offer or "suite" in picked:
+        return ""
+    return ",".join(sorted(picked))
+
+
+def _active_admins(user: User, db: Session) -> list:
+    return [u for u in _clinic_members(user, db) if (u.role or "admin") == "admin" and getattr(u, "active", 1)]
+
+
+def _temp_password_email(to_user: User, by: User, temp: str, invite: bool) -> bool:
+    clinic = by.organization or "your clinic"
+    return send_email(
+        to_user.email,
+        f"You've been invited to Althais — {clinic}" if invite else "Your Althais password was reset",
+        _email_html(
+            f"You've been invited to join {clinic}" if invite else "Your password was reset",
+            (f"{by.full_name or by.email} added you to <strong>{clinic}</strong> on Althais as a <strong>{ROLE_LABELS.get(to_user.role, to_user.role)}</strong>.<br><br>"
+             if invite else f"{by.full_name or by.email}, an admin at {clinic}, reset your Althais password.<br><br>")
+            + f"Your temporary password is: <strong style='font-family:monospace'>{temp}</strong><br><br>Sign in and change it right away.",
+            f"{APP_URL}/login", "Sign in to Althais"))
+
+
+@router.get("/api/clinic/members")
+def clinic_members(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    _require_clinic_admin(user)
+    clinic = clinic_products(user, db)
+    return {"clinic": user.organization or "", "products": sorted(clinic), "althea": org_althea(user, db),
+            "members": [_member_json(u, user) for u in _clinic_members(user, db)]}
+
+
+@router.post("/api/clinic/members")
+async def clinic_invite(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    _require_clinic_admin(user)
+    if not (user.organization or "").strip():
+        return JSONResponse({"error": "Add your clinic’s name in Settings > Practice before inviting people."}, status_code=400)
+    body = await request.json()
+    email = str(body.get("email") or "").strip().lower()
+    role = body.get("role") or "provider"
+    if not email or "@" not in email:
+        return JSONResponse({"error": "Enter a valid email address."}, status_code=400)
+    if role not in ROLE_LEVELS:
+        return JSONResponse({"error": "Pick a role."}, status_code=400)
+    if db.scalar(select(User).where(User.email == email)):
+        return JSONResponse({"error": "Someone already has an Althais account with that email."}, status_code=400)
+    temp = secrets.token_urlsafe(9)
+    new = User(email=email, password_hash=hash_password(temp), full_name=str(body.get("full_name") or "").strip(),
+               organization=user.organization, role=role, provider_name=str(body.get("provider_name") or "").strip(),
+               tools=_clean_tools(body.get("tools"), clinic_products(user, db)), email_verified=0, active=1)
+    db.add(new); db.commit(); db.refresh(new)
+    emailed = _temp_password_email(new, user, temp, invite=True)
+    out = {"ok": True, "member": _member_json(new, user), "emailed": emailed}
+    if not emailed:
+        out["temp_password"] = temp   # email isn't set up: show it once so the admin can pass it on
+    return out
+
+
+@router.patch("/api/clinic/members/{member_id}")
+async def clinic_update_member(member_id: int, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    _require_clinic_admin(user)
+    target = db.get(User, member_id)
+    if not target or not _same_clinic(target, user):
+        return JSONResponse({"error": "Employee not found."}, status_code=404)
+    body = await request.json()
+    admins = _active_admins(user, db)
+    last_admin = len(admins) == 1 and admins[0].id == target.id
+    if "role" in body:
+        if body["role"] not in ROLE_LEVELS:
+            return JSONResponse({"error": "Pick a role."}, status_code=400)
+        if body["role"] != "admin" and target.id == user.id:
+            return JSONResponse({"error": "You can’t take away your own admin role. Ask another admin."}, status_code=400)
+        if body["role"] != "admin" and last_admin:
+            return JSONResponse({"error": "Your clinic needs at least one admin."}, status_code=400)
+        target.role = body["role"]
+    if "active" in body:
+        if not body["active"] and target.id == user.id:
+            return JSONResponse({"error": "You can’t pause your own account."}, status_code=400)
+        if not body["active"] and last_admin:
+            return JSONResponse({"error": "Your clinic needs at least one active admin."}, status_code=400)
+        target.active = 1 if body["active"] else 0
+    if "full_name" in body: target.full_name = str(body["full_name"] or "").strip()[:255]
+    if "provider_name" in body: target.provider_name = str(body["provider_name"] or "").strip()[:255]
+    if "tools" in body:
+        if target.id == user.id and body["tools"]:
+            return JSONResponse({"error": "You can’t limit your own tools."}, status_code=400)
+        target.tools = _clean_tools(body["tools"], clinic_products(user, db))
+    db.commit()
+    return {"ok": True, "member": _member_json(target, user)}
+
+
+@router.post("/api/clinic/members/{member_id}/reset-password")
+def clinic_reset_password(member_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    _require_clinic_admin(user)
+    target = db.get(User, member_id)
+    if not target or not _same_clinic(target, user):
+        return JSONResponse({"error": "Employee not found."}, status_code=404)
+    if target.id == user.id:
+        return JSONResponse({"error": "Change your own password in Settings > Security."}, status_code=400)
+    temp = secrets.token_urlsafe(9)
+    target.password_hash = hash_password(temp)
+    db.commit()
+    emailed = _temp_password_email(target, user, temp, invite=False)
+    out = {"ok": True, "emailed": emailed}
+    if not emailed:
+        out["temp_password"] = temp
+    return out
+
+
+@router.delete("/api/clinic/members/{member_id}")
+def clinic_remove_member(member_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    _require_clinic_admin(user)
+    target = db.get(User, member_id)
+    if not target or not _same_clinic(target, user):
+        return JSONResponse({"error": "Employee not found."}, status_code=404)
+    if target.id == user.id:
+        return JSONResponse({"error": "You can’t remove your own account."}, status_code=400)
+    admins = _active_admins(user, db)
+    if len(admins) == 1 and admins[0].id == target.id:
+        return JSONResponse({"error": "Your clinic needs at least one admin."}, status_code=400)
+    db.delete(target); db.commit()
+    return {"ok": True}
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -796,7 +974,23 @@ PRODUCTS = ("suite", "scribe", "coding", "insurance", "staff")
 ENTITLEMENTS_CATEGORY = "entitlements"
 
 
+def member_tools(user: User) -> set:
+    """The tools the clinic's admin limited this person to (empty = no limit)."""
+    return {t for t in (getattr(user, "tools", "") or "").split(",") if t in PRODUCTS}
+
+
 def org_products(user: User, db: Session) -> set:
+    """What this person can use: the clinic's plan, narrowed to the tools their clinic admin gave them."""
+    clinic = clinic_products(user, db)
+    mine = member_tools(user)
+    if not mine:
+        return clinic
+    if "suite" in clinic:
+        return {"suite"} if "suite" in mine else mine          # the suite includes every tool
+    return clinic & mine
+
+
+def clinic_products(user: User, db: Session) -> set:
     """The products this user's organization can use. {"suite"} unlocks everything."""
     row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
     if not row or not isinstance(doc.get("products"), list):
@@ -809,7 +1003,7 @@ def org_althea(user: User, db: Session) -> bool:
     row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
     if row and isinstance(doc.get("althea"), bool):
         return doc["althea"]
-    return "suite" in org_products(user, db)
+    return "suite" in clinic_products(user, db)
 
 
 def ensure_althea(user: User, db: Session) -> None:
@@ -1186,7 +1380,7 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
     for o in orgs.values():
         row, _doc = _load_doc(o["sample"], db, ENTITLEMENTS_CATEGORY)
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
-                    "products": sorted(org_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "custom": bool(row)})
+                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "custom": bool(row)})
     return sorted(out, key=lambda o: o["name"].lower())
 
 
