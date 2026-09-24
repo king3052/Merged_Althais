@@ -42,6 +42,7 @@ from auth import (
     router as auth_router, current_user, require_user, COOKIE_NAME,
     current_admin, require_biller, require_admin_role,
     get_db, Base, engine, _org_namespace, OrgPatient, OrgClaim,
+    SessionLocal, org_products, has_product, ensure_product,
 )
 from sqlalchemy.orm import Session
 from sqlalchemy import select as sa_select
@@ -316,9 +317,9 @@ async def apple_touch_icon():
 
 @app.get("/")
 async def root(request: Request, user=Depends(current_user)):
-    # Logged-in users go straight to the overview workspace, others see the landing page
+    # Logged-in users go straight to their plan's home (the Overview for the full suite), others see the landing page
     if user:
-        return RedirectResponse(url="/overview", status_code=302)
+        return RedirectResponse(url=_home_for(_user_products(user)), status_code=302)
     with open("templates/landing.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
@@ -332,6 +333,11 @@ async def login(request: Request, user=Depends(current_user)):
         return HTMLResponse(content=f.read())
 
 
+def _user_products(user) -> set:
+    with SessionLocal() as db:
+        return org_products(user, db)
+
+
 def _app_user_json(user) -> str:
     return json.dumps({
         "full_name": user.full_name or "",
@@ -339,7 +345,41 @@ def _app_user_json(user) -> str:
         "role": user.role or "admin",
         "organization": user.organization or "",
         "provider_name": user.provider_name or "",
+        # Althais products this user's organization has (see auth.org_products): the nav shows only these
+        "products": sorted(_user_products(user)),
     })
+
+
+# ── Tiers: which tool a page belongs to, and where each plan lands ─────────────
+# Pages not listed here are part of the full suite only.
+_TOOL_HOMES = [("scribe", "/scribe"), ("coding", "/coding"), ("insurance", "/revenue/claims"), ("staff", "/staff/team")]
+
+
+def _page_tools(path: str) -> tuple:
+    """The single tools (besides the full suite) that include this page."""
+    path = path.rstrip("/") or "/"
+    if path == "/scribe": return ("scribe",)
+    if path in ("/coding", "/revenue/coding"): return ("coding",)
+    if path.startswith("/revenue/"): return ("insurance",)
+    if path.startswith("/staff/"): return ("staff",)
+    return ()
+
+
+def _home_for(products: set) -> str:
+    if "suite" in products:
+        return "/overview"
+    for product, home in _TOOL_HOMES:
+        if product in products:
+            return home
+    return "/no-access"
+
+
+def _gate(request: Request, user):
+    """Redirect to the user's own home when their plan doesn't include this page, else None."""
+    products = _user_products(user)
+    if has_product(products, *_page_tools(request.url.path)):
+        return None
+    return RedirectResponse(url=_home_for(products), status_code=302)
 
 
 @app.get("/onboarding")
@@ -358,7 +398,7 @@ async def emr(request: Request, user=Depends(current_user)):
     the EMR workspace's sub-pages for deep patient-record functionality."""
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return _render_emr(user)
+    return _gate(request, user) or _render_emr(user)
 
 
 @app.get("/settings")
@@ -366,7 +406,7 @@ async def settings_page(request: Request, user=Depends(current_user)):
     """Settings live in the same app shell as the EMR, but have their own address: this opens straight to them."""
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return _render_emr(user)
+    return _gate(request, user) or _render_emr(user)
 
 
 # ── Workspace pages (two-level nav: Overview / EMR / Revenue / Staff) ──────────
@@ -378,6 +418,9 @@ _WORKSPACE_PAGES = {
     "/overview/inbox": "overview_inbox.html",
     "/overview/activity": "overview_activity.html",
     "/overview/tasks": "overview_tasks.html",
+    # Single-tool products (also part of the full suite)
+    "/scribe": "scribe.html",
+    "/coding": "coding.html",
     "/overview/analytics": "overview_analytics.html",
     # EMR (top-level workspace pages; the full patient-chart SPA stays at /emr)
     "/emr/patients": "patients.html",
@@ -411,6 +454,9 @@ def _workspace_route(template_name: str):
         # they try to reach. Covers all workspace pages in one place.
         if not getattr(user, "onboarding_complete", 1):
             return RedirectResponse(url="/onboarding", status_code=302)
+        blocked = _gate(request, user)
+        if blocked:
+            return blocked
         ctx = {
             "user": user,
             "verified": request.query_params.get("verified"),
@@ -461,6 +507,9 @@ def _placeholder_route(config: dict):
     async def handler(request: Request, user=Depends(current_user)):
         if not user:
             return RedirectResponse(url="/login", status_code=302)
+        blocked = _gate(request, user)
+        if blocked:
+            return blocked
         ctx = {
             "user": user,
             "user_json": _app_user_json(user),
@@ -477,6 +526,26 @@ def _placeholder_route(config: dict):
 
 for _path, _config in _PLACEHOLDER_PAGES.items():
     app.add_api_route(_path, _placeholder_route(_config), methods=["GET"])
+
+
+# Tool addresses: Insurance and Team are the Revenue and Staff pages, limited to what that tool includes.
+@app.get("/insurance")
+async def insurance_home():
+    return RedirectResponse(url="/revenue/claims", status_code=302)
+
+
+@app.get("/team")
+async def team_home():
+    return RedirectResponse(url="/staff/team", status_code=302)
+
+
+@app.get("/no-access")
+async def no_access(request: Request, user=Depends(current_user)):
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    if _user_products(user):
+        return RedirectResponse(url=_home_for(_user_products(user)), status_code=302)
+    return templates.TemplateResponse(request, "no_access.html", {"user": user, "user_json": _app_user_json(user)})
 
 
 # "Work Today" (formerly its own page) lives inside Tasks as its first view; keep the old address working.
@@ -549,6 +618,7 @@ def _claim_dict(c: OrgClaim) -> dict:
 
 @app.get("/api/patients")
 def api_list_patients(user=Depends(require_user), db: Session = Depends(get_db)):
+    ensure_product(user, db)   # full suite (the EMR)
     org = _org_namespace(user)
     rows = db.scalars(sa_select(OrgPatient).where(OrgPatient.org_key == org).order_by(OrgPatient.name)).all()
     return [_patient_dict(r) for r in rows]
@@ -556,6 +626,7 @@ def api_list_patients(user=Depends(require_user), db: Session = Depends(get_db))
 
 @app.post("/api/patients")
 async def api_save_patient(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db)   # full suite (the EMR)
     body = await request.json()
     org = _org_namespace(user)
     mrn = (body.get("mrn") or "").strip()
@@ -585,6 +656,7 @@ async def api_save_patient(request: Request, user=Depends(require_biller), db: S
 
 @app.post("/api/patients/bulk-sync")
 async def api_bulk_sync_patients(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db)   # full suite (the EMR)
     """
     Full mirror sync — the dashboard calls this every time its local patient
     list changes (add, edit, delete, any field). The org's server-side patient
@@ -650,6 +722,7 @@ async def api_import_patients(
     each row's outcome is reported back so the biller can fix and
     re-run just what failed.
     """
+    ensure_product(user, db)   # full suite (the EMR)
     org = _org_namespace(user)
     filename = (file.filename or "").lower()
     raw = await file.read()
@@ -715,6 +788,7 @@ async def api_import_patients(
 
 @app.delete("/api/patients/{mrn}")
 def api_delete_patient(mrn: str, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db)   # full suite (the EMR)
     org = _org_namespace(user)
     row = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == org, OrgPatient.mrn == mrn))
     if row:
@@ -727,6 +801,7 @@ def api_delete_patient(mrn: str, user=Depends(require_biller), db: Session = Dep
 
 @app.get("/api/claims")
 def api_list_claims(user=Depends(require_user), db: Session = Depends(get_db)):
+    ensure_product(user, db, "insurance")
     org = _org_namespace(user)
     rows = db.scalars(sa_select(OrgClaim).where(OrgClaim.org_key == org).order_by(OrgClaim.created_at.desc())).all()
     return [_claim_dict(r) for r in rows]
@@ -734,6 +809,7 @@ def api_list_claims(user=Depends(require_user), db: Session = Depends(get_db)):
 
 @app.post("/api/claims")
 async def api_save_claim(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db, "insurance")
     body = await request.json()
     org = _org_namespace(user)
     cid = (body.get("id") or body.get("claim_id") or "").strip()
@@ -772,6 +848,7 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
 
 @app.delete("/api/claims/{claim_id}")
 def api_delete_claim(claim_id: str, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db, "insurance")
     org = _org_namespace(user)
     row = db.scalar(sa_select(OrgClaim).where(OrgClaim.org_key == org, OrgClaim.claim_id == claim_id))
     if row:
@@ -781,7 +858,8 @@ def api_delete_claim(claim_id: str, user=Depends(require_biller), db: Session = 
 
 
 @app.post("/api/code-note")
-async def code_note(request: Request, user=Depends(require_biller)):
+async def code_note(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db, "coding")
     try:
         data = await request.json()
         # Defaults to ER/urgent care since that's the primary target segment,
@@ -949,7 +1027,8 @@ Clinical note:
 
 
 @app.post("/api/validate-claim")
-async def validate_claim(request: Request, user=Depends(require_biller)):
+async def validate_claim(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db, "coding", "insurance")
     try:
         data = await request.json()
         prompt = f"""You are a medical billing compliance expert reviewing a claim before submission.
@@ -1028,7 +1107,8 @@ Clinical note: {data.get('note', '')}"""
 
 
 @app.post("/api/appeal-letter")
-async def appeal_letter(request: Request, user=Depends(require_biller)):
+async def appeal_letter(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
+    ensure_product(user, db, "insurance")
     try:
         data = await request.json()
         prompt = f"""You are an expert medical billing specialist drafting a formal insurance claim appeal letter.
@@ -1298,7 +1378,8 @@ def _merge_scribe(parts: list) -> dict:
     return {k: v[:6000] for k, v in out.items()}
 
 @app.post("/api/althea/extract")
-def althea_extract(payload: dict, user=Depends(require_user)):
+def althea_extract(payload: dict, user=Depends(require_user), db: Session = Depends(get_db)):
+    ensure_product(user, db, "scribe")
     target = payload.get("target") if isinstance(payload, dict) else None
     if target not in _EXTRACT_FIELDS:
         return JSONResponse({"error": "Nothing to fill in."}, status_code=400)
@@ -1350,7 +1431,8 @@ def althea_extract(payload: dict, user=Depends(require_user)):
 
 
 @app.post("/api/althea")
-async def althea_command(request: Request, user=Depends(require_user)):
+async def althea_command(request: Request, user=Depends(require_user), db: Session = Depends(get_db)):
+    ensure_product(user, db)   # Althea is part of the full suite
     """
     Althea — a voice/text command interpreter scoped ONLY to this product's
     own functions (reading the schedule, a claims summary, pulling up claims,

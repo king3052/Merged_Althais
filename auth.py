@@ -667,6 +667,7 @@ def get_org_settings(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
+    ensure_product(user, db)   # Settings is part of the full suite
     row = db.scalar(
         select(OrgSettings).where(
             OrgSettings.org_key == user.organization,
@@ -694,6 +695,7 @@ async def save_org_settings(
     the given category. Any role can save — admins-only writes (like fee
     schedule or scrubber rules) are enforced by the frontend hiding the
     controls from non-admins; this endpoint just persists what's sent."""
+    ensure_product(user, db)   # Settings is part of the full suite
     try:
         body = await request.json()
     except Exception:
@@ -758,14 +760,52 @@ def _can_edit_doc(user: User, admin_only: bool) -> bool:
     return (user.role or "admin") == "admin" if admin_only else True
 
 
-def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str):
+# ──────────────────────────────────────────────────────────────────────────
+#  Product access (tiers). A clinic can buy the full Althais suite or single
+#  tools: Scribe, Coding, Insurance, Staff. What each organization has is kept
+#  in org_settings (category "entitlements") and switched on by Althais in the
+#  admin console (/admin). An organization with no record has the full suite,
+#  so every existing account keeps working exactly as before.
+# ──────────────────────────────────────────────────────────────────────────
+PRODUCTS = ("suite", "scribe", "coding", "insurance", "staff")
+ENTITLEMENTS_CATEGORY = "entitlements"
+
+
+def org_products(user: User, db: Session) -> set:
+    """The products this user's organization can use. {"suite"} unlocks everything."""
+    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    if not row or not isinstance(doc.get("products"), list):
+        return {"suite"}
+    return {p for p in doc["products"] if p in PRODUCTS}
+
+
+def has_product(products: set, *needed: str) -> bool:
+    """True when the org has the full suite, or any one of the tools named."""
+    return "suite" in products or any(p in products for p in needed)
+
+
+def ensure_product(user: User, db: Session, *needed: str) -> None:
+    """For API handlers: 403 unless the org bought a tool that includes this feature."""
+    if not has_product(org_products(user, db), *needed):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Your Althais plan doesn't include this tool.")
+
+
+def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str, products=None):
+    """GET/PUT a versioned per-organization document. `products`: None = any plan; otherwise the tools (besides the
+    full suite, which can always use it) that may, so () means full suite only."""
+    def check(user, db):
+        if products is not None:
+            ensure_product(user, db, *products)
     @router.get(path)
     def get_doc(user: User = Depends(require_user), db: Session = Depends(get_db)):
+        check(user, db)
         _, doc = _load_doc(user, db, category)
         return JSONResponse({"data": doc, "can_edit": _can_edit_doc(user, admin_only)})
 
     @router.put(path)
     async def save_doc(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+        check(user, db)
         if not _can_edit_doc(user, admin_only):
             return JSONResponse({"error": denied_message}, status_code=403)
         try:
@@ -786,8 +826,8 @@ def _register_doc_routes(path: str, category: str, admin_only: bool, denied_mess
         return JSONResponse({"ok": True, "data": body})
 
 
-_register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.")
-_register_doc_routes("/api/tasks", "tasks", admin_only=False, denied_message="")
+_register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.", products=("staff",))
+_register_doc_routes("/api/tasks", "tasks", admin_only=False, denied_message="", products=())
 _register_doc_routes("/api/branding", "branding", admin_only=True, denied_message="Only admins can change the brand color.")
 
 
@@ -1005,6 +1045,41 @@ def admin_delete_user(user_id: int, request: Request, db: Session = Depends(get_
     db.delete(user)
     db.commit()
     return {"ok": True}
+
+
+@router.get("/api/admin/orgs")
+def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Every organization (grouped the same way their records are), its people, and which Althais products it has."""
+    orgs = {}
+    for u in db.scalars(select(User).order_by(User.created_at)).all():
+        key = _doc_org_key(u)
+        o = orgs.setdefault(key, {"org_key": key, "name": (u.organization or "").strip() or f"{u.email} (no organization)", "users": [], "sample": u})
+        o["users"].append(u.email)
+    out = []
+    for o in orgs.values():
+        row, _doc = _load_doc(o["sample"], db, ENTITLEMENTS_CATEGORY)
+        out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
+                    "products": sorted(org_products(o["sample"], db)), "custom": bool(row)})
+    return sorted(out, key=lambda o: o["name"].lower())
+
+
+@router.post("/api/admin/orgs/products")
+async def admin_set_org_products(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Set which products an organization has. Choosing the full suite clears the single tools (it includes them)."""
+    body = await request.json()
+    key, products = str(body.get("org_key") or ""), body.get("products")
+    if not key or not isinstance(products, list) or any(p not in PRODUCTS for p in products):
+        return JSONResponse({"error": "Send an org_key and a list of products from: " + ", ".join(PRODUCTS)}, status_code=400)
+    chosen = ["suite"] if "suite" in products else sorted(set(products))
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == key, OrgSettings.category == ENTITLEMENTS_CATEGORY))
+    data = {"rev": 0, "products": chosen, "updatedAt": dt.datetime.now(timezone.utc).isoformat()}
+    if row:
+        data["rev"] = (_json.loads(row.data or "{}").get("rev") or 0) + 1
+        row.data = _json.dumps(data)
+    else:
+        db.add(OrgSettings(org_key=key, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(data)))
+    db.commit()
+    return {"ok": True, "org_key": key, "products": chosen}
 
 # ──────────────────────────────────────────────────────────────────────────
 #  Demo request table + route

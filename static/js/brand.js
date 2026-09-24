@@ -125,7 +125,9 @@
   apply(cached || DEFAULT);
 
   /* the practice's saved color, shared across logins */
-  var loaded = fetch("/api/branding", { credentials: "same-origin" }).then(function (r) { return r.ok ? r.json() : null; })   /* signed out: keep the cached color */
+  /* the Althais admin console isn't a clinic, so it has no brand color to fetch */
+  var loaded = (/^\/admin(\/|$)/.test(location.pathname) ? Promise.resolve(null)
+      : fetch("/api/branding", { credentials: "same-origin" }).then(function (r) { return r.ok ? r.json() : null; }))   /* signed out: keep the cached color */
     .then(function (res) {
       if (!res) return current;
       serverDoc = res.data || { rev: 0 }; editable = !!res.can_edit;

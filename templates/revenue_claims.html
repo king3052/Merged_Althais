@@ -35,11 +35,15 @@
           <h1 class="text-[15px] font-semibold text-ink-900">Claims</h1>
           <p class="text-[11.5px] text-ink-500 mt-0.5">Every claim across the practice — coding, submission, and payer status in one place.</p>
         </div>
-        <a href="/emr#claims" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button id="import-claims" type="button" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Import CSV</button>
+          <button id="add-claim" type="button" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">+ Add Claim</button>
+                  <a id="open-emr" href="/emr#claims" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">
           <span class="inline-flex items-center gap-1.5">Open in EMR
             <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </span>
         </a>
+        </div>
       </div>
 
       <!-- KPI ROW -->
@@ -132,6 +136,9 @@
 
     // Real claims data written by the EMR (dashboard.html) under the same namespace.
     const ALL_CLAIMS = loadJSON(STORAGE_CLAIMS, []).filter(function(c) { return !c.isPlaceholder; });
+    // Clinics on the Insurance tool alone have no EMR: rows don't link into it, and claims come in here instead
+    const SUITE = ((__ALTHAIS_USER__ || {}).products || ['suite']).includes('suite');
+    if (!SUITE) { const oe = document.getElementById('open-emr'); if (oe) oe.style.display = 'none'; }
 
     // ── Status pill styling — matches the EMR's 7 lifecycle states exactly ──
     const STATUS_STYLE = {
@@ -161,7 +168,9 @@
       const ss = STATUS_STYLE[status] || STATUS_STYLE['Submitted'];
       const conf = Number(c.conf || 0);
       let riskCell;
-      if (conf >= 90) riskCell = '<span class="pill" style="background:#d8f5e3;color:#0c8a4f">Low</span>';
+      const unscored = c.conf == null || c.conf === '';
+      if (unscored) riskCell = '<span class="text-ink-400">—</span>';
+      else if (conf >= 90) riskCell = '<span class="pill" style="background:#d8f5e3;color:#0c8a4f">Low</span>';
       else if (conf >= 75) riskCell = '<span class="pill" style="background:#fff0d6;color:#b86a00">Medium</span>';
       else riskCell = '<span class="pill" style="background:#ffe1e1;color:#c83838">High</span>';
 
@@ -169,7 +178,7 @@
       tr.className = 'row-hover cursor-pointer';
       tr.dataset.status = status.toLowerCase();
       tr.dataset.search = ((c.patient || '') + ' ' + (c.payer || '') + ' ' + (c.cpt || '') + ' ' + (c.icd || '') + ' ' + (c.claimId || '')).toLowerCase();
-      tr.addEventListener('click', function() { window.location.href = '/emr#claims'; });
+      if (SUITE) tr.addEventListener('click', function() { window.location.href = '/emr#claims'; });
       tr.innerHTML =
         '<td class="td">' +
           '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
@@ -182,7 +191,7 @@
         '<td class="td">' + esc(c.payer || '—') + '</td>' +
         '<td class="td td-num text-right">' + fmtMoney(c.amount) + '</td>' +
         '<td class="td">' + riskCell + '</td>' +
-        '<td class="td"><span class="num font-semibold text-ink-900">' + esc(String(conf)) + '%</span></td>' +
+        '<td class="td">' + (unscored ? '<span class="text-ink-400">—</span>' : '<span class="num font-semibold text-ink-900">' + esc(String(conf)) + '%</span>') + '</td>' +
         '<td class="td td-num text-right text-ink-400">' + ageOf(c) + '</td>';
       return tr;
     }
@@ -299,6 +308,114 @@
     });
 
     render();
+
+    // ---- + Add Claim and Import CSV (writes the same claim records the EMR uses) ----
+    const CLAIM_STATUSES = Object.keys(STATUS_STYLE);
+    function saveAll(newOnes) {
+      const stored = loadJSON(STORAGE_CLAIMS, []);
+      const merged = stored.concat(newOnes);
+      try { localStorage.setItem(STORAGE_CLAIMS, JSON.stringify(merged)); } catch (e) { alert('Could not save on this device.'); return false; }
+      newOnes.forEach(function(c) { ALL_CLAIMS.push(c); });
+      render();
+      return true;
+    }
+    function nextClaimId(taken) {
+      const year = new Date().getFullYear();
+      let n = ALL_CLAIMS.length + 1, id;
+      do { id = 'CL-' + year + '-' + String(n++).padStart(3, '0'); } while (taken.has(id));
+      taken.add(id); return id;
+    }
+    function normalizeStatus(v) {
+      const s = String(v || '').trim().toLowerCase();
+      return CLAIM_STATUSES.find(function(x) { return x.toLowerCase() === s; }) || (s === 'pending' ? 'Pending Review' : 'Submitted');
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'claim-form-modal';
+    modal.className = 'fixed inset-0 z-50 hidden items-center justify-center';
+    modal.style.background = 'rgba(15,17,22,.45)';
+    modal.innerHTML = `
+      <form id="claim-form" class="bg-white rounded-sm shadow-xl w-[520px] max-w-[92vw] max-h-[92vh] overflow-y-auto thin-scroll" autocomplete="off">
+        <div class="px-4 py-3 border-b border-line"><h3 class="text-[13.5px] font-semibold text-ink-900">Add Claim</h3></div>
+        <div class="p-4 grid grid-cols-2 gap-3 text-[12.5px]">
+          ${[['cf-patient', 'Patient (Last, First)', 'text', true], ['cf-mrn', 'Patient ID / MRN', 'text'], ['cf-provider', 'Rendering Provider', 'text'], ['cf-payer', 'Payer', 'text', true],
+             ['cf-date', 'Service Date', 'date', true], ['cf-amount', 'Billed Amount', 'number', true], ['cf-cpt', 'CPT / HCPCS', 'text', true], ['cf-icd', 'ICD-10', 'text', true]]
+            .map(([id, label, type, req]) => `<label class="block"><span class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">${label}</span><input id="${id}" type="${type}" ${type === 'number' ? 'min="0" step="0.01"' : ''} ${req ? 'required' : ''} class="w-full rounded-sm border border-line bg-white px-2.5 py-1.5 outline-none focus:border-med-600 ${['cf-cpt', 'cf-icd', 'cf-mrn'].includes(id) ? 'mono' : ''}"></label>`).join('')}
+          <label class="block"><span class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Status</span>
+            <select id="cf-status" class="w-full rounded-sm border border-line bg-white px-2.5 py-1.5">${CLAIM_STATUSES.map(s => `<option${s === 'Submitted' ? ' selected' : ''}>${s}</option>`).join('')}</select></label>
+          <label class="block"><span class="block text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Denial Reason</span><input id="cf-reason" class="w-full rounded-sm border border-line bg-white px-2.5 py-1.5" placeholder="If denied"></label>
+        </div>
+        <div class="px-4 py-3 border-t border-line flex justify-end gap-2">
+          <button type="button" id="cf-cancel" class="text-[12px] px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Cancel</button>
+          <button type="submit" class="text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Save Claim</button>
+        </div>
+      </form>`;
+    document.body.appendChild(modal);
+    const closeForm = () => { modal.classList.add('hidden'); modal.classList.remove('flex'); };
+    document.getElementById('add-claim').addEventListener('click', () => {
+      document.getElementById('claim-form').reset();
+      document.getElementById('cf-date').value = new Date().toISOString().slice(0, 10);
+      modal.classList.remove('hidden'); modal.classList.add('flex'); document.getElementById('cf-patient').focus();
+    });
+    document.getElementById('cf-cancel').addEventListener('click', closeForm);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeForm(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeForm(); });
+    document.getElementById('claim-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = (id) => document.getElementById(id).value.trim();
+      const taken = new Set(ALL_CLAIMS.map(c => c.claimId));
+      const claim = { claimId: nextClaimId(taken), patient: v('cf-patient'), mrn: v('cf-mrn'), provider: v('cf-provider'), payer: v('cf-payer'),
+        cpt: v('cf-cpt').toUpperCase(), icd: v('cf-icd').toUpperCase(), amount: Math.round(Number(v('cf-amount')) * 100) / 100,
+        status: v('cf-status'), denialReason: v('cf-reason'), ts: v('cf-date') + 'T12:00:00', conf: null, source: 'manual' };
+      if (saveAll([claim])) closeForm();
+    });
+
+    // CSV: one row per claim; column names are matched loosely (e.g. "Patient Name", "CPT Code", "ICD-10", "Billed")
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file'; fileInput.accept = '.csv,text/csv'; fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    document.getElementById('import-claims').addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
+    function parseCsv(text) {
+      const rows = []; let row = [], cell = '', q = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (q) { if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch; }
+        else if (ch === '"') q = true;
+        else if (ch === ',') { row.push(cell); cell = ''; }
+        else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+        else cell += ch;
+      }
+      if (cell || row.length) { row.push(cell); rows.push(row); }
+      return rows.filter(r => r.some(x => x.trim()));
+    }
+    const COLS = { patient: /patient|name/, mrn: /mrn|patient ?id|account/, claimId: /claim ?(id|#|number)/, provider: /provider|physician|rendering/, payer: /payer|insurance|carrier/,
+      cpt: /cpt|hcpcs|procedure/, icd: /icd|diagnosis|dx/, amount: /amount|billed|charge/, status: /status/, date: /date|dos|service/, denialReason: /denial|reason|carc/ };
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      const rows = parseCsv(await f.text());
+      if (rows.length < 2) { alert('That file has no claim rows.'); return; }
+      const head = rows[0].map(h => h.trim().toLowerCase()), idx = {};
+      Object.entries(COLS).forEach(([k, re]) => { const i = head.findIndex((h, j) => re.test(h) && !Object.values(idx).includes(j)); if (i !== -1) idx[k] = i; });
+      if (idx.patient == null || idx.cpt == null) { alert('The file needs at least a patient column and a CPT column. Found: ' + rows[0].join(', ')); return; }
+      const taken = new Set(ALL_CLAIMS.map(c => c.claimId));
+      const cell = (r, k) => idx[k] == null ? '' : String(r[idx[k]] || '').trim();
+      const claims = rows.slice(1).filter(r => cell(r, 'patient')).map(r => {
+        const d = new Date(cell(r, 'date')); const iso = isNaN(d) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+        const id = cell(r, 'claimId') && !taken.has(cell(r, 'claimId')) ? (taken.add(cell(r, 'claimId')), cell(r, 'claimId')) : nextClaimId(taken);
+        return { claimId: id, patient: cell(r, 'patient'), mrn: cell(r, 'mrn'), provider: cell(r, 'provider'), payer: cell(r, 'payer'),
+          cpt: cell(r, 'cpt').toUpperCase(), icd: cell(r, 'icd').toUpperCase(), amount: Number(cell(r, 'amount').replace(/[$,]/g, '')) || 0,
+          status: normalizeStatus(cell(r, 'status')), denialReason: cell(r, 'denialReason'), ts: iso + 'T12:00:00', conf: null, source: 'import' };
+      });
+      // skip rows that are already here (same patient, CPT, service date and amount), so importing a file twice is safe
+      const sig = (c) => [String(c.patient).toLowerCase(), c.cpt, String(c.ts || '').slice(0, 10), Number(c.amount).toFixed(2)].join('|');
+      const have = new Set(ALL_CLAIMS.map(sig));
+      const fresh = claims.filter(c => { const k = sig(c); if (have.has(k)) return false; have.add(k); return true; });
+      const dupes = claims.length - fresh.length;
+      if (!fresh.length) { alert(`All ${claims.length} claims in ${f.name} are already here. Nothing imported.`); return; }
+      const mapped = Object.keys(idx).join(', ');
+      if (!confirm(`Import ${fresh.length} claim${fresh.length === 1 ? '' : 's'} from ${f.name}?${dupes ? `\n${dupes} already here will be skipped.` : ''}\n\nColumns found: ${mapped}`)) return;
+      if (saveAll(fresh)) alert(`Imported ${fresh.length} claim${fresh.length === 1 ? '' : 's'}.` + (dupes ? ` Skipped ${dupes} already here.` : ''));
+    });
   </script>
 </body>
 </html>

@@ -15,6 +15,8 @@
 (function () {
   "use strict";
   if (document.getElementById("althea-fab") || !window.AltheaUI) return;   /* the EMR page mounts its own */
+  var plan = (window.__ALTHAIS_USER__ || {}).products;
+  if (Array.isArray(plan) && plan.indexOf("suite") === -1) return;        /* Althea is part of the full suite */
   AltheaUI.mount();
 
   var user = window.__ALTHAIS_USER__ || {};

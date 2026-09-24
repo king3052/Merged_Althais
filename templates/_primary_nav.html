@@ -5,12 +5,13 @@
 
 <header class="bg-med-600 text-white sticky top-0 z-30">
   <div class="max-w-[1560px] mx-auto flex h-12 items-center px-4">
-    <a href="/overview" class="flex items-center pr-4 border-r border-white/15 mr-4 h-full select-none flex-shrink-0" aria-label="Althais">
+    <a id="nav-home" href="/overview" class="flex items-center gap-2 pr-4 border-r border-white/15 mr-4 h-full select-none flex-shrink-0" aria-label="Althais">
       <span class="text-[15px] font-semibold tracking-[0.18em] leading-none">ALTHAIS</span>
+      <span id="nav-tool-name" class="hidden text-[13px] font-medium tracking-normal opacity-80"></span>
     </a>
     <span id="nav-org-name" class="text-[12px] text-white/55 mr-6 hidden md:block truncate max-w-[180px]"></span>
 
-    <nav class="flex items-center h-full overflow-x-auto thin-scroll">
+    <nav id="primary-tabs" class="flex items-center h-full overflow-x-auto thin-scroll">
       <a class="primary-tab" data-workspace="overview" href="/overview">Overview</a>
       <a class="primary-tab" data-workspace="emr" href="/emr">EMR</a>
       <a class="primary-tab" data-workspace="revenue" href="/revenue/claims">Revenue</a>
@@ -42,14 +43,44 @@
 
 <script>
   (function () {
-    // Highlight the current workspace tab and fill in the signed-in user.
-    const path = window.location.pathname.replace(/\/+$/, '') || '/';
-    document.querySelectorAll('.primary-tab').forEach(tab => {
-      const ws = tab.dataset.workspace;
-      if (path === '/' + ws || path.startsWith('/' + ws + '/')) tab.classList.add('active');
-    });
-
+    // Tabs follow the organization's plan: the full suite gets its four workspaces; a clinic that bought single
+    // tools (Scribe, Coding, Insurance, Team) sees only those. The server enforces the same rules (main.py _gate).
     const u = window.__ALTHAIS_USER__ || {};
+    const products = Array.isArray(u.products) ? u.products : ['suite'];
+    const suite = products.includes('suite');
+    const TOOLS = [
+      { key: 'scribe', label: 'Scribe', href: '/scribe' },
+      { key: 'coding', label: 'Coding', href: '/coding' },
+      { key: 'insurance', label: 'Insurance', href: '/revenue/claims' },
+      { key: 'staff', label: 'Team', href: '/staff/team' },
+    ];
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    function workspaceFor(p) {
+      if (suite) {
+        if (p === '/scribe') return 'emr';
+        if (p === '/coding') return 'revenue';
+        for (const ws of ['overview', 'emr', 'revenue', 'staff']) if (p === '/' + ws || p.startsWith('/' + ws + '/')) return ws;
+        return null;
+      }
+      if (p === '/scribe') return 'scribe';
+      if (p === '/coding' || p === '/revenue/coding') return 'coding';
+      if (p.startsWith('/revenue/')) return 'insurance';
+      if (p.startsWith('/staff/')) return 'staff';
+      return null;
+    }
+    const active = workspaceFor(path);
+    window.__ALTHAIS_WORKSPACE__ = active;
+    window.__ALTHAIS_SUITE__ = suite;
+    if (!suite) {
+      const mine = TOOLS.filter(t => products.includes(t.key));
+      document.getElementById('primary-tabs').innerHTML = mine.map(t => `<a class="primary-tab" data-workspace="${t.key}" href="${t.href}">${t.label}</a>`).join('');
+      document.getElementById('nav-home').href = mine.length ? mine[0].href : '/no-access';
+      if (mine.length === 1) { const n = document.getElementById('nav-tool-name'); n.textContent = mine[0].label; n.classList.remove('hidden'); }
+      const settings = document.querySelector('header .settings-btn');   // Settings is part of the full suite
+      if (settings) settings.style.display = 'none';
+    }
+    document.querySelectorAll('.primary-tab').forEach(tab => { if (tab.dataset.workspace === active) tab.classList.add('active'); });
+
     const displayName = u.provider_name || u.full_name || (u.email ? u.email.split('@')[0] : 'there');
     const initialsSrc = u.provider_name || u.full_name || u.email || 'A';
     const initials = initialsSrc.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'A';

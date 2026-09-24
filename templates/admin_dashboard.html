@@ -62,6 +62,35 @@
       </div>
     </div>
 
+    <!-- Organizations & access: which Althais products each clinic has bought -->
+    <div class="bg-panel border border-line rounded-md mt-6 overflow-hidden">
+      <div class="px-4 py-3 border-b border-line flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 class="text-[13px] font-semibold text-ink-900">Organizations &amp; Access</h2>
+          <p class="text-[11.5px] text-ink-500 mt-0.5">Turn on what each clinic bought. The full suite includes every tool; new clinics start on the full suite.</p>
+        </div>
+        <input id="org-search" type="text" placeholder="Filter organizations…" class="text-[12px] border border-line rounded-sm px-2.5 py-1.5 w-56 bg-white" />
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="bg-shell">
+              <th class="text-left px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Organization</th>
+              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Full Suite</th>
+              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Scribe</th>
+              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Coding</th>
+              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Insurance</th>
+              <th class="text-center px-2 py-2.5 text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold">Team</th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody id="org-rows">
+            <tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Users table -->
     <div class="bg-panel border border-line rounded-md mt-6 overflow-hidden">
       <div class="px-4 py-3 border-b border-line flex items-center justify-between">
@@ -176,7 +205,58 @@
       window.location.href = '/admin/login';
     });
 
+    // ---- Organizations & access ----
+    const PLAN_KEYS = ['suite', 'scribe', 'coding', 'insurance', 'staff'];
+    let ORGS = [];
+    const draft = {};   // org_key -> products being edited
+    function orgRow(o) {
+      const cur = draft[o.org_key] || o.products, suite = cur.includes('suite');
+      const dirty = draft[o.org_key] && draft[o.org_key].slice().sort().join() !== o.products.slice().sort().join();
+      const cells = PLAN_KEYS.map(k => {
+        const on = k === 'suite' ? suite : (suite || cur.includes(k));
+        return `<td class="px-2 py-2.5 text-center"><input type="checkbox" data-org="${esc(o.org_key)}" data-plan="${k}" ${on ? 'checked' : ''} ${k !== 'suite' && suite ? 'disabled title="Included in the full suite"' : ''} aria-label="${esc(o.name)}: ${k}"></td>`;
+      }).join('');
+      const none = !cur.length;
+      return `<tr class="border-t border-lineSoft">
+        <td class="px-4 py-2.5"><div class="text-[12.5px] font-medium text-ink-900">${esc(o.name)}</div>
+          <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}</div></td>
+        ${cells}
+        <td class="px-4 py-2.5 text-right whitespace-nowrap">
+          ${none ? '<span class="text-[11px] text-risk-600 font-semibold mr-2">No access</span>' : ''}
+          <button data-save-org="${esc(o.org_key)}" class="text-[11.5px] font-semibold px-2.5 py-1 rounded-sm ${dirty ? 'bg-med-600 text-white' : 'text-ink-400'}" ${dirty ? '' : 'disabled'}>Save</button>
+        </td></tr>`;
+    }
+    function renderOrgs() {
+      const q = $('org-search').value.trim().toLowerCase();
+      const list = ORGS.filter(o => !q || (o.name + ' ' + o.users.join(' ')).toLowerCase().includes(q));
+      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-[12.5px] text-ink-500">No organizations.</td></tr>';
+    }
+    async function loadOrgs() {
+      const res = await fetch('/api/admin/orgs', { credentials: 'same-origin' });
+      if (res.status === 401) { window.location.href = '/admin/login'; return; }
+      ORGS = await res.json(); renderOrgs();
+    }
+    $('org-search').addEventListener('input', renderOrgs);
+    $('org-rows').addEventListener('change', e => {
+      const cb = e.target.closest('[data-plan]'); if (!cb) return;
+      const o = ORGS.find(x => x.org_key === cb.dataset.org);
+      let cur = (draft[o.org_key] || o.products).filter(p => p !== 'suite' || cb.dataset.plan === 'suite');
+      if (cb.dataset.plan === 'suite') cur = cb.checked ? ['suite'] : [];
+      else cur = cb.checked ? [...new Set(cur.concat(cb.dataset.plan))] : cur.filter(p => p !== cb.dataset.plan);
+      draft[o.org_key] = cur; renderOrgs();
+    });
+    $('org-rows').addEventListener('click', async e => {
+      const b = e.target.closest('[data-save-org]'); if (!b) return;
+      const key = b.dataset.saveOrg, o = ORGS.find(x => x.org_key === key), products = draft[key];
+      if (!products.length && !confirm(`Turn off every Althais tool for ${o.name}? Their people will see a "no active plan" page.`)) return;
+      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || 'Could not save.'); return; }
+      o.products = data.products; delete draft[key]; renderOrgs();
+    });
+
     load();
+    loadOrgs();
   </script>
 </body>
 </html>

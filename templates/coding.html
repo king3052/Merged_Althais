@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Coding</title>
+  <style>
+    .card { background:#fff; border:1px solid #e4e6eb; border-radius:6px; }
+    .card-h { padding:12px 16px; border-bottom:1px solid #eceef2; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .card-b { padding:16px; }
+    .fld { width:100%; border-radius:4px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:var(--brand-text); box-shadow:0 0 0 3px rgb(var(--brand-rgb) / .18); }
+    textarea.fld { resize:vertical; line-height:1.55; }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .btn { font-size:12px; padding:7px 12px; border-radius:4px; font-weight:600; cursor:pointer; white-space:nowrap; border:1px solid #e4e6eb; background:#fff; color:#2c313b; }
+    .btn:hover { background:#f4f5f7; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .btn-p { background:var(--brand); color:var(--brand-on); border-color:var(--brand); box-shadow:var(--brand-ring); }
+    .btn-p:hover { background:var(--brand-700); }
+    .code-row { display:grid; grid-template-columns: 74px 110px minmax(0,1fr) 120px 28px; gap:12px; align-items:start; padding:12px 16px; border-top:1px solid #eceef2; }
+    .code-row:first-child { border-top:0; }
+    .type { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:2px 6px; border-radius:3px; text-align:center; }
+    .conf-bar { height:5px; border-radius:3px; background:#eceef2; overflow:hidden; margin-top:4px; }
+    .conf-bar > span { display:block; height:100%; border-radius:3px; }
+    .x { width:26px; height:26px; border-radius:4px; border:0; background:none; color:#8b909c; cursor:pointer; font-size:16px; line-height:1; }
+    .x:hover { background:#ffe1e1; color:#c83838; }
+    .score { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; flex-shrink:0; }
+    html[data-theme-resolved="dark"] .card { background:#1a1d24; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .card-h, html[data-theme-resolved="dark"] .code-row { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .fld, html[data-theme-resolved="dark"] .btn { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .btn-p { background:var(--brand); color:var(--brand-on); border-color:var(--brand); }
+    html[data-theme-resolved="dark"] .conf-bar { background:#2c313b; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line">
+      <h1 class="text-[18px] font-semibold text-ink-900">Coding</h1>
+      <p class="text-[12px] text-ink-500 mt-0.5">Paste a visit note to get CPT and ICD-10 codes with the documentation behind each one, then check them before they go on a claim.</p>
+    </div>
+
+    <div class="p-5 grid grid-cols-1 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-5 items-start">
+      <!-- input -->
+      <section class="card xl:sticky xl:top-[100px]">
+        <div class="card-h">
+          <h2 class="text-[13px] font-semibold text-ink-900">Visit Note</h2>
+          <select id="saved-note" class="fld" style="width:auto;max-width:260px" aria-label="Use a saved note"><option value="">Use a saved note…</option></select>
+        </div>
+        <div class="card-b space-y-3">
+          <textarea id="note" rows="14" class="fld" placeholder="Paste or type the clinical note: chief complaint, history, exam, assessment and plan."></textarea>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lbl" for="enc">Encounter Type</label><select id="enc" class="fld"><option value="office">Office / Outpatient</option><option value="urgent_care">Urgent Care</option><option value="emergency">Emergency Department</option></select></div>
+            <div><label class="lbl" for="mins">Visit Minutes</label><input id="mins" type="number" min="0" class="fld num" placeholder="Optional" /></div>
+          </div>
+          <div class="flex items-center gap-4 text-[12px] text-ink-700">
+            <label class="flex items-center gap-2 cursor-pointer"><input id="new-pt" type="checkbox"> New Patient</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input id="crit" type="checkbox"> Critical Care</label>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <button id="suggest" type="button" class="btn btn-p">Suggest Codes</button>
+            <span id="suggest-status" class="text-[12px] text-ink-500"></span>
+          </div>
+        </div>
+      </section>
+
+      <div class="space-y-4 min-w-0">
+        <!-- codes -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="text-[13px] font-semibold text-ink-900">Codes <span id="code-count" class="text-ink-500 font-normal"></span></h2>
+            <div class="flex items-center gap-2">
+              <button id="copy" type="button" class="btn" disabled>Copy</button>
+              <button id="csv" type="button" class="btn" disabled>Export CSV</button>
+              <button id="check" type="button" class="btn btn-p" disabled>Check Codes</button>
+            </div>
+          </div>
+          <div id="time-note" class="hidden px-4 py-2.5 text-[12px] border-b border-line" style="background:#f7f9fc"></div>
+          <div id="codes"><div class="px-4 py-10 text-center text-[12px] text-ink-500">Codes appear here after you paste a note and click <b>Suggest Codes</b>.</div></div>
+          <div class="px-4 py-3 border-t border-line flex items-end gap-2 flex-wrap">
+            <div><label class="lbl" for="add-type">Add A Code</label><select id="add-type" class="fld" style="width:100px"><option>CPT</option><option>ICD-10</option></select></div>
+            <div><input id="add-code" class="fld mono" style="width:110px" placeholder="99213" aria-label="Code" /></div>
+            <div><input id="add-mod" class="fld mono" style="width:70px" placeholder="Mod" aria-label="Modifier" /></div>
+            <div class="flex-1 min-w-[160px]"><input id="add-desc" class="fld" placeholder="Description (optional)" aria-label="Description" /></div>
+            <button id="add" type="button" class="btn">Add</button>
+          </div>
+        </section>
+
+        <!-- check -->
+        <section id="check-card" class="card hidden">
+          <div class="card-h"><h2 class="text-[13px] font-semibold text-ink-900">Code Check</h2><span class="text-[11px] text-ink-500">Verify bundling against the current NCCI edits before billing</span></div>
+          <div class="card-b" id="check-body"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/practice-data.js"></script>
+  <script>
+    const P = window.PracticeData;
+    const $ = (id) => document.getElementById(id);
+    const esc = P.esc;
+    let CODES = [];
+    const TYPE_STYLE = { 'CPT': 'background:var(--brand-100);color:var(--brand-text-strong)', 'ICD-10': 'background:#eceef2;color:#4a505c' };
+    const confColor = (c) => c >= 85 ? '#0c8a4f' : c >= 70 ? '#b86a00' : '#c83838';
+    // the AI endpoints pass provider errors through verbatim; show people something readable
+    function friendly(res, data, fallback) {
+      if (res.status === 403) return 'Your Althais plan doesn’t include this.';
+      if (res.status === 401) return 'Your session ended. Sign in again.';
+      const msg = String((data && (data.error || data.detail)) || '');
+      console.warn('Coding request failed:', res.status, msg);
+      return /api key|error code|traceback|exception/i.test(msg) || !msg ? fallback : msg;
+    }
+
+    // saved notes from Scribe (or the EMR) can be pulled in directly
+    const NOTES = (() => { try { const v = JSON.parse(localStorage.getItem(P.ns + 'althais.notes.v1') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } })()
+      .filter(n => n && n.structured).slice(0, 40);
+    if (NOTES.length) {
+      $('saved-note').innerHTML += NOTES.map(n => `<option value="${esc(n.id)}">${esc(n.patient || n.mrn)} · ${esc(P.fmtDate(n.date))}</option>`).join('');
+    } else { $('saved-note').style.display = 'none'; }
+    $('saved-note').addEventListener('change', () => {
+      const n = NOTES.find(x => x.id === $('saved-note').value); if (!n) return;
+      const s = n.structured, v = s.vitals || {};
+      const vitals = [v.bp && 'BP ' + v.bp, v.hr && 'HR ' + v.hr, v.rr && 'RR ' + v.rr, v.temp && 'Temp ' + v.temp, v.spo2 && 'SpO2 ' + v.spo2].filter(Boolean).join(', ');
+      $('note').value = [['Chief complaint', s.cc], ['HPI', s.hpi], ['ROS', s.ros], ['Vitals', vitals], ['Exam', s.exam], ['Assessment', s.assessment], ['Plan', s.plan]]
+        .filter(([, t]) => t).map(([h, t]) => `${h}: ${t}`).join('\n');
+      const enc = { 'Emergency': 'emergency', 'Urgent Care': 'urgent_care' }[n.type]; $('enc').value = enc || 'office';
+      $('new-pt').checked = n.type === 'New Patient';
+    });
+
+    function render() {
+      $('code-count').textContent = CODES.length ? `(${CODES.filter(c => c.type === 'CPT').length} CPT · ${CODES.filter(c => c.type !== 'CPT').length} ICD-10)` : '';
+      ['copy', 'csv', 'check'].forEach(id => { $(id).disabled = !CODES.length; });
+      if (!CODES.length) { $('codes').innerHTML = '<div class="px-4 py-10 text-center text-[12px] text-ink-500">No codes yet. Suggest codes from a note, or add them below.</div>'; return; }
+      const order = (c) => (c.type === 'CPT' ? 0 : 1);
+      $('codes').innerHTML = CODES.map((c, i) => ({ c, i })).sort((a, b) => order(a.c) - order(b.c)).map(({ c, i }) => `
+        <div class="code-row">
+          <span class="type" style="${TYPE_STYLE[c.type] || TYPE_STYLE['ICD-10']}">${esc(c.type)}</span>
+          <div><div class="mono text-[14px] font-semibold text-ink-900">${esc(c.code)}${c.modifier ? `<span class="text-ink-500">-${esc(c.modifier)}</span>` : ''}</div>${c.units > 1 ? `<div class="text-[11px] text-ink-500">× ${c.units} units</div>` : ''}</div>
+          <div class="min-w-0">
+            <div class="text-[12.5px] text-ink-900">${esc(c.description || '—')}</div>
+            ${c.justification ? `<div class="text-[11.5px] text-ink-500 mt-0.5">${esc(c.justification)}</div>` : ''}
+            ${c.documentation_gap ? `<div class="text-[11.5px] mt-1" style="color:#b86a00">Documentation gap: ${esc(c.documentation_gap)}</div>` : ''}
+            ${c.format_warning ? `<div class="text-[11.5px] mt-1 text-risk-600">${esc(c.format_warning)}</div>` : ''}
+          </div>
+          <div>${c.confidence != null ? `<div class="text-[11px] text-ink-500">Confidence <b class="text-ink-900 num">${c.confidence}%</b></div><div class="conf-bar"><span style="width:${c.confidence}%;background:${confColor(c.confidence)}"></span></div>` : '<div class="text-[11px] text-ink-400">Added by you</div>'}</div>
+          <button type="button" class="x" data-remove="${i}" aria-label="Remove ${esc(c.code)}" title="Remove">×</button>
+        </div>`).join('');
+      $('check-card').classList.add('hidden');
+    }
+
+    $('suggest').addEventListener('click', async () => {
+      const note = $('note').value.trim();
+      if (note.split(/\s+/).length < 8) { $('suggest-status').textContent = 'Add more of the note first.'; $('note').focus(); return; }
+      $('suggest').disabled = true; $('suggest-status').textContent = 'Reading the note…';
+      try {
+        const res = await fetch('/api/code-note', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ note, encounter_type: $('enc').value, is_new_patient: $('new-pt').checked, is_critical_care: $('crit').checked, duration_minutes: $('mins').value || null }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) throw new Error(friendly(res, data, 'Couldn’t suggest codes just now. The coding service isn’t responding; try again in a minute.'));
+        CODES = (data.codes || []).map(c => Object.assign({ units: 1 }, c));
+        $('time-note').classList.toggle('hidden', !data.time_coding_note);
+        $('time-note').textContent = data.time_coding_note || '';
+        $('suggest-status').textContent = CODES.length ? `${CODES.length} code${CODES.length === 1 ? '' : 's'} suggested. Review each one.` : 'No billable codes found in this note.';
+        render();
+      } catch (e) { $('suggest-status').textContent = e.message; }
+      finally { $('suggest').disabled = false; }
+    });
+
+    $('codes').addEventListener('click', (e) => { const b = e.target.closest('[data-remove]'); if (b) { CODES.splice(Number(b.dataset.remove), 1); render(); } });
+    $('add').addEventListener('click', () => {
+      const code = $('add-code').value.trim().toUpperCase(), type = $('add-type').value;
+      if (!code) { $('add-code').focus(); return; }
+      const ok = type === 'CPT' ? /^([0-9]{4}[0-9A-Z]|[A-Z][0-9]{4})$/.test(code) : /^[A-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/.test(code);
+      if (!ok) { P.toast(type === 'CPT' ? 'CPT and HCPCS codes are 5 characters, like 99213 or G0439' : 'ICD-10 codes look like E11.9 or S61.409A', 'error'); return; }
+      if (CODES.some(c => c.code === code)) { P.toast(code + ' is already on the list', 'error'); return; }
+      CODES.push({ code, type, modifier: $('add-mod').value.trim(), description: $('add-desc').value.trim(), units: 1, confidence: null, justification: '', documentation_gap: '' });
+      ['add-code', 'add-mod', 'add-desc'].forEach(id => { $(id).value = ''; });
+      render();
+    });
+
+    $('check').addEventListener('click', async () => {
+      $('check').disabled = true; $('check-card').classList.remove('hidden');
+      $('check-body').innerHTML = '<div class="text-[12px] text-ink-500">Checking the codes against the note…</div>';
+      try {
+        const res = await fetch('/api/validate-claim', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codes: CODES.map(c => ({ code: c.code, type: c.type, modifier: c.modifier, units: c.units, description: c.description })), note: $('note').value }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) throw new Error(friendly(res, data, 'Couldn’t check the codes just now. The checking service isn’t responding; try again in a minute.'));
+        const score = Number(data.score) || 0, tone = score >= 85 ? ['#d8f5e3', '#0c8a4f', 'Ready to bill'] : score >= 65 ? ['#fff0d6', '#b86a00', 'Fix before billing'] : ['#ffe1e1', '#c83838', 'Likely to be denied'];
+        const list = (arr, color) => arr.map(x => `<li class="flex gap-2"><span style="color:${color}">•</span><span>${esc(x)}</span></li>`).join('');
+        $('check-body').innerHTML = `
+          <div class="flex items-center gap-4 mb-4">
+            <div class="score num" style="background:${tone[0]};color:${tone[1]}">${score}</div>
+            <div><div class="text-[14px] font-semibold" style="color:${tone[1]}">${tone[2]}</div><div class="text-[12px] text-ink-500">Claim readiness out of 100</div></div>
+          </div>
+          ${(data.flags || []).length ? `<div class="lbl">Problems Found</div><ul class="text-[12.5px] text-ink-800 space-y-1.5 mb-4">${list(data.flags, '#c83838')}</ul>` : '<div class="text-[12.5px] text-ok-600 font-semibold mb-3">No problems found.</div>'}
+          ${(data.missing || []).length ? `<div class="lbl">Missing</div><ul class="text-[12.5px] text-ink-800 space-y-1.5">${list(data.missing, '#b86a00')}</ul>` : ''}`;
+      } catch (e) { $('check-body').innerHTML = `<div class="text-[12px] text-risk-600">${esc(e.message)}</div>`; }
+      finally { $('check').disabled = !CODES.length; }
+    });
+
+    const codeLine = (c) => c.code + (c.modifier ? '-' + c.modifier : '') + (c.units > 1 ? ' x' + c.units : '');
+    $('copy').addEventListener('click', async () => {
+      const text = 'CPT: ' + CODES.filter(c => c.type === 'CPT').map(codeLine).join(', ') + '\nICD-10: ' + CODES.filter(c => c.type !== 'CPT').map(codeLine).join(', ');
+      try { await navigator.clipboard.writeText(text); P.toast('Codes copied'); } catch (e) { P.toast('Copying is blocked in this browser. Use Export CSV instead.', 'error'); }
+    });
+    $('csv').addEventListener('click', () => {
+      const rows = [['Type', 'Code', 'Modifier', 'Units', 'Description', 'Confidence', 'Justification', 'Documentation gap']]
+        .concat(CODES.map(c => [c.type, c.code, c.modifier || '', c.units || 1, c.description || '', c.confidence == null ? '' : c.confidence, c.justification || '', c.documentation_gap || '']));
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'codes_' + P.todayIso() + '.csv'; a.click();
+    });
+    render();
+  </script>
+</body>
+</html>

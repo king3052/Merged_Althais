@@ -22,6 +22,7 @@
         { label: 'Charting', href: '/emr/charting' },
         { label: 'AI Second Brain', href: '/emr/second-brain' },
         { label: 'Documents', href: '/emr/documents' },
+        { label: 'Scribe', href: '/scribe' },
       ]},
       revenue: { href: '/revenue/claims', items: [
         { label: 'Claims', href: '/revenue/claims' },
@@ -30,6 +31,7 @@
         { label: 'Appeals', href: '/revenue/appeals' },
         { label: 'Payments', href: '/revenue/payments' },
         { label: 'Payer Intelligence', href: '/revenue/payer-intelligence' },
+        { label: 'Code A Note', href: '/coding' },
       ]},
       staff: { href: '/staff/team', items: [
         { label: 'Team', href: '/staff/team' },
@@ -42,15 +44,20 @@
       ]},
     };
 
+    // Single-tool plans get their own sub-menus (see _primary_nav.html for which plan is which)
+    const TOOL_NAVIGATION = {
+      scribe: { items: [{ label: 'Write A Note', href: '/scribe' }] },
+      coding: { items: [{ label: 'Code A Note', href: '/coding' }, { label: 'Coding Review', href: '/revenue/coding' }] },
+      insurance: { items: NAVIGATION.revenue.items.filter(i => !['/revenue/coding', '/coding'].includes(i.href)) },
+      staff: NAVIGATION.staff,
+    };
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
-    let activeWorkspace = null;
-    for (const key of Object.keys(NAVIGATION)) {
-      if (path === '/' + key || path.startsWith('/' + key + '/')) { activeWorkspace = key; break; }
-    }
+    const activeWorkspace = window.__ALTHAIS_WORKSPACE__ || null;
+    const menus = window.__ALTHAIS_SUITE__ === false ? TOOL_NAVIGATION : NAVIGATION;
 
     const secondaryNav = document.getElementById('secondary-nav');
     if (activeWorkspace) {
-      const items = NAVIGATION[activeWorkspace].items;
+      const items = (menus[activeWorkspace] || { items: [] }).items;
       secondaryNav.innerHTML = items.map(item => {
         const itemPath = item.href.replace(/\/+$/, '') || '/';
         const isActive = path === itemPath;
