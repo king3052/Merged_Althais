@@ -127,6 +127,7 @@
       <a class="nav-tab" data-tab="orgs" href="#orgs">Organizations &amp; Access<span class="n" id="n-orgs"></span></a>
       <a class="nav-tab" data-tab="accounts" href="#accounts">Accounts<span class="n" id="n-accounts"></span></a>
       <a class="nav-tab" data-tab="plans" href="#plans">Plans &amp; Tools</a>
+      <a class="nav-tab" data-tab="activity" href="#activity">Activity</a>
     </div>
   </nav>
 
@@ -151,6 +152,7 @@
           <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Organizations</div><div id="stat-orgs" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div id="stat-orgs-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
           <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Logins</div><div id="stat-logins" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div id="stat-logins-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
           <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Claims Submitted</div><div id="stat-claims" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div class="text-[10.5px] text-ink-400 mt-0.5">across every clinic</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">MRR</div><div id="stat-mrr" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div id="stat-mrr-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
         </div>
       </div>
       <div class="p-5 grid lg:grid-cols-2 gap-4">
@@ -191,12 +193,15 @@
         <div class="bg-panel border border-line rounded-sm">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
             <h3 class="text-[13px] font-semibold text-ink-900">Organizations</h3>
-            <span id="org-count" class="text-[11px] text-ink-500">Loading…</span>
+            <div class="flex items-center gap-2">
+              <a href="/api/admin/export/orgs.csv" class="btn-line" download>Export CSV</a>
+              <span id="org-count" class="text-[11px] text-ink-500">Loading…</span>
+            </div>
           </div>
           <div class="overflow-x-auto thin-scroll">
             <table class="w-full">
               <thead><tr class="table-head">
-                <th class="td text-left">Organization</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td text-center" style="border-left:1px solid #e4e6eb">Althea</th><th class="td text-center">Manager</th><th class="td"></th>
+                <th class="td text-left">Organization</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td text-center" style="border-left:1px solid #e4e6eb">Althea</th><th class="td text-center">Manager</th><th class="td text-right" style="border-left:1px solid #e4e6eb">MRR</th><th class="td"></th>
               </tr></thead>
               <tbody id="org-rows"></tbody>
             </table>
@@ -211,7 +216,10 @@
         <div class="bg-panel border border-line rounded-sm">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
             <h3 class="text-[13px] font-semibold text-ink-900">All Accounts</h3>
-            <span id="acct-count" class="text-[11px] text-ink-500">Loading…</span>
+            <div class="flex items-center gap-2">
+              <a href="/api/admin/export/accounts.csv" class="btn-line" download>Export CSV</a>
+              <span id="acct-count" class="text-[11px] text-ink-500">Loading…</span>
+            </div>
           </div>
           <div class="overflow-x-auto thin-scroll">
             <table class="w-full">
@@ -222,6 +230,20 @@
             </table>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Activity: a record of consequential admin actions -->
+    <section data-section="activity" class="hidden">
+      <div class="p-5">
+        <div class="bg-panel border border-line rounded-sm">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+            <h3 class="text-[13px] font-semibold text-ink-900">Recent Admin Activity</h3>
+            <span id="activity-count" class="text-[11px] text-ink-500">Loading…</span>
+          </div>
+          <div id="activity-rows"></div>
+        </div>
+        <p class="text-[11.5px] text-ink-500 mt-3">Plan changes, account deletions, and sign-up settings — the last 100 actions from this console. Doesn't include anything a clinic does in its own app.</p>
       </div>
     </section>
 
@@ -321,6 +343,7 @@
   <script>
     const $ = id => document.getElementById(id);
     const PLAN_KEYS = ['suite', 'scribe', 'coding', 'insurance', 'staff'];
+    const IMPERSONATION_MINUTES = 30;
     const PLANS = {
       suite:     { name: 'Full Suite', home: '/overview', blurb: 'All of Althais for the whole practice. Comes with Althea unless it’s switched off.',
                    has: ['Overview: Tasks, Work Today, AI Inbox, Analytics, Recent Activity', 'EMR: patients, charts, schedule and Scribe', 'Revenue: claims, denials, appeals, payments, Coding Review', 'Staff workspace'] },
@@ -338,6 +361,7 @@
       orgs: ['Organizations & Access', 'Which Althais tools each clinic can use.'],
       accounts: ['Accounts', 'Everyone with an Althais login. Deleting an account can’t be undone.'],
       plans: ['Plans & Tools', 'What each plan opens for a clinic.'],
+      activity: ['Activity', 'A record of consequential actions taken from this console.'],
       settings: ['Settings', 'Settings for the Althais admin console. They don’t change any clinic’s own Settings.'],
     };
     let ASET = { signups_open: true, new_clinic_plan: 'suite', session_hours: 8, hide_test_accounts: false, inactive_after_days: 30, start_page: 'overview', brand_color: '#0d5bd7', compact: false, clinic_palette: [], clinic_custom_color: true };
@@ -389,8 +413,9 @@
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
       document.querySelectorAll('[data-section]').forEach(s => s.classList.toggle('hidden', s.dataset.section !== tab));
       $('page-title').textContent = PAGES[tab][0]; $('page-sub').textContent = PAGES[tab][1];
-      $('page-tools').classList.toggle('hidden', tab === 'settings');
+      $('page-tools').classList.toggle('hidden', tab === 'settings' || tab === 'activity');
       document.querySelector('.settings-btn').classList.toggle('bg-white/[0.16]', tab === 'settings');
+      if (tab === 'activity') renderActivity();
     }
     window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
@@ -407,6 +432,10 @@
       const activeWeek = shownUsers().filter(u => u.last_login && new Date(u.last_login) > week).length;
       $('stat-logins-d').textContent = `${activeWeek} ${activeWeek === 1 ? 'person' : 'people'} active this week`;
       $('stat-claims').textContent = shownUsers().reduce((s, u) => s + (u.claims_submitted || 0), 0).toLocaleString();
+      const totalMrr = shownOrgs().reduce((s, o) => s + (o.mrr || 0), 0);
+      const orgsWithMrr = shownOrgs().filter(o => o.mrr > 0).length;
+      $('stat-mrr').textContent = '$' + totalMrr.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      $('stat-mrr-d').textContent = orgsWithMrr ? `${orgsWithMrr} ${orgsWithMrr === 1 ? 'clinic' : 'clinics'} with contract value set` : 'no contract values entered yet';
 
       // a clinic with several tools counts under each one
       const counts = PLAN_KEYS.map(k => ({ label: PLANS[k].name, n: shownOrgs().filter(o => o.products.includes(k)).length }))
@@ -483,6 +512,9 @@
           <button type="button" data-emp="${esc(o.org_key)}" class="font-semibold text-ink-900 hover:text-med-600 text-left" title="See this clinic’s employees">${esc(o.name)}</button>
           <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}</div></div></div></td>
         ${cells}
+        <td class="td text-right" style="border-left:1px solid #eceef2">
+          <input type="number" min="0" step="1" class="flt" style="width:88px;text-align:right" value="${o.mrr || ''}" placeholder="0" data-mrr="${esc(o.org_key)}" aria-label="${esc(o.name)}: monthly contract value" />
+        </td>
         <td class="td text-right whitespace-nowrap">
           ${!cur.length ? pill('No Access', 'risk') + ' ' : dirty ? pill('Unsaved', 'warn') + ' ' : ''}
           <button type="button" data-save-org="${esc(o.org_key)}" class="btn-save ml-1" ${dirty ? '' : 'disabled'}>Save</button>
@@ -498,6 +530,21 @@
       $('n-orgs').textContent = shownOrgs().length || '';
     }
     $('org-filter').addEventListener('change', renderOrgs);
+    $('org-rows').addEventListener('focusout', async e => {
+      const input = e.target.closest('[data-mrr]'); if (!input) return;
+      const key = input.dataset.mrr, o = ORGS.find(x => x.org_key === key);
+      const val = Math.max(0, Number(input.value) || 0);
+      if (o && val === (o.mrr || 0)) return;   // unchanged — nothing to save
+      const res = await fetch('/api/admin/orgs/mrr', {
+        method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org_key: key, mrr: val }),
+      });
+      if (res.status === 401) { location.href = '/admin/login'; return; }
+      if (!res.ok) { toast('Could not save the contract value.', 'error'); return; }
+      if (o) o.mrr = val;
+      renderOverview();
+      toast(`Saved. ${o ? o.name : key}: $${val.toLocaleString()}/mo.`);
+    });
     $('org-rows').addEventListener('click', async e => {
       const a = e.target.closest('[data-althea]');
       if (a) { const o = ORGS.find(x => x.org_key === a.dataset.org); draftA[o.org_key] = !a.classList.contains('on'); renderOrgs(); return; }
@@ -539,10 +586,11 @@
         const status = !m.active ? pill('Paused', 'muted') : !m.last_login ? pill('Invited', 'warn') : pill('Active', 'brand');
         const tools = m.tools.length ? m.tools.map(t => pill(PLANS[t] ? PLANS[t].name : t, 'muted')).join(' ') : '<span class="text-[11px] text-ink-500">All the clinic’s tools</span>';
         const off = m.blocked.length ? `<div class="text-[11px] mt-1" style="color:#b86a00">Turned off: ${m.blocked.map(a => esc(d.areas[a] || a)).join(', ')}</div>` : '';
+        const viewAs = m.active ? `<button type="button" data-view-as="${m.id}" data-view-as-email="${esc(m.email)}" class="text-[11px] font-semibold text-med-600 hover:text-med-700 mt-1.5" title="See exactly what ${esc(m.email)} sees, for ${IMPERSONATION_MINUTES} minutes">View As →</button>` : '';
         return `<div class="list-row" style="align-items:flex-start"><div class="initials">${esc(initials(m.full_name || m.email))}</div>
           <div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><span class="text-[12.5px] font-semibold text-ink-900">${esc(m.full_name || m.email)}</span>${status}</div>
             <div class="text-[11px] text-ink-500">${esc(m.email)} · ${ROLE_NAME[m.role] || m.role}${m.provider_name ? ' · ' + esc(m.provider_name) : ''} · last sign-in ${fmtRelative(m.last_login)}</div>
-            <div class="flex gap-1 flex-wrap mt-1">${tools}</div>${off}</div></div>`;
+            <div class="flex gap-1 flex-wrap mt-1">${tools}</div>${off}${viewAs}</div></div>`;
       };
       const managers = d.members.filter(m => m.role === 'admin'), others = d.members.filter(m => m.role !== 'admin');
       $('emp-sub').textContent = `${d.members.length} ${d.members.length === 1 ? 'person' : 'people'} · ${managers.length} ${managers.length === 1 ? 'manager' : 'managers'}`;
@@ -553,6 +601,20 @@
     $('emp-close').addEventListener('click', closeClinic); $('emp-backdrop').addEventListener('click', closeClinic);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeClinic(); });
     document.addEventListener('click', e => { const b = e.target.closest('[data-emp]'); if (b) openClinic(b.dataset.emp); });
+    document.addEventListener('click', async e => {
+      const b = e.target.closest('[data-view-as]'); if (!b) return;
+      const email = b.dataset.viewAsEmail;
+      if (!confirm(`View the app as ${email}? You'll see exactly what they see for ${IMPERSONATION_MINUTES} minutes, then it ends automatically. This is logged.`)) return;
+      b.disabled = true; b.textContent = 'Opening…';
+      try {
+        const res = await fetch('/admin/impersonate/' + b.dataset.viewAs, { method: 'POST', credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { toast(data.error || 'Could not start View As.', 'error'); b.disabled = false; b.textContent = 'View As →'; return; }
+        location.href = data.redirect || '/';
+      } catch {
+        toast('Could not start View As.', 'error'); b.disabled = false; b.textContent = 'View As →';
+      }
+    });
 
     // ---- Accounts ----
     function renderAccounts() {
@@ -572,10 +634,31 @@
           <td class="td td-num text-right">${u.claims_submitted}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}${inactive(u) ? ' ' + pill('Inactive', 'muted') : ''}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtDate(u.created_at)}</td>
-          <td class="td text-right"><button type="button" data-del="${u.id}" class="text-[11px] font-semibold text-ink-400 hover:text-risk-600">Delete</button></td>
+          <td class="td text-right whitespace-nowrap">
+            <button type="button" data-toggle-active="${u.id}" data-currently-active="${u.active !== false}" class="text-[11px] font-semibold text-ink-500 hover:text-med-600 mr-3">${u.active === false ? 'Reactivate' : 'Pause'}</button>
+            <button type="button" data-del="${u.id}" class="text-[11px] font-semibold text-ink-400 hover:text-risk-600">Delete</button>
+          </td>
         </tr>`).join('') : empty(9, 'No accounts match.');
     }
     $('rows').addEventListener('click', async e => {
+      const toggleBtn = e.target.closest('[data-toggle-active]');
+      if (toggleBtn) {
+        const id = toggleBtn.dataset.toggleActive, u = USERS.find(x => String(x.id) === id);
+        const currentlyActive = toggleBtn.dataset.currentlyActive === 'true';
+        const nextActive = !currentlyActive;
+        if (!nextActive && !confirm(`Pause ${u ? u.email : 'this account'}? They won't be able to sign in until you reactivate it. This can be undone any time.`)) return;
+        toggleBtn.disabled = true;
+        const res = await fetch('/api/admin/users/' + id + '/active', {
+          method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active: nextActive }),
+        });
+        if (res.status === 401) { location.href = '/admin/login'; return; }
+        if (!res.ok) { toast('Could not update the account.', 'error'); toggleBtn.disabled = false; return; }
+        if (u) u.active = nextActive;
+        renderAccounts();
+        toast(nextActive ? `Reactivated ${u ? u.email : 'the account'}.` : `Paused ${u ? u.email : 'the account'}.`);
+        return;
+      }
       const btn = e.target.closest('[data-del]'); if (!btn) return;
       const id = btn.dataset.del, u = USERS.find(x => String(x.id) === id);
       if (!confirm(`Delete the account ${u ? u.email : ''}? This can't be undone.`)) return;
@@ -677,6 +760,43 @@
       document.querySelectorAll('[data-stab]').forEach(x => x.classList.toggle('active', x === t));
       document.querySelectorAll('[data-spanel]').forEach(p => p.classList.toggle('hidden', p.dataset.spanel !== t.dataset.stab));
     }));
+
+    // ---- Activity: recent admin actions ----
+    const ACTION_LABEL = {
+      org_products_changed: 'Plan changed',
+      account_deleted: 'Account deleted',
+      account_paused: 'Account paused',
+      account_reactivated: 'Account reactivated',
+      admin_setting_changed: 'Setting changed',
+      org_mrr_changed: 'Contract value updated',
+      impersonation_started: 'View As started',
+      impersonation_ended: 'View As ended',
+    };
+    let ACTIVITY = null; // fetched lazily, only once the tab is opened
+    async function renderActivity() {
+      const box = $('activity-rows');
+      if (ACTIVITY === null) {
+        box.innerHTML = `<div class="px-4 py-8 text-center text-[12px] text-ink-500">Loading…</div>`;
+        try {
+          const res = await fetch('/api/admin/audit-log', { credentials: 'same-origin' });
+          if (res.status === 401) { location.href = '/admin/login'; return; }
+          ACTIVITY = res.ok ? await res.json() : [];
+        } catch { ACTIVITY = []; }
+      }
+      $('activity-count').textContent = ACTIVITY.length ? `${ACTIVITY.length} most recent` : '';
+      box.innerHTML = ACTIVITY.length ? ACTIVITY.map(a => `
+        <div class="list-row" style="align-items:flex-start">
+          <div class="initials">${esc(initials(a.actor_email))}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[12.5px] font-semibold text-ink-900">${esc(ACTION_LABEL[a.action] || a.action)}</span>
+              <span class="text-[11px] text-ink-500">by ${esc(a.actor_email)}</span>
+            </div>
+            <div class="text-[12px] text-ink-700 mt-0.5">${esc(a.detail || a.target || '')}</div>
+          </div>
+          <div class="text-[11px] text-ink-500 whitespace-nowrap">${fmtRelative(a.created_at)}</div>
+        </div>`).join('') : '<div class="px-4 py-10 text-center text-[12px] text-ink-500">No admin actions recorded yet.</div>';
+    }
 
     function renderAll() { renderOverview(); renderOrgs(); renderAccounts(); renderPlans(); }
 
