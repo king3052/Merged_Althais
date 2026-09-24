@@ -33,6 +33,20 @@ import jwt  # PyJWT
 # Railway Postgres connection string so accounts survive redeploys.
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./althais.db")
 
+# Some hosts (Railway among them) hand out a Postgres URL using the bare
+# "postgres://" scheme, or explicitly "postgresql+psycopg://" (the newer
+# psycopg v3 driver). requirements.txt only installs psycopg2-binary, so a
+# URL in either of those forms makes SQLAlchemy try to import a driver
+# that was never installed and the app fails at startup before it can even
+# serve an error page. Normalize to the psycopg2 driver we actually have,
+# no matter which form the URL arrives in — this is a no-op for SQLite.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgres://"):]
+elif DATABASE_URL.startswith("postgresql+psycopg://"):
+    DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql+psycopg://"):]
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql://"):]
+
 # Secret used to sign session tokens. MUST be set to a long random value in
 # production — if it leaks or changes, all sessions are invalidated.
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-insecure-change-me")
