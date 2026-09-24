@@ -21,14 +21,31 @@
   var path = location.pathname;
   var TOOL = path === "/scribe" ? "scribe" : path === "/coding" ? "coding" : /^\/revenue\//.test(path) ? "insurance"
     : /^\/staff\//.test(path) ? "team" : "emr";
-  var suite = (me.products || []).indexOf("suite") !== -1;
-  var CHIPS = suite ? null : {
-    scribe: ["How does Scribe work?", "How do I sign a note?", "Open Settings"],
-    coding: ["How do I code a note?", "What does the confidence score mean?", "Open Settings"],
-    insurance: ["Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?", "Show recent payments"],
-    team: ["How do I add a team member?", "Whose credentials expire soon?", "Open Settings"]
-  }[TOOL];
-  AltheaUI.mount(CHIPS ? { chips: CHIPS } : undefined);
+  /* Althea only offers, and only does, what the clinic bought (the server enforces the same: main.py _ALTHEA_INTENT_TOOLS) */
+  var PRODUCTS = me.products || [];
+  var suite = PRODUCTS.indexOf("suite") !== -1;
+  function has(p) { return suite || PRODUCTS.indexOf(p) !== -1; }
+  var OFFER = {   /* per tool: what she says she can do, her suggestions, and "how do I" answers */
+    scribe: { can: "writing and signing visit notes", chips: ["How does Scribe work?", "How do I sign a note?"],
+      help: [[/scribe|record|transcri|write (a|the) note|how.*work/i, "In Write A Note, fill in the patient, check the consent box, then tap Start Recording. When the visit ends, tap Write The Note and I fill in the SOAP fields from the transcript. Check every field, then Save Draft or Sign Note."],
+             [/sign|amend|signature/i, "Open the note and tap Sign Note. Once it’s signed, changes are saved as an amendment. You can add credentials like MD to your signature in Settings > Scribe."]] },
+    coding: { can: "coding notes and checking codes before billing", chips: ["How do I code a note?", "What does the confidence score mean?"],
+      help: [[/confiden/i, "Confidence is how sure I am that a code is supported by the note. Green is 85% and up, amber 70 to 84, red below 70. You can hide low-confidence suggestions in Settings > Coding."],
+             [/check|valid|readiness|score/i, "After codes are suggested, tap Check Codes. You get a readiness score out of 100, the problems found and anything missing, before the claim goes out."],
+             [/code|cpt|icd|suggest|how.*work/i, "In Code A Note, paste a note or pick a saved one, set the encounter and minutes, then tap Suggest Codes. Review each code, remove or add your own, then Copy or Export CSV."]] },
+    insurance: { can: "claims, denials, appeals, payments and payers", chips: ["Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?", "Show recent payments"], help: [] },
+    staff: { can: "your team’s credentials, training and onboarding", chips: ["Whose credentials expire soon?", "Who has overdue training?", "How do I add a team member?"],
+      help: [[/add|invite|new (hire|person|member)/i, "Go to Staff > Onboarding and tap Invite Team Member for a new hire, or Team > Add Existing Staff for someone already working at the clinic."],
+             [/credential|license|certif/i, "Credentials live in Staff > Credentials. Add each license with its expiry date; I warn you ahead of time, and you can change how far ahead in Settings > Team."]] }
+  };
+  var MINE = ["scribe", "coding", "insurance", "staff"].filter(function (p) { return !suite && has(p); });
+  var hello, chips;
+  if (!suite && MINE.length) {
+    var cans = MINE.map(function (p) { return OFFER[p].can; });
+    hello = "Hi, I’m Althea. I can help with " + (cans.length > 1 ? cans.slice(0, -1).join(", ") + " and " + cans[cans.length - 1] : cans[0]) + ". Tap the mic to talk, and I’ll keep listening until you tap it again.";
+    chips = []; MINE.forEach(function (p) { OFFER[p].chips.forEach(function (c) { if (chips.length < 6) chips.push(c); }); });
+  }
+  AltheaUI.mount(hello ? { hello: hello, chips: chips } : undefined);
   fetch("/api/org/settings/" + TOOL + "_prefs", { credentials: "same-origin" })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (j) { if (j && j.data && j.data.show_althea === false) { var f = document.getElementById("althea-fab"); if (f) f.style.display = "none"; } })
@@ -48,7 +65,9 @@
     overview: "/overview", inbox: "/overview/inbox", activity: "/overview/activity",
     claims: "/revenue/claims", revenue: "/revenue/claims",
     scheduler: "/emr/schedule", patients: "/emr/patients", soap: "/emr", emr: "/emr", settings: "/settings",
-    staff: "/staff/team", team: "/staff/team"
+    staff: "/staff/team", team: "/staff/team",
+    scribe: "/scribe", code_a_note: "/coding", credentials: "/staff/credentials", training: "/staff/training",
+    onboarding: "/staff/onboarding", roles: "/staff/roles", compliance: "/staff/compliance"
   };
   var REV = window.AltheaRevenue || null;   /* claims, denials, payer intelligence, payments (static/js/althea-revenue.js) */
   if (REV) Object.keys(REV.SECTIONS).forEach(function (k) { SECTIONS[k] = REV.SECTIONS[k]; });
@@ -205,6 +224,37 @@
       .then(function () { abortCtl = null; if (!speaking()) showStop(false); });
   }
 
+  /* "how do I…" about the clinic's own tools, answered here */
+  function helpFor(q) {
+    var tools = suite ? ["scribe", "coding", "staff"] : MINE, order = [TOOL === "team" ? "staff" : TOOL].concat(tools);
+    for (var i = 0; i < order.length; i++) {
+      var o = OFFER[order[i]]; if (!o || !has(order[i])) continue;
+      for (var j = 0; j < o.help.length; j++) if (o.help[j][0].test(q)) return o.help[j][1];
+    }
+    return null;
+  }
+  /* Team: read the clinic's staff records (/api/staff) */
+  function staffAnswer(intent) {
+    return fetch("/api/staff", { credentials: "same-origin" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (res) {
+      var d = (res && res.data) || {}, people = {}, today = new Date(new Date().toDateString());
+      (d.people || []).forEach(function (p) { people[p.id] = p.name || "Someone"; });
+      function days(iso) { return iso ? Math.round((new Date(iso + "T00:00:00") - today) / 864e5) : null; }
+      var rows;
+      if (intent === "staff_credentials_expiring") {
+        rows = (d.credentials || []).map(function (c) { return { who: people[c.personId] || "Someone", what: String(c.type || "Credential").replace(/_/g, " "), d: days(c.expires) }; })
+          .filter(function (x) { return x.d != null && x.d <= 60; }).sort(function (a, b) { return a.d - b.d; });
+        if (!rows.length) return { spoken: "No credentials are expired or expiring in the next 60 days.", html: "No credentials are expired or expiring in the next 60 days." };
+        return { spoken: rows.length + (rows.length === 1 ? " credential needs" : " credentials need") + " attention. " + rows.slice(0, 3).map(function (x) { return x.who + "’s " + x.what + (x.d < 0 ? " expired" : " expires in " + x.d + " days"); }).join(". ") + ".",
+          html: rows.map(function (x) { return "<div>" + esc(x.who) + ": " + esc(x.what) + ' <b style="color:' + (x.d < 0 ? "#c83838" : "#b86a00") + '">' + (x.d < 0 ? "expired " + -x.d + "d ago" : "in " + x.d + "d") + "</b></div>"; }).join("") + '<div style="margin-top:4px"><a href="/staff/credentials" style="font-weight:600">Open Credentials →</a></div>' };
+      }
+      rows = (d.trainings || []).filter(function (t) { return !t.completed; }).map(function (t) { return { who: people[t.personId] || "Someone", what: t.course || "Training", d: days(t.due) }; })
+        .filter(function (x) { return x.d != null && x.d <= 14; }).sort(function (a, b) { return a.d - b.d; });
+      if (!rows.length) return { spoken: "No training is overdue or due in the next two weeks.", html: "No training is overdue or due in the next two weeks." };
+      return { spoken: rows.length + " training " + (rows.length === 1 ? "assignment needs" : "assignments need") + " attention. " + rows.slice(0, 3).map(function (x) { return x.who + ": " + x.what + (x.d < 0 ? ", overdue" : ", due in " + x.d + " days"); }).join(". ") + ".",
+        html: rows.map(function (x) { return "<div>" + esc(x.who) + ": " + esc(x.what) + ' <b style="color:' + (x.d < 0 ? "#c83838" : "#b86a00") + '">' + (x.d < 0 ? "overdue" : "due in " + x.d + "d") + "</b></div>"; }).join("") + '<div style="margin-top:4px"><a href="/staff/training" style="font-weight:600">Open Training →</a></div>' };
+    }).catch(function () { return { spoken: "I couldn’t read your team’s records just now.", html: "I couldn’t read your team’s records just now." }; });
+  }
+
   function filterProvider(list) { return PROVIDER ? list.filter(function (x) { return x.provider === PROVIDER; }) : list; }
 
   function execute(data, transcript) {
@@ -293,12 +343,30 @@
           html = '<div style="margin-bottom:3px;color:#9aa0ac;">Practice average: ' + overall.toFixed(1) + "</div>" + below.map(function (a) { return "<div>" + esc(a.provider) + ': <b style="color:#b86a00;">' + a.avg.toFixed(1) + '</b> <span style="color:#9aa0ac;">(' + a.n + " visits)</span></div>"; }).join("") + '<div style="margin-top:4px;font-size:10.5px;color:#9aa0ac;">Coding-pattern signal only, not a judgment on any single visit.</div>';
         }
       }
+    } else if (intent === "not_in_plan") {
+      text = spoken || "That isn’t part of your plan.";
+    } else if (intent === "staff_credentials_expiring" || intent === "staff_training_overdue") {
+      statusEl.textContent = "Checking your team…";
+      staffAnswer(intent).then(function (r) { responseEl.innerHTML = r.html; statusEl.textContent = IDLE; speak(r.spoken); maybeResume(); });
+      return;
+    } else if (intent === "general_question") {
+      var tip = helpFor(transcript);
+      if (tip) { text = spoken = tip; }
+      else {
+        responseEl.textContent = "Looking that up…";
+        fetch("/api/althea-public", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: transcript }] }) })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { var t = d.reply || "I couldn’t find a good answer for that."; responseEl.textContent = t; statusEl.textContent = IDLE; speak(t); maybeResume(); })
+          .catch(function () { responseEl.textContent = "I couldn’t reach my knowledge base just now."; statusEl.textContent = IDLE; maybeResume(); });
+        return;
+      }
     } else if (intent === "open_section") {
       var dest = SECTIONS[String(params.section || "").toLowerCase().trim()];
       if (dest) { text = spoken || "Opening it now."; statusEl.textContent = "Opening…"; responseEl.textContent = text; speak(spoken); setTimeout(function () { window.location.href = dest; }, 500); return; }
       text = spoken || "Which section? Try Overview, Claims, Denials, Payments, Schedule, Patients, Staff or Settings.";
     } else {
-      spoken = spoken || "I can help with your schedule, claims, denials, payers, payments, prior authorizations, documentation gaps or navigation. Not clinical questions.";
+      spoken = spoken || (suite ? "I can help with your schedule, claims, denials, payers, payments, prior authorizations, documentation gaps or navigation. Not clinical questions."
+        : "I can help with " + MINE.map(function (p) { return OFFER[p].can; }).join(" and ") + ". Not clinical questions.");
       text = spoken;
     }
 

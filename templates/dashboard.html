@@ -1504,7 +1504,7 @@
             <div class="s-divider"></div>
             <div class="s-card" style="padding:0 22px;">
               <div class="s-row"><div><div class="s-row-label">Credential Expiry Warning</div><div class="s-row-sub">Mark a license or certification as expiring this far ahead</div></div><select class="s-input" style="width:200px;" data-setting="credential_warn_days"><option value="30" selected>30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></div>
-              <div class="s-row"><div><div class="s-row-label">Training Due Soon</div><div class="s-row-sub">Mark assigned training as due soon this far ahead</div></div><select class="s-input" style="width:200px;" data-setting="training_due_days"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></div></div>
+              <div class="s-row"><div><div class="s-row-label">Training Due Soon</div><div class="s-row-sub">Mark assigned training as due soon this far ahead</div></div><select class="s-input" style="width:200px;" data-setting="training_due_days"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></div>
               <div class="s-row" data-althea-row><div><div class="s-row-label">Althea</div><div class="s-row-sub">Show Althea, the assistant, on the Staff pages</div></div><div class="toggle on" data-setting="show_althea"></div></div>
             </div>
           </section>
@@ -2009,7 +2009,7 @@
 
               <div id="brand-swatches" role="radiogroup" aria-label="Brand color presets" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px;"></div>
 
-              <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
+              <div id="brand-custom-row" style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
                 <span class="s-row-sub" style="margin:0;">Custom</span>
                 <input id="brand-picker" type="color" aria-label="Pick a custom brand color" style="width:36px;height:30px;padding:0;border:1px solid #e4e6eb;border-radius:6px;background:none;cursor:pointer;" />
                 <input id="brand-hex" class="s-input mono" style="width:110px;" maxlength="7" placeholder="#0d5bd7" aria-label="Brand color hex code" />
@@ -2042,10 +2042,15 @@
                 const B = window.AlthaisBrand; if (!B) return;
                 const $ = (id) => document.getElementById(id);
                 let saved = B.current(), picked = saved;
+                // the colors Althais offers clinics today (admin console > Settings > Appearance)
+                let OFFER = { colors: B.PRESETS.map(p => ({ name: p.name, hex: p.hex.toLowerCase() })), custom: true };
                 const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
                 function render() {
-                  $('brand-swatches').innerHTML = B.PRESETS.map(p => {
+                  // a color the practice saved before it was taken off the list stays choosable
+                  const list = OFFER.colors.some(c => c.hex === saved) ? OFFER.colors : [{ name: 'Current Color', hex: saved }].concat(OFFER.colors);
+                  $('brand-custom-row').style.display = OFFER.custom ? 'flex' : 'none';
+                  $('brand-swatches').innerHTML = list.map(p => {
                     const on = p.hex.toLowerCase() === picked;
                     return `<button type="button" role="radio" aria-checked="${on}" data-hex="${p.hex}" class="s-btn s-btn-ghost" title="${esc(p.name)} ${p.hex}" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;height:40px;padding:0 12px;min-width:0;${on ? 'border-color:var(--brand-text);box-shadow:0 0 0 1px var(--brand-text);' : ''}">
                       <span style="width:18px;height:18px;border-radius:50%;background:${p.hex};box-shadow:inset 0 0 0 1px rgba(15,17,22,.15);flex-shrink:0;"></span>
@@ -2077,6 +2082,7 @@
                 // leaving Settings with an unsaved preview puts the saved color back
                 window.addEventListener('pagehide', () => { if (picked !== saved) B.apply(saved); });
                 B.ready().then(h => { saved = h; picked = h; render(); });
+                B.offered().then(o => { OFFER = o; render(); });
                 render();
               })();
             </script>
@@ -5758,6 +5764,10 @@
               spoken = 'Ready. Go ahead with the note for ' + spokenName(p.name) + '.';
             }
 
+          } else if (intent === 'staff_credentials_expiring' || intent === 'staff_training_overdue') {
+            spoken = 'Opening ' + (intent === 'staff_credentials_expiring' ? 'Credentials' : 'Training') + '.';
+            if (responseEl) responseEl.textContent = spoken;
+            setTimeout(() => { window.location.href = intent === 'staff_credentials_expiring' ? '/staff/credentials' : '/staff/training'; }, 600);
           } else if (intent === 'open_section') {
             const section = params.section;
             if (section === 'claims') {
@@ -5779,7 +5789,8 @@
               panel.classList.add('hidden');
             } else {
               // Sections that live outside the EMR (Overview, Revenue, Staff...) — go there.
-              const ALTHEA_SECTIONS = Object.assign({ overview: '/overview', inbox: '/overview/inbox', activity: '/overview/activity', revenue: '/revenue/claims', staff: '/staff/team', team: '/staff/team' },
+              const ALTHEA_SECTIONS = Object.assign({ overview: '/overview', inbox: '/overview/inbox', activity: '/overview/activity', revenue: '/revenue/claims', staff: '/staff/team', team: '/staff/team',
+                  scribe: '/scribe', code_a_note: '/coding', credentials: '/staff/credentials', training: '/staff/training', onboarding: '/staff/onboarding', roles: '/staff/roles', compliance: '/staff/compliance' },
                 window.AltheaRevenue ? AltheaRevenue.SECTIONS : {});
               const dest = ALTHEA_SECTIONS[String(section || '').toLowerCase().trim()];
               if (dest) setTimeout(() => { window.location.href = dest; }, 500);

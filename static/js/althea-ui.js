@@ -44,7 +44,7 @@
           '<button id="althea-close" class="alt-x" type="button" aria-label="Close Althea">' + CLOSE + "</button>" +
         "</header>" +
         '<div id="althea-body" class="alt-body">' +
-          '<div id="althea-hello" class="alt-msg alt-a">Hi, I’m Althea. Ask about your schedule, claims or where to go next. Tap the mic to talk, and I’ll keep listening until you tap it again.</div>' +
+          '<div id="althea-hello" class="alt-msg alt-a">' + esc(opts.hello || "Hi, I’m Althea. Ask about your schedule, claims or where to go next. Tap the mic to talk, and I’ll keep listening until you tap it again.") + '</div>' +
           '<div id="althea-wave" class="alt-wave" style="display:none">' + bars + "</div>" +
           '<div id="althea-transcript" class="alt-msg alt-u"></div>' +
           '<div id="althea-response" class="alt-msg alt-a" aria-live="polite"></div>' +

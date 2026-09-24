@@ -830,7 +830,7 @@ def ensure_product(user: User, db: Session, *needed: str) -> None:
         raise HTTPException(status_code=403, detail="Your Althais plan doesn't include this tool.")
 
 
-def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str, products=None):
+def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str, products=None, validate=None):
     """GET/PUT a versioned per-organization document. `products`: None = any plan; otherwise the tools (besides the
     full suite, which can always use it) that may, so () means full suite only."""
     def check(user, db):
@@ -853,6 +853,9 @@ def _register_doc_routes(path: str, category: str, admin_only: bool, denied_mess
             return JSONResponse({"error": "Request body must be valid JSON."}, status_code=400)
         if not isinstance(body, dict):
             return JSONResponse({"error": "Expected a JSON object."}, status_code=400)
+        problem = validate(body, db) if validate else None
+        if problem:
+            return JSONResponse({"error": problem}, status_code=400)
         row, current = _load_doc(user, db, category)
         if body.get("rev") != current["rev"]:
             return JSONResponse({"error": "These records changed since you loaded them.", "data": current}, status_code=409)
@@ -867,7 +870,8 @@ def _register_doc_routes(path: str, category: str, admin_only: bool, denied_mess
 
 _register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.", products=("staff",))
 _register_doc_routes("/api/tasks", "tasks", admin_only=False, denied_message="", products=())
-_register_doc_routes("/api/branding", "branding", admin_only=True, denied_message="Only admins can change the brand color.")
+_register_doc_routes("/api/branding", "branding", admin_only=True, denied_message="Only admins can change the brand color.",
+                     validate=lambda body, db: _check_brand_color(body, db))
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -1101,7 +1105,16 @@ ADMIN_DEFAULTS = {
     "start_page": "overview",      # which admin page opens first
     "brand_color": "#0d5bd7",      # the admin console's own color (Althais blue); clinics keep theirs
     "compact": False,              # tighter table rows
+    # the brand colors clinics can choose from in their Settings > Appearance (names live in static/js/brand.js)
+    "clinic_palette": ["#0d5bd7", "#87cefa", "#f7b6cb", "#93dfc0", "#8b5e3c", "#c9b3f5", "#16161a", "#ffffff", "#a8bfa0", "#d4a5ae",
+                       "#f5c6a5", "#f2dea0", "#a9b7ec", "#9cc5c9", "#1f3a5f", "#2f5d50", "#d18f76", "#b58db6", "#64748b", "#c8bfb3"],
+    "clinic_custom_color": True,   # clinics may also type any hex code
 }
+BRAND_DEFAULT = "#0d5bd7"
+
+
+def _is_hex(c) -> bool:
+    return isinstance(c, str) and len(c) == 7 and c.startswith("#") and all(x in "0123456789abcdefABCDEF" for x in c[1:])
 
 
 def admin_settings(db: Session) -> dict:
@@ -1129,8 +1142,11 @@ async def put_admin_settings(request: Request, db: Session = Depends(get_db), _:
     if body.get("inactive_after_days") in (14, 30, 60, 90): cur["inactive_after_days"] = body["inactive_after_days"]
     if body.get("start_page") in ("overview", "orgs", "accounts", "plans"): cur["start_page"] = body["start_page"]
     if "compact" in body: cur["compact"] = bool(body["compact"])
-    color = str(body.get("brand_color") or "")
-    if len(color) == 7 and color.startswith("#") and all(c in "0123456789abcdefABCDEF" for c in color[1:]): cur["brand_color"] = color.lower()
+    if "clinic_custom_color" in body: cur["clinic_custom_color"] = bool(body["clinic_custom_color"])
+    pal = body.get("clinic_palette")
+    if isinstance(pal, list) and 0 < len(pal) <= 120 and all(_is_hex(c) for c in pal):
+        cur["clinic_palette"] = list(dict.fromkeys([BRAND_DEFAULT] + [c.lower() for c in pal]))   # Althais Blue is always offered
+    if _is_hex(body.get("brand_color")): cur["brand_color"] = body["brand_color"].lower()
     row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == ADMIN_SETTINGS_KEY, OrgSettings.category == "admin_prefs"))
     if row:
         row.data = _json.dumps(cur)
@@ -1138,6 +1154,24 @@ async def put_admin_settings(request: Request, db: Session = Depends(get_db), _:
         db.add(OrgSettings(org_key=ADMIN_SETTINGS_KEY, category="admin_prefs", data=_json.dumps(cur)))
     db.commit()
     return cur
+
+
+@router.get("/api/branding/palette")
+def branding_palette(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """The brand colors this clinic can choose from, set by Althais in the admin console."""
+    prefs = admin_settings(db)
+    return {"colors": prefs["clinic_palette"], "custom": prefs["clinic_custom_color"]}
+
+
+def _check_brand_color(body: dict, db: Session):
+    """Branding saves: when clinics can't pick their own color, only the offered ones (or Althais Blue) are allowed."""
+    color = str(body.get("color") or "").lower()
+    if not _is_hex(color):
+        return "That isn’t a valid color."
+    prefs = admin_settings(db)
+    if not prefs["clinic_custom_color"] and color != BRAND_DEFAULT and color not in prefs["clinic_palette"]:
+        return "That color isn’t one of the options Althais offers right now."
+    return None
 
 
 @router.get("/api/admin/orgs")

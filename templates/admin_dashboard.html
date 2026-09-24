@@ -48,6 +48,15 @@
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7280' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
     .s-input:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgb(var(--brand-rgb) / .12); }
     .s-note { font-size:11.5px; color:#6b7280; margin-top:10px; max-width:860px; }
+    .pal-group { font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8b909c; margin:12px 0 6px; }
+    .pal-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:6px; }
+    .pal-chip { display:flex; align-items:center; gap:8px; height:34px; padding:0 10px; border:1px solid #e4e6eb; border-radius:6px; background:#fff; font-size:12px; color:#2c313b; cursor:pointer; text-align:left; opacity:.55; }
+    .pal-chip .dot { width:16px; height:16px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(15,17,22,.15); flex-shrink:0; }
+    .pal-chip .ck { margin-left:auto; width:14px; height:14px; color:var(--brand-text); visibility:hidden; }
+    .pal-chip[aria-pressed="true"] { opacity:1; border-color:var(--brand-text); box-shadow:0 0 0 1px var(--brand-text); }
+    .pal-chip[aria-pressed="true"] .ck { visibility:visible; }
+    html[data-theme-resolved="dark"] .pal-chip { background:#14181f; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .pal-chip[aria-pressed="true"] { border-color:var(--brand-dark-link); box-shadow:0 0 0 1px var(--brand-dark-link); }
     .swatch { width:26px; height:26px; border-radius:6px; border:1px solid rgba(15,17,22,.12); cursor:pointer; position:relative; }
     .swatch[aria-checked="true"] { outline:2px solid #0f1116; outline-offset:2px; }
     html[data-theme-resolved="dark"] .swatch[aria-checked="true"] { outline-color:#e7eaf2; }
@@ -176,6 +185,7 @@
           <select id="org-filter" class="flt" aria-label="Filter by plan">
             <option value="all">All Plans</option><option value="suite">Full Suite</option><option value="tools">Single Tools</option><option value="none">No Access</option>
           </select>
+          <button type="button" id="save-all" class="btn-save ml-auto order-last" disabled>Save All</button>
           <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea, the assistant, can be added to any plan.</span>
         </div>
         <div class="bg-panel border border-line rounded-sm">
@@ -258,6 +268,15 @@
                 <div id="color-pick" class="grid grid-cols-8 gap-1.5" role="radiogroup" aria-label="Console color"></div></div>
               <div class="s-row"><div><div class="s-row-label">Compact Rows</div><div class="s-row-sub">Fit more clinics and accounts on screen</div></div><button type="button" role="switch" class="toggle lg" data-aset="compact" aria-label="Compact rows"></button></div>
             </div>
+
+            <h3 class="s-title" style="font-size:15px;margin-top:28px;">Clinic Color Options</h3>
+            <p class="s-sub">The colors every clinic can choose from in its own Settings &gt; Appearance. Change them any day; a clinic keeps the color it already saved.</p>
+            <div class="s-card" style="margin-top:14px;">
+              <div class="s-row"><div><div class="s-row-label">Let Clinics Pick Any Color</div><div class="s-row-sub">When off, clinics can only choose from the colors switched on below</div></div><button type="button" role="switch" class="toggle lg" data-aset="clinic_custom_color" aria-label="Let clinics pick any color"></button></div>
+              <div class="s-row" style="border-bottom:0;padding-bottom:6px;"><div><div class="s-row-label">Offered Colors <span id="pal-count" class="text-ink-500 font-normal"></span></div><div class="s-row-sub">Click a color to offer it or take it away. Althais Blue is always offered.</div></div>
+                <div class="flex gap-2 flex-wrap"><button type="button" class="btn-line" id="pal-all">Offer All</button><button type="button" class="btn-line" id="pal-none">Only Althais Blue</button><button type="button" class="btn-line" id="pal-reset">Reset To Default</button></div></div>
+              <div id="pal-groups" style="padding-bottom:16px;"></div>
+            </div>
           </div>
           <div data-spanel="display" class="hidden">
             <h2 class="s-title">Display</h2>
@@ -303,7 +322,7 @@
       plans: ['Plans & Tools', 'What each plan opens for a clinic.'],
       settings: ['Settings', 'Settings for the Althais admin console. They don’t change any clinic’s own Settings.'],
     };
-    let ASET = { signups_open: true, new_clinic_plan: 'suite', session_hours: 8, hide_test_accounts: false, inactive_after_days: 30, start_page: 'overview', brand_color: '#0d5bd7', compact: false };
+    let ASET = { signups_open: true, new_clinic_plan: 'suite', session_hours: 8, hide_test_accounts: false, inactive_after_days: 30, start_page: 'overview', brand_color: '#0d5bd7', compact: false, clinic_palette: [], clinic_custom_color: true };
     let USERS = [], ORGS = [], query = '';
     const draft = {};    // org_key -> products being edited
     const draftA = {};   // org_key -> Althea on/off being edited
@@ -405,6 +424,28 @@
     }
 
     // ---- Organizations & access ----
+    function isDirty(o) {
+      const p = draft[o.org_key], a = o.org_key in draftA ? draftA[o.org_key] : o.althea;
+      return (p && p.slice().sort().join() !== o.products.slice().sort().join()) || a !== o.althea;
+    }
+    async function saveOrg(o) {
+      const key = o.org_key, products = draft[key] || o.products, althea = key in draftA ? draftA[key] : o.althea;
+      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products, althea }) });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) { location.href = '/admin/login'; throw new Error('signed out'); }
+      if (!res.ok) throw new Error(data.error || 'Could not save.');
+      o.products = data.products; o.althea = data.althea; delete draft[key]; delete draftA[key];
+    }
+    $('save-all').addEventListener('click', async () => {
+      const list = ORGS.filter(isDirty);
+      const cut = list.filter(o => !(draft[o.org_key] || o.products).length);
+      if (cut.length && !confirm(`Turn off every Althais tool for ${cut.map(o => o.name).join(', ')}? Their people will see a "no active plan" page.`)) return;
+      $('save-all').disabled = true; $('save-all').textContent = 'Saving…';
+      let saved = 0, failed = [];
+      for (const o of list) { try { await saveOrg(o); saved++; } catch (e) { failed.push(o.name); } }
+      renderAll();
+      toast(failed.length ? `Saved ${saved}. Couldn’t save ${failed.join(', ')}.` : `Saved ${saved} ${saved === 1 ? 'clinic' : 'clinics'}.`, failed.length ? 'error' : undefined);
+    });
     function orgRow(o) {
       const cur = draft[o.org_key] || o.products, suite = cur.includes('suite');
       const althea = o.org_key in draftA ? draftA[o.org_key] : o.althea;
@@ -430,6 +471,8 @@
       const list = shownOrgs().filter(o => (f === 'all' || planOf(o) === f) && matches(o.name + ' ' + o.users.join(' ')));
       $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(8, 'No organizations match.');
       $('org-count').textContent = `${list.length} of ${shownOrgs().length}`;
+      const pending = ORGS.filter(isDirty).length;
+      $('save-all').disabled = !pending; $('save-all').textContent = pending ? `Save All (${pending})` : 'Save All';
       $('n-orgs').textContent = shownOrgs().length || '';
     }
     $('org-filter').addEventListener('change', renderOrgs);
@@ -525,8 +568,35 @@
     window.addEventListener('althais-theme', e => { $('theme-pick').value = e.detail.mode; });   // the header's moon/sun button
     $('theme-pick').addEventListener('change', () => { if (window.AlthaisTheme) AlthaisTheme.set($('theme-pick').value); });
 
+    // ---- Clinic Color Options: which library colors clinics are offered ----
+    const LIB = window.AlthaisBrand ? AlthaisBrand.LIBRARY : [];
+    const ALL_HEX = LIB.flatMap(g => g.colors.map(c => c[1]));
+    const DEFAULT_PAL = window.AlthaisBrand ? AlthaisBrand.PRESETS.map(p => p.hex.toLowerCase()) : [];
+    const CK = '<svg class="ck" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+    function renderPalette() {
+      const on = new Set(ASET.clinic_palette);
+      $('pal-groups').innerHTML = LIB.map(g => `<div class="pal-group">${esc(g.group)}</div><div class="pal-grid">` + g.colors.map(([name, hex]) =>
+        `<button type="button" class="pal-chip" data-pal="${hex}" aria-pressed="${on.has(hex)}" title="${esc(name)} ${hex}"><span class="dot" style="background:${hex}"></span><span class="truncate">${esc(name)}</span>${CK}</button>`).join('') + '</div>').join('');
+      $('pal-count').textContent = `· ${ASET.clinic_palette.length} of ${ALL_HEX.length}`;
+    }
+    let palTimer = null;
+    function setPalette(list) {
+      ASET.clinic_palette = [...new Set(['#0d5bd7'].concat(list))]; renderPalette();
+      clearTimeout(palTimer); palTimer = setTimeout(() => saveSetting('clinic_palette', ASET.clinic_palette), 500);   // one save for a burst of clicks
+    }
+    $('pal-groups').addEventListener('click', e => {
+      const b = e.target.closest('[data-pal]'); if (!b) return;
+      const hex = b.dataset.pal;
+      if (hex === '#0d5bd7') { toast('Althais Blue is always offered.'); return; }
+      setPalette(ASET.clinic_palette.includes(hex) ? ASET.clinic_palette.filter(h => h !== hex) : ASET.clinic_palette.concat(hex));
+    });
+    $('pal-all').addEventListener('click', () => setPalette(ALL_HEX));
+    $('pal-none').addEventListener('click', () => setPalette([]));
+    $('pal-reset').addEventListener('click', () => setPalette(DEFAULT_PAL));
+
     function renderSettings() {
       applyLook();
+      renderPalette();
       document.querySelectorAll('[data-aset]').forEach(el => {
         const v = ASET[el.dataset.aset];
         if (el.classList.contains('toggle')) { el.classList.toggle('on', !!v); el.setAttribute('aria-checked', String(!!v)); }

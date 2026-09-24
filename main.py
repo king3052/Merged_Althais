@@ -1438,6 +1438,31 @@ def althea_extract(payload: dict, user=Depends(require_user), db: Session = Depe
     return JSONResponse({"fields": _merge_scribe(results) if len(results) > 1 else results[0]})
 
 
+# What each of Althea's requests belongs to, so she only does what the clinic bought.
+# () = full suite only. Anything not listed (general_question, unknown) works on every plan.
+_ALTHEA_INTENT_TOOLS = {
+    "read_schedule": (), "next_appointment": (), "open_patient": (), "start_visit": (),
+    "read_allergies": (), "read_medications": (), "read_labs": (), "start_visit_timer": (), "stop_visit_timer": (),
+    "new_patient": (), "update_patient_field": (), "documentation_gaps_today": (), "prior_auth_pending": (),
+    "coding_complexity_check": (),
+    "dictate_visit_note": ("scribe",), "scribe_visit": ("scribe",),
+    "check_claim_readiness": ("coding", "insurance"),
+    "claims_summary": ("insurance",), "find_claims": ("insurance",), "denials_summary": ("insurance",),
+    "payer_intelligence": ("insurance",), "payments_summary": ("insurance",), "claims_at_risk": ("insurance",),
+    "claims_denial_scan": ("insurance",), "generate_appeal_letter": ("insurance",), "claim_status": ("insurance",),
+    "staff_credentials_expiring": ("staff",), "staff_training_overdue": ("staff",),
+}
+_ALTHEA_SECTION_TOOLS = {
+    "scribe": ("scribe",), "code_a_note": ("coding",),
+    "claims": ("insurance",), "revenue": ("insurance",), "denials": ("insurance",), "appeals": ("insurance",),
+    "payments": ("insurance",), "payer_intelligence": ("insurance",),
+    "staff": ("staff",), "credentials": ("staff",), "training": ("staff",), "onboarding": ("staff",),
+    "roles": ("staff",), "compliance": ("staff",),
+    "settings": ("scribe", "coding", "insurance", "staff"),
+}
+_TOOL_NAMES = {"scribe": "Scribe", "coding": "Coding", "insurance": "Insurance", "staff": "Team"}
+
+
 @app.post("/api/althea")
 async def althea_command(request: Request, user=Depends(require_user), db: Session = Depends(get_db)):
     ensure_althea(user, db)   # switched on per clinic in /admin
@@ -1480,6 +1505,11 @@ async def althea_command(request: Request, user=Depends(require_user), db: Sessi
             if isinstance(h, dict) and h.get("transcript"):
                 history_lines.append(f'- You said "{h["transcript"]}" -> Althea did: {h.get("intent", "unknown")}')
         history_block = ("\n\nRecent conversation (most recent last), for resolving follow-ups only:\n" + "\n".join(history_lines)) if history_lines else ""
+        products = org_products(user, db)
+        suite = "suite" in products
+        plan_block = "" if suite else (
+            "\n\nThis clinic has only these Althais tools: " + ", ".join(_TOOL_NAMES[p] for p in sorted(products) if p in _TOOL_NAMES)
+            + ". Questions about how to use those tools are general_question.")
 
         prompt = f"""You are Althea, a voice command interpreter built into Althais, a medical billing and clinical workflow product. You are NOT a clinical assistant — you never give diagnoses, treatment suggestions, medication advice, or interpret symptoms. Your only job is to classify what in-app action the speaker wants, from this exact fixed list, and nothing else:
 
@@ -1506,17 +1536,19 @@ async def althea_command(request: Request, user=Depends(require_user), db: Sessi
 - "new_patient" — open the New Patient form so the clinician can dictate the patient's details (name, date of birth, insurance, allergies, address, phone) and have them typed in. This is data entry only. No params.
 - "dictate_visit_note" — open a visit note (SOAP) so the clinician can dictate it and have it typed into the note's fields. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
 - "scribe_visit" — the clinician wants Althea to listen to a whole patient visit (the conversation between the clinician and the patient) and write up the note, then get the codes and prepare the claim. Examples: "scribe this visit", "listen to my visit with John Smith and write the note", "start scribing". This is different from "dictate_visit_note", where the clinician speaks the note itself to Althea. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
-- "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "denials", "appeals", "payments", "coding", "payer_intelligence", "scheduler", "patients", "soap", "settings", "staff"}}
+- "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "denials", "appeals", "payments", "coding", "payer_intelligence", "scheduler", "patients", "soap", "settings", "staff", "scribe" (Write A Note), "code_a_note" (Code A Note), "credentials", "training", "onboarding", "roles", "compliance"}}
+- "staff_credentials_expiring" — which staff licenses or certifications are expired or expiring soon. No params.
+- "staff_training_overdue" — which staff have training that is overdue or due soon. No params.
 - "generate_appeal_letter" — draft an appeal letter for a patient's denied claim. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
 - "claim_status" — read back the status of a patient's most recent claim (submitted, paid, denied, pending, etc). Params: same "patient_name" rule as read_allergies.
 - "update_patient_field" — update one field on a patient's record: add an allergy, or change the primary insurance on file. Params: {{"patient_name": "<name as spoken, or empty string for the currently open patient>", "field": one of "allergy", "insurance", "value": "<the new value or allergy to add, as spoken>"}}
-- "general_question" — a general medical billing/coding knowledge question that ISN'T asking to read back something from THIS patient's own chart or claims (e.g. "what does modifier 25 mean", "why would a claim get denied for bundling", "how does critical care time billing work", "what's CO-97"). This is different from read_allergies/read_labs/claims_summary etc., which are about a specific real record already in the app — general_question is for billing/coding knowledge itself.
+- "general_question" — how to use one of the clinic's Althais tools (e.g. "how do I sign a note", "how does Scribe work"), or a general medical billing/coding knowledge question that ISN'T asking to read back something from THIS patient's own chart or claims (e.g. "what does modifier 25 mean", "why would a claim get denied for bundling", "how does critical care time billing work", "what's CO-97"). This is different from read_allergies/read_labs/claims_summary etc., which are about a specific real record already in the app — general_question is for billing/coding knowledge itself.
 - "unknown" — the request doesn't match any of the above, OR asks for anything clinical (diagnosis, treatment, medication advice, symptom interpretation) or anything outside this product's own functions.
 
 Important on patient_name: only fill it in when a specific name is actually spoken (e.g. "open John Smith", "what is Maria's allergy"). Whenever the speaker refers to "this patient", "my patient", "the patient", "their ...", "and his/her ... too", or gives no name at all, leave patient_name as an empty string — the app resolves that to whichever patient was just discussed (in the recent conversation below) or whichever chart is currently open, so never guess a name that wasn't said.
 
 Use the recent conversation below ONLY to resolve genuine follow-ups (a changed date, an implied "same patient as before", "what about X instead") — never let it override what the CURRENT request actually says.
-{history_block}
+{history_block}{plan_block}
 
 Respond with a JSON object only, shaped exactly like:
 {{"intent": "<one of the above>", "params": {{...}}, "spoken_ack": "a short, natural spoken acknowledgment of what you're doing, under 12 words"}}
@@ -1538,6 +1570,7 @@ Spoken request: "{transcript}\""""
             "new_patient", "dictate_visit_note", "scribe_visit",
             "open_section",
             "generate_appeal_letter", "claim_status", "update_patient_field", "general_question",
+            "staff_credentials_expiring", "staff_training_overdue",
             "unknown"
         ]
         # params varies by intent (a patient name, a section, a date) — strict
@@ -1597,6 +1630,14 @@ Spoken request: "{transcript}\""""
         # present" checks (e.g. `params.patient_name`) still work the same
         # way they did before the fixed schema always included every key.
         result["params"] = {k: v for k, v in result["params"].items() if v not in (None, "")}
+        # only what the clinic bought
+        need = _ALTHEA_INTENT_TOOLS.get(result["intent"])
+        if result["intent"] == "open_section":
+            need = _ALTHEA_SECTION_TOOLS.get(str(result["params"].get("section", "")).lower(), ())
+        if need is not None and not has_product(products, *need):
+            what = " or ".join(_TOOL_NAMES[p] for p in need) if need else "the full Althais suite"
+            result = {"intent": "not_in_plan", "params": {"needs": list(need)},
+                      "spoken_ack": f"That's part of {what}, which isn't on your plan."}
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)

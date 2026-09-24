@@ -24,6 +24,33 @@
     { name: "Navy", hex: "#1f3a5f" }, { name: "Forest", hex: "#2f5d50" }, { name: "Terracotta", hex: "#d18f76" }, { name: "Mauve", hex: "#b58db6" },
     { name: "Slate", hex: "#64748b" }, { name: "Stone", hex: "#c8bfb3" }
   ];
+  /* Every color the Althais admin can offer clinics (admin console > Settings > Appearance). Which ones a clinic
+     actually sees is chosen there; out of the box it's PRESETS above. */
+  var LIBRARY = [
+    { group: "Blues", colors: [["Althais Blue", "#0d5bd7"], ["Light Blue", "#87cefa"], ["Sky", "#7cc4f4"], ["Cornflower", "#6495ed"], ["Azure", "#2f80ed"], ["Royal Blue", "#2b50c8"], ["Cobalt", "#1e4fa3"], ["Navy", "#1f3a5f"], ["Midnight", "#1b2440"], ["Periwinkle", "#a9b7ec"], ["Powder Blue", "#b8d4ea"], ["Steel Blue", "#4a7fa7"]] },
+    { group: "Teals & Greens", colors: [["Ocean Mist", "#9cc5c9"], ["Teal", "#1f8a8a"], ["Aqua", "#5cc8c8"], ["Seafoam Green", "#93dfc0"], ["Mint", "#a8e6cf"], ["Emerald", "#1f9d6b"], ["Jade", "#2e8b6f"], ["Sage", "#a8bfa0"], ["Olive", "#7a8450"], ["Moss", "#5f7a4a"], ["Forest", "#2f5d50"], ["Pine", "#1f4a3d"]] },
+    { group: "Purples", colors: [["Light Purple", "#c9b3f5"], ["Lavender", "#b9a7e8"], ["Lilac", "#cda8d8"], ["Violet", "#7b5cd6"], ["Amethyst", "#8e5bb5"], ["Plum", "#7a3f6f"], ["Mauve", "#b58db6"], ["Grape", "#5b3a8e"], ["Indigo", "#3f3d9e"]] },
+    { group: "Pinks & Reds", colors: [["Light Pink", "#f7b6cb"], ["Blush", "#f2c4ce"], ["Dusty Rose", "#d4a5ae"], ["Rose", "#e0607e"], ["Raspberry", "#c2336b"], ["Coral", "#f08a7a"], ["Salmon", "#f4a08c"], ["Cherry", "#c8323c"], ["Crimson", "#a8203a"], ["Wine", "#6e2233"]] },
+    { group: "Oranges & Yellows", colors: [["Soft Peach", "#f5c6a5"], ["Apricot", "#f7b27a"], ["Tangerine", "#f28c38"], ["Burnt Orange", "#c8612c"], ["Terracotta", "#d18f76"], ["Butter", "#f2dea0"], ["Lemon", "#f4e27a"], ["Marigold", "#e8b23a"], ["Mustard", "#c99a2e"], ["Gold", "#b8912f"]] },
+    { group: "Browns & Neutrals", colors: [["Brown", "#8b5e3c"], ["Chocolate", "#5c3a24"], ["Caramel", "#b07a4a"], ["Sand", "#dcc7a1"], ["Stone", "#c8bfb3"], ["Taupe", "#9a8b7a"], ["Warm Gray", "#a39e98"], ["Slate", "#64748b"], ["Charcoal", "#3a3f47"], ["Silver", "#b8bec8"]] },
+    { group: "Black & White", colors: [["Black", "#16161a"], ["Graphite", "#2a2c31"], ["White", "#ffffff"], ["Ivory", "#f7f3e8"]] }
+  ];
+  function nameOf(hex) {
+    var h = String(hex || "").toLowerCase();
+    for (var g = 0; g < LIBRARY.length; g++) for (var i = 0; i < LIBRARY[g].colors.length; i++) if (LIBRARY[g].colors[i][1] === h) return LIBRARY[g].colors[i][0];
+    for (var j = 0; j < PRESETS.length; j++) if (PRESETS[j].hex.toLowerCase() === h) return PRESETS[j].name;
+    return h;
+  }
+  /* the colors this clinic may choose from today, and whether it may also type its own */
+  function offered() {
+    return fetch("/api/branding/palette", { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var list = d && Array.isArray(d.colors) && d.colors.length ? d.colors : PRESETS.map(function (p) { return p.hex; });
+        return { colors: list.map(function (h) { return { name: nameOf(h), hex: h.toLowerCase() }; }), custom: !d || d.custom !== false };
+      })
+      .catch(function () { return { colors: PRESETS.map(function (p) { return { name: p.name, hex: p.hex.toLowerCase() }; }), custom: true }; });
+  }
   var DARK_SURFACE = "#1a1d24";
   /* this browser's copy of the practice's color, so pages paint in it before the server answers */
   var CACHE_KEY = "althais.brand.v1";
@@ -158,7 +185,7 @@
   }
 
   window.AlthaisBrand = {
-    DEFAULT: DEFAULT, PRESETS: PRESETS,
+    DEFAULT: DEFAULT, PRESETS: PRESETS, LIBRARY: LIBRARY, nameOf: nameOf, offered: offered,
     palette: palette, apply: apply, save: save, contrast: contrast, norm: norm,
     current: function () { return current; },
     ready: function () { return loaded; },
