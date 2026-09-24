@@ -699,10 +699,12 @@ def remove_team_member(
 ROLE_LABELS = {"admin": "Admin", "biller": "Biller", "provider": "Provider", "viewer": "Viewer"}
 
 
-def _require_clinic_admin(user: User):
+def _require_clinic_admin(user: User, db: Session):
+    from fastapi import HTTPException
     if (user.role or "admin") != "admin":
-        from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Only your clinic’s admins can manage employees.")
+    if not org_manager(user, db):
+        raise HTTPException(status_code=403, detail="Manager isn’t switched on for your clinic. Contact Althais.")
 
 
 def _member_json(u: User, me: User) -> dict:
@@ -744,7 +746,7 @@ def _temp_password_email(to_user: User, by: User, temp: str, invite: bool) -> bo
 
 @router.get("/api/clinic/members")
 def clinic_members(user: User = Depends(require_user), db: Session = Depends(get_db)):
-    _require_clinic_admin(user)
+    _require_clinic_admin(user, db)
     clinic = clinic_products(user, db)
     return {"clinic": user.organization or "", "products": sorted(clinic), "althea": org_althea(user, db),
             "members": [_member_json(u, user) for u in _clinic_members(user, db)]}
@@ -752,7 +754,7 @@ def clinic_members(user: User = Depends(require_user), db: Session = Depends(get
 
 @router.post("/api/clinic/members")
 async def clinic_invite(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    _require_clinic_admin(user)
+    _require_clinic_admin(user, db)
     if not (user.organization or "").strip():
         return JSONResponse({"error": "Add your clinic’s name in Settings > Practice before inviting people."}, status_code=400)
     body = await request.json()
@@ -778,7 +780,7 @@ async def clinic_invite(request: Request, user: User = Depends(require_user), db
 
 @router.patch("/api/clinic/members/{member_id}")
 async def clinic_update_member(member_id: int, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    _require_clinic_admin(user)
+    _require_clinic_admin(user, db)
     target = db.get(User, member_id)
     if not target or not _same_clinic(target, user):
         return JSONResponse({"error": "Employee not found."}, status_code=404)
@@ -811,7 +813,7 @@ async def clinic_update_member(member_id: int, request: Request, user: User = De
 
 @router.post("/api/clinic/members/{member_id}/reset-password")
 def clinic_reset_password(member_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    _require_clinic_admin(user)
+    _require_clinic_admin(user, db)
     target = db.get(User, member_id)
     if not target or not _same_clinic(target, user):
         return JSONResponse({"error": "Employee not found."}, status_code=404)
@@ -829,7 +831,7 @@ def clinic_reset_password(member_id: int, user: User = Depends(require_user), db
 
 @router.delete("/api/clinic/members/{member_id}")
 def clinic_remove_member(member_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    _require_clinic_admin(user)
+    _require_clinic_admin(user, db)
     target = db.get(User, member_id)
     if not target or not _same_clinic(target, user):
         return JSONResponse({"error": "Employee not found."}, status_code=404)
@@ -1004,6 +1006,12 @@ def org_althea(user: User, db: Session) -> bool:
     if row and isinstance(doc.get("althea"), bool):
         return doc["althea"]
     return "suite" in clinic_products(user, db)
+
+
+def org_manager(user: User, db: Session) -> bool:
+    """Whether the clinic's admins get Manager (/manager) to handle their employees. Switched in /admin; on by default."""
+    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    return doc.get("manager") is not False if row else True
 
 
 def ensure_althea(user: User, db: Session) -> None:
@@ -1380,7 +1388,7 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
     for o in orgs.values():
         row, _doc = _load_doc(o["sample"], db, ENTITLEMENTS_CATEGORY)
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
-                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "custom": bool(row)})
+                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "custom": bool(row)})
     return sorted(out, key=lambda o: o["name"].lower())
 
 
@@ -1390,9 +1398,9 @@ async def admin_set_org_products(request: Request, db: Session = Depends(get_db)
     tools (it includes them). Althea is separate: it can be on or off with any plan."""
     body = await request.json()
     key, products = str(body.get("org_key") or ""), body.get("products")
-    althea = body.get("althea")
-    if althea is not None and not isinstance(althea, bool):
-        return JSONResponse({"error": "althea must be true or false."}, status_code=400)
+    althea, manager = body.get("althea"), body.get("manager")
+    if any(v is not None and not isinstance(v, bool) for v in (althea, manager)):
+        return JSONResponse({"error": "althea and manager must be true or false."}, status_code=400)
     if not key or not isinstance(products, list) or any(p not in PRODUCTS for p in products):
         return JSONResponse({"error": "Send an org_key and a list of products from: " + ", ".join(PRODUCTS)}, status_code=400)
     chosen = ["suite"] if "suite" in products else sorted(set(products))
@@ -1400,16 +1408,19 @@ async def admin_set_org_products(request: Request, db: Session = Depends(get_db)
     data = {"rev": 0, "products": chosen, "updatedAt": dt.datetime.now(timezone.utc).isoformat()}
     if althea is not None:
         data["althea"] = althea
+    if manager is not None:
+        data["manager"] = manager
     if row:
         prev = _json.loads(row.data or "{}")
         data["rev"] = (prev.get("rev") or 0) + 1
-        if althea is None and isinstance(prev.get("althea"), bool):
-            data["althea"] = prev["althea"]   # not sent: keep what it was
+        for k in ("althea", "manager"):
+            if k not in data and isinstance(prev.get(k), bool):
+                data[k] = prev[k]   # not sent: keep what it was
         row.data = _json.dumps(data)
     else:
         db.add(OrgSettings(org_key=key, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(data)))
     db.commit()
-    return {"ok": True, "org_key": key, "products": chosen, "althea": data.get("althea", "suite" in chosen)}
+    return {"ok": True, "org_key": key, "products": chosen, "althea": data.get("althea", "suite" in chosen), "manager": data.get("manager", True)}
 
 # ──────────────────────────────────────────────────────────────────────────
 #  Demo request table + route

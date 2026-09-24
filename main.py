@@ -42,7 +42,7 @@ from auth import (
     router as auth_router, current_user, require_user, COOKIE_NAME,
     current_admin, require_biller, require_admin_role,
     get_db, Base, engine, _org_namespace, OrgPatient, OrgClaim,
-    SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea,
+    SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea, org_manager,
 )
 from sqlalchemy.orm import Session
 from sqlalchemy import select as sa_select
@@ -343,6 +343,11 @@ def _user_althea(user) -> bool:
         return org_althea(user, db)
 
 
+def _user_manager(user) -> bool:
+    with SessionLocal() as db:
+        return org_manager(user, db)
+
+
 def _app_user_json(user) -> str:
     return json.dumps({
         "full_name": user.full_name or "",
@@ -353,6 +358,7 @@ def _app_user_json(user) -> str:
         # Althais products this user's organization has (see auth.org_products): the nav shows only these
         "products": sorted(_user_products(user)),
         "althea": _user_althea(user),   # Althea switched on for this clinic (/admin)
+        "manager": _user_manager(user),  # the clinic's admins get Manager (/manager); switched in /admin
     })
 
 
@@ -560,7 +566,7 @@ async def manager_page(request: Request, user=Depends(current_user)):
         return RedirectResponse(url="/login", status_code=302)
     if not getattr(user, "onboarding_complete", 1):
         return RedirectResponse(url="/onboarding", status_code=302)
-    if (user.role or "admin") != "admin":
+    if (user.role or "admin") != "admin" or not _user_manager(user):
         return RedirectResponse(url=_home_for(_user_products(user)), status_code=302)
     return _gate(request, user) or templates.TemplateResponse(request, "manager.html", {"user": user, "user_json": _app_user_json(user)})
 

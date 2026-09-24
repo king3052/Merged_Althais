@@ -186,7 +186,7 @@
             <option value="all">All Plans</option><option value="suite">Full Suite</option><option value="tools">Single Tools</option><option value="none">No Access</option>
           </select>
           <button type="button" id="save-all" class="btn-save ml-auto order-last" disabled>Save All</button>
-          <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea, the assistant, can be added to any plan.</span>
+          <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea and Manager work with any plan.</span>
         </div>
         <div class="bg-panel border border-line rounded-sm">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
@@ -196,7 +196,7 @@
           <div class="overflow-x-auto thin-scroll">
             <table class="w-full">
               <thead><tr class="table-head">
-                <th class="td text-left">Organization</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td text-center" style="border-left:1px solid #e4e6eb">Althea</th><th class="td"></th>
+                <th class="td text-left">Organization</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td text-center" style="border-left:1px solid #e4e6eb">Althea</th><th class="td text-center">Manager</th><th class="td"></th>
               </tr></thead>
               <tbody id="org-rows"></tbody>
             </table>
@@ -326,6 +326,7 @@
     let USERS = [], ORGS = [], query = '';
     const draft = {};    // org_key -> products being edited
     const draftA = {};   // org_key -> Althea on/off being edited
+    const draftM = {};   // org_key -> Manager on/off being edited
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
     function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
@@ -425,16 +426,16 @@
 
     // ---- Organizations & access ----
     function isDirty(o) {
-      const p = draft[o.org_key], a = o.org_key in draftA ? draftA[o.org_key] : o.althea;
-      return (p && p.slice().sort().join() !== o.products.slice().sort().join()) || a !== o.althea;
+      const p = draft[o.org_key], a = o.org_key in draftA ? draftA[o.org_key] : o.althea, m = o.org_key in draftM ? draftM[o.org_key] : o.manager;
+      return (p && p.slice().sort().join() !== o.products.slice().sort().join()) || a !== o.althea || m !== o.manager;
     }
     async function saveOrg(o) {
-      const key = o.org_key, products = draft[key] || o.products, althea = key in draftA ? draftA[key] : o.althea;
-      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products, althea }) });
+      const key = o.org_key, products = draft[key] || o.products, althea = key in draftA ? draftA[key] : o.althea, manager = key in draftM ? draftM[key] : o.manager;
+      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products, althea, manager }) });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) { location.href = '/admin/login'; throw new Error('signed out'); }
       if (!res.ok) throw new Error(data.error || 'Could not save.');
-      o.products = data.products; o.althea = data.althea; delete draft[key]; delete draftA[key];
+      o.products = data.products; o.althea = data.althea; o.manager = data.manager; delete draft[key]; delete draftA[key]; delete draftM[key];
     }
     $('save-all').addEventListener('click', async () => {
       const list = ORGS.filter(isDirty);
@@ -449,13 +450,16 @@
     function orgRow(o) {
       const cur = draft[o.org_key] || o.products, suite = cur.includes('suite');
       const althea = o.org_key in draftA ? draftA[o.org_key] : o.althea;
-      const dirty = (draft[o.org_key] && draft[o.org_key].slice().sort().join() !== o.products.slice().sort().join()) || althea !== o.althea;
+      const manager = o.org_key in draftM ? draftM[o.org_key] : o.manager;
+      const dirty = isDirty(o);
       const cells = PLAN_KEYS.map(k => {
         const on = k === 'suite' ? suite : (suite || cur.includes(k)), locked = k !== 'suite' && suite;
         return `<td class="td text-center"><button type="button" role="switch" aria-checked="${on}" class="toggle${on ? ' on' : ''}" data-org="${esc(o.org_key)}" data-plan="${k}"
           ${locked ? 'disabled title="Included in the full suite"' : ''} aria-label="${esc(o.name)}: ${PLANS[k].name}"></button></td>`;
       }).join('') + `<td class="td text-center" style="border-left:1px solid #eceef2"><button type="button" role="switch" aria-checked="${althea}" class="toggle${althea ? ' on' : ''}" data-org="${esc(o.org_key)}" data-althea
-          aria-label="${esc(o.name)}: Althea" title="Althea, the assistant. Works with any plan."></button></td>`;
+          aria-label="${esc(o.name)}: Althea" title="Althea, the assistant. Works with any plan."></button></td>`
+        + `<td class="td text-center"><button type="button" role="switch" aria-checked="${manager}" class="toggle${manager ? ' on' : ''}" data-org="${esc(o.org_key)}" data-manager
+          aria-label="${esc(o.name)}: Manager" title="Manager: the clinic’s admins handle their own employees at /manager"></button></td>`;
       return `<tr class="row-hover">
         <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(o.name))}</div><div class="min-w-0">
           <div class="font-semibold text-ink-900">${esc(o.name)}</div>
@@ -469,7 +473,7 @@
     function renderOrgs() {
       const f = $('org-filter').value;
       const list = shownOrgs().filter(o => (f === 'all' || planOf(o) === f) && matches(o.name + ' ' + o.users.join(' ')));
-      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(8, 'No organizations match.');
+      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(9, 'No organizations match.');
       $('org-count').textContent = `${list.length} of ${shownOrgs().length}`;
       const pending = ORGS.filter(isDirty).length;
       $('save-all').disabled = !pending; $('save-all').textContent = pending ? `Save All (${pending})` : 'Save All';
@@ -479,6 +483,8 @@
     $('org-rows').addEventListener('click', async e => {
       const a = e.target.closest('[data-althea]');
       if (a) { const o = ORGS.find(x => x.org_key === a.dataset.org); draftA[o.org_key] = !a.classList.contains('on'); renderOrgs(); return; }
+      const mg = e.target.closest('[data-manager]');
+      if (mg) { const o = ORGS.find(x => x.org_key === mg.dataset.org); draftM[o.org_key] = !mg.classList.contains('on'); renderOrgs(); return; }
       const t = e.target.closest('[data-plan]');
       if (t) {
         const o = ORGS.find(x => x.org_key === t.dataset.org), plan = t.dataset.plan, on = !t.classList.contains('on');
@@ -489,15 +495,15 @@
       }
       const b = e.target.closest('[data-save-org]'); if (!b) return;
       const key = b.dataset.saveOrg, o = ORGS.find(x => x.org_key === key), products = draft[key] || o.products;
-      const althea = key in draftA ? draftA[key] : o.althea;
+      const althea = key in draftA ? draftA[key] : o.althea, manager = key in draftM ? draftM[key] : o.manager;
       if (!products.length && !confirm(`Turn off every Althais tool for ${o.name}? Their people will see a "no active plan" page.`)) return;
       b.disabled = true; b.textContent = 'Saving…';
-      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products, althea }) });
+      const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products, althea, manager }) });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) { location.href = '/admin/login'; return; }
       if (!res.ok) { toast(data.error || 'Could not save.', 'error'); renderOrgs(); return; }
-      o.products = data.products; o.althea = data.althea; delete draft[key]; delete draftA[key]; renderAll();
-      toast(`Saved. ${o.name} now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}${o.althea ? ', with Althea' : ', without Althea'}.`);
+      o.products = data.products; o.althea = data.althea; o.manager = data.manager; delete draft[key]; delete draftA[key]; delete draftM[key]; renderAll();
+      toast(`Saved. ${o.name} now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}${o.althea ? ', with Althea' : ', without Althea'}${o.manager ? '' : ', and Manager off'}.`);
     });
 
     // ---- Accounts ----
@@ -537,7 +543,12 @@
             <h3 class="text-[13px] font-semibold text-ink-900">Althea Add-On</h3>${pill(withAlthea + (withAlthea === 1 ? ' clinic' : ' clinics'), withAlthea ? 'brand' : 'muted')}
           </div>
           <div class="px-4 py-3 text-[12.5px] text-ink-700">Althea, the assistant, can be switched on for any clinic in Organizations &amp; Access, whatever plan it has. Each clinic can then hide her on any of its tools in its own Settings. She answers from the tools the clinic has: an Insurance clinic can ask about claims and denials; a Scribe or Coding clinic gets help with its tool.</div>
-        </div>` + PLAN_KEYS.map(k => {
+        </div>` + (() => { const off = shownOrgs().filter(o => !o.manager).length; return `<div class="bg-panel border border-line rounded-sm flex flex-col md:col-span-2 xl:col-span-3">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-2">
+            <h3 class="text-[13px] font-semibold text-ink-900">Manager</h3>${pill(off ? off + (off === 1 ? ' clinic off' : ' clinics off') : 'On for every clinic', off ? 'warn' : 'brand')}
+          </div>
+          <div class="px-4 py-3 text-[12.5px] text-ink-700">Each clinic’s admins handle their own employees at <span class="mono text-med-600">/manager</span>: invite people, set roles, limit tools, pause and remove. It’s on for every clinic unless you switch it off in Organizations &amp; Access. It’s separate from this console and its login.</div>
+        </div>`; })() + PLAN_KEYS.map(k => {
         const p = PLANS[k], n = shownOrgs().filter(o => o.products.includes(k)).length;
         return `<div class="bg-panel border border-line rounded-sm flex flex-col">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-2">

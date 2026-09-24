@@ -86,7 +86,7 @@
     document.querySelectorAll('.primary-tab').forEach(tab => { if (tab.dataset.workspace === active) tab.classList.add('active'); });
     // the clinic's admins manage their employees on /manager
     const ca = document.getElementById('manager-btn');
-    if (ca && (u.role || 'admin') === 'admin' && products.length) {
+    if (ca && (u.role || 'admin') === 'admin' && u.manager !== false && products.length) {
       ca.style.display = '';
       if (path === '/manager') ca.classList.add('bg-white/[0.16]');
     }
