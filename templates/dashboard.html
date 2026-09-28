@@ -309,6 +309,7 @@
        clinical assistant — see /api/althea in main.py for the boundary.
        The interface (launcher card, chat panel, mic) is shared with every
        other page: static/js/althea-ui.js. The behaviour is below. -->
+  <script src="/static/js/appeal-pdf.js"></script>
   <script src="/static/js/althea-ui.js"></script>
   <script src="/static/js/althea-revenue.js"></script>
   <script>if ((window.__ALTHAIS_USER__ || {}).althea && ((window.__ALTHAIS_USER__ || {}).blocked || []).indexOf('althea') === -1 && window.__ALTHAIS_SUITE__ !== false) AltheaUI.mount({ chips: ["What's my schedule today?", "Add a new patient", "Scribe a visit", "Dictate a visit note", "Which claims are at risk?", "What needs to be appealed?", "How are our payers doing?"] });</script>
@@ -2653,8 +2654,8 @@
           <div class="flex items-center gap-1.5">
             <button id="appeal-regenerate" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Regenerate</button>
             <button id="appeal-print" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Print</button>
-            <button id="appeal-download" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Download</button>
-            <button id="appeal-download-all" type="button" class="px-3 py-1.5 rounded-sm bg-med-600 text-white text-[12px] font-semibold hover:bg-med-700">Download All</button>
+            <button id="appeal-download" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Save As PDF</button>
+            <button id="appeal-download-all" type="button" class="px-3 py-1.5 rounded-sm bg-med-600 text-white text-[12px] font-semibold hover:bg-med-700">Save All As PDF</button>
           </div>
         </div>
       </div>
@@ -10300,16 +10301,6 @@
         };
       }
 
-      function appealDownloadText(name, content) {
-        const blob = new Blob([content], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(a.href);
-      }
 
       async function fetchAppealLetter(i) {
         const claim = appealClaims[i];
@@ -10433,7 +10424,7 @@
         const cached = appealCache[appealIndex];
         const claim = appealClaims[appealIndex];
         if (!cached || !cached.letter) { alert('Letter not ready yet.'); return; }
-        appealDownloadText(`appeal_${(claim.claimId || claim.mrn || 'claim').replace(/[^A-Za-z0-9-]/g, '')}.txt`, cached.letter);
+        window.AppealPDF.save([{ text: cached.letter }], `appeal_${(claim.claimId || claim.mrn || 'claim').replace(/[^A-Za-z0-9-]/g, '')}.pdf`);
       });
 
       appealDownloadAllBtn && appealDownloadAllBtn.addEventListener('click', async () => {
@@ -10442,14 +10433,12 @@
         for (let i = 0; i < appealClaims.length; i++) {
           if (!appealCache[i] || appealCache[i].loading) await fetchAppealLetter(i);
         }
-        const parts = appealClaims.map((c, i) => {
-          const ca = appealCache[i];
-          return `===== APPEAL · ${c.patient} · Claim ${c.claimId} · ${c.payer} =====\n\n` +
-                 (ca && ca.letter ? ca.letter : '[letter could not be generated]');
-        });
-        appealDownloadText('appeal_letters_' + new Date().toISOString().slice(0, 10) + '.txt', parts.join('\n\n\n'));
+        // one PDF, each letter starting on its own page
+        const letters = appealClaims.map((c, i) => ({ text: appealCache[i] && appealCache[i].letter ? appealCache[i].letter : '' })).filter(l => l.text);
+        if (letters.length) await window.AppealPDF.save(letters, 'appeal_letters_' + new Date().toISOString().slice(0, 10) + '.pdf');
+        else alert('None of the letters could be written. Try again in a minute.');
         appealDownloadAllBtn.disabled = false;
-        appealDownloadAllBtn.textContent = 'Download all';
+        appealDownloadAllBtn.textContent = 'Save All As PDF';
         if (appealIndex < appealClaims.length) renderAppeal();
       });
 

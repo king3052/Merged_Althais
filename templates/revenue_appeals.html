@@ -106,7 +106,7 @@
           <div class="flex items-center gap-1.5">
             <button id="appeal-regenerate" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Regenerate</button>
             <button id="appeal-copy" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Copy</button>
-            <button id="appeal-download" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Download</button>
+            <button id="appeal-download" type="button" class="px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 text-[12px] font-semibold hover:bg-shell">Save As PDF</button>
             <button id="appeal-mark" type="button" class="px-3 py-1.5 rounded-sm bg-med-600 text-white text-[12px] font-semibold hover:bg-med-700">Mark Appealed</button>
           </div>
         </div>
@@ -114,6 +114,7 @@
     </div>
   </div>
 
+  <script src="/static/js/appeal-pdf.js"></script>
   <script>
     const _NS = __ALTHAIS_NS__ + '::';
     const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
@@ -256,12 +257,8 @@
     });
     $('appeal-download').addEventListener('click', function() {
       if (!currentLetter) return;
-      const blob = new Blob([currentLetter], { type: 'text/plain' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'appeal_' + (currentClaim && currentClaim.claimId ? currentClaim.claimId : 'letter') + '.txt';
-      a.click();
-      URL.revokeObjectURL(a.href);
+      const id = String(currentClaim && (currentClaim.claimId || currentClaim.mrn) || 'letter').replace(/[^A-Za-z0-9-]/g, '');
+      window.AppealPDF.save([{ text: currentLetter }], 'appeal_' + id + '.pdf');
     });
     $('appeal-mark').addEventListener('click', function() {
       if (!currentClaim) return;
