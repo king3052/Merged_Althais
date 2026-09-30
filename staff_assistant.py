@@ -1,13 +1,13 @@
 """
-staff_assistant.py — Althea for staff questions.
+staff_assistant.py: Althea for staff questions.
 
 Employees (Staff Portal): "what do I still need to do?", "when does my BLS expire?", "why wasn't my document
 accepted?"... Answers are built only from the signed-in person's own staff record at the clinic they're signed in
-to (the same data as /api/portal/me) — never anyone else's, and nothing is generated: the question is matched to a
+to (the same data as /api/portal/me), never anyone else's, and nothing is generated: the question is matched to a
 fixed set of intents, and each intent's answer is assembled from the record.
 
-Managers (main Althea, althea.js): organization questions — who's still onboarding, what needs my attention, who
-hasn't finished Althais Training — through the same manager checks as the rest of Staff (staff_onboarding.manager_ctx).
+Managers (main Althea, althea.js): organization questions, who's still onboarding, what needs my attention, who
+hasn't finished Althais Training, through the same manager checks as the rest of Staff (staff_onboarding.manager_ctx).
 
 Matching is by keywords first; when nothing matches and Groq is configured, the question is classified by the model
 into the same intent list (it only picks an intent; it never writes the answer).
@@ -92,7 +92,7 @@ def employee_answer(q: str, me: dict, role_areas: list) -> dict:
         if not open_tasks:
             waiting = [t["title"] for t in me.get("managerTasks", []) if t["status"] != "COMPLETE"]
             return {"intent": intent, "answer": "You've done everything on your list." + (f" Your clinic is finishing: {', '.join(waiting)}." if waiting else ""), "links": []}
-        lines = [f"• {t['title']}{_due(t)}" + (" — needs a fix" if t["effectiveStatus"] == "WAITING_ON_EMPLOYEE" else "") for t in open_tasks[:8]]
+        lines = [f"• {t['title']}{_due(t)}" + (" (needs a fix)" if t["effectiveStatus"] == "WAITING_ON_EMPLOYEE" else "") for t in open_tasks[:8]]
         return {"intent": intent, "answer": f"You have {len(open_tasks)} thing{'s' if len(open_tasks) != 1 else ''} left:\n" + "\n".join(lines),
                 "links": [link(t["title"], "#" + SECTION.get(t["type"], "tasks")) for t in open_tasks[:3]]}
     if intent == "first_day":
@@ -148,7 +148,7 @@ def employee_answer(q: str, me: dict, role_areas: list) -> dict:
         have = [AREA_TOUR[a][0] for a in role_areas if a in AREA_TOUR]
         if not me.get("appAccess"):
             return {"intent": intent, "answer": "Right now you have the Staff Portal. Your clinic turns on the rest of your access when your onboarding is approved"
-                    + (f" — as a {me['person']['role']} you'll get: {', '.join(have)}." if have else "."), "links": []}
+                    + (f". As a {me['person']['role']}, you'll get: {', '.join(have)}." if have else "."), "links": []}
         return {"intent": intent, "answer": f"As a {me['person']['role']}, you can use: {', '.join(have) or 'the Staff Portal'}. If your work needs more, ask your manager.", "links": []}
     return {"intent": "help", "answer": "I can help with your onboarding and staff records. Try: \"What do I still need to do?\", \"When does my BLS expire?\", "
             "\"Which training do I need?\", \"Where do I upload my license?\" or \"Why wasn't my document accepted?\"", "links": []}

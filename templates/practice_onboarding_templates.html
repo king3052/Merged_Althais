@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Onboarding Templates</title>
+  <title>Althais | Onboarding Templates</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
     .fld:focus { border-color:var(--brand); }
@@ -131,7 +131,7 @@
       role = r;
       const tpl = saved('onboardingTemplates', r, 'role') || META.templates.find(t => t.role === r) || META.generic;
       $('tpl-name').value = tpl.name || `${r} Onboarding`;
-      $('tpl-state').textContent = saved('onboardingTemplates', r, 'role') ? '' : 'Suggested — save it to make it yours';
+      $('tpl-state').textContent = saved('onboardingTemplates', r, 'role') ? '' : 'Suggested. Save it to make it yours';
       editor = E.mount($('tpl-editor'), tpl.items, { catalog: META.catalog, detailed: true });
       renderRoles();
     }
@@ -178,7 +178,7 @@
         <div class="mt-3 p-3 rounded-sm border border-line">
           <div class="lbl">Form File (PDF)</div>
           <div class="flex items-center gap-3 flex-wrap text-[12.5px]">
-            ${f.fileId ? `<a class="font-semibold text-med-600" href="/api/staff/onboarding/forms/${encodeURIComponent(f.key)}/file" target="_blank" rel="noopener">${esc(f.fileName || 'Current file')}</a>` : '<span class="text-ink-500">No file — staff read the text below.</span>'}
+            ${f.fileId ? `<a class="font-semibold text-med-600" href="/api/staff/onboarding/forms/${encodeURIComponent(f.key)}/file" target="_blank" rel="noopener">${esc(f.fileName || 'Current file')}</a>` : '<span class="text-ink-500">No file, staff read the text below.</span>'}
             <label class="btn btn-line cursor-pointer">${f.fileId ? 'Replace PDF' : 'Upload PDF'}<input type="file" accept="application/pdf,.pdf" class="hidden" id="f-file"></label>
           </div>
           <p class="text-[11px] text-ink-500 mt-1">A new file is a new version. People who already completed it keep the version they signed.</p>
@@ -220,7 +220,7 @@
       $('f-assign').onclick = async () => {
         const r = await fetch(`/api/staff/onboarding/forms/${encodeURIComponent(f.key)}/assign`, { method: 'POST', credentials: 'same-origin' });
         const j = await r.json().catch(() => ({}));
-        S.toast(r.ok ? (j.assigned ? `Assigned to ${j.assigned} staff member${j.assigned === 1 ? '' : 's'}` : 'Everyone in these roles already has it — save the roles first if you just changed them') : (j.error || 'Could not assign'), r.ok ? undefined : 'error');
+        S.toast(r.ok ? (j.assigned ? `Assigned to ${j.assigned} staff member${j.assigned === 1 ? '' : 's'}` : 'Everyone in these roles already has it. Save the roles first if you just changed them') : (j.error || 'Could not assign'), r.ok ? undefined : 'error');
       };
     }
     $('form-list').addEventListener('click', e => { const b = e.target.closest('[data-form]'); if (b) { formKey = b.dataset.form; renderForms(); } });
@@ -305,17 +305,17 @@
           credential information, compares it with what's on file, and looks for anything unusual. Documents that pass every check are verified automatically;
           fixable problems go back to the employee with what to fix; anything uncertain comes to you.</p>
         <div class="mt-3 px-3 py-2 rounded-sm border border-line ${A.connected ? 'bg-ok-100 text-ok-600' : 'bg-warn-100 text-warn-600'} text-[12px] font-semibold">
-          ${A.connected ? `Connected — documents are read by Claude (${esc(A.processor || '')}).` : 'Not connected — documents can’t be read automatically, so every one comes to you. Your Althais administrator connects it (ANTHROPIC_API_KEY).'}</div>
+          ${A.connected ? `Connected. Documents are read by Claude (${esc(A.processor || '')}).` : 'Not connected. Documents can’t be read automatically, so every one comes to you. Your Althais administrator connects it (ANTHROPIC_API_KEY).'}</div>
         <label class="flex items-start gap-2 mt-4 text-[12.5px] text-ink-800"><input type="checkbox" id="au-on" class="mt-0.5" ${pol.enabled !== false ? 'checked' : ''}>
           <span><b>Review uploaded documents automatically</b><span class="block text-[11.5px] text-ink-500">Off: documents aren't read or checked automatically; every one comes to you.</span></span></label>
         <label class="flex items-start gap-2 mt-3 text-[12.5px] text-ink-800"><input type="checkbox" id="au-auto" class="mt-0.5" ${pol.autoApprove !== false ? 'checked' : ''}>
           <span><b>Approve documents automatically when every check passes</b><span class="block text-[11.5px] text-ink-500">Off: checks still run, but you approve every document yourself.</span></span></label>
         <div class="grid sm:grid-cols-2 gap-4 mt-4">
           <div><label class="lbl" for="au-conf">Required Confidence</label>
-            <select id="au-conf" class="fld">${S.options([{ value: '0.85', label: '85% — fewer reviews' }, { value: '0.9', label: '90% — recommended' }, { value: '0.95', label: '95% — stricter' }], String(pol.minConfidence || 0.9))}</select>
+            <select id="au-conf" class="fld">${S.options([{ value: '0.85', label: '85% (fewer reviews)' }, { value: '0.9', label: '90% (recommended)' }, { value: '0.95', label: '95% (stricter)' }], String(pol.minConfidence || 0.9))}</select>
             <p class="text-[11px] text-ink-500 mt-1">Every key detail must be read at least this surely, or it comes to you.</p></div>
           <div><label class="lbl" for="au-anom">Potential Issues Sent To You</label>
-            <select id="au-anom" class="fld">${S.options([{ value: 'low', label: 'Any, even minor' }, { value: 'medium', label: 'Moderate and serious — recommended' }, { value: 'high', label: 'Serious only' }], pol.anomalyThreshold || 'medium')}</select></div>
+            <select id="au-anom" class="fld">${S.options([{ value: 'low', label: 'Any, even minor ones' }, { value: 'medium', label: 'Moderate and serious (recommended)' }, { value: 'high', label: 'Serious only' }], pol.anomalyThreshold || 'medium')}</select></div>
         </div>
         <div class="mt-4"><div class="lbl">Require External Verification For</div>
           ${docReqs.map(([k, l]) => `<label class="flex items-center gap-2 text-[12.5px] text-ink-800 py-0.5"><input type="checkbox" data-ext="${k}" ${(pol.requireExternal || []).includes(k) ? 'checked' : ''}> ${esc(l)}</label>`).join('')}
@@ -338,7 +338,7 @@
       const list = (a) => (a || []).join(', ');
       $('rem-edit').innerHTML = `
         <h2 class="text-[14px] font-semibold text-ink-900">Reminders</h2>
-        <p class="text-[12px] text-ink-600 mt-1">Althais emails staff automatically. Each reminder goes out once — if a day is missed, only the current one is sent, never a pile of old ones.</p>
+        <p class="text-[12px] text-ink-600 mt-1">Althais emails staff automatically. Each reminder goes out once. If a day is missed, only the current one is sent, never a pile of old ones.</p>
         <div class="grid sm:grid-cols-2 gap-4 mt-4">
           <div><label class="lbl" for="r-task">Onboarding Items (Days Before Deadline)</label><input id="r-task" class="fld num" value="${esc(list(R.taskDays))}">
             <p class="text-[11px] text-ink-500 mt-1">Plus "due today" and one "overdue" reminder.</p></div>

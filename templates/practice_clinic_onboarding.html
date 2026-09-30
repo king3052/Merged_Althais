@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Clinic Onboarding</title>
+  <title>Althais | Clinic Onboarding</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
     .fld:focus { border-color:var(--brand); }
@@ -91,7 +91,7 @@
         <p class="text-[12px] text-ink-500 mt-0.5">Set up the practice on Althais, one step at a time. Each step checks itself off when it's done.</p>
       </div>
       <div class="w-[280px]">
-        <div class="flex items-center justify-between text-[11.5px] mb-1"><span class="text-ink-500 font-semibold uppercase tracking-wider text-[10.5px]">Setup Progress</span><span id="prog-label" class="font-semibold text-ink-900 num">—</span></div>
+        <div class="flex items-center justify-between text-[11.5px] mb-1"><span class="text-ink-500 font-semibold uppercase tracking-wider text-[10.5px]">Setup Progress</span><span id="prog-label" class="font-semibold text-ink-900 num">-</span></div>
         <div class="w-full h-2 bg-shell rounded-sm overflow-hidden border border-line"><div id="prog-bar" class="h-full bg-med-600" style="width:0%;transition:width .3s"></div></div>
       </div>
     </div>
@@ -292,16 +292,16 @@
       }).join('');
       const c = DOC.clinic, ch = c.clearinghouse || {}, hp = hipaaPeople(), fees = savedFees();
       const facts = [
-        ['Practice', c.name || '—'],
-        ['Group NPI', c.npi || '—'],
-        ['Tax ID', c.tin || '—'],
-        ['Locations', c.locations.length ? c.locations.map(l => l.name).join(', ') : '—'],
-        ['Team', DOC.people.length ? `${DOC.people.filter(p => p.status === 'active').length} active · ${DOC.people.filter(p => p.status !== 'active' && p.status !== 'inactive').length} onboarding` : '—'],
-        ['HIPAA Training', hp.length ? `${hp.filter(hasHipaa).length} of ${hp.length} assigned` : '—'],
-        ['Payers Approved', c.payers.length ? `${c.payers.filter(p => p.status === 'Approved').length} of ${c.payers.length}` : '—'],
+        ['Practice', c.name || '-'],
+        ['Group NPI', c.npi || '-'],
+        ['Tax ID', c.tin || '-'],
+        ['Locations', c.locations.length ? c.locations.map(l => l.name).join(', ') : '-'],
+        ['Team', DOC.people.length ? `${DOC.people.filter(p => p.status === 'active').length} active · ${DOC.people.filter(p => p.status !== 'active' && p.status !== 'inactive').length} onboarding` : '-'],
+        ['HIPAA Training', hp.length ? `${hp.filter(hasHipaa).length} of ${hp.length} assigned` : '-'],
+        ['Payers Approved', c.payers.length ? `${c.payers.filter(p => p.status === 'Approved').length} of ${c.payers.length}` : '-'],
         ['Patients', String(patientCount())],
         ['Fee Schedule', fees ? P.plural(fees.length, 'code', 'codes') : 'Starter rates'],
-        ['Clearinghouse', ch.vendor ? `${ch.vendor} · ${ch.status || 'Not Started'}` : '—'],
+        ['Clearinghouse', ch.vendor ? `${ch.vendor} · ${ch.status || 'Not Started'}` : '-'],
       ];
       $('side-facts').innerHTML = facts.map(([k, v]) => `<div class="fact"><dt>${esc(k)}</dt><dd title="${esc(v)}">${esc(v)}</dd></div>`).join('');
     }

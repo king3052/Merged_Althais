@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — To-Do</title>
+  <title>Althais | To-Do</title>
   <style>
     .btn { font-size:11.5px; padding:5px 10px; border-radius:2px; font-weight:600; white-space:nowrap; display:inline-flex; align-items:center; }
     .btn-primary { background:var(--brand); color:var(--brand-on); } .btn-primary:hover { background:var(--brand-700); }
@@ -52,22 +52,22 @@
       <div class="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total</div>
-          <div id="st-total" class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div id="st-total" class="text-[22px] font-semibold text-ink-900 num mt-1">-</div>
           <div class="text-[11px] text-ink-400 mt-0.5">Everything waiting on you</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Urgent</div>
-          <div id="st-urgent" class="text-[22px] font-semibold text-risk-600 num mt-1">—</div>
+          <div id="st-urgent" class="text-[22px] font-semibold text-risk-600 num mt-1">-</div>
           <div class="text-[11px] text-ink-400 mt-0.5">Overdue or expired</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">To Review</div>
-          <div id="st-review" class="text-[22px] font-semibold text-warn-600 num mt-1">—</div>
+          <div id="st-review" class="text-[22px] font-semibold text-warn-600 num mt-1">-</div>
           <div class="text-[11px] text-ink-400 mt-0.5">Documents and information</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Ready To Activate</div>
-          <div id="st-ready" class="text-[22px] font-semibold text-ok-600 num mt-1">—</div>
+          <div id="st-ready" class="text-[22px] font-semibold text-ok-600 num mt-1">-</div>
           <div class="text-[11px] text-ink-400 mt-0.5">Onboarding finished, awaiting you</div>
         </div>
       </div>
@@ -148,7 +148,7 @@
           S.toast(act === 'reject' ? 'Rejected' : 'Correction requested');
         } else if (act === 'resend') {
           const r = await api('POST', `/api/staff/onboarding/people/${encodeURIComponent(it.personId)}/invite`);
-          S.toast(r.emailed ? 'Invitation resent' : 'New invitation created — open their page to copy the link');
+          S.toast(r.emailed ? 'Invitation resent' : 'New invitation created. Open their page to copy the link');
         } else if (act === 'offboarding_done') {
           await api('POST', `/api/staff/onboarding/people/${encodeURIComponent(it.personId)}/offboarding/tasks/${encodeURIComponent(it.ref)}`, { done: true }); S.toast('Marked done');
         } else if (act === 'task_done') {

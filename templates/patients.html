@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Patients</title>
+  <title>Althais | Patients</title>
 </head>
 <body class="bg-shell">
 
@@ -12,7 +12,7 @@
     <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
       <div>
         <h1 class="text-[18px] font-semibold text-ink-900">Patients</h1>
-        <p class="text-[12px] text-ink-500 mt-0.5">Patient directory — demographics, coverage, and outstanding balance.</p>
+        <p class="text-[12px] text-ink-500 mt-0.5">Patient directory: demographics, coverage, and outstanding balance.</p>
       </div>
       <div class="flex items-center gap-2">
         <input id="search" type="search" autocomplete="off" placeholder="Search name or MRN…" aria-label="Search patients"
@@ -71,7 +71,7 @@
     const $ = (id) => document.getElementById(id);
     const esc = P.esc;
     const PATIENTS = P.local().patients.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    const covered = (p) => p.insPrimary && p.insPrimary !== '—';
+    const covered = (p) => p.insPrimary && !/^[\u2014-]$/.test(p.insPrimary);
     function age(dob) {
       const d = new Date(dob + 'T00:00:00'); if (isNaN(d)) return '';
       const n = new Date(); let a = n.getFullYear() - d.getFullYear();
@@ -91,10 +91,10 @@
       $('rows').innerHTML = rows.map(p => `
         <tr class="row-hover cursor-pointer" data-mrn="${esc(p.mrn)}">
           <td class="td"><a href="/emr?patient=${encodeURIComponent(p.mrn)}" class="font-semibold text-ink-900 hover:text-med-600">${esc(p.name)}</a><div class="text-[11px] text-ink-500 mono">${esc(p.mrn)}</div></td>
-          <td class="td text-ink-700 num">${esc(p.dob ? P.fmtDate(p.dob) : '—')}${p.dob ? `<span class="text-ink-400"> · ${age(p.dob)}</span>` : ''}</td>
-          <td class="td text-ink-700">${esc(p.sex || '—')}</td>
+          <td class="td text-ink-700 num">${esc(p.dob ? P.fmtDate(p.dob) : '-')}${p.dob ? `<span class="text-ink-400"> · ${age(p.dob)}</span>` : ''}</td>
+          <td class="td text-ink-700">${esc(p.sex || '-')}</td>
           <td class="td ${covered(p) ? 'text-ink-700' : 'text-warn-600 font-semibold'}">${esc(covered(p) ? p.insPrimary : 'None on file')}</td>
-          <td class="td text-ink-700">${esc(p.pcp || '—')}</td>
+          <td class="td text-ink-700">${esc(p.pcp || '-')}</td>
           <td class="td text-right num ${Number(p.balance) > 0 ? 'text-ink-900 font-semibold' : 'text-ink-500'}">${P.money(p.balance)}</td>
           <td class="td text-right text-ink-400">›</td>
         </tr>`).join('');

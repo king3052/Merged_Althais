@@ -12,7 +12,7 @@ from ncci_checker import check_claim_ncci_flags
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# llama-3.3-70b-versatile was deprecated by Groq (announced June 17, 2026) —
+# llama-3.3-70b-versatile was deprecated by Groq (announced June 17, 2026):
 # this is Groq's own recommended replacement. Kept as a single constant
 # rather than hardcoded in every call so the next migration is a one-line
 # change instead of a grep-and-replace across the file.
@@ -46,7 +46,7 @@ from auth import (
     impersonation_info,
 )
 # Exposes impersonation_info(request) to every template (via _head.html /
-# _nav.html) without touching the dozens of page routes that render them —
+# _nav.html) without touching the dozens of page routes that render them:
 # Jinja2Templates already puts `request` in every template's context, so
 # `{% if impersonation_info(request) %}` just works anywhere.
 templates.env.globals["impersonation_info"] = impersonation_info
@@ -125,7 +125,7 @@ def _marketing_ctx(user, active_page: str) -> dict:
 
 @app.get("/product")
 async def product_page():
-    # Product's content moved into How It Works — redirect old links/bookmarks.
+    # Product's content moved into How It Works - redirect old links/bookmarks.
     return RedirectResponse(url="/how-it-works", status_code=302)
 
 
@@ -173,7 +173,7 @@ async def about_althais_page(request: Request, user=Depends(current_user)):
 @app.get("/walkthrough")
 async def blank_placeholder_page(request: Request):
     # Placeholder for the About Althais hero's "See The Full Walkthrough"
-    # button — blank white page until real content exists.
+    # button - blank white page until real content exists.
     return templates.TemplateResponse(request, "blank_page.html", {})
 
 
@@ -294,12 +294,12 @@ def _render_emr(user) -> HTMLResponse:
     #    We patch the _NS constant to always use the correct org namespace.
     ns_patch = f"""
 <script>
-  // Server-injected namespace patch — overrides any _NS fallback in the dashboard JS.
+  // Server-injected namespace patch - overrides any _NS fallback in the dashboard JS.
   window.__ALTHAIS_NS__ = "{ns}";
-  // User role — controls which UI elements are shown/hidden
+  // User role - controls which UI elements are shown/hidden
   window.__ALTHAIS_ROLE__ = "{user.role or 'admin'}";
   // Links this login to a provider identity (e.g. "Dr. R. Patel") used
-  // throughout appointments/claims data — blank for accounts that aren't a
+  // throughout appointments/claims data - blank for accounts that aren't a
   // specific provider. Lets Althea's "what's my schedule" filter to just
   // this person instead of showing everyone's.
   window.__ALTHAIS_PROVIDER_NAME__ = {json.dumps(user.provider_name or "")};
@@ -512,7 +512,7 @@ def _home_for_user_base(user, products=None) -> str:
 async def onboarding(request: Request, user=Depends(current_user)):
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    # Already done — skip straight to the app
+    # Already done - skip straight to the app
     if getattr(user, "onboarding_complete", 1):
         return RedirectResponse(url="/overview", status_code=302)
     return templates.TemplateResponse(request, "onboarding.html", {"user": user})
@@ -520,7 +520,7 @@ async def onboarding(request: Request, user=Depends(current_user)):
 
 @app.get("/emr")
 async def emr(request: Request, user=Depends(current_user)):
-    """The full clinical EMR workspace (patient chart SPA) — unchanged, reached from
+    """The full clinical EMR workspace (patient chart SPA), unchanged, reached from
     the EMR workspace's sub-pages for deep patient-record functionality."""
     if not user:
         return RedirectResponse(url="/login", status_code=302)
@@ -577,7 +577,7 @@ def _workspace_route(template_name: str):
             verified = request.query_params.get("verified")
             login_url = "/login" + (f"?verified={verified}" if verified else "")
             return RedirectResponse(url=login_url, status_code=302)
-        # First-login check — invited users who haven't completed onboarding
+        # First-login check - invited users who haven't completed onboarding
         # yet get redirected to the setup screen regardless of which page
         # they try to reach. Covers all workspace pages in one place.
         if not getattr(user, "onboarding_complete", 1):
@@ -631,7 +631,7 @@ async def invite_page(request: Request, token: str):
 
 
 # ── Polished-placeholder pages ─────────────────────────────────────────────
-# These workspace pages don't have dedicated functionality yet — the real
+# These workspace pages don't have dedicated functionality yet - the real
 # feature lives inside the EMR SPA (dashboard.html) today. Each one renders
 # the same shell (header/nav) and links through to the equivalent EMR view.
 _PLACEHOLDER_PAGES = {
@@ -762,7 +762,7 @@ for _old_path, _new_path in _LEGACY_REDIRECTS.items():
 
 def _patient_dict(p: OrgPatient) -> dict:
     """Merge the flat core columns with the full rich object stored in `data`.
-    `data` (the actual dashboard patient object — insurance meta, allergies,
+    `data` (the actual dashboard patient object, insurance meta, allergies,
     problems, balance, etc.) wins on overlapping keys since it's the more
     complete, more recently-edited representation; core columns are the
     fallback for rows written by the plain-CSV import path, which never
@@ -776,7 +776,7 @@ def _patient_dict(p: OrgPatient) -> dict:
         "sex": p.sex, "payer": p.payer, "provider": p.provider,
     }
     base.update(extra)
-    base["mrn"] = p.mrn  # MRN is the identity key — never let stale `data` override it
+    base["mrn"] = p.mrn  # MRN is the identity key, never let stale `data` override it
     return base
 
 
@@ -839,12 +839,12 @@ async def api_bulk_sync_patients(request: Request, user=Depends(require_biller),
     ensure_product(user, db)   # full suite (the EMR)
     ensure_area(user, "patients", "schedule")
     """
-    Full mirror sync — the dashboard calls this every time its local patient
+    Full mirror sync, the dashboard calls this every time its local patient
     list changes (add, edit, delete, any field). The org's server-side patient
     set is made to exactly match the array sent: rows for MRNs no longer
     present are deleted, rows for MRNs present are upserted with the full
     object. This keeps every teammate's login converging on the same list
-    instead of drifting — the previous behavior kept patients in browser
+    instead of drifting, the previous behavior kept patients in browser
     localStorage only, invisible to anyone but that one browser.
     """
     body = await request.json()
@@ -878,7 +878,7 @@ async def api_bulk_sync_patients(request: Request, user=Depends(require_biller),
             ))
 
     # Remove server-side rows for patients no longer in the incoming list
-    # (i.e. deleted locally) — this is what makes it a true mirror sync.
+    # (i.e. deleted locally) - this is what makes it a true mirror sync.
     existing_rows = db.scalars(sa_select(OrgPatient).where(OrgPatient.org_key == org)).all()
     for row in existing_rows:
         if row.mrn not in incoming_mrns:
@@ -897,7 +897,7 @@ async def api_import_patients(
     """
     Bulk patient import from a CSV or Excel file. Expected columns
     (case-insensitive, extra columns ignored): mrn, name, dob, sex,
-    payer, provider. MRN is required and used as the upsert key —
+    payer, provider. MRN is required and used as the upsert key:
     importing the same MRN twice updates the existing record instead
     of duplicating it. One bad row does not fail the whole import;
     each row's outcome is reported back so the biller can fix and
@@ -1030,7 +1030,7 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
             flags=json.dumps(body.get("flags", [])),
             appeal_letter=body.get("appealLetter", ""), created_at=created,
         ))
-    # Track submissions on the user who actually submitted it — powers the
+    # Track submissions on the user who actually submitted it - powers the
     # "Claims" stat on the admin Overview page, which was previously a
     # column that existed but nothing ever wrote to (always showed 0).
     if just_submitted:
@@ -1062,7 +1062,7 @@ async def code_note(request: Request, user=Depends(require_biller), db: Session 
         # passes a specialty/place-of-service value.
         specialty = data.get('specialty') or 'emergency department / urgent care'
 
-        # Structured visit-duration inputs — kept deliberately separate from
+        # Structured visit-duration inputs - kept deliberately separate from
         # the free-text note. Time-based billing (critical care, time-based
         # office E/M) is governed by exact numeric thresholds a payer audit
         # checks literally, so it's resolved with plain arithmetic in
@@ -1092,16 +1092,16 @@ Given the clinical note below, return a JSON object shaped exactly like this:
   }}
 ]}}
 
-Hard rules — these are the most common ways an AI coder produces an unbillable or denial-prone claim, so follow them exactly:
-1. ALWAYS include at least one CPT code representing the billable service performed (an E/M visit level, a procedure, an interpretation, etc.) whenever the note describes a billable encounter. Never return ICD-10 diagnosis codes alone — a claim with no procedure code cannot be billed.
-2. When selecting an E/M level (99281-99285 for ED, 99202-99215 for office/outpatient), base the level on 2023+ Medical Decision Making (MDM) guidelines: number/complexity of problems addressed, amount/complexity of data reviewed, and risk of complications. Your justification for any E/M code must name the specific MDM element(s) that support the level — not just restate the chief complaint.
+Hard rules, these are the most common ways an AI coder produces an unbillable or denial-prone claim, so follow them exactly:
+1. ALWAYS include at least one CPT code representing the billable service performed (an E/M visit level, a procedure, an interpretation, etc.) whenever the note describes a billable encounter. Never return ICD-10 diagnosis codes alone, a claim with no procedure code cannot be billed.
+2. When selecting an E/M level (99281-99285 for ED, 99202-99215 for office/outpatient), base the level on 2023+ Medical Decision Making (MDM) guidelines: number/complexity of problems addressed, amount/complexity of data reviewed, and risk of complications. Your justification for any E/M code must name the specific MDM element(s) that support the level, not just restate the chief complaint.
 3. Choose the most specific ICD-10 code the documentation actually supports (laterality, episode of care, etc.). If the note lacks enough detail for a more specific code, select the correct less-specific code AND explain in documentation_gap what additional detail would justify the more specific one.
-4. Do not guess when documentation is ambiguous. Lower confidence rather than inventing detail that isn't in the note — flagging a gap is always better than silently upcoding or downcoding.
+4. Do not guess when documentation is ambiguous. Lower confidence rather than inventing detail that isn't in the note, flagging a gap is always better than silently upcoding or downcoding.
 5. Only include a modifier when the documentation clearly supports it (e.g. modifier 25 only when a significant, separately identifiable E/M service is documented alongside a same-day procedure).
 
 Worked examples (follow this reasoning style):
 
-Example 1 — straightforward, single diagnosis:
+Example 1, straightforward, single diagnosis:
 Note: "34F, 3 days nonproductive cough and congestion, no fever, no dyspnea. Lungs clear bilaterally. No distress."
 Correct output reasoning: Single self-limited problem, no data reviewed beyond exam, minimal risk -> lowest ED E/M level. Diagnosis is clear and specific enough as documented.
 {{"codes": [
@@ -1109,31 +1109,31 @@ Correct output reasoning: Single self-limited problem, no data reviewed beyond e
   {{"code": "99282", "description": "ED visit, low complexity", "type": "CPT", "confidence": 90, "justification": "MDM: single self-limited problem, minimal data reviewed, minimal risk", "modifier": "", "units": 1, "documentation_gap": ""}}
 ]}}
 
-Example 2 — thin documentation, laterality not specified:
+Example 2, thin documentation, laterality not specified:
 Note: "Twisted ankle playing basketball yesterday. Tender, swollen. Able to bear weight. X-ray negative for fracture."
-Correct output reasoning: Laterality (left/right) is never stated, so the ICD-10 code cannot be fully specific — flag the gap instead of guessing a side.
+Correct output reasoning: Laterality (left/right) is never stated, so the ICD-10 code cannot be fully specific, flag the gap instead of guessing a side.
 {{"codes": [
-  {{"code": "S93.40", "description": "Sprain of ankle, unspecified side", "type": "ICD-10", "confidence": 70, "justification": "Ankle sprain confirmed by exam and negative X-ray", "modifier": "", "units": 1, "documentation_gap": "Note doesn't specify which ankle (left/right) — needed for full code specificity"}},
+  {{"code": "S93.40", "description": "Sprain of ankle, unspecified side", "type": "ICD-10", "confidence": 70, "justification": "Ankle sprain confirmed by exam and negative X-ray", "modifier": "", "units": 1, "documentation_gap": "Note doesn't specify which ankle (left/right), needed for full code specificity"}},
   {{"code": "99282", "description": "ED visit, low complexity", "type": "CPT", "confidence": 88, "justification": "MDM: single acute uncomplicated problem, X-ray reviewed, minimal risk", "modifier": "", "units": 1, "documentation_gap": ""}}
 ]}}
 
-Example 3 — procedure plus same-day E/M needing a modifier:
+Example 3, procedure plus same-day E/M needing a modifier:
 Note: "4cm forearm laceration from glass, no tendon involvement. Wound irrigated, simple repair with 6 sutures. Separate visit component for unrelated evaluation of chest congestion also documented."
-Correct output reasoning: The repair is its own CPT code; the E/M is billed separately only because a distinct, unrelated problem was also evaluated the same day — that's exactly when modifier 25 applies.
+Correct output reasoning: The repair is its own CPT code; the E/M is billed separately only because a distinct, unrelated problem was also evaluated the same day, that's exactly when modifier 25 applies.
 {{"codes": [
   {{"code": "S51.812A", "description": "Laceration without foreign body of left forearm, initial encounter", "type": "ICD-10", "confidence": 85, "justification": "Forearm laceration explicitly documented", "modifier": "", "units": 1, "documentation_gap": ""}},
   {{"code": "12002", "description": "Simple repair, 2.6cm-7.5cm", "type": "CPT", "confidence": 90, "justification": "4cm simple laceration repair with sutures, no tendon involvement", "modifier": "", "units": 1, "documentation_gap": ""}},
   {{"code": "99282", "description": "ED visit, low complexity", "type": "CPT", "confidence": 85, "justification": "MDM: separately evaluated unrelated problem (chest congestion) same visit", "modifier": "25", "units": 1, "documentation_gap": ""}}
 ]}}
 
-Respond with the JSON object only — no markdown, no backticks, no commentary before or after it.
-{('Documented visit duration: ' + str(duration_minutes) + ' minutes' + (' (critical care)' if is_critical_care else '') + '. Note: the exact E/M or critical-care code for this duration will be verified and corrected by a deterministic rules engine after your response, so focus your own code selection on everything else — diagnoses, procedures, modifiers.') if duration_minutes else ''}
+Respond with the JSON object only, no markdown, no backticks, no commentary before or after it.
+{('Documented visit duration: ' + str(duration_minutes) + ' minutes' + (' (critical care)' if is_critical_care else '') + '. Note: the exact E/M or critical-care code for this duration will be verified and corrected by a deterministic rules engine after your response, so focus your own code selection on everything else, diagnoses, procedures, modifiers.') if duration_minutes else ''}
 
 Clinical note:
 {data['note']}"""
 
         # Ask for Groq's native Structured Outputs as an added reliability
-        # layer on top of the existing regex-based extraction below — NOT a
+        # layer on top of the existing regex-based extraction below - NOT a
         # replacement for it. There's a documented, current community report
         # of openai/gpt-oss-120b sometimes ignoring response_format entirely
         # and returning free-form text anyway, so the regex fallback stays
@@ -1172,7 +1172,7 @@ Clinical note:
                 response_format={"type": "json_schema", "json_schema": {"name": "coding_response", "strict": True, "schema": code_schema}},
             )
         except Exception:
-            # Some models/accounts don't support json_schema mode — fall back
+            # Some models/accounts don't support json_schema mode - fall back
             # to a plain call and rely entirely on the regex extraction below.
             response = client.chat.completions.create(
                 model=GROQ_MODEL,
@@ -1183,7 +1183,7 @@ Clinical note:
         text = response.choices[0].message.content.strip()
         # Extract the JSON object even if the model wraps it in commentary or
         # code fences despite instructions, or ignores response_format
-        # altogether (see the note above) — more robust than assuming a
+        # altogether (see the note above) - more robust than assuming a
         # specific fence format or trusting response_format was honored.
         match = re.search(r'\{.*\}', text, re.S)
         if match:
@@ -1195,7 +1195,7 @@ Clinical note:
 
         # Deterministic time-based override. Duration billing (critical care,
         # time-based office E/M) is decided by exact minute thresholds, not
-        # AI judgment — see coding_rules.py for why ED visits are deliberately
+        # AI judgment - see coding_rules.py for why ED visits are deliberately
         # excluded from this override.
         time_coding_note = None
         if duration_minutes:
@@ -1209,7 +1209,7 @@ Clinical note:
                 codes.extend(time_codes)
 
         # Format-validate every code (see code_validation.py for exactly what
-        # this does and doesn't check) — annotates rather than removes, so a
+        # this does and doesn't check) - annotates rather than removes, so a
         # flagged code is still visible to the biller, just clearly marked.
         codes = validate_codes(codes)
 
@@ -1230,15 +1230,15 @@ async def validate_claim(request: Request, user=Depends(require_biller), db: Ses
         prompt = f"""You are a medical billing compliance expert reviewing a claim before submission.
 
 Check the codes below against these specific things, not just a general impression:
-1. Medical necessity linkage — does at least one ICD-10 code on the claim actually justify each CPT/procedure code? A CPT code with no supporting diagnosis is a near-certain denial.
-2. E/M level support — if an E/M code is present, does the note's documented Medical Decision Making (problems addressed, data reviewed, risk) actually support that level, or is it over/under-coded relative to what's documented?
-3. Missing modifiers — flag if a modifier is likely required (e.g. modifier 25 for a same-day E/M plus procedure) but absent.
-4. Specificity — flag any ICD-10 code billed as "unspecified" when the note contains enough detail to code more specifically.
+1. Medical necessity linkage, does at least one ICD-10 code on the claim actually justify each CPT/procedure code? A CPT code with no supporting diagnosis is a near-certain denial.
+2. E/M level support, if an E/M code is present, does the note's documented Medical Decision Making (problems addressed, data reviewed, risk) actually support that level, or is it over/under-coded relative to what's documented?
+3. Missing modifiers, flag if a modifier is likely required (e.g. modifier 25 for a same-day E/M plus procedure) but absent.
+4. Specificity, flag any ICD-10 code billed as "unspecified" when the note contains enough detail to code more specifically.
 5. Missing demographic/administrative fields required for a clean claim (patient DOB, payer, rendering provider, service date).
-6. Possible NCCI bundling conflict — flag if two CPT codes on this claim are ones you know are commonly bundled (not separately payable together) under Medicare's National Correct Coding Initiative edits, unless an appropriate modifier (e.g. 59, XE, XS, XU) is already present to justify billing them separately. Base this on your own coding knowledge — you do NOT have access to the live, current-quarter NCCI edit table, so word any such flag as "possible" and recommend the biller verify against the current NCCI edits before treating it as certain.
+6. Possible NCCI bundling conflict, flag if two CPT codes on this claim are ones you know are commonly bundled (not separately payable together) under Medicare's National Correct Coding Initiative edits, unless an appropriate modifier (e.g. 59, XE, XS, XU) is already present to justify billing them separately. Base this on your own coding knowledge, you do NOT have access to the live, current-quarter NCCI edit table, so word any such flag as "possible" and recommend the biller verify against the current NCCI edits before treating it as certain.
 
 Return a JSON object with exactly these fields:
-- score (integer 0-100, overall claim readiness — be strict, not generous)
+- score (integer 0-100, overall claim readiness, be strict, not generous)
 - flags (array of strings, each a specific issue found, referencing the code involved)
 - missing (array of strings, each a specific thing that's absent and required)
 
@@ -1278,7 +1278,7 @@ Clinical note: {data.get('note', '')}"""
             text = match.group(0)
         result = json.loads(text)
 
-        # Real NCCI PTP edit check — deterministic lookup against the
+        # Real NCCI PTP edit check - deterministic lookup against the
         # CMS edit table, replacing any AI-guessed bundling flags with
         # actual authoritative answers for the pairs we have on file.
         cpt_codes = [
@@ -1659,13 +1659,13 @@ async def althea_command(request: Request, user=Depends(require_user), db: Sessi
     ensure_althea(user, db)   # switched on per clinic in /admin
     ensure_area(user, "althea")
     """
-    Althea — a voice/text command interpreter scoped ONLY to this product's
+    Althea, a voice/text command interpreter scoped ONLY to this product's
     own functions (reading the schedule, a claims summary, pulling up claims,
     denials, payer intelligence and payments, opening a patient
     chart, reading back a patient's allergies/medications/labs, navigating
     to a section). This is deliberately NOT a general clinical assistant: it
     classifies a spoken/typed request into one of a small, fixed set of
-    intents and extracts parameters — it never generates clinical content,
+    intents and extracts parameters, it never generates clinical content,
     diagnoses, or care recommendations, and any request for those is
     routed to "unknown" rather than answered.
 
@@ -1673,12 +1673,12 @@ async def althea_command(request: Request, user=Depends(require_user), db: Sessi
     last few exchanges (transcript + intent this endpoint returned), so a
     follow-up like "what about tomorrow" right after "what's my schedule
     today" can be resolved in context instead of needing every detail
-    repeated. This endpoint stays stateless itself — the frontend is the
+    repeated. This endpoint stays stateless itself, the frontend is the
     one keeping the history and sending it back each time.
 
     Execution of the actual intent happens entirely in existing, already-
     built frontend code operating on real data already in the app (the
-    appointments list, SAVED_CLAIMS, PATIENTS) — this endpoint only decides
+    appointments list, SAVED_CLAIMS, PATIENTS), this endpoint only decides
     *which* of those existing functions to call, never generates the
     response content itself.
     """
@@ -1688,7 +1688,7 @@ async def althea_command(request: Request, user=Depends(require_user), db: Sessi
         if not transcript:
             return JSONResponse({"error": "No transcript provided"}, status_code=400)
 
-        # Short rolling history from the frontend — last few {transcript,
+        # Short rolling history from the frontend - last few {transcript,
         # intent} pairs, just enough for follow-up resolution without
         # bloating the prompt or turning this into a full chat log.
         history = data.get("history") or []
@@ -1703,54 +1703,54 @@ async def althea_command(request: Request, user=Depends(require_user), db: Sessi
             "\n\nThis clinic has only these Althais tools: " + ", ".join(_TOOL_NAMES[p] for p in sorted(products) if p in _TOOL_NAMES)
             + ". Questions about how to use those tools are general_question.")
 
-        prompt = f"""You are Althea, a voice command interpreter built into Althais, a medical billing and clinical workflow product. You are NOT a clinical assistant — you never give diagnoses, treatment suggestions, medication advice, or interpret symptoms. Your only job is to classify what in-app action the speaker wants, from this exact fixed list, and nothing else:
+        prompt = f"""You are Althea, a voice command interpreter built into Althais, a medical billing and clinical workflow product. You are NOT a clinical assistant, you never give diagnoses, treatment suggestions, medication advice, or interpret symptoms. Your only job is to classify what in-app action the speaker wants, from this exact fixed list, and nothing else:
 
-- "read_schedule" — read back the appointments/schedule for a day. Params: {{"date": "today" or "tomorrow" — default to "today" unless the speaker (or a follow-up in the recent conversation below) clearly asks about a different day}}
-- "next_appointment" — read back just the single next upcoming appointment. No params.
-- "claims_summary" — overall claim counts only (pending/denied/paid counts and total billed), e.g. "how are my claims", "claims summary". No params.
-- "find_claims" — pull up / list / search specific claims matching filters, e.g. "show me denied claims", "which Aetna claims are pending", "pull John Smith's claims", "find claim CL-2026-003", "claims for 99214", "what's unpaid with Medicare". Params: {{"status": one of "denied", "appealed", "paid", "pending", "submitted", "ready", "review", "draft", "unpaid", or empty string for any status; "payer": "<insurance payer as spoken, or empty>"; "patient_name": "<name as spoken, or empty>"; "query": "<a claim ID, CPT or ICD-10 code as spoken, or empty>"}}
-- "denials_summary" — an overview of denied claims: how many, dollars at stake, which still need an appeal, top payers and reasons, e.g. "how are denials looking", "what needs to be appealed", "denials from UnitedHealthcare". Params: {{"payer": "<payer as spoken, or empty for all payers>"}}
-- "payer_intelligence" — how payers are performing (approval and denial rates, volume, billed/collected) and their rules or policy notes, e.g. "how is Aetna doing", "which payer denies the most", "payer intelligence", "what does Blue Cross require for 70553". Params: {{"payer": "<payer as spoken, or empty to compare all payers>"; "query": "<a CPT code or topic the speaker asked about for that payer's rules, or empty>"}}
-- "payments_summary" — money collected vs. still outstanding, e.g. "how much have we collected", "what's outstanding", "payments from Medicare". Params: {{"payer": "<payer as spoken, or empty>"}}
-- "open_patient" — open a specific patient's chart. Params: {{"patient_name": "<name as spoken>"}}
-- "start_visit" — begin a new visit/encounter note for a patient. Params: {{"patient_name": "<name as spoken, or empty string if referring to the currently open patient>"}}
-- "check_claim_readiness" — check whether a claim/visit is ready to submit (missing documentation, flags, risk score). Params: {{"patient_name": "<name as spoken, or empty string to check whatever claim/visit is currently open>"}}
-- "read_allergies" — read back a patient's known allergies. Params: {{"patient_name": "<name as spoken, or empty string if they mean the patient whose chart is currently open, or the patient discussed earlier in the recent conversation below — e.g. 'this patient', 'my patient', 'their allergies', 'and their meds too', or no name given at all>"}}
-- "read_medications" — read back a patient's current medications. Params: same "patient_name" rule as read_allergies.
-- "read_labs" — read back a patient's recent lab results. Params: same "patient_name" rule as read_allergies.
-- "start_visit_timer" — start timing a visit/encounter, to feed the exact duration into time-based CPT coding later. No params.
-- "stop_visit_timer" — stop the running visit timer and report the elapsed time. No params.
-- "claims_at_risk" — list the claims currently at highest denial risk across the practice. No params.
-- "documentation_gaps_today" — list today's scheduled patients who don't have a completed visit note yet. No params.
-- "prior_auth_pending" — list patients with a pending (not yet approved/denied) prior authorization. No params.
-- "coding_complexity_check" — flag providers whose average E/M coding level looks lower than the practice average (a coding-pattern signal, not a clinical judgment). No params.
-- "claims_denial_scan" — check the practice's highest-risk claims for specific missing documentation that could cause a denial. No params.
-- "new_patient" — open the New Patient form so the clinician can dictate the patient's details (name, date of birth, insurance, allergies, address, phone) and have them typed in. This is data entry only. No params.
-- "dictate_visit_note" — open a visit note (SOAP) so the clinician can dictate it and have it typed into the note's fields. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
-- "scribe_visit" — the clinician wants Althea to listen to a whole patient visit (the conversation between the clinician and the patient) and write up the note, then get the codes and prepare the claim. Examples: "scribe this visit", "listen to my visit with John Smith and write the note", "start scribing". This is different from "dictate_visit_note", where the clinician speaks the note itself to Althea. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
-- "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "denials", "appeals", "payments", "coding", "payer_intelligence", "scheduler", "patients", "soap", "settings", "staff", "scribe" (Write A Note), "code_a_note" (Code A Note), "credentials", "training", "onboarding", "roles", "compliance"}}
-- "staff_credentials_expiring" — which staff licenses or certifications are expired or expiring soon. No params.
-- "staff_training_overdue" — which staff have training that is overdue or due soon. No params.
-- "staff_onboarding_status" — who is still onboarding and how far along they are, e.g. "who's still onboarding". No params.
-- "staff_needs_attention" — what staff items need the manager's attention, e.g. "what requires my attention", "what do I need to review". No params.
-- "staff_althais_training" — who hasn't completed Althais Training yet. No params.
-- "generate_appeal_letter" — draft an appeal letter for a patient's denied claim. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
-- "claim_status" — read back the status of a patient's most recent claim (submitted, paid, denied, pending, etc). Params: same "patient_name" rule as read_allergies.
-- "update_patient_field" — update one field on a patient's record: add an allergy, or change the primary insurance on file. Params: {{"patient_name": "<name as spoken, or empty string for the currently open patient>", "field": one of "allergy", "insurance", "value": "<the new value or allergy to add, as spoken>"}}
-- "general_question" — how to use one of the clinic's Althais tools (e.g. "how do I sign a note", "how does Scribe work"), or a general medical billing/coding knowledge question that ISN'T asking to read back something from THIS patient's own chart or claims (e.g. "what does modifier 25 mean", "why would a claim get denied for bundling", "how does critical care time billing work", "what's CO-97"). This is different from read_allergies/read_labs/claims_summary etc., which are about a specific real record already in the app — general_question is for billing/coding knowledge itself.
-- "unknown" — the request doesn't match any of the above, OR asks for anything clinical (diagnosis, treatment, medication advice, symptom interpretation) or anything outside this product's own functions.
+- "read_schedule", read back the appointments/schedule for a day. Params: {{"date": "today" or "tomorrow", default to "today" unless the speaker (or a follow-up in the recent conversation below) clearly asks about a different day}}
+- "next_appointment", read back just the single next upcoming appointment. No params.
+- "claims_summary", overall claim counts only (pending/denied/paid counts and total billed), e.g. "how are my claims", "claims summary". No params.
+- "find_claims", pull up / list / search specific claims matching filters, e.g. "show me denied claims", "which Aetna claims are pending", "pull John Smith's claims", "find claim CL-2026-003", "claims for 99214", "what's unpaid with Medicare". Params: {{"status": one of "denied", "appealed", "paid", "pending", "submitted", "ready", "review", "draft", "unpaid", or empty string for any status; "payer": "<insurance payer as spoken, or empty>"; "patient_name": "<name as spoken, or empty>"; "query": "<a claim ID, CPT or ICD-10 code as spoken, or empty>"}}
+- "denials_summary", an overview of denied claims: how many, dollars at stake, which still need an appeal, top payers and reasons, e.g. "how are denials looking", "what needs to be appealed", "denials from UnitedHealthcare". Params: {{"payer": "<payer as spoken, or empty for all payers>"}}
+- "payer_intelligence", how payers are performing (approval and denial rates, volume, billed/collected) and their rules or policy notes, e.g. "how is Aetna doing", "which payer denies the most", "payer intelligence", "what does Blue Cross require for 70553". Params: {{"payer": "<payer as spoken, or empty to compare all payers>"; "query": "<a CPT code or topic the speaker asked about for that payer's rules, or empty>"}}
+- "payments_summary", money collected vs. still outstanding, e.g. "how much have we collected", "what's outstanding", "payments from Medicare". Params: {{"payer": "<payer as spoken, or empty>"}}
+- "open_patient", open a specific patient's chart. Params: {{"patient_name": "<name as spoken>"}}
+- "start_visit", begin a new visit/encounter note for a patient. Params: {{"patient_name": "<name as spoken, or empty string if referring to the currently open patient>"}}
+- "check_claim_readiness", check whether a claim/visit is ready to submit (missing documentation, flags, risk score). Params: {{"patient_name": "<name as spoken, or empty string to check whatever claim/visit is currently open>"}}
+- "read_allergies", read back a patient's known allergies. Params: {{"patient_name": "<name as spoken, or empty string if they mean the patient whose chart is currently open, or the patient discussed earlier in the recent conversation below, e.g. 'this patient', 'my patient', 'their allergies', 'and their meds too', or no name given at all>"}}
+- "read_medications", read back a patient's current medications. Params: same "patient_name" rule as read_allergies.
+- "read_labs", read back a patient's recent lab results. Params: same "patient_name" rule as read_allergies.
+- "start_visit_timer", start timing a visit/encounter, to feed the exact duration into time-based CPT coding later. No params.
+- "stop_visit_timer", stop the running visit timer and report the elapsed time. No params.
+- "claims_at_risk", list the claims currently at highest denial risk across the practice. No params.
+- "documentation_gaps_today", list today's scheduled patients who don't have a completed visit note yet. No params.
+- "prior_auth_pending", list patients with a pending (not yet approved/denied) prior authorization. No params.
+- "coding_complexity_check", flag providers whose average E/M coding level looks lower than the practice average (a coding-pattern signal, not a clinical judgment). No params.
+- "claims_denial_scan", check the practice's highest-risk claims for specific missing documentation that could cause a denial. No params.
+- "new_patient", open the New Patient form so the clinician can dictate the patient's details (name, date of birth, insurance, allergies, address, phone) and have them typed in. This is data entry only. No params.
+- "dictate_visit_note", open a visit note (SOAP) so the clinician can dictate it and have it typed into the note's fields. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
+- "scribe_visit", the clinician wants Althea to listen to a whole patient visit (the conversation between the clinician and the patient) and write up the note, then get the codes and prepare the claim. Examples: "scribe this visit", "listen to my visit with John Smith and write the note", "start scribing". This is different from "dictate_visit_note", where the clinician speaks the note itself to Althea. Data entry only. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
+- "open_section", navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "denials", "appeals", "payments", "coding", "payer_intelligence", "scheduler", "patients", "soap", "settings", "staff", "scribe" (Write A Note), "code_a_note" (Code A Note), "credentials", "training", "onboarding", "roles", "compliance"}}
+- "staff_credentials_expiring", which staff licenses or certifications are expired or expiring soon. No params.
+- "staff_training_overdue", which staff have training that is overdue or due soon. No params.
+- "staff_onboarding_status", who is still onboarding and how far along they are, e.g. "who's still onboarding". No params.
+- "staff_needs_attention", what staff items need the manager's attention, e.g. "what requires my attention", "what do I need to review". No params.
+- "staff_althais_training", who hasn't completed Althais Training yet. No params.
+- "generate_appeal_letter", draft an appeal letter for a patient's denied claim. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
+- "claim_status", read back the status of a patient's most recent claim (submitted, paid, denied, pending, etc). Params: same "patient_name" rule as read_allergies.
+- "update_patient_field", update one field on a patient's record: add an allergy, or change the primary insurance on file. Params: {{"patient_name": "<name as spoken, or empty string for the currently open patient>", "field": one of "allergy", "insurance", "value": "<the new value or allergy to add, as spoken>"}}
+- "general_question", how to use one of the clinic's Althais tools (e.g. "how do I sign a note", "how does Scribe work"), or a general medical billing/coding knowledge question that ISN'T asking to read back something from THIS patient's own chart or claims (e.g. "what does modifier 25 mean", "why would a claim get denied for bundling", "how does critical care time billing work", "what's CO-97"). This is different from read_allergies/read_labs/claims_summary etc., which are about a specific real record already in the app, general_question is for billing/coding knowledge itself.
+- "unknown", the request doesn't match any of the above, OR asks for anything clinical (diagnosis, treatment, medication advice, symptom interpretation) or anything outside this product's own functions.
 
-Important on patient_name: only fill it in when a specific name is actually spoken (e.g. "open John Smith", "what is Maria's allergy"). Whenever the speaker refers to "this patient", "my patient", "the patient", "their ...", "and his/her ... too", or gives no name at all, leave patient_name as an empty string — the app resolves that to whichever patient was just discussed (in the recent conversation below) or whichever chart is currently open, so never guess a name that wasn't said.
+Important on patient_name: only fill it in when a specific name is actually spoken (e.g. "open John Smith", "what is Maria's allergy"). Whenever the speaker refers to "this patient", "my patient", "the patient", "their ...", "and his/her ... too", or gives no name at all, leave patient_name as an empty string, the app resolves that to whichever patient was just discussed (in the recent conversation below) or whichever chart is currently open, so never guess a name that wasn't said.
 
-Use the recent conversation below ONLY to resolve genuine follow-ups (a changed date, an implied "same patient as before", "what about X instead") — never let it override what the CURRENT request actually says.
+Use the recent conversation below ONLY to resolve genuine follow-ups (a changed date, an implied "same patient as before", "what about X instead"), never let it override what the CURRENT request actually says.
 {history_block}{plan_block}
 
 Respond with a JSON object only, shaped exactly like:
 {{"intent": "<one of the above>", "params": {{...}}, "spoken_ack": "a short, natural spoken acknowledgment of what you're doing, under 12 words"}}
 
-If the request is clinical in nature in any way (asking Althea to interpret a result, suggest a diagnosis, or recommend treatment — as opposed to simply reading back what's on file), you MUST return intent "unknown" with a spoken_ack explaining that you only handle in-app tasks — never attempt to answer the clinical question itself.
+If the request is clinical in nature in any way (asking Althea to interpret a result, suggest a diagnosis, or recommend treatment, as opposed to simply reading back what's on file), you MUST return intent "unknown" with a spoken_ack explaining that you only handle in-app tasks, never attempt to answer the clinical question itself.
 
-No markdown, no commentary, no backticks — the JSON object only.
+No markdown, no commentary, no backticks, the JSON object only.
 
 Spoken request: "{transcript}\""""
 
@@ -1769,7 +1769,7 @@ Spoken request: "{transcript}\""""
             "staff_onboarding_status", "staff_needs_attention", "staff_althais_training",
             "unknown"
         ]
-        # params varies by intent (a patient name, a section, a date) — strict
+        # params varies by intent (a patient name, a section, a date) - strict
         # mode needs one fixed shape, so this covers every possible param key
         # at once; unused ones just come back as empty strings.
         althea_schema = {

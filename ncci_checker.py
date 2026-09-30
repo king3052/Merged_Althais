@@ -5,12 +5,12 @@ HOW THIS WORKS:
   NCCI edits define code pairs where Column 1 (payable) and Column 2
   (bundled/denied) should not be billed together on the same claim for
   the same patient on the same date of service. If they are, the Column 2
-  code is denied — causing a real claim rejection.
+  code is denied, causing a real claim rejection.
 
 HOW TO GET THE FULL CMS TABLE (do this quarterly):
   1. Go to: cms.gov/medicare/coding-billing/national-correct-coding-initiative-ncci-edits
   2. Download all "Practitioner PTP Edits" ZIP files
-  3. Unzip each file — you get pipe-delimited .txt files
+  3. Unzip each file, you get pipe-delimited .txt files
   4. Run: python3 ncci_checker.py --load path/to/unzipped/files/
   5. Rebuilds ncci_edits.db with the full real table
   6. Repeat every quarter (Jan, Apr, Jul, Oct)
@@ -22,17 +22,17 @@ from pathlib import Path
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ncci_edits.db")
 
 CURATED_EDITS = [
-    # E/M bundled with minor procedures — modifier 25 on E/M needed to separate
+    # E/M bundled with minor procedures - modifier 25 on E/M needed to separate
     ("99281","12001","0"),("99282","12001","0"),("99283","12001","0"),
     ("99284","12001","0"),("99285","12001","0"),
     ("99281","12002","0"),("99282","12002","0"),("99283","12002","0"),
     ("99284","12002","0"),("99285","12002","0"),
     ("99281","12011","0"),("99282","12011","0"),("99283","12011","0"),
     ("99284","12011","0"),("99285","12011","0"),
-    # Critical care — common components bundled in
+    # Critical care - common components bundled in
     ("99291","36415","0"),("99291","94760","0"),("99291","94761","0"),
     ("99291","93005","0"),("99291","71046","0"),
-    # Injection with E/M — modifier 25 on E/M may separate
+    # Injection with E/M - modifier 25 on E/M may separate
     ("96372","99213","1"),("96372","99214","1"),("96372","99215","1"),
     ("96372","99283","1"),("96372","99284","1"),("96372","99285","1"),
     # IV infusion push conflict
@@ -63,7 +63,7 @@ CURATED_EDITS = [
     ("99292","99291","0"),
     # Blood draw bundled with infusion
     ("36415","96360","0"),("36415","96365","0"),("36415","96374","0"),
-    # Global surgery — E/M during postop
+    # Global surgery - E/M during postop
     ("99213","10060","0"),("99214","10060","0"),
     ("99213","10061","0"),("99214","10061","0"),
 ]
@@ -144,12 +144,12 @@ def check_claim_ncci(cpt_codes: list) -> list:
                         modifier_allowed = mi == "1"
                         if modifier_allowed:
                             msg = (f"Possible NCCI bundling: {col2} is typically bundled into "
-                                   f"{col1} — an NCCI-associated modifier (25, 57, 59, XE, XS, "
+                                   f"{col1}, an NCCI-associated modifier (25, 57, 59, XE, XS, "
                                    f"XU, XP) may allow separate billing if services are clinically "
                                    f"distinct. Verify before submitting.")
                         else:
                             msg = (f"NCCI bundling conflict: {col2} is bundled into {col1} and "
-                                   f"cannot be billed separately — no modifier can override this. "
+                                   f"cannot be billed separately, no modifier can override this. "
                                    f"Remove {col2} or verify services were genuinely separate.")
                         conflicts.append({"col1": col1, "col2": col2,
                                           "modifier_allowed": modifier_allowed, "message": msg})
@@ -172,10 +172,10 @@ if __name__ == "__main__":
         _ensure_db()
         tests = [
             (["99283","12001"], True,  "E/M + laceration repair"),
-            (["99214","99215"], False, "Two E/M codes — not NCCI"),
+            (["99214","99215"], False, "Two E/M codes, not NCCI"),
             (["99291","94760"], True,  "Critical care + pulse ox"),
             (["96372","99214"], True,  "Injection + E/M (modifier may help)"),
-            (["99213","99214"], False, "Two office E/M — not NCCI"),
+            (["99213","99214"], False, "Two office E/M, not NCCI"),
         ]
         all_ok = True
         for codes, expect, label in tests:

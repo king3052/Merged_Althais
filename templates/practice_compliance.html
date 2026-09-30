@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Compliance</title>
+  <title>Althais | Compliance</title>
   <style>
     .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; }
     .kcard { text-align:left; cursor:pointer; transition:border-color .15s; }
@@ -111,7 +111,7 @@
           <td class="td text-ink-800">${esc(i.label)}</td>
           <td class="td">${S.pill(i.status)}</td>
           <td class="td text-[12px] text-ink-600">${esc(S.fmtDate(i.expires))}</td>
-          <td class="td text-right num text-[12px] font-semibold ${dayTone}">${i.days == null ? '—' : (i.days < 0 ? `${-i.days} overdue` : i.days)}</td>
+          <td class="td text-right num text-[12px] font-semibold ${dayTone}">${i.days == null ? '-' : (i.days < 0 ? `${-i.days} overdue` : i.days)}</td>
           <td class="td text-[12px] text-ink-700">${esc(i.action)}</td>
           <td class="td text-right"><a href="${l.href}" class="text-[11px] font-semibold text-med-600 hover:text-med-700">${l.label} →</a></td>
         </tr>`;

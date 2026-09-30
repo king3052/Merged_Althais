@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Admin</title>
+  <title>Althais | Admin</title>
   <style>
     /* Built from the same parts as every Althais workspace page (see _nav.html and practice_team.html) */
     .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; outline:none; }
@@ -148,11 +148,11 @@
     <section data-section="overview">
       <div class="bg-panel border-b border-line">
         <div class="flex flex-wrap">
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Accounts</div><div id="stat-users" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div id="stat-users-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Organizations</div><div id="stat-orgs" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div id="stat-orgs-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Logins</div><div id="stat-logins" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div id="stat-logins-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Claims Submitted</div><div id="stat-claims" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div class="text-[10.5px] text-ink-400 mt-0.5">across every clinic</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">MRR</div><div id="stat-mrr" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div><div id="stat-mrr-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Accounts</div><div id="stat-users" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-users-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Organizations</div><div id="stat-orgs" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-orgs-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Logins</div><div id="stat-logins" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-logins-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Claims Submitted</div><div id="stat-claims" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div class="text-[10.5px] text-ink-400 mt-0.5">across every clinic</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">MRR</div><div id="stat-mrr" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-mrr-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
         </div>
       </div>
       <div class="p-5 grid lg:grid-cols-2 gap-4">
@@ -243,7 +243,7 @@
           </div>
           <div id="activity-rows"></div>
         </div>
-        <p class="text-[11.5px] text-ink-500 mt-3">Plan changes, account deletions, and sign-up settings — the last 100 actions from this console. Doesn't include anything a clinic does in its own app.</p>
+        <p class="text-[11.5px] text-ink-500 mt-3">Plan changes, account deletions, and sign-up settings: the last 100 actions from this console. Doesn't include anything a clinic does in its own app.</p>
       </div>
     </section>
 
@@ -326,7 +326,7 @@
   <div id="emp-backdrop" class="fixed inset-0 z-40 hidden" style="background:rgba(15,17,22,.45)"></div>
   <aside id="emp-panel" class="fixed top-0 right-0 z-50 h-screen w-[560px] max-w-[96vw] bg-panel border-l border-line shadow-xl overflow-y-auto thin-scroll hidden" aria-label="Clinic employees">
     <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
-      <div class="flex items-center gap-2.5"><div id="emp-initials" class="initials">—</div>
+      <div class="flex items-center gap-2.5"><div id="emp-initials" class="initials">-</div>
         <div><div id="emp-title" class="text-[13.5px] font-semibold text-ink-900">Clinic</div><div id="emp-sub" class="text-[11px] text-ink-500"></div></div></div>
       <button id="emp-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
@@ -371,7 +371,7 @@
     const draftM = {};   // org_key -> Manager on/off being edited
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
-    function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
+    function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'; }
     function fmtRelative(iso) {
       if (!iso) return 'never';
       const mins = Math.round((Date.now() - new Date(iso)) / 60000);
@@ -534,7 +534,7 @@
       const input = e.target.closest('[data-mrr]'); if (!input) return;
       const key = input.dataset.mrr, o = ORGS.find(x => x.org_key === key);
       const val = Math.max(0, Number(input.value) || 0);
-      if (o && val === (o.mrr || 0)) return;   // unchanged — nothing to save
+      if (o && val === (o.mrr || 0)) return;   // unchanged, nothing to save
       const res = await fetch('/api/admin/orgs/mrr', {
         method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ org_key: key, mrr: val }),
@@ -625,11 +625,11 @@
       $('rows').innerHTML = list.length ? list.map(u => `
         <tr class="row-hover">
           <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(u.full_name || u.email))}</div><div class="min-w-0">
-            <div class="font-semibold text-ink-900">${esc(u.full_name || '—')}</div>
+            <div class="font-semibold text-ink-900">${esc(u.full_name || '-')}</div>
             <div class="text-[11px] text-ink-500 mono">${esc(u.email)}</div></div></div></td>
-          <td class="td text-ink-700">${orgs[u.email] ? `<button type="button" data-emp="${esc(orgs[u.email].org_key)}" class="hover:text-med-600 text-left">${esc(u.organization || '—')}</button>` : esc(u.organization || '—')}</td>
-          <td class="td">${u.role === 'admin' ? pill('Manager', 'brand') : esc(ROLE_NAME[u.role] || u.role || '—')}${u.active === false ? ' ' + pill('Paused', 'muted') : ''}</td>
-          <td class="td"><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products, orgs[u.email].althea) : '—'}</div></td>
+          <td class="td text-ink-700">${orgs[u.email] ? `<button type="button" data-emp="${esc(orgs[u.email].org_key)}" class="hover:text-med-600 text-left">${esc(u.organization || '-')}</button>` : esc(u.organization || '-')}</td>
+          <td class="td">${u.role === 'admin' ? pill('Manager', 'brand') : esc(ROLE_NAME[u.role] || u.role || '-')}${u.active === false ? ' ' + pill('Paused', 'muted') : ''}</td>
+          <td class="td"><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products, orgs[u.email].althea) : '-'}</div></td>
           <td class="td td-num text-right">${u.login_count}</td>
           <td class="td td-num text-right">${u.claims_submitted}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}${inactive(u) ? ' ' + pill('Inactive', 'muted') : ''}</td>

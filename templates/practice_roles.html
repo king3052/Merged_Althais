@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Roles & Permissions</title>
+  <title>Althais | Roles & Permissions</title>
   <style>
     .perm-cell { width:26px; height:26px; border-radius:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; margin:0 auto; border:1.5px solid #e4e6eb; background:transparent; }
     .perm-cell.is-on { background:#0c8a4f; border-color:#0c8a4f; }
@@ -33,7 +33,7 @@
       <div id="readonly-note"></div>
       <div class="mb-4 px-3 py-2.5 rounded-sm border border-line bg-panel text-[12px] text-ink-600 space-y-1">
         <div><b class="text-ink-900">Each role decides what people in it can open in Althais.</b> Staff you activate through <a href="/staff/onboarding" class="font-semibold text-med-600">Onboarding</a> get exactly the access their role has here, and it changes as soon as you change the role.</div>
-        <div>Only roles with <b>Staff Records (Everyone’s)</b> — and clinic admins — can see other staff members. Everyone else sees only their own profile, by clicking their name in the top bar.</div>
+        <div>Only roles with <b>Staff Records (Everyone’s)</b> and clinic admins can see other staff members. Everyone else sees only their own profile, by clicking their name in the top bar.</div>
         <div>A role with nothing checked gives the Staff Portal only. People added through Manager keep the login access level set there (Viewer, Provider, Biller or Admin).</div>
       </div>
       <div class="bg-panel border border-line rounded-sm">
@@ -41,6 +41,7 @@
           <h3 class="text-[13px] font-semibold text-ink-900">Permission Matrix</h3>
           <span class="text-[11px] text-ink-500" id="hint">Click a cell to toggle access</span>
         </div>
+        <div id="role-bar" class="hidden px-4 py-3 border-b border-line bg-shell"></div>
         <div class="overflow-x-auto thin-scroll">
           <table class="w-full">
             <thead><tr class="table-head" id="roles-head"></tr></thead>
@@ -68,7 +69,6 @@
     const $ = (id) => document.getElementById(id);
     const esc = S.esc;
     let DOC = null;
-    const BUILT_IN = new Set(S.DEFAULT_ROLES.map(r => r.name));
 
     $('roles-head').innerHTML = '<th class="td text-left" style="min-width:170px;">Role</th>' + S.PERMISSION_AREAS.map(a => `<th class="td text-center" title="${esc(a.opens)}">${esc(a.label)}</th>`).join('') + '<th class="td text-right">Staff</th>';
 
@@ -82,7 +82,7 @@
         const staff = DOC.people.filter(p => p.role === r.name && p.status !== 'inactive').length;
         return `
         <tr>
-          <td class="td font-semibold text-ink-900">${esc(r.name)}${!BUILT_IN.has(r.name) && edit ? ` <button type="button" class="ml-1 text-[11px] font-semibold text-risk-600" data-delete="${ri}">Delete</button>` : ''}</td>
+          <td class="td font-semibold text-ink-900">${esc(r.name)}${edit ? ` <button type="button" class="ml-1 text-[11px] font-semibold text-risk-600 hover:underline" data-delete="${ri}" aria-label="Delete the ${esc(r.name)} role">Delete</button>` : ''}</td>
           ${S.PERMISSION_AREAS.map(a => `
             <td class="td text-center">
               <button type="button" class="perm-cell ${r.perms[a.key] ? 'is-on' : ''}" data-role="${ri}" data-area="${a.key}" ${edit ? '' : 'disabled'} aria-label="${esc(r.name)}: ${esc(a.label)} ${r.perms[a.key] ? 'allowed' : 'not allowed'}" aria-pressed="${r.perms[a.key] ? 'true' : 'false'}">
@@ -94,14 +94,51 @@
       }).join('');
     }
 
+    // Creating, deleting and resetting happen in this bar above the matrix (no browser pop-ups, which some browsers block).
+    function bar(html) { $('role-bar').innerHTML = html; $('role-bar').classList.toggle('hidden', !html); }
+    function staffIn(name) { return DOC.people.filter(p => p.role === name && p.status !== 'inactive').length; }
+    function showCreate(err) {
+      bar(`<form id="create-form" class="flex items-center gap-2 flex-wrap">
+          <label for="new-role" class="text-[12px] font-semibold text-ink-900">New role</label>
+          <input id="new-role" maxlength="60" autocomplete="off" placeholder="e.g. Medical Scribe" class="w-[240px] rounded-sm border border-line bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-med-600">
+          <button type="submit" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Create Role</button>
+          <button type="button" data-bar-cancel class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold">Cancel</button>
+          <span class="text-[11.5px] text-ink-500">It starts with nothing checked. Tick what it should open.</span>
+          ${err ? `<span class="w-full text-[12px] text-risk-600">${esc(err)}</span>` : ''}</form>`);
+      $('new-role').focus();
+    }
+    function confirmBar(text, label, act) {
+      bar(`<div class="flex items-center gap-2 flex-wrap"><span class="text-[12.5px] text-ink-900">${text}</span>
+          <button type="button" data-bar-ok="${act}" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-risk-600 text-white font-semibold">${esc(label)}</button>
+          <button type="button" data-bar-cancel class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold">Cancel</button></div>`);
+    }
+    let PENDING = null;
+    $('role-bar').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = $('new-role').value.trim().replace(/\s+/g, ' ');
+      if (!name) return showCreate('Enter a name for the role.');
+      if (DOC.roles.some(r => r.name.toLowerCase() === name.toLowerCase())) return showCreate(`There's already a role called ${name}.`);
+      DOC = await S.save(d => { d.roles.push({ name, perms: Object.fromEntries(S.PERMISSION_AREAS.map(a => [a.key, 0])) }); markReviewed(d); }, 'Role created').catch(() => DOC);
+      bar(''); render();
+    });
+    $('role-bar').addEventListener('click', async (e) => {
+      if (e.target.closest('[data-bar-cancel]')) { PENDING = null; return bar(''); }
+      const ok = e.target.closest('[data-bar-ok]'); if (!ok || !PENDING) return;
+      const job = PENDING; PENDING = null; bar('');
+      if (job.act === 'delete') DOC = await S.save(d => { d.roles = d.roles.filter(x => x.name !== job.name); markReviewed(d); }, 'Role deleted').catch(() => DOC);
+      if (job.act === 'reset') DOC = await S.save(d => { d.roles = JSON.parse(JSON.stringify(S.DEFAULT_ROLES)); }, 'Reset to defaults').catch(() => DOC);
+      syncAccess(); render();
+    });
+
     $('roles-rows').addEventListener('click', async (e) => {
       const del = e.target.closest('[data-delete]');
       if (del) {
         const r = DOC.roles[Number(del.dataset.delete)];
-        if (!confirm(`Delete the ${r.name} role? Anyone activated with it keeps their staff record but loses their Althais access (Staff Portal only) until you give them another role.`)) return;
-        DOC = await S.save(d => { d.roles = d.roles.filter(x => x.name !== r.name); }, 'Role deleted').catch(() => DOC);
-        syncAccess();
-        return render();
+        if (DOC.roles.length === 1) { S.toast('Keep at least one role', 'error'); return; }
+        const n = staffIn(r.name);
+        PENDING = { act: 'delete', name: r.name };
+        confirmBar(`Delete the <b>${esc(r.name)}</b> role?` + (n ? ` ${n} staff member${n === 1 ? ' has' : 's have'} it and will keep their record, but get Staff Portal access only until you give them another role.` : ''), 'Delete Role', 'delete');
+        return;
       }
       const cell = e.target.closest('.perm-cell');
       if (!cell || !S.canEdit()) return;
@@ -127,19 +164,11 @@
       render();
     });
 
-    $('create-role-btn').addEventListener('click', async () => {
-      const name = (prompt('New role name:') || '').trim();
-      if (!name) return;
-      if (DOC.roles.some(r => r.name.toLowerCase() === name.toLowerCase())) { S.toast('That role already exists', 'error'); return; }
-      DOC = await S.save(d => { d.roles.push({ name, perms: Object.fromEntries(S.PERMISSION_AREAS.map(a => [a.key, 0])) }); }, 'Role created').catch(() => DOC);
-      render();
-    });
-
-    $('reset-btn').addEventListener('click', async () => {
-      if (!confirm('Reset every role to the default permissions? Custom roles are removed.')) return;
-      DOC = await S.save(d => { d.roles = JSON.parse(JSON.stringify(S.DEFAULT_ROLES)); }, 'Reset to defaults').catch(() => DOC);
-      syncAccess();
-      render();
+    $('create-role-btn').addEventListener('click', () => { if (S.canEdit()) showCreate(); });
+    $('reset-btn').addEventListener('click', () => {
+      if (!S.canEdit()) return;
+      PENDING = { act: 'reset' };
+      confirmBar('Reset every role to the default permissions? Custom roles are removed.', 'Reset To Defaults', 'reset');
     });
 
     S.load().then(d => { DOC = d; S.readOnlyBanner('readonly-note'); render(); })

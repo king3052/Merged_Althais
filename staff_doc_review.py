@@ -1,5 +1,5 @@
 """
-staff_doc_review.py — deciding what happens to an uploaded staff document.
+staff_doc_review.py, deciding what happens to an uploaded staff document.
 
     file checks -> classification -> quality -> fields -> identity -> document rules -> dates -> consistency
     -> duplicates -> potential issues -> external verification -> DECISION
@@ -10,7 +10,7 @@ codes and per-check results. No single confidence score decides anything.
 
     AUTO_APPROVED                  every check passed with confidence
     ACTION_REQUIRED_FROM_EMPLOYEE  something the employee can clearly fix (wrong document, blurry, expired...)
-    MANAGER_REVIEW_REQUIRED        anything uncertain, conflicting or unusual — never approved silently
+    MANAGER_REVIEW_REQUIRED        anything uncertain, conflicting or unusual, never approved silently
 
 This module has no database or network access; staff_onboarding.py gathers the context and applies the outcome.
 """
@@ -536,8 +536,8 @@ def review(ctx: ReviewContext, content_type: str, data: bytes, result: sx.Analys
             compared = True
             pn, ps = _norm_id(prev.get("identifier")), (prev.get("state") or "").upper()
             if pn and number and _norm_id(number) != pn or ps and fields.get("state") and fields["state"] != ps:
-                add("EXISTING_RECORD_MISMATCH", "manager", "", f"Differs from the verified record on file ({ps or '—'} #{prev.get('identifier') or '—'}): "
-                    f"this document shows {fields.get('state') or '—'} #{number or '—'}. It may be a new credential, a renewal, or an upload mistake.",
+                add("EXISTING_RECORD_MISMATCH", "manager", "", f"Differs from the verified record on file ({ps or '-'} #{prev.get('identifier') or '-'}): "
+                    f"this document shows {fields.get('state') or '-'} #{number or '-'}. It may be a new credential, a renewal, or an upload mistake.",
                     "EXISTING_RECORD_MATCH")
             elif exp and prev.get("expires") and parse_date(prev["expires"]) and exp < parse_date(prev["expires"]):
                 add("EXPIRATION_EARLIER_THAN_RECORD", "manager", "", f"Expires {exp.isoformat()}, earlier than the one on file ({prev['expires']}). "
@@ -549,7 +549,7 @@ def review(ctx: ReviewContext, content_type: str, data: bytes, result: sx.Analys
             if pl or pst:
                 compared = True
                 if pl and number and _norm_id(number) != pl or pst and fields.get("state") and fields["state"] != pst:
-                    add("PROFILE_MISMATCH", "manager", "", f"Differs from the license the employee entered in My Information ({pst or '—'} #{ctx.profile.get('license_number') or '—'}).",
+                    add("PROFILE_MISMATCH", "manager", "", f"Differs from the license the employee entered in My Information ({pst or '-'} #{ctx.profile.get('license_number') or '-'}).",
                         "EXISTING_RECORD_MATCH")
         if checks["EXISTING_RECORD_MATCH"] == NOT_RUN:
             checks["EXISTING_RECORD_MATCH"] = PASS if compared else NA
@@ -582,7 +582,7 @@ def review(ctx: ReviewContext, content_type: str, data: bytes, result: sx.Analys
         if ext["status"] == "VERIFIED":
             checks["EXTERNAL_VERIFICATION"] = PASS
         elif ext["status"] in ("MISMATCH", "NOT_FOUND"):
-            add("EXTERNAL_VERIFICATION_MISMATCH", "manager", "", f"External verification conflict — {ext.get('source') or 'outside source'}: {ext.get('details', '')}", "EXTERNAL_VERIFICATION")
+            add("EXTERNAL_VERIFICATION_MISMATCH", "manager", "", f"External verification conflict ({ext.get('source') or 'outside source'}): {ext.get('details', '')}", "EXTERNAL_VERIFICATION")
         elif required_ext:
             why = ext.get("details") or "it couldn't be run"
             add("EXTERNAL_VERIFICATION_UNAVAILABLE", "manager", "", f"Your clinic requires outside verification for this, and it wasn't confirmed: {why}", "EXTERNAL_VERIFICATION")

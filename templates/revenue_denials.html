@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Revenue · Denials</title>
+  <title>Althais | Revenue · Denials</title>
   <script>
     var __ALTHAIS_USER__ = {{ user_json|safe }};
     var __ALTHAIS_NS__ = (function(){
@@ -17,7 +17,7 @@
   {% if verified == '1' %}
   <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Email verified — welcome to Althais.
+    Email verified. Welcome to Althais.
   </div>
   <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
   {% endif %}
@@ -104,7 +104,7 @@
     });
 
     function ageOf(c) {
-      if (!c.ts) return '—';
+      if (!c.ts) return '-';
       var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
       if (days <= 0) return 'today';
       return days + 'd';
@@ -136,14 +136,14 @@
         tr.className = 'row-hover';
         tr.innerHTML =
           '<td class="td">' +
-            '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+            '<div class="font-semibold text-ink-900">' + esc(c.patient || '-') + '</div>' +
             '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + (c.claimId ? ' · ' + esc(c.claimId) : '') + '</div>' +
           '</td>' +
-          '<td class="td">' + esc(c.provider || '—') + '</td>' +
-          '<td class="td mono">' + esc(c.cpt || '—') + '</td>' +
-          '<td class="td mono">' + esc(c.icd || '—') + '</td>' +
+          '<td class="td">' + esc(c.provider || '-') + '</td>' +
+          '<td class="td mono">' + esc(c.cpt || '-') + '</td>' +
+          '<td class="td mono">' + esc(c.icd || '-') + '</td>' +
           '<td class="td"><span class="pill" style="background:' + ss.bg + ';color:' + ss.fg + '">' + ss.mark + ' ' + esc(status) + '</span></td>' +
-          '<td class="td">' + esc(c.payer || '—') + '</td>' +
+          '<td class="td">' + esc(c.payer || '-') + '</td>' +
           '<td class="td td-num text-right">' + fmtMoney(c.amount) + '</td>' +
           '<td class="td"><span class="num font-semibold text-ink-900">' + esc(String(conf)) + '%</span></td>' +
           '<td class="td td-num text-right text-ink-400">' + ageOf(c) + '</td>' +

@@ -51,9 +51,9 @@
               '<div class="oe-title">' + esc(it.title) + ' <span class="oe-type">' + esc(typeLabel(it)) + (it.owner === "manager" ? " · Clinic" : " · Employee") + "</span></div>" +
               '<div class="oe-controls">' +
                 '<label class="oe-check"><input type="checkbox" data-f="required" ' + (it.required !== false ? "checked" : "") + '> Required</label>' +
-                '<label class="oe-inline">Due <input type="number" data-f="dueDays" class="oe-num" value="' + (it.dueDays == null ? "" : esc(it.dueDays)) + '" placeholder="—" aria-label="Days from start date (negative = before)"> <span class="oe-hint">' + esc(dueText(it.dueDays)) + "</span></label>" +
+                '<label class="oe-inline">Due <input type="number" data-f="dueDays" class="oe-num" value="' + (it.dueDays == null ? "" : esc(it.dueDays)) + '" placeholder="-" aria-label="Days from start date (negative = before)"> <span class="oe-hint">' + esc(dueText(it.dueDays)) + "</span></label>" +
                 (opts.detailed ? (
-                  (it.owner === "manager" ? "" : '<label class="oe-inline">Remind <input type="number" min="0" data-f="reminderDaysBefore" class="oe-num" value="' + (it.reminderDaysBefore == null ? "" : esc(it.reminderDaysBefore)) + '" placeholder="—" aria-label="Days before the deadline to remind them"> days before</label>') +
+                  (it.owner === "manager" ? "" : '<label class="oe-inline">Remind <input type="number" min="0" data-f="reminderDaysBefore" class="oe-num" value="' + (it.reminderDaysBefore == null ? "" : esc(it.reminderDaysBefore)) + '" placeholder="-" aria-label="Days before the deadline to remind them"> days before</label>') +
                   '<label class="oe-inline">After <select data-f="dependsOn" class="oe-sel"><option value="">Anytime</option>' +
                     deps.map(function (o) { return '<option value="' + esc(o.key) + '"' + ((it.dependsOn || [])[0] === o.key ? " selected" : "") + ">" + esc(o.title) + "</option>"; }).join("") +
                   "</select></label>") : "") +

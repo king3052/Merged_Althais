@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Manager</title>
+  <title>Althais | Manager</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
     .fld:focus { border-color:var(--brand); }
@@ -57,11 +57,11 @@
     <section data-ca="employees">
       <div class="bg-panel border-b border-line">
         <div class="flex flex-wrap">
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Employees</div><div id="k-all" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Admins</div><div id="k-admins" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Signed In This Week</div><div id="k-week" class="text-[20px] font-semibold text-ink-900 num mt-0.5">—</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Invited, Not Signed In</div><div id="k-invited" class="text-[20px] font-semibold text-warn-600 num mt-0.5">—</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Paused</div><div id="k-paused" class="text-[20px] font-semibold text-ink-500 num mt-0.5">—</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Employees</div><div id="k-all" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Admins</div><div id="k-admins" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Signed In This Week</div><div id="k-week" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Invited, Not Signed In</div><div id="k-invited" class="text-[20px] font-semibold text-warn-600 num mt-0.5">-</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Paused</div><div id="k-paused" class="text-[20px] font-semibold text-ink-500 num mt-0.5">-</div></div>
         </div>
       </div>
       <div class="p-5">
@@ -224,7 +224,7 @@
             <div class="font-semibold text-ink-900">${esc(m.full_name || m.email)}${m.is_me ? ' <span class="text-[11px] font-normal text-ink-500">(you)</span>' : ''}</div>
             <div class="text-[11px] text-ink-500">${esc(m.email)}</div></div></div></td>
           <td class="td">${esc(ROLES[m.role] ? ROLES[m.role].name : m.role)}</td>
-          <td class="td text-ink-700">${esc(m.provider_name || '—')}</td>
+          <td class="td text-ink-700">${esc(m.provider_name || '-')}</td>
           <td class="td"><div class="flex gap-1 flex-wrap">${toolsLabel(m)}</div></td>
           <td class="td">${pill(sl, ss)}</td>
           <td class="td text-ink-500 whitespace-nowrap">${m.last_login ? esc(P.relTime(m.last_login)) : 'Never'}</td>
@@ -293,7 +293,7 @@
         $('p-pause-t').textContent = m.active ? 'Pause Access' : 'Turn Access Back On';
         $('p-pause-s').textContent = m.active ? 'They can’t sign in until you turn it back on. Nothing is deleted.' : 'They can sign in again with their current password.';
         $('p-pause').textContent = m.active ? 'Pause' : 'Turn On';
-        $('p-stats').textContent = `Joined ${m.created_at ? P.fmtDate(m.created_at.slice(0, 10)) : '—'} · ${m.login_count} sign-in${m.login_count === 1 ? '' : 's'}`;
+        $('p-stats').textContent = `Joined ${m.created_at ? P.fmtDate(m.created_at.slice(0, 10)) : '-'} · ${m.login_count} sign-in${m.login_count === 1 ? '' : 's'}`;
       }
       $('panel').classList.remove('hidden'); $('backdrop').classList.remove('hidden');
       (m ? $('p-name') : $('p-email')).focus();

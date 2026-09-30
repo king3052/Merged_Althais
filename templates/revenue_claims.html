@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Revenue · Claims</title>
+  <title>Althais | Revenue · Claims</title>
   <!-- Reads from the same localStorage keys as the EMR so CSV-imported / EMR-entered
-       claims show up here automatically — same pattern as overview_dashboard.html. -->
+       claims show up here automatically, same pattern as overview_dashboard.html. -->
   <script>
     var __ALTHAIS_USER__ = {{ user_json|safe }};
     var __ALTHAIS_NS__ = (function(){
@@ -19,7 +19,7 @@
   {% if verified == '1' %}
   <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Email verified — welcome to Althais.
+    Email verified. Welcome to Althais.
   </div>
   <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
   {% endif %}
@@ -33,7 +33,7 @@
       <div class="flex items-center justify-between px-4 py-2.5 border-b border-line bg-panel">
         <div>
           <h1 class="text-[15px] font-semibold text-ink-900">Claims</h1>
-          <p class="text-[11.5px] text-ink-500 mt-0.5">Every claim across the practice — coding, submission, and payer status in one place.</p>
+          <p class="text-[11.5px] text-ink-500 mt-0.5">Every claim across the practice: coding, submission, and payer status in one place.</p>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
           <button id="import-claims" type="button" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Import CSV</button>
@@ -114,7 +114,7 @@
         </div>
 
         <div id="claims-pagination" class="flex items-center justify-between px-4 py-2 border-t border-line text-[11.5px] text-ink-500">
-          <span id="claims-pagination-summary">—</span>
+          <span id="claims-pagination-summary">-</span>
           <div id="claims-pagination-buttons" class="flex items-center gap-1"></div>
         </div>
       </section>
@@ -123,7 +123,7 @@
   </div>
 
   <script>
-    // ── Namespace — same derivation as the EMR workspace ──
+    // ── Namespace - same derivation as the EMR workspace ──
     const _NS = __ALTHAIS_NS__ + '::';
     const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
 
@@ -140,7 +140,7 @@
     const SUITE = ((__ALTHAIS_USER__ || {}).products || ['suite']).includes('suite');
     if (!SUITE) { const oe = document.getElementById('open-emr'); if (oe) oe.style.display = 'none'; }
 
-    // ── Status pill styling — matches the EMR's 7 lifecycle states exactly ──
+    // ── Status pill styling - matches the EMR's 7 lifecycle states exactly ──
     const STATUS_STYLE = {
       'Draft':           { bg: '#eceef2', fg: '#4a505c', mark: '○' },
       'Pending Review':  { bg: '#fff0d6', fg: '#b86a00', mark: '◐' },
@@ -156,7 +156,7 @@
     fetch('/api/org/settings/insurance_prefs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null)
       .then(j => { if (j && j.data) { INS = Object.assign(INS, j.data); render(); } }).catch(() => {});
     function ageOf(c) {
-      if (!c.ts) return '—';
+      if (!c.ts) return '-';
       var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
       if (days <= 0) return 'today';
       const s = (c.status || '').toLowerCase();
@@ -178,7 +178,7 @@
       const conf = Number(c.conf || 0);
       let riskCell;
       const unscored = c.conf == null || c.conf === '';
-      if (unscored) riskCell = '<span class="text-ink-400">—</span>';
+      if (unscored) riskCell = '<span class="text-ink-400">-</span>';
       else if (conf >= 90) riskCell = '<span class="pill" style="background:#d8f5e3;color:#0c8a4f">Low</span>';
       else if (conf >= 75) riskCell = '<span class="pill" style="background:#fff0d6;color:#b86a00">Medium</span>';
       else riskCell = '<span class="pill" style="background:#ffe1e1;color:#c83838">High</span>';
@@ -190,17 +190,17 @@
       if (SUITE) tr.addEventListener('click', function() { window.location.href = '/emr#claims'; });
       tr.innerHTML =
         '<td class="td">' +
-          '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+          '<div class="font-semibold text-ink-900">' + esc(c.patient || '-') + '</div>' +
           '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + (c.claimId ? ' · ' + esc(c.claimId) : '') + '</div>' +
         '</td>' +
-        '<td class="td">' + esc(c.provider || '—') + '</td>' +
-        '<td class="td mono">' + esc(c.cpt || '—') + '</td>' +
-        '<td class="td mono">' + esc(c.icd || '—') + '</td>' +
+        '<td class="td">' + esc(c.provider || '-') + '</td>' +
+        '<td class="td mono">' + esc(c.cpt || '-') + '</td>' +
+        '<td class="td mono">' + esc(c.icd || '-') + '</td>' +
         '<td class="td"><span class="pill" style="background:' + ss.bg + ';color:' + ss.fg + '">' + ss.mark + ' ' + esc(status) + '</span></td>' +
-        '<td class="td">' + esc(c.payer || '—') + '</td>' +
+        '<td class="td">' + esc(c.payer || '-') + '</td>' +
         '<td class="td td-num text-right">' + fmtMoney(c.amount) + '</td>' +
         '<td class="td">' + riskCell + '</td>' +
-        '<td class="td">' + (unscored ? '<span class="text-ink-400">—</span>' : '<span class="num font-semibold text-ink-900">' + esc(String(conf)) + '%</span>') + '</td>' +
+        '<td class="td">' + (unscored ? '<span class="text-ink-400">-</span>' : '<span class="num font-semibold text-ink-900">' + esc(String(conf)) + '%</span>') + '</td>' +
         '<td class="td td-num text-right text-ink-400">' + ageOf(c) + '</td>';
       return tr;
     }
@@ -249,7 +249,7 @@
       }
 
       const summary = $('claims-pagination-summary');
-      summary.textContent = total ? ('Showing ' + (start + 1) + '–' + Math.min(start + PAGE_SIZE, total) + ' of ' + total) : '—';
+      summary.textContent = total ? ('Showing ' + (start + 1) + '–' + Math.min(start + PAGE_SIZE, total) + ' of ' + total) : '-';
 
       const buttons = $('claims-pagination-buttons');
       buttons.innerHTML = '';

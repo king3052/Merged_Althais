@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Schedule</title>
+  <title>Althais | Schedule</title>
   <style>
     .modal-overlay { background: rgba(15,17,22,0.45); }
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
@@ -28,7 +28,7 @@
         <div class="flex items-center rounded-sm border border-line bg-white text-[12px]">
           <button id="day-prev" type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-r border-line" aria-label="Previous Day">‹</button>
           <label class="relative px-3 py-1.5 text-ink-900 font-semibold mono cursor-pointer">
-            <span id="sch-today-label">—</span>
+            <span id="sch-today-label">-</span>
             <input id="day-pick" type="date" class="absolute inset-0 opacity-0 cursor-pointer" aria-label="Pick A Date" />
           </label>
           <button id="day-next" type="button" class="px-2.5 py-1.5 text-ink-600 hover:text-ink-900 border-l border-line" aria-label="Next Day">›</button>
@@ -149,10 +149,10 @@
         const st = norm(a.status);
         return `
         <tr class="row-hover">
-          <td class="td mono text-[12px] text-ink-900 font-semibold">${esc(a.time || '—')}</td>
-          <td class="td"><a href="/emr" class="font-semibold text-ink-900 hover:text-med-600">${esc(a.patient || '—')}</a><div class="text-[11px] text-ink-500 mono">${esc(a.mrn || '')}</div></td>
+          <td class="td mono text-[12px] text-ink-900 font-semibold">${esc(a.time || '-')}</td>
+          <td class="td"><a href="/emr" class="font-semibold text-ink-900 hover:text-med-600">${esc(a.patient || '-')}</a><div class="text-[11px] text-ink-500 mono">${esc(a.mrn || '')}</div></td>
           <td class="td text-ink-700">${esc(a.type || '')}${a.notes ? `<div class="text-[11px] text-ink-500">${esc(a.notes)}</div>` : ''}</td>
-          <td class="td text-ink-600">${esc(a.provider || '—')}</td>
+          <td class="td text-ink-600">${esc(a.provider || '-')}</td>
           <td class="td"><select class="st-sel" style="${STYLE[st] || STYLE.Scheduled}" data-status="${esc(a.id)}" aria-label="Status for ${esc(a.patient)}">${STATUSES.map(s => `<option${s === st ? ' selected' : ''}>${s}</option>`).join('')}</select></td>
           <td class="td text-right"><button type="button" class="act" data-delete="${esc(a.id)}">Delete</button></td>
         </tr>`;

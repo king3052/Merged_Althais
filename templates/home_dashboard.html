@@ -4,7 +4,7 @@
   <script src="/static/js/brand.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Althais — Home</title>
+  <title>Althais | Home</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -90,7 +90,7 @@
   {% if verified == '1' %}
   <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Email verified — welcome to Althais.
+    Email verified. Welcome to Althais.
   </div>
   <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
   {% endif %}
@@ -104,8 +104,8 @@
 
       <div class="flex items-center gap-2 text-[12.5px] whitespace-nowrap flex-shrink-0">
         <span class="text-white/60">Practice Home</span>
-        <span class="text-white/40">—</span>
-        <span id="hdr-org-name" class="font-semibold">—</span>
+        <span class="text-white/40">-</span>
+        <span id="hdr-org-name" class="font-semibold">-</span>
       </div>
 
       <div class="ml-6 relative">
@@ -144,7 +144,7 @@
         <span class="flex h-2 w-2 rounded-full bg-ok-600"></span>
         <span>Practice sync · 12s ago</span>
         <span class="mx-2 text-ink-300">|</span>
-        <span id="hdr-date" class="mono">—</span>
+        <span id="hdr-date" class="mono">-</span>
       </div>
     </div>
   </nav>
@@ -158,8 +158,8 @@
         <div class="flex items-center gap-2.5">
           <div id="sb-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px]">--</div>
           <div class="flex-1 min-w-0">
-            <div id="sb-name" class="text-[13px] font-semibold text-ink-900 truncate">—</div>
-            <div id="sb-role" class="text-[11px] text-ink-500 mono capitalize">—</div>
+            <div id="sb-name" class="text-[13px] font-semibold text-ink-900 truncate">-</div>
+            <div id="sb-role" class="text-[11px] text-ink-500 mono capitalize">-</div>
           </div>
         </div>
       </div>
@@ -210,7 +210,7 @@
         <div class="flex justify-between">
           <span>Signed in as</span>
         </div>
-        <div id="sb-email" class="text-ink-600 mono mt-0.5 truncate">—</div>
+        <div id="sb-email" class="text-ink-600 mono mt-0.5 truncate">-</div>
       </div>
     </aside>
 
@@ -461,7 +461,7 @@
       $('hdr-user-name').textContent = displayName;
     })();
 
-    // ── Data (empty until wired to real endpoints — mirrors the EMR's own
+    // ── Data (empty until wired to real endpoints - mirrors the EMR's own
     //    zero-state pattern: "No Patient" / "0 claims to show" / "No active risks") ──
     const emptyRow = (colspan, text) => `<tr><td class="td text-center text-ink-500" colspan="${colspan}" style="padding:24px 10px;">${esc(text)}</td></tr>`;
     const emptyState = (text, sub) => `
@@ -505,7 +505,7 @@
       <div class="flex items-center gap-3 px-4 py-2 row-hover">
         <div class="flex-1 min-w-0 text-[12.5px]">
           <span class="font-semibold text-ink-900">${esc(s.name)}</span>
-          <span class="text-ink-500"> — ${esc(s.type)} · ${esc(s.provider)}</span>
+          <span class="text-ink-500">· ${esc(s.type)} · ${esc(s.provider)}</span>
         </div>
         <span class="text-[11px] text-ink-400 mono flex-shrink-0">${esc(s.wait)}</span>
         <button class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">Sign</button>
@@ -516,7 +516,7 @@
     const CLAIM_PILL = {
       'Ready to submit': 'background:#d8f5e3;color:#0c8a4f',
       'Needs review':    'background:#fff0d6;color:#b86a00',
-      'Denied — appeal': 'background:#ffe1e1;color:#c83838',
+      'Denied: appeal': 'background:#ffe1e1;color:#c83838',
     };
     $('claims-rows').innerHTML = CLAIMS.length ? CLAIMS.map(c => `
       <tr class="row-hover">
@@ -552,7 +552,7 @@
     }).join('') : `<div class="text-ink-400 text-[11px]">No payments recorded yet.</div>`;
 
     // Only urgent, actionable items belong here (e.g. "2 staff have incomplete
-    // onboarding", "1 license expires in 7 days") — routine status lives on
+    // onboarding", "1 license expires in 7 days") - routine status lives on
     // the full Practice pages, not on Home. Each item links to where it's resolved.
     const STAFF_ALERTS = [];
     const TONE_TEXT = { ok: 'text-ok-600', warn: 'text-warn-600', risk: 'text-risk-600' };

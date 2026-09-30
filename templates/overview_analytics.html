@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Analytics</title>
+  <title>Althais | Analytics</title>
   <style>
     /* chart roles: swap light/dark values in one place */
     .viz-root {
@@ -145,11 +145,11 @@
       const tiles = [
         ['Billed', P.moneyShort(billed), P.plural(D.claims.length, 'claim', 'claims')],
         ['Collected', P.moneyShort(collected), P.plural(paid.length, 'payment', 'payments')],
-        ['Collection rate', billed ? pct(collected, billed) + '%' : '—', 'of billed'],
-        ['Denial rate', decided ? pct(denied, decided) + '%' : '—', decided ? `${denied} of ${decided} decided` : 'no decisions yet'],
+        ['Collection rate', billed ? pct(collected, billed) + '%' : '-', 'of billed'],
+        ['Denial rate', decided ? pct(denied, decided) + '%' : '-', decided ? `${denied} of ${decided} decided` : 'no decisions yet'],
         ['Outstanding', P.moneyShort(outstanding), 'submitted, not yet paid'],
         ['Visits', D.appts.length, P.plural(new Set(D.appts.map(a => a.mrn)).size, 'patient', 'patients')],
-        ['Avg claim', D.claims.length ? P.moneyShort(billed / D.claims.length) : '—', 'billed per claim'],
+        ['Avg claim', D.claims.length ? P.moneyShort(billed / D.claims.length) : '-', 'billed per claim'],
       ];
       $('stats').innerHTML = tiles.map(([l, v, s]) => `<div class="bg-panel border border-line rounded-sm stat"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${l}</div><div class="v num">${esc(v)}</div><div class="s">${esc(s)}</div></div>`).join('');
     }
@@ -236,7 +236,7 @@
       hbars('c-payer', payerRows, v => v + '%', ['Payer', 'Denial rate', 'Denied', 'Decided'], 'No paid or denied claims yet, so no denial rates.');
 
       const byCpt = {};
-      D.claims.forEach(c => { const k = c.cpt || '—', e = byCpt[k] || (byCpt[k] = { amt: 0, n: 0 }); e.amt += Number(c.amount) || 0; e.n++; });
+      D.claims.forEach(c => { const k = c.cpt || '-', e = byCpt[k] || (byCpt[k] = { amt: 0, n: 0 }); e.amt += Number(c.amount) || 0; e.n++; });
       const cptRows = Object.entries(byCpt).map(([k, e]) => ({ label: 'CPT ' + k, value: e.amt, tip: `${P.money(e.amt)} across ${P.plural(e.n, 'claim', 'claims')}`, extra: [e.n] })).sort((a, b) => b.value - a.value).slice(0, 8);
       hbars('c-cpt', cptRows, v => P.money(v), ['Procedure', 'Billed', 'Claims'], 'No claims in this range.');
 
@@ -258,8 +258,8 @@
         const decided = e.claims.filter(c => ['paid', 'denied', 'appealed'].includes(st(c))).length, denied = e.claims.filter(c => st(c) === 'denied' || st(c) === 'appealed').length;
         const lv = e.claims.map(c => EM[String(c.cpt || '').trim()]).filter(v => v != null);
         return `<tr class="row-hover"><td class="td font-semibold text-ink-900">${esc(p)}</td><td class="td text-right num">${e.claims.length}</td><td class="td text-right num">${P.money(sum(e.claims))}</td>
-          <td class="td text-right num">${P.money(sum(e.claims.filter(c => st(c) === 'paid')))}</td><td class="td text-right num">${decided ? pct(denied, decided) + '%' : '—'}</td>
-          <td class="td text-right num">${lv.length ? (lv.reduce((s, v) => s + v, 0) / lv.length).toFixed(1) : '—'}</td><td class="td text-right num">${e.visits}</td></tr>`;
+          <td class="td text-right num">${P.money(sum(e.claims.filter(c => st(c) === 'paid')))}</td><td class="td text-right num">${decided ? pct(denied, decided) + '%' : '-'}</td>
+          <td class="td text-right num">${lv.length ? (lv.reduce((s, v) => s + v, 0) / lv.length).toFixed(1) : '-'}</td><td class="td text-right num">${e.visits}</td></tr>`;
       }).join('') : `<tr><td colspan="7" class="td text-center text-ink-500" style="padding:24px">No claims or visits in this range.</td></tr>`;
     }
 
@@ -272,7 +272,7 @@
       const doneWeek = TASKS ? TASKS.tasks.filter(t => t.status === 'done' && t.completedAt && Date.now() - new Date(t.completedAt).getTime() < 7 * 86400000).length : 0;
       const tiles = [
         ['Active staff', active.length, `${onboarding} onboarding`, '/staff/team'],
-        ['Staff compliant', active.length ? Math.round(compliant / active.length * 100) + '%' : '—', `${compliant} of ${active.length}`, '/staff/compliance'],
+        ['Staff compliant', active.length ? Math.round(compliant / active.length * 100) + '%' : '-', `${compliant} of ${active.length}`, '/staff/compliance'],
         ['Open tasks', open.length, `${overdue} overdue`, '/overview/tasks?view=open'],
         ['Done this week', doneWeek, 'tasks completed', '/overview/tasks?view=done'],
         ['Patients', L.patients.length, 'in the EMR', '/emr/patients'],

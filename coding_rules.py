@@ -3,7 +3,7 @@ Deterministic, rule-based CPT code selection for time-based billing.
 
 Some CPT codes are billed strictly by documented minutes, with hard
 numeric thresholds set by CMS/AMA. These should NEVER be left purely to
-an LLM's judgment — an LLM can misread or approximate a number, and a
+an LLM's judgment, an LLM can misread or approximate a number, and a
 payer audit checks the literal minute count on the note. This module
 encodes those specific, official rules as plain arithmetic instead.
 
@@ -12,13 +12,13 @@ Important, deliberate exception: emergency department E/M codes
 E/M level is determined by Medical Decision Making only, precisely
 because ED time is unpredictable and often interrupted. Applying a time
 threshold to an ED visit would be *incorrect* coding, not more accurate
-coding — so this module deliberately declines to touch ED E/M codes and
+coding, so this module deliberately declines to touch ED E/M codes and
 says why, rather than silently guessing.
 
 Sources for the thresholds below: AMA CPT critical care guidelines
 (99291/99292) and the CPT 2021+ time-based E/M table for office/
 outpatient visits. These are current as of this writing but CPT/CMS
-values are revised periodically — worth re-verifying against the
+values are revised periodically, worth re-verifying against the
 current-year CPT manual on a regular cadence, not treating this file as
 permanently correct.
 """
@@ -28,7 +28,7 @@ def critical_care_codes(minutes):
     """
     99291 covers the first 30-74 minutes of critical care on a given date.
     Each additional full 30-minute block beyond the first 74 adds one unit
-    of 99292 (CMS rounds up once at least half — 15+ minutes — into the
+    of 99292 (CMS rounds up once at least half, 15+ minutes, into the
     next block). Under 30 minutes, critical care cannot be billed at all;
     the correct fallback is the appropriate standard E/M level.
 
@@ -56,14 +56,14 @@ def critical_care_codes(minutes):
             codes.append({
                 "code": "99292", "type": "CPT", "units": extra_units,
                 "description": "Critical care, each additional 30 minutes",
-                "justification": f"{minutes} total minutes documented — {extra_units} additional 30-minute increment(s) beyond the first 74 minutes.",
+                "justification": f"{minutes} total minutes documented, {extra_units} additional 30-minute increment(s) beyond the first 74 minutes.",
                 "confidence": 99, "modifier": "", "documentation_gap": "",
                 "time_verified": True,
             })
     return codes
 
 
-# CPT 2021+ time-based table for office/outpatient E/M — an alternative
+# CPT 2021+ time-based table for office/outpatient E/M - an alternative
 # basis to MDM-based leveling. Applies to office visits and urgent-care
 # encounters billed as office E/M, NOT to true emergency department visits.
 _NEW_PATIENT_TIME = [
@@ -90,7 +90,7 @@ def office_visit_time_code(minutes, is_new_patient):
 # (99205 new patient, 99215 established) *only* when the level was selected
 # by time, not MDM.
 #
-# Threshold used here — corroborated by two independent Medicare
+# Threshold used here - corroborated by two independent Medicare
 # Administrative Contractor sources (Noridian JE and JF) plus a third payer
 # guide, all stating the same number: the primary code's max time must be
 # exceeded by at least 15 full minutes before the first unit is billable,
@@ -98,7 +98,7 @@ def office_visit_time_code(minutes, is_new_patient):
 # partial credit at 8+ minutes like some other time-based codes use).
 #
 # Honest caveat: sources genuinely disagree on whether commercial-payer
-# 99417 uses this same "+15 min" threshold or a looser "+1 min" threshold —
+# 99417 uses this same "+15 min" threshold or a looser "+1 min" threshold:
 # this module uses the more conservative, better-corroborated "+15 min"
 # rule for both 99417 and G2212, and flags the discrepancy via
 # documentation_gap so a biller knows to verify the specific payer's policy
@@ -125,19 +125,19 @@ def prolonged_service_code(minutes, base_code, payer):
         "code": code, "type": "CPT", "units": extra_units,
         "description": f"Prolonged office/outpatient E/M service, each additional 15 minutes beyond {base_code}",
         "justification": f"{minutes} total minutes documented exceeds {base_code}'s {max_time}-minute maximum by at least 15 minutes ({extra_units} unit(s) of prolonged service).",
-        "confidence": 90,  # lower than the base E/M code — see module note on payer variance
+        "confidence": 90,  # lower than the base E/M code, see module note on payer variance
         "modifier": "", "time_verified": True,
         "documentation_gap": (
             "Prolonged-service billing rules vary by payer (some Medicare Advantage "
             "and Medicaid plans follow different thresholds than traditional Medicare "
-            "or commercial guidance) — verify this specific payer's current policy "
+            "or commercial guidance), verify this specific payer's current policy "
             "before submitting."
         ),
     }
 
 
 # Recognize CPT codes this module governs, so the caller can remove any
-# conflicting AI-guessed E/M code before inserting the deterministic one —
+# conflicting AI-guessed E/M code before inserting the deterministic one:
 # otherwise a biller could see two different E/M levels suggested side by
 # side with no reconciliation.
 _OFFICE_EM_CODES = {c for _, _, c in _NEW_PATIENT_TIME + _EST_PATIENT_TIME}
@@ -155,7 +155,7 @@ def resolve_time_based_codes(minutes, encounter_type="emergency", is_new_patient
       codes - a list of deterministic CPT code dicts, or None if no rule applies
       note  - a plain-English explanation when duration deliberately wasn't
               used to pick a code (e.g. below threshold, or ED visit where
-              time isn't the correct basis at all) — shown to the biller so
+              time isn't the correct basis at all), shown to the biller so
               the system's reasoning is visible, not a silent no-op.
     """
     if minutes is None or minutes <= 0:
@@ -166,14 +166,14 @@ def resolve_time_based_codes(minutes, encounter_type="emergency", is_new_patient
         if codes is None:
             return None, (
                 f"{minutes} minutes documented is below the 30-minute critical care "
-                f"threshold — bill the appropriate E/M level instead of a critical care code."
+                f"threshold, bill the appropriate E/M level instead of a critical care code."
             )
         return codes, None
 
     if encounter_type == "emergency":
         return None, (
             "Emergency department E/M levels (99281-99285) are based on Medical "
-            "Decision Making, not visit duration, per current AMA CPT guidance — "
+            "Decision Making, not visit duration, per current AMA CPT guidance: "
             "duration alone won't override the E/M level for this encounter type."
         )
 

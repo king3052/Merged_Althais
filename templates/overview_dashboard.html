@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Overview</title>
+  <title>Althais | Overview</title>
   <!-- Overview reads from the same localStorage keys as the EMR so CSV-imported
        data (patients, claims, appointments, activity) shows up here automatically. -->
   <script>
@@ -20,7 +20,7 @@
   {% if verified == '1' %}
   <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Email verified — welcome to Althais.
+    Email verified. Welcome to Althais.
   </div>
   <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
   {% endif %}
@@ -237,7 +237,7 @@
   </div>
 
   <script>
-    // ── Namespace — same derivation as the EMR workspace ──
+    // ── Namespace - same derivation as the EMR workspace ──
     // localStorage keys must match exactly what dashboard.html uses.
     const _NS = __ALTHAIS_NS__ + '::';
     const STORAGE_PATIENTS = _NS + 'althais.patients.v1';
@@ -315,9 +315,9 @@
     $('schedule-rows').innerHTML = todayAppts.length ? todayAppts.map(function(a) {
       return '<tr class="row-hover cursor-pointer" onclick="window.location.href=\'/emr/patients\'">' +
         '<td class="td mono text-ink-500">' + esc(a.time) + '</td>' +
-        '<td class="td font-semibold text-ink-900">' + esc(a.patient || a.name || '—') + '</td>' +
-        '<td class="td text-ink-600">' + esc(a.reason || '—') + '</td>' +
-        '<td class="td text-ink-600">' + esc(a.provider || '—') + '</td>' +
+        '<td class="td font-semibold text-ink-900">' + esc(a.patient || a.name || '-') + '</td>' +
+        '<td class="td text-ink-600">' + esc(a.reason || '-') + '</td>' +
+        '<td class="td text-ink-600">' + esc(a.provider || '-') + '</td>' +
         '<td class="td"><span class="pill" style="' + (STATUS_PILL[a.status] || STATUS_PILL['Upcoming']) + '">' + esc(a.status || 'Upcoming') + '</span></td>' +
       '</tr>';
     }).join('') : emptyRow(5, 'No appointments scheduled today.');
@@ -378,7 +378,7 @@
           }
         }, 300);
       }
-      showToast('Chart signed — claim ' + claimId, 'success');
+      showToast('Chart signed, claim ' + claimId, 'success');
     };
 
     $('signatures-rows').innerHTML = signatureNeeded.length ? signatureNeeded.map(function(c) {
@@ -390,12 +390,12 @@
         var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
         wait = days + (days === 1 ? ' day' : ' days');
       } else {
-        wait = '—';
+        wait = '-';
       }
       return '<div class="flex items-center gap-3 px-4 py-2 row-hover">' +
         '<div class="flex-1 min-w-0 text-[12.5px]">' +
           '<span class="font-semibold text-ink-900">' + esc(patientName) + '</span>' +
-          '<span class="text-ink-500"> — ' + esc(c.cpt || 'Note') + ' · ' + esc(c.provider || '—') + '</span>' +
+          '<span class="text-ink-500">: ' + esc(c.cpt || 'Note') + ' · ' + esc(c.provider || '-') + '</span>' +
         '</div>' +
         '<span class="text-[11px] text-ink-400 mono flex-shrink-0">' + wait + '</span>' +
         '<button class="text-[11px] font-semibold px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0" onclick="signChart(\'' + esc(c.claimId || '') + '\', this)">Sign</button>' +
@@ -406,7 +406,7 @@
     const CLAIM_PILL = {
       'Ready to submit': 'background:#d8f5e3;color:#0c8a4f',
       'Needs review':    'background:#fff0d6;color:#b86a00',
-      'Denied — appeal': 'background:#ffe1e1;color:#c83838',
+      'Denied: appeal': 'background:#ffe1e1;color:#c83838',
     };
 
     // Show non-draft, non-placeholder claims in reverse chronological order
@@ -417,7 +417,7 @@
     }).slice(0, 20);
 
     function ageOfClaim(c) {
-      if (!c.ts) return '—';
+      if (!c.ts) return '-';
       var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
       return days + 'd';
     }
@@ -425,10 +425,10 @@
     $('claims-rows').innerHTML = activeClaims.length ? activeClaims.map(function(c) {
       return '<tr class="row-hover cursor-pointer" onclick="window.location.href=\'/revenue/claims\'">' +
         '<td class="td mono text-ink-500">' + esc(c.claimId || 'CLM-???') + '</td>' +
-        '<td class="td font-semibold text-ink-900">' + esc(c.patient || c.mrn || '—') + '</td>' +
-        '<td class="td text-ink-600">' + esc(c.payer || '—') + '</td>' +
+        '<td class="td font-semibold text-ink-900">' + esc(c.patient || c.mrn || '-') + '</td>' +
+        '<td class="td text-ink-600">' + esc(c.payer || '-') + '</td>' +
         '<td class="td td-num text-right text-ink-900">$' + ((c.amount || 0).toLocaleString(undefined, {minimumFractionDigits:2})) + '</td>' +
-        '<td class="td"><span class="pill" style="' + (CLAIM_PILL[c.status] || 'background:#eceef2;color:#4a505c') + '">' + esc(c.status || '—') + '</span></td>' +
+        '<td class="td"><span class="pill" style="' + (CLAIM_PILL[c.status] || 'background:#eceef2;color:#4a505c') + '">' + esc(c.status || '-') + '</span></td>' +
         '<td class="td td-num text-right text-ink-400">' + ageOfClaim(c) + '</td>' +
       '</tr>';
     }).join('') : emptyRow(6, 'No claims to show.');
@@ -439,7 +439,7 @@
     // Suggest follow-up for denied claims
     var deniedClaims = SAVED_CLAIMS.filter(function(c) { return (c.status || '').toLowerCase().indexOf('denied') !== -1; });
     if (deniedClaims.length > 0) {
-      COPILOT.push({ text: deniedClaims.length + ' claim' + (deniedClaims.length > 1 ? 's' : '') + ' denied — review and file appeal.', href: '/revenue/claims', action: 'Open Claims' });
+      COPILOT.push({ text: deniedClaims.length + ' claim' + (deniedClaims.length > 1 ? 's' : '') + ' denied. Review and file an appeal.', href: '/revenue/claims', action: 'Open Claims' });
     }
 
     // Suggest review for needs-review claims
@@ -449,7 +449,7 @@
     }
 
     // Suggest patients without coverage
-    var noCoverage = PATIENTS.filter(function(p) { return !p.insPrimary || p.insPrimary === '—'; });
+    var noCoverage = PATIENTS.filter(function(p) { return !p.insPrimary || /^[\u2014-]$/.test(p.insPrimary); });
     if (noCoverage.length > 0) {
       COPILOT.push({ text: noCoverage.length + ' patient' + (noCoverage.length > 1 ? 's' : '') + ' missing insurance information.', href: '/emr', action: 'Open EMR' });
     }
@@ -561,8 +561,8 @@
 
     $('activity-list').innerHTML = recentActivity.length ? recentActivity.map(function(a) {
       return '<li class="px-3 py-2">' +
-        '<div class="text-ink-700 leading-snug">' + esc(a.text || a.action || '—') + '</div>' +
-        '<div class="text-ink-400 text-[10.5px] mt-0.5">' + esc(a.time || a.ts || '—') + '</div>' +
+        '<div class="text-ink-700 leading-snug">' + esc(a.text || a.action || '-') + '</div>' +
+        '<div class="text-ink-400 text-[10.5px] mt-0.5">' + esc(a.time || a.ts || '-') + '</div>' +
       '</li>';
     }).join('') : '<li class="px-3 py-2 text-[12px] text-ink-500">No recent activity. Actions on patients and claims will appear here as they happen.</li>';
 

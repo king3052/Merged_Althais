@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Revenue · Coding</title>
+  <title>Althais | Revenue · Coding</title>
   <script>
     var __ALTHAIS_USER__ = {{ user_json|safe }};
     var __ALTHAIS_NS__ = (function(){
@@ -17,7 +17,7 @@
   {% if verified == '1' %}
   <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Email verified — welcome to Althais.
+    Email verified. Welcome to Althais.
   </div>
   <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
   {% endif %}
@@ -28,7 +28,7 @@
     <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
       <div>
         <h1 class="text-[18px] font-semibold text-ink-900">Coding</h1>
-        <p class="text-[12px] text-ink-500 mt-0.5">AI-assisted CPT/ICD-10 coding queue — claims that need codes assigned or a second look.</p>
+        <p class="text-[12px] text-ink-500 mt-0.5">AI-assisted CPT/ICD-10 coding queue: claims that need codes assigned or a second look.</p>
       </div>
       <a href="/emr#claims" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700 flex-shrink-0">
         <span class="inline-flex items-center gap-1.5">Code in EMR
@@ -105,7 +105,7 @@
       try { const raw = localStorage.getItem(key); if (!raw) return fallback; const v = JSON.parse(raw); return v == null ? fallback : v; } catch (e) { return fallback; }
     }
     function ageOf(c) {
-      if (!c.ts) return '—';
+      if (!c.ts) return '-';
       var days = Math.floor((Date.now() - new Date(c.ts).getTime()) / 86400000);
       if (days <= 0) return 'today';
       return days + 'd';
@@ -163,18 +163,18 @@
         const ss = STATUS_STYLE[status] || STATUS_STYLE['Draft'];
         const conf = Number(c.conf || 0);
         const missing = isMissing(c);
-        const confCell = missing ? '<span class="text-ink-400">—</span>' : '<span class="num font-semibold ' + (conf < 75 ? 'text-warn-600' : 'text-ink-900') + '">' + conf + '%</span>';
+        const confCell = missing ? '<span class="text-ink-400">-</span>' : '<span class="num font-semibold ' + (conf < 75 ? 'text-warn-600' : 'text-ink-900') + '">' + conf + '%</span>';
 
         const tr = document.createElement('tr');
         tr.className = 'row-hover';
         tr.innerHTML =
           '<td class="td">' +
-            '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+            '<div class="font-semibold text-ink-900">' + esc(c.patient || '-') + '</div>' +
             '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + (c.claimId ? ' · ' + esc(c.claimId) : '') + '</div>' +
           '</td>' +
-          '<td class="td">' + esc(c.provider || '—') + '</td>' +
-          '<td class="td mono">' + (missing && !c.cpt ? '<span class="text-risk-600 font-semibold">missing</span>' : esc(c.cpt || '—')) + '</td>' +
-          '<td class="td mono">' + (missing && !c.icd ? '<span class="text-risk-600 font-semibold">missing</span>' : esc(c.icd || '—')) + '</td>' +
+          '<td class="td">' + esc(c.provider || '-') + '</td>' +
+          '<td class="td mono">' + (missing && !c.cpt ? '<span class="text-risk-600 font-semibold">missing</span>' : esc(c.cpt || '-')) + '</td>' +
+          '<td class="td mono">' + (missing && !c.icd ? '<span class="text-risk-600 font-semibold">missing</span>' : esc(c.icd || '-')) + '</td>' +
           '<td class="td"><span class="pill" style="background:' + ss.bg + ';color:' + ss.fg + '">' + ss.mark + ' ' + esc(status) + '</span></td>' +
           '<td class="td">' + confCell + '</td>' +
           '<td class="td td-num text-right text-ink-400">' + ageOf(c) + '</td>' +

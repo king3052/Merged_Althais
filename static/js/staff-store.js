@@ -110,9 +110,9 @@
     return isNaN(t) ? null : Math.round((t - n) / 86400000);
   }
   function fmtDate(iso) {
-    if (!iso) return "—";
+    if (!iso) return "-";
     var d = new Date(String(iso).length <= 10 ? iso + "T00:00:00" : iso);
-    return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+    return isNaN(d.getTime()) ? "-" : d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
   }
   function initials(name) { return String(name || "").split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join("").toUpperCase() || "?"; }
   function currentUserName() { var u = window.__ALTHAIS_USER__ || {}; return u.full_name || u.email || "Admin"; }

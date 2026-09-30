@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Tasks</title>
+  <title>Althais | Tasks</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
     .fld:focus { border-color:var(--brand); }
@@ -258,7 +258,7 @@
       $('wl-done-count').textContent = `(${doneToday.length})`;
       $('wl-done-list').innerHTML = doneToday.map(i => `
         <div class="wl-row"><div class="flex-1 min-w-0"><div class="text-[12.5px] text-ink-500 line-through">${esc(i.title)}</div>
-        <div class="text-[11px] text-ink-400">Done by ${esc(i.doneBy || '—')} · ${esc(P.relTime(i.doneAt))}</div></div>
+        <div class="text-[11px] text-ink-400">Done by ${esc(i.doneBy || '-')} · ${esc(P.relTime(i.doneAt))}</div></div>
         <button type="button" class="text-[12px] font-semibold text-med-600" data-undo="${esc(i.id)}">Undo</button></div>`).join('');
     }
     function wlRow(i) {

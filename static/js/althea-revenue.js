@@ -82,8 +82,8 @@
   function realClaims(ctx) { return (ctx.claims || []).filter(function (c) { return c && !c.isPlaceholder; }); }
   function link(href, label) { return '<div class="alt-rev-link"><a href="' + href + '">' + esc(label) + " →</a></div>"; }
   function claimRow(c, extra) {
-    return '<div class="alt-rev-row"><b>' + esc(c.patient || "—") + '</b> <span class="mono alt-rev-muted">' + esc(c.claimId || "") + "</span>" +
-      '<div class="alt-rev-muted">' + esc(c.status || "—") + " · " + esc(c.payer || "—") + " · " + esc(c.cpt || "—") + " · <b>" + money(c.amount) + "</b>" + (extra ? " · " + extra : "") + "</div></div>";
+    return '<div class="alt-rev-row"><b>' + esc(c.patient || "-") + '</b> <span class="mono alt-rev-muted">' + esc(c.claimId || "") + "</span>" +
+      '<div class="alt-rev-muted">' + esc(c.status || "-") + " · " + esc(c.payer || "-") + " · " + esc(c.cpt || "-") + " · <b>" + money(c.amount) + "</b>" + (extra ? " · " + extra : "") + "</div></div>";
   }
 
   /* ---------- find_claims: "show me denied Aetna claims", "claims for John Smith", "find claim CL-2026-003" ---------- */
@@ -164,7 +164,7 @@
   function payerStats(claims) {
     var by = {};
     claims.forEach(function (c) {
-      var p = c.payer || "—", s = lc(c.status), amt = Number(c.amount) || 0;
+      var p = c.payer || "-", s = lc(c.status), amt = Number(c.amount) || 0;
       var e = by[p] || (by[p] = { name: p, total: 0, paid: 0, denied: 0, billed: 0, collected: 0 });
       e.total++; e.billed += amt;
       if (s === "paid") { e.paid++; e.collected += amt; }
@@ -201,7 +201,7 @@
           ? "For " + params.query + ": " + myRules[0].rule + (myRules.length > 1 ? " Plus " + plural(myRules.length - 1, "more rule", "more rules") + "." : "")
           : plural(myRules.length, "payer rule", "payer rules") + " on file" + (high ? ", " + high + " high impact" : "") + ".";
         html += '<div class="alt-rev-sub">Payer rules' + (params.query ? " · " + esc(params.query) : "") + "</div>" +
-          myRules.slice(0, 4).map(function (r) { return '<div class="alt-rev-row"><span class="mono">' + esc(r.cpt || "—") + "</span> " + esc(r.rule || "") + ' <span class="alt-rev-muted">(' + esc(r.impact || "") + ")</span></div>"; }).join("");
+          myRules.slice(0, 4).map(function (r) { return '<div class="alt-rev-row"><span class="mono">' + esc(r.cpt || "-") + "</span> " + esc(r.rule || "") + ' <span class="alt-rev-muted">(' + esc(r.impact || "") + ")</span></div>"; }).join("");
       } else if (params.query) {
         spoken += "No rule on file for " + params.query + ". ";
       }

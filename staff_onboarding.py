@@ -1,8 +1,8 @@
 """
-staff_onboarding.py — Staff onboarding: invitations, the employee Staff Portal, and the workflow between them.
+staff_onboarding.py: Staff onboarding: invitations, the employee Staff Portal, and the workflow between them.
 
 One staff record, two views of it. Every person lives in the clinic's staff document (org_settings, category
-"staff" — the same record Team, Credentials, Training and Compliance read through static/js/staff-store.js).
+"staff", the same record Team, Credentials, Training and Compliance read through static/js/staff-store.js).
 Onboarding adds to that record; it never keeps a second copy:
 
     person = { id, name, email, role, location, start, employment, supervisor,
@@ -191,7 +191,7 @@ class StaffFormFile(Base):
 
 class StaffDocumentReview(Base):
     """One row per automated review of a document: what was detected and extracted, every check's result, the issues,
-    the decision and its reason codes. Machine-readable only — no model reasoning is stored."""
+    the decision and its reason codes. Machine-readable only, no model reasoning is stored."""
     __tablename__ = "staff_document_reviews"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     org_key: Mapped[str] = mapped_column(String(255), index=True)
@@ -662,7 +662,7 @@ def next_action(p: dict, invite: dict) -> str:
     if lc == "DRAFT":
         return "Send invite"
     if lc == "INVITED":
-        return "Invite expired — resend" if invite.get("state") == "expired" else "Waiting for invite to be accepted"
+        return "Invite expired. Resend it" if invite.get("state") == "expired" else "Waiting for invite to be accepted"
     if lc in ("SUSPENDED", "OFFBOARDED"):
         return LIFECYCLE_LABELS[lc]
     review = [t for t in p["requirements"] if t.get("status") == "NEEDS_REVIEW"]
@@ -1049,7 +1049,7 @@ def manager_ctx(user: User, db: Session):
 
 
 def portal_ctx(user: User, db: Session):
-    """The signed-in employee's own staff record in the clinic they're signed in to — never an id from the request."""
+    """The signed-in employee's own staff record in the clinic they're signed in to, never an id from the request."""
     org_key = _doc_org_key(user)
     m = membership(db, user.id, org_key)
     if not m or not m.staff_person_id:
@@ -1095,7 +1095,7 @@ def _warn_days(db: Session, org_key: str) -> int:
 
 
 def attention_items(db: Session, org_key: str, doc: dict, invites: dict) -> list:
-    """Exceptions a manager should act on, most urgent first — not a list of everything that's fine."""
+    """Exceptions a manager should act on, most urgent first, not a list of everything that's fine."""
     items = []
     docs = db.scalars(select(StaffDocument).where(StaffDocument.org_key == org_key, StaffDocument.status == "NEEDS_REVIEW",
                                                   StaffDocument.superseded == 0)).all()
@@ -1118,7 +1118,7 @@ def attention_items(db: Session, org_key: str, doc: dict, invites: dict) -> list
                           "text": "Professional information awaiting confirmation"})
         if lc == "PENDING_REVIEW" and not any(t.get("status") == "NEEDS_REVIEW" for t in p["requirements"]):
             items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 1, "action": "review_onboarding", "ref": "",
-                          "text": "Employee requirements complete — ready for your review"})
+                          "text": "Employee requirements complete and ready for your review"})
         if lc == "INVITED" and invites.get(p["id"], {}).get("state") == "expired":
             items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 2, "action": "resend_invite", "ref": "",
                           "text": "Invitation expired"})
@@ -1491,7 +1491,7 @@ def approve_document(db: Session, org_key: str, doc: dict, p: dict, d: StaffDocu
                                                       StaffDocument.requirement_key == d.requirement_key, StaffDocument.id != d.id)):
         old.superseded = 1   # a renewal replaces the earlier verified copy
     how = "automatically verified by Althais" if auto else "verified"
-    extra = f" — {note}" if note else ""
+    extra = f": {note}" if note else ""
     if not t:
         audit(db, org_key, actor, "document_auto_approved" if auto else "document_verified", p, "document", d.id, f"{title} {how}{extra}")
         return
@@ -1532,7 +1532,7 @@ def send_back_document(db: Session, org_key: str, p: dict, d: StaffDocument, rea
 
 @router.post("/api/staff/onboarding/documents/{doc_id}/review")
 async def review_document(doc_id: int, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    """approve (optionally with corrected details and a note), reject, or request_correction (a new document) —
+    """approve (optionally with corrected details and a note), reject, or request_correction (a new document):
     the last two need a reason, which the employee sees."""
     org_key, row, doc = manager_ctx(user, db)
     d = db.scalar(select(StaffDocument).where(StaffDocument.id == doc_id, StaffDocument.org_key == org_key))
@@ -1645,7 +1645,7 @@ async def review_info(pid: str, request: Request, user: User = Depends(require_u
 @router.post("/api/staff/onboarding/people/{pid}/tasks/{key}")
 async def manager_task(pid: str, key: str, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
     """complete / reopen a task. Managers can complete their own tasks, or mark any task done after checking it
-    themselves (e.g. a paper form) — both are audited."""
+    themselves (e.g. a paper form), both are audited."""
     org_key, row, doc, p = _manager_person(user, db, pid)
     body = await request.json()
     t = _find(p["requirements"], key)
@@ -1659,7 +1659,7 @@ async def manager_task(pid: str, key: str, request: Request, user: User = Depend
         if t.get("type") == "training":
             r = training_record(doc, p, t)
             r["completed"] = r.get("completed") or _today().isoformat()
-        audit(db, org_key, user, "task_completed", p, "task", key, f"{t['title']} marked complete" + (f" — {note}" if note else ""))
+        audit(db, org_key, user, "task_completed", p, "task", key, f"{t['title']} marked complete" + (f": {note}" if note else ""))
     elif body.get("action") == "reopen":
         set_task(p, key, "WAITING_ON_MANAGER" if t.get("owner") == "manager" else "WAITING_ON_EMPLOYEE", note=note or None)
         audit(db, org_key, user, "task_reopened", p, "task", key, f"{t['title']} reopened" + (f": {note}" if note else ""))
@@ -2244,7 +2244,7 @@ def portal_me(user: User = Depends(require_user), db: Session = Depends(get_db))
 
 
 def _portal_summary(db: Session, org_key: str, doc: dict, p: dict) -> dict:
-    """What the employee should do next, and where they stand — onboarding or long after it."""
+    """What the employee should do next, and where they stand, onboarding or long after it."""
     import staff_lifecycle
     today = _today()
     renewals = staff_lifecycle.renewal_items(doc, p, today)

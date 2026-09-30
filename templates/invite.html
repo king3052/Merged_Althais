@@ -78,7 +78,7 @@
         info = j;
         $("title").innerHTML = 'You’re invited to join<br /><span class="em">' + esc(j.clinic) + '.</span>';
         $("sub").textContent = (j.invitedBy ? j.invitedBy + " invited you" : "You’ve been invited") + " to complete your onboarding on Althais.";
-        $("details").innerHTML = "<dt>Clinic</dt><dd>" + esc(j.clinic) + "</dd><dt>Role</dt><dd>" + esc(j.role || "—") + "</dd>"
+        $("details").innerHTML = "<dt>Clinic</dt><dd>" + esc(j.clinic) + "</dd><dt>Role</dt><dd>" + esc(j.role || "-") + "</dd>"
           + (j.start ? "<dt>Start date</dt><dd>" + esc(fmt(j.start)) + "</dd>" : "") + "<dt>Email</dt><dd>" + esc(j.email) + "</dd>";
         $("details").hidden = false;
         if (j.signedInAs && j.signedInAs.toLowerCase() !== j.email.toLowerCase()) {

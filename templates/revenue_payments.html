@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Revenue · Payments</title>
+  <title>Althais | Revenue · Payments</title>
   <script>
     var __ALTHAIS_USER__ = {{ user_json|safe }};
     var __ALTHAIS_NS__ = (function(){
@@ -17,7 +17,7 @@
   {% if verified == '1' %}
   <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Email verified — welcome to Althais.
+    Email verified. Welcome to Althais.
   </div>
   <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
   {% endif %}
@@ -96,9 +96,9 @@
       return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     function fmtDate(ts) {
-      if (!ts) return '—';
+      if (!ts) return '-';
       const d = new Date(ts);
-      if (isNaN(d.getTime())) return '—';
+      if (isNaN(d.getTime())) return '-';
       return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
     }
 
@@ -150,12 +150,12 @@
       tbody.innerHTML = sorted.map(function(c) {
         return '<tr class="row-hover">' +
           '<td class="td">' +
-            '<div class="font-semibold text-ink-900">' + esc(c.patient || '—') + '</div>' +
+            '<div class="font-semibold text-ink-900">' + esc(c.patient || '-') + '</div>' +
             '<div class="text-[11px] text-ink-500 mono">' + esc(c.mrn || '') + '</div>' +
           '</td>' +
-          '<td class="td">' + esc(c.payer || '—') + '</td>' +
-          '<td class="td mono">' + esc(c.claimId || '—') + '</td>' +
-          '<td class="td mono">' + esc(c.cpt || '—') + '</td>' +
+          '<td class="td">' + esc(c.payer || '-') + '</td>' +
+          '<td class="td mono">' + esc(c.claimId || '-') + '</td>' +
+          '<td class="td mono">' + esc(c.cpt || '-') + '</td>' +
           '<td class="td td-num text-right font-semibold text-ok-600">' + fmtMoney(c.amount) + '</td>' +
           '<td class="td td-num text-right text-ink-500">' + fmtDate(c.ts) + '</td>' +
         '</tr>';

@@ -1,9 +1,9 @@
 """
-auth.py — Self-hosted authentication for Althais.
+auth.py: Self-hosted authentication for Althais.
 
 Provides:
   • A User model (SQLAlchemy) with email + hashed password + organization.
-  • Password hashing (bcrypt) — raw passwords are never stored.
+  • Password hashing (bcrypt), raw passwords are never stored.
   • Session handling via a signed JWT kept in an HttpOnly cookie.
   • Two dependencies for protecting routes:
         current_user  -> returns the User or None   (use for HTML pages)
@@ -39,7 +39,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./althais.db")
 # URL in either of those forms makes SQLAlchemy try to import a driver
 # that was never installed and the app fails at startup before it can even
 # serve an error page. Normalize to the psycopg2 driver we actually have,
-# no matter which form the URL arrives in — this is a no-op for SQLite.
+# no matter which form the URL arrives in - this is a no-op for SQLite.
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgres://"):]
 elif DATABASE_URL.startswith("postgresql+psycopg://"):
@@ -48,7 +48,7 @@ elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql://"):]
 
 # Secret used to sign session tokens. MUST be set to a long random value in
-# production — if it leaks or changes, all sessions are invalidated.
+# production - if it leaks or changes, all sessions are invalidated.
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-insecure-change-me")
 
 COOKIE_NAME = "althais_session"
@@ -81,10 +81,10 @@ class User(Base):
     # viewer  = read-only access to patients and claim status
     role: Mapped[str] = mapped_column(String(32), default="admin")
     # Links this login to the provider identity used throughout appointments/
-    # claims data (e.g. "Dr. R. Patel") — without this, "what's my schedule"
+    # claims data (e.g. "Dr. R. Patel") - without this, "what's my schedule"
     # has no way to mean anything more specific than "everyone's schedule".
     # Blank for accounts that aren't a specific provider (admins, office
-    # managers) — Althea falls back to unfiltered results when this is empty.
+    # managers) - Althea falls back to unfiltered results when this is empty.
     provider_name: Mapped[str] = mapped_column(String(255), default="")
     # Set to 1 after the user completes the first-login onboarding screen
     # (sets their display name and provider identity). Used to redirect
@@ -143,7 +143,7 @@ def _org_namespace(user) -> str:
 
 
 class OrgPatient(Base):
-    """Server-side patient records scoped to an org — shared by web + desktop clients.
+    """Server-side patient records scoped to an org, shared by web + desktop clients.
     Core columns (mrn/name/dob/sex/payer/provider) support simple lookups and
     the plain-CSV import path; `data` stores the full rich patient object the
     dashboard actually works with (insurance meta, allergies, problems, balance,
@@ -169,7 +169,7 @@ class OrgPatient(Base):
 
 
 class OrgClaim(Base):
-    """Server-side claims scoped to an org — shared by web + desktop clients."""
+    """Server-side claims scoped to an org, shared by web + desktop clients."""
     __tablename__ = "org_claims"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     org_key: Mapped[str] = mapped_column(String(255), index=True)
@@ -195,7 +195,7 @@ class OrgSettings(Base):
     Each category (e.g. 'ai', 'billing', 'notifications', 'practice',
     'security', 'appearance') stores its whole settings object as a JSON
     blob in `data`. This keeps every settings tab on one flexible schema
-    instead of needing a new table per tab — new toggles/fields just add
+    instead of needing a new table per tab, new toggles/fields just add
     new keys to the JSON, no migration needed.
     """
     __tablename__ = "org_settings"
@@ -212,7 +212,7 @@ class OrgSettings(Base):
 
 class AdminAuditLog(Base):
     """
-    A record of consequential actions taken from the Althais admin console —
+    A record of consequential actions taken from the Althais admin console:
     changing a clinic's plan, toggling Althea/Manager, deleting an account,
     changing admin console settings. Nothing here governs behavior; it's
     purely a record so "who changed X and when" has an answer, since this
@@ -231,7 +231,7 @@ class AdminAuditLog(Base):
 
 Base.metadata.create_all(engine)
 
-# create_all() only creates tables that don't exist yet — it does NOT add
+# create_all() only creates tables that don't exist yet - it does NOT add
 # new columns to a table that's already there. Since `users` already exists
 # on any already-deployed database, provider_name needs an explicit ALTER
 # TABLE to actually show up. Wrapped in try/except and safe to run every
@@ -241,12 +241,12 @@ try:
         _conn.execute(text("ALTER TABLE users ADD COLUMN provider_name VARCHAR(255) DEFAULT ''"))
         _conn.commit()
 except Exception:
-    pass  # column already exists — this is expected on every run after the first
+    pass  # column already exists, this is expected on every run after the first
 
 try:
     with engine.connect() as _conn:
         _conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_complete INTEGER DEFAULT 0"))
-        # Existing users who already have a session are considered complete —
+        # Existing users who already have a session are considered complete:
         # only newly invited users (created after this migration) should see
         # the onboarding screen. Mark everyone currently in the DB as done.
         _conn.execute(text("UPDATE users SET onboarding_complete = 1"))
@@ -265,7 +265,7 @@ for _ddl in ("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1", "ALTER TAB
         pass  # column already exists
 
 # org_patients existed before the `data`/`updated_at` columns were added for
-# full-object sync (allergies, insurance meta, problems, etc.) — same
+# full-object sync (allergies, insurance meta, problems, etc.) - same
 # safe-ALTER pattern as above, harmless once already applied.
 try:
     with engine.connect() as _conn:
@@ -343,7 +343,7 @@ def _set_session_cookie(resp: JSONResponse, user_id: int) -> None:
 #  normal login already uses (COOKIE_NAME, decode_token, current_user,
 #  require_user, require_biller, ...) so impersonation needs ZERO changes
 #  to any of the many routes and dependencies that already check who's
-#  logged in — an impersonation session just *is* a normal, valid session
+#  logged in - an impersonation session just *is* a normal, valid session
 #  for the target user, with two differences: it expires in minutes
 #  instead of hours (enforced by the JWT's own `exp` claim, not just the
 #  cookie's max_age, so it can't accidentally outlive its window), and it
@@ -364,7 +364,7 @@ def create_impersonation_token(user_id: int, admin_username: str, minutes: int =
 
 def _set_impersonation_cookie(resp, user_id: int, admin_username: str, minutes: int = IMPERSONATION_MINUTES) -> None:
     resp.set_cookie(
-        key=COOKIE_NAME,   # same cookie the app already reads — see design note above
+        key=COOKIE_NAME,   # same cookie the app already reads, see design note above
         value=create_impersonation_token(user_id, admin_username, minutes),
         httponly=True, samesite="lax", secure=COOKIE_SECURE,
         max_age=minutes * 60,
@@ -374,7 +374,7 @@ def _set_impersonation_cookie(resp, user_id: int, admin_username: str, minutes: 
 
 def impersonation_info(request: Request):
     """
-    Jinja global (registered on the template environment in main.py) —
+    Jinja global (registered on the template environment in main.py):
     returns {"by": admin_username, "expires_at": iso string} if the
     current session cookie is an impersonation session, else None. Used
     to show a persistent, unmissable banner on every page while active;
@@ -458,7 +458,7 @@ FROM_EMAIL = "noreply@app.althais.com"
 def send_email(to: str, subject: str, html: str) -> bool:
     """Send an email via Resend. Returns True on success."""
     if not RESEND_API_KEY:
-        print(f"[EMAIL] No RESEND_API_KEY set — would send to {to}: {subject}")
+        print(f"[EMAIL] No RESEND_API_KEY set, would send to {to}: {subject}")
         return False
     try:
         import requests as _requests
@@ -653,7 +653,7 @@ def set_provider_name(
     Links this login to the provider identity used throughout appointments/
     claims data (e.g. "Dr. R. Patel"), so Althea's "what's my schedule" can
     actually mean something specific instead of showing everyone's. Blank
-    is valid — clears the link for accounts that aren't a specific provider.
+    is valid, clears the link for accounts that aren't a specific provider.
     """
     user.provider_name = (provider_name or "").strip()
     db.commit()
@@ -789,7 +789,7 @@ def invite_user(
     app_url = APP_URL
     send_email(
         email,
-        f"You've been invited to Althais — {user.organization}",
+        f"You've been invited to join {user.organization} on Althais",
         _email_html(
             f"You've been invited to join {user.organization}",
             f"{user.full_name or user.email} has added you to <strong>{user.organization}</strong> on Althais as a <strong>{role}</strong>.<br><br>"
@@ -826,7 +826,7 @@ def remove_team_member(
 
 # ──────────────────────────────────────────────────────────────────────────
 #  Manager (/manager): the clinic's own admins manage their employees'
-#  Althais logins — invite, role, provider name, which tools, pause, reset
+#  Althais logins - invite, role, provider name, which tools, pause, reset
 #  password, remove. A clinic always keeps at least one active admin.
 # ──────────────────────────────────────────────────────────────────────────
 ROLE_LABELS = {"admin": "Admin", "biller": "Biller", "provider": "Provider", "viewer": "Viewer"}
@@ -868,7 +868,7 @@ def _temp_password_email(to_user: User, by: User, temp: str, invite: bool) -> bo
     clinic = by.organization or "your clinic"
     return send_email(
         to_user.email,
-        f"You've been invited to Althais — {clinic}" if invite else "Your Althais password was reset",
+        f"You've been invited to join {clinic} on Althais" if invite else "Your Althais password was reset",
         _email_html(
             f"You've been invited to join {clinic}" if invite else "Your password was reset",
             (f"{by.full_name or by.email} added you to <strong>{clinic}</strong> on Althais as a <strong>{ROLE_LABELS.get(to_user.role, to_user.role)}</strong>.<br><br>"
@@ -985,7 +985,7 @@ def clinic_remove_member(member_id: int, user: User = Depends(require_user), db:
 
 
 # ──────────────────────────────────────────────────────────────────────────
-#  Org settings — generic per-category JSON storage shared across the team.
+#  Org settings - generic per-category JSON storage shared across the team.
 #  Powers every toggle/threshold/table in the Settings tabs (AI Automation,
 #  Billing & Claims, Notifications, Security, Appearance, etc.) so changes
 #  persist server-side and sync across every teammate's login, not just the
@@ -1039,7 +1039,7 @@ async def save_org_settings(
     db: Session = Depends(get_db),
 ):
     """Accepts a raw JSON body and stores it as this org's settings for
-    the given category. Any role can save — admins-only writes (like fee
+    the given category. Any role can save, admins-only writes (like fee
     schedule or scrubber rules) are enforced by the frontend hiding the
     controls from non-admins; this endpoint just persists what's sent."""
     _settings_access(user, db, category, write=True)
@@ -1064,7 +1064,7 @@ async def save_org_settings(
 
 
 # ──────────────────────────────────────────────────────────────────────────
-#  Shared workspace documents — one JSON document per organization per kind,
+#  Shared workspace documents - one JSON document per organization per kind,
 #  stored in org_settings under the kind's category:
 #    /api/staff  team members, onboarding, credentials, training, roles and
 #                clinic setup (static/js/staff-store.js). Admins only can edit.
@@ -1116,7 +1116,7 @@ def _can_edit_doc(user: User, admin_only: bool) -> bool:
 # ──────────────────────────────────────────────────────────────────────────
 PRODUCTS = ("suite", "scribe", "coding", "insurance", "staff")
 ENTITLEMENTS_CATEGORY = "entitlements"
-BILLING_INFO_CATEGORY = "billing_info"   # admin-entered contract value per org — separate from entitlements
+BILLING_INFO_CATEGORY = "billing_info"   # admin-entered contract value per org, separate from entitlements
 
 
 # Pages and features a clinic's manager can switch off for one person: key -> (label, the tool it belongs to, pages).
@@ -1278,7 +1278,7 @@ _register_doc_routes("/api/branding", "branding", admin_only=True, denied_messag
 def forgot_password(email: str = Form(...), db: Session = Depends(get_db)):
     email = (email or "").strip().lower()
     user = db.scalar(select(User).where(User.email == email))
-    # Always return success — don't leak whether the email exists
+    # Always return success - don't leak whether the email exists
     if user:
         # Invalidate any existing unused tokens
         old = db.scalars(select(PasswordResetToken).where(
@@ -1400,7 +1400,7 @@ def resend_verification(user: User = Depends(require_user), db: Session = Depend
     return JSONResponse({"ok": True})
 
 # ──────────────────────────────────────────────────────────────────────────
-#  Admin authentication — completely separate from user sessions.
+#  Admin authentication - completely separate from user sessions.
 #  Admin credentials live in environment variables (not the database),
 #  so there's no user account to compromise.
 # ──────────────────────────────────────────────────────────────────────────
@@ -1414,7 +1414,7 @@ def log_admin_action(db: Session, action: str, target: str = "", detail: str = "
 
     Note: the admin console currently has a single shared login
     (ADMIN_USERNAME from the environment), not per-person accounts, so
-    every entry is attributed to that shared identity — this answers
+    every entry is attributed to that shared identity, this answers
     "what changed and when," not yet "which of the founders did it."
     Worth splitting into separate admin logins later if that distinction
     starts to matter.
@@ -1484,7 +1484,7 @@ def admin_logout():
 @router.post("/admin/impersonate/{user_id}")
 def admin_impersonate(user_id: int, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     """
-    Start a time-limited "View As" session for one clinic member — for
+    Start a time-limited "View As" session for one clinic member, for
     support debugging, so a founder can see exactly what that person sees
     without needing their password. Sets a real, ordinary session cookie
     for that user (so every existing page and permission check behaves
@@ -1497,7 +1497,7 @@ def admin_impersonate(user_id: int, db: Session = Depends(get_db), _: bool = Dep
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="User not found")
     if not bool(getattr(user, "active", 1)):
-        return JSONResponse({"error": "This account is paused — reactivate it first if you need to view as this person."}, status_code=400)
+        return JSONResponse({"error": "This account is paused. Reactivate it first if you need to view as this person."}, status_code=400)
     log_admin_action(db, "impersonation_started", target=user.email,
                       detail=f"Viewing as {user.email} ({user.organization or 'no organization'}) for {IMPERSONATION_MINUTES} min")
     resp = JSONResponse({"ok": True, "redirect": "/"})
@@ -1508,11 +1508,11 @@ def admin_impersonate(user_id: int, db: Session = Depends(get_db), _: bool = Dep
 @router.post("/admin/end-impersonation")
 def admin_end_impersonation(request: Request, db: Session = Depends(get_db)):
     """
-    End a "View As" session. No admin check here on purpose — if you're
+    End a "View As" session. No admin check here on purpose, if you're
     impersonating, you're not carrying the admin cookie's privileges in
     this request, just the target user's normal session, so this simply
     clears that session and sends you back to admin sign-in. (The admin
-    console itself was never logged out — its cookie is separate — so in
+    console itself was never logged out, its cookie is separate, so in
     practice this just needs one click to get back.)
     """
     info = impersonation_info(request)
@@ -1557,7 +1557,7 @@ def admin_delete_user(user_id: int, request: Request, db: Session = Depends(get_
 @router.put("/api/admin/users/{user_id}/active")
 async def admin_set_user_active(user_id: int, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     """
-    Pause or reactivate an account without deleting it — a reversible
+    Pause or reactivate an account without deleting it, a reversible
     alternative to Delete. The Accounts table already displays a 'Paused'
     status for `active == false`, but until now there was no way to
     actually set it from the console; Delete (irreversible) was the only
@@ -1639,7 +1639,7 @@ async def put_admin_settings(request: Request, db: Session = Depends(get_db), _:
     else:
         db.add(OrgSettings(org_key=ADMIN_SETTINGS_KEY, category="admin_prefs", data=_json.dumps(cur)))
     db.commit()
-    # Only the settings with real business consequence get logged — skip
+    # Only the settings with real business consequence get logged - skip
     # cosmetic ones (theme, brand color, compact rows) as noise.
     if "signups_open" in body:
         log_admin_action(db, "admin_setting_changed", target="signups_open",
@@ -1780,7 +1780,7 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
 async def admin_set_org_mrr(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     """
     Record the actual signed contract value for a clinic, in dollars per
-    month — entered by an admin, not computed or guessed. Nothing in the
+    month, entered by an admin, not computed or guessed. Nothing in the
     product tracks real billing yet, so this is deliberately just a number
     you type in after a deal closes, kept separate from entitlements so
     changing a clinic's plan never silently touches its contract value.
@@ -1868,10 +1868,10 @@ async def contact_althais(request: Request, user: User = Depends(require_user), 
         return JSONResponse({"error": "Add your name, work email and practice name to continue."}, status_code=400)
     db.add(DemoRequest(full_name=name, email=email, practice_name=practice, phone=phone))
     db.commit()
-    e = lambda t: _html.escape(t or "—")
+    e = lambda t: _html.escape(t or "-")
     send_email(
         "kevinqu@althais.com",
-        f"Access request — {practice}",
+        f"Access request: {practice}",
         _email_html(
             "A signed-up clinic wants an Althais plan",
             f"""<strong>Name:</strong> {e(name)}<br><strong>Email:</strong> {e(email)}<br><strong>Practice:</strong> {e(practice)}<br>
@@ -1903,14 +1903,14 @@ def request_demo(
     # 2. Send notification email to Kevin
     send_email(
         "kevinqu@althais.com",
-        f"New demo request — {practice_name}",
+        f"New demo request: {practice_name}",
         _email_html(
             "New demo request",
             f"""
             <strong>Name:</strong> {full_name}<br>
             <strong>Email:</strong> {email}<br>
             <strong>Practice:</strong> {practice_name}<br>
-            <strong>Phone:</strong> {phone or '—'}<br><br>
+            <strong>Phone:</strong> {phone or '-'}<br><br>
             Reply directly to this email to follow up.
             """,
             f"mailto:{email}",

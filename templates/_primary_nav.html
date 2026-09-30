@@ -145,7 +145,7 @@
           badge.textContent = j.open > 9 ? '9+' : j.open;
           badge.style.background = j.overdue || j.fix ? '#c83838' : '#fff'; badge.style.color = j.overdue || j.fix ? '#fff' : '#0f1116';
           badge.classList.remove('hidden');
-          btn.title = `${j.open} open item${j.open === 1 ? '' : 's'} — open your profile`;
+          btn.title = `${j.open} open item${j.open === 1 ? '' : 's'}. Open your profile`;
         }
       }).catch(fill);
       fill();

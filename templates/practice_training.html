@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Training</title>
+  <title>Althais | Training</title>
   <style>
     .modal-overlay { background: rgba(15,17,22,0.45); }
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
@@ -133,7 +133,7 @@
         const rate = inCat.length ? Math.round(done / inCat.length * 100) : null;
         return `<div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${esc(cat)} Training</div>
-          <div class="text-[22px] font-semibold ${rate == null ? 'text-ink-400' : (rate === 100 ? 'text-ok-600' : 'text-ink-900')} num mt-1">${rate == null ? '—' : rate + '%'}</div>
+          <div class="text-[22px] font-semibold ${rate == null ? 'text-ink-400' : (rate === 100 ? 'text-ok-600' : 'text-ink-900')} num mt-1">${rate == null ? '-' : rate + '%'}</div>
           <div class="text-[11px] ${overdue ? 'text-risk-600' : 'text-ink-400'} mt-0.5">${inCat.length ? `${done} of ${inCat.length} complete${overdue ? ` · ${overdue} overdue` : ''}` : 'nothing assigned'}</div>
         </div>`;
       }).join('');
@@ -152,7 +152,7 @@
           <td class="td">${S.pill(st)}</td>
           <td class="td text-[12px] ${st === 'Overdue' ? 'text-risk-600' : (st === 'Due Soon' ? 'text-warn-600' : 'text-ink-600')}">${esc(S.fmtDate(t.due))}</td>
           <td class="td text-[12px] text-ink-600">${esc(S.fmtDate(t.completed))}</td>
-          <td class="td mono text-[11.5px] text-ink-600">${esc(t.certificate || '—')}</td>
+          <td class="td mono text-[11.5px] text-ink-600">${esc(t.certificate || '-')}</td>
           <td class="td text-right whitespace-nowrap">${edit ? `${t.completed ? `<button class="act" data-undo="${esc(t.id)}">Reopen</button>` : `<button class="act" data-complete="${esc(t.id)}">Mark Complete</button>`}<button class="act risk" data-delete="${esc(t.id)}">Delete</button>` : ''}</td>
         </tr>`;
       }).join('');

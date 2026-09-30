@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Staff Portal</title>
+  <title>Althais | Staff Portal</title>
   <style>
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:13px; color:#0f1116; outline:none; }
     .fld:focus { border-color:var(--brand); } .fld.is-bad { border-color:#c83838; } .fld:disabled { background:#f4f5f7; color:#6b7280; }
@@ -88,7 +88,7 @@
     }
 
     const ST = { NOT_STARTED: ['To Do', ''], IN_PROGRESS: ['In Progress', 'wait'], WAITING_ON_EMPLOYEE: ['Needs Your Attention', 'bad'],
-                 NEEDS_REVIEW: ['Submitted — In Review', 'wait'], COMPLETE: ['Complete', 'ok'], OVERDUE: ['Overdue', 'bad'], WAITING_ON_MANAGER: ['With Your Clinic', 'wait'] };
+                 NEEDS_REVIEW: ['Submitted: In Review', 'wait'], COMPLETE: ['Complete', 'ok'], OVERDUE: ['Overdue', 'bad'], WAITING_ON_MANAGER: ['With Your Clinic', 'wait'] };
     const tick = '<svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>';
     function mark(st) { const [, c] = ST[st] || ['', '']; return `<span class="check ${c}">${st === 'COMPLETE' ? tick : st === 'OVERDUE' || st === 'WAITING_ON_EMPLOYEE' ? '!' : ''}</span>`; }
     function stLabel(st) { return (ST[st] || [st])[0]; }
@@ -153,15 +153,15 @@
               <span class="text-[11.5px] text-ink-500">Set by your clinic</span></div>
             <div class="grid sm:grid-cols-2 gap-3">
               ${[['Role', p.role], ['Location', p.location], ['Start Date', S.fmtDate(p.start)], ['Employment Type', p.employment], ['Supervisor', p.supervisor]]
-                .map(([l, v]) => `<div><div class="lbl">${l}</div><input class="fld" disabled value="${esc(v || '—')}" aria-label="${l}"></div>`).join('')}
+                .map(([l, v]) => `<div><div class="lbl">${l}</div><input class="fld" disabled value="${esc(v || '-')}" aria-label="${l}"></div>`).join('')}
             </div>
-            ${emp && emp.status !== 'COMPLETE' ? `<div class="mt-3 flex items-center justify-between gap-3 flex-wrap"><span class="text-[12px] text-ink-600">Something wrong? Tell your manager — they update these.</span>
+            ${emp && emp.status !== 'COMPLETE' ? `<div class="mt-3 flex items-center justify-between gap-3 flex-wrap"><span class="text-[12px] text-ink-600">Something wrong? Tell your manager. They update these.</span>
               <button class="btn btn-primary" data-confirm-employment>This Looks Right</button></div>` : emp ? '<div class="mt-3 text-[12px] text-ok-600 font-semibold">✓ Confirmed</div>' : ''}
           </div>
           ${hasProf ? infoCard('professional', 'Professional Information', prof,
             ME.info.pendingProfessional ? '<div class="mb-3 text-[12px] text-warn-600">Your changes are waiting for your manager to confirm. Until then, your clinic uses the details below that it already confirmed.</div>'
             : ME.info.verified.professional ? `<div class="mb-3 text-[12px] text-ok-600">✓ Confirmed by your clinic on ${esc(S.fmtDate(ME.info.verified.professional.at))}. Changes go to your manager for review.</div>`
-            : prof && prof.status === 'NEEDS_REVIEW' ? '<div class="mb-3 text-[12px] text-warn-600">Submitted — your manager is reviewing these details.</div>' : '') : ''}
+            : prof && prof.status === 'NEEDS_REVIEW' ? '<div class="mb-3 text-[12px] text-warn-600">Submitted. Your manager is reviewing these details.</div>' : '') : ''}
           <div class="card p-4 mb-4">
             <h2 class="text-[14px] font-semibold text-ink-900 mb-3">Account</h2>
             <div class="text-[12.5px] text-ink-600 mb-3">You sign in as <b class="text-ink-900">${esc(ME.email)}</b>.</div>
@@ -243,7 +243,7 @@
         const row = (key, label, value) => {
           const pv = prof[key] || {}, v = value !== undefined ? value : pv.value;
           return `<div class="grid grid-cols-[150px_1fr] gap-3 py-1 text-[12.5px]"><div class="text-ink-500">${esc(label || labels[key] || key)}</div>
-            <div class="min-w-0"><span class="text-ink-900">${v ? esc(fmtv(v)) : '<span class="text-ink-400">—</span>'}</span>
+            <div class="min-w-0"><span class="text-ink-900">${v ? esc(fmtv(v)) : '<span class="text-ink-400">-</span>'}</span>
             ${v && pv.source ? ` <span class="text-[11px] ${pv.verified ? 'text-ok-600' : 'text-ink-400'}">${esc(pv.source)}${pv.verified ? ' · verified' : ''}</span>` : ''}</div></div>`;
         };
         const renewLine = (r) => `<a href="#${r.section}" class="flex items-start gap-2 py-1.5 hover:bg-shell -mx-2 px-2 rounded-sm">${mark(r.days < 0 ? 'OVERDUE' : 'IN_PROGRESS')}
@@ -303,7 +303,7 @@
                   <a class="font-semibold text-med-600 truncate" href="/api/portal/documents/${d.id}/file" target="_blank" rel="noopener">${esc(d.filename)}</a></div>`; }).join('')
                 : '<div class="text-[12.5px] text-ink-500">No verified documents yet.</div>')}
               ${card('Your Access', ME.appAccess ? `<div class="text-[12.5px] text-ink-700">As a ${esc(p.role)}, you can use: ${esc((ME.accessAreas || []).map(a => areaNames[a] || a).join(', ') || 'the Staff Portal')}.</div>`
-                : `<div class="text-[12.5px] text-ink-700">You have the Staff Portal. Your clinic turns on the rest when your onboarding is approved${(ME.accessAreas || []).length ? ` — as a ${esc(p.role)} you'll be able to use: ${esc(ME.accessAreas.map(a => areaNames[a] || a).join(', '))}` : ''}.</div>`)}
+                : `<div class="text-[12.5px] text-ink-700">You have the Staff Portal. Your clinic turns on the rest when your onboarding is approved${(ME.accessAreas || []).length ? `. As a ${esc(p.role)}, you'll be able to use: ${esc(ME.accessAreas.map(a => areaNames[a] || a).join(', '))}` : ''}.</div>`)}
             </div>
           </div>`;
       },
@@ -424,7 +424,7 @@
     function formBody(t, f) {
       const info = ME.info.personal || {}, p = ME.person;
       const legal = [info.legal_first, info.middle, info.legal_last].filter(Boolean).join(' ') || p.name;
-      const src = (x) => !x.value ? '<span class="text-ink-400">Not on file — add it in <a class="font-semibold text-med-600" href="#info">My Information</a></span>'
+      const src = (x) => !x.value ? '<span class="text-ink-400">Not on file. Add it in <a class="font-semibold text-med-600" href="#info">My Information</a></span>'
         : `<span class="text-ink-900">${esc(/^\d{4}-\d{2}-\d{2}$/.test(x.value) ? S.fmtDate(x.value) : x.value)}</span> <span class="text-[11px] ${x.verified ? 'text-ok-600' : 'text-ink-400'}">${esc(x.source || '')}${x.verified ? ' · verified' : ''}</span>`;
       return `<div class="p-4 border-t border-line">
         <div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Your Details (Filled In For You)</div>
@@ -514,7 +514,7 @@
         if (openKey && t && t.type === 'form' && t.status !== 'COMPLETE') api('POST', `/api/portal/forms/${encodeURIComponent(key)}`, { action: 'open' }).catch(() => {});
         return render();
       }
-      if (e.target.closest('[data-confirm-employment]')) return run(() => api('PUT', '/api/portal/info/employment', {}), 'Thanks — confirmed');
+      if (e.target.closest('[data-confirm-employment]')) return run(() => api('PUT', '/api/portal/info/employment', {}), 'Thanks, confirmed');
       const fd = e.target.closest('[data-form-done]');
       if (fd) {
         const key = fd.dataset.formDone, sig = $('sig-' + key);
@@ -554,7 +554,7 @@
       if (form.dataset.confirmDoc) {
         e.preventDefault();
         const fields = Object.fromEntries(new FormData(form).entries());
-        try { await api('POST', `/api/portal/documents/${form.dataset.confirmDoc}/confirm`, { fields }); openKey = null; S.toast('Thanks — sent to your clinic'); await load(); }
+        try { await api('POST', `/api/portal/documents/${form.dataset.confirmDoc}/confirm`, { fields }); openKey = null; S.toast('Thanks, sent to your clinic'); await load(); }
         catch (err) { showErrors(form, err.data && err.data.fields); S.toast(err.message, 'error'); }
       }
     });

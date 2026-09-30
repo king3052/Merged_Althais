@@ -1,5 +1,5 @@
 """
-credential_verification.py — checking credentials against authoritative outside sources.
+credential_verification.py, checking credentials against authoritative outside sources.
 
 Every provider implements CredentialVerificationProvider and returns a VerificationResult:
     status          VERIFIED | MISMATCH | NOT_FOUND | UNCONFIRMED | ERROR | NOT_RUN
@@ -12,7 +12,7 @@ Nothing is reported as verified unless a real source was queried and answered. A
 (no identifier to look up, the service is down) says so, and the review sends the document to a person when the
 clinic requires outside verification.
 
-Connected today: the federal NPI Registry (NPPES, CMS) — free and public. It confirms that an NPI exists and is
+Connected today: the federal NPI Registry (NPPES, CMS), free and public. It confirms that an NPI exists and is
 active and whose it is. License numbers in NPPES are reported by the providers themselves, so a license found there
 is labeled "as reported to NPPES", not verified by the licensing board. State licensing boards (Nursys, FSMB, each
 state's board), the DEA and the American Heart Association have no free public API; add a provider here once the
@@ -119,7 +119,7 @@ class NPPESProvider(CredentialVerificationProvider):
             return VerificationResult("VERIFIED", self.name, ts, matched,
                                       f"NPI {npi} is active and registered to {reg_name}, with license {fields.get('license_number')} ({state}) as reported to NPPES.")
         return VerificationResult("UNCONFIRMED", self.name, ts, matched,
-                                  f"NPI {npi} is active and registered to {reg_name}, but license {fields.get('license_number') or '—'} ({state or '—'}) isn't listed "
+                                  f"NPI {npi} is active and registered to {reg_name}, but license {fields.get('license_number') or '-'} ({state or '-'}) isn't listed "
                                   "in the NPI Registry. License numbers there are self-reported and can be out of date.")
 
 

@@ -1,5 +1,5 @@
 """
-staff_lifecycle.py — what Althais keeps doing after the paperwork is in: reminders, renewals and training cycles.
+staff_lifecycle.py, what Althais keeps doing after the paperwork is in: reminders, renewals and training cycles.
 
 Runs from the periodic job in main.py (and whenever a manager or employee opens their page), so it must be safe to
 run any number of times: every reminder is recorded in staff_notifications and never sent twice.

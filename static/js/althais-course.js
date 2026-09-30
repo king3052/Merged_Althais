@@ -335,7 +335,7 @@
         '<dl class="inline-grid grid-cols-[auto_auto] gap-x-6 gap-y-1 text-left text-[13px] mt-5"><dt class="text-ink-500">Name</dt><dd class="text-ink-900 font-medium">' + esc(C.name) + "</dd>" +
         '<dt class="text-ink-500">Completed</dt><dd class="text-ink-900 font-medium">' + esc(opt.fmtDate(r.completed)) + "</dd>" +
         '<dt class="text-ink-500">Course Version</dt><dd class="text-ink-900 font-medium">' + esc(r.version || C.version) + "</dd>" +
-        '<dt class="text-ink-500">Score</dt><dd class="text-ink-900 font-medium">' + esc(r.score != null ? r.score + "%" : "—") + "</dd></dl>" +
+        '<dt class="text-ink-500">Score</dt><dd class="text-ink-900 font-medium">' + esc(r.score != null ? r.score + "%" : "-") + "</dd></dl>" +
         '<p class="text-[12.5px] text-ink-500 mt-5">This is saved to your staff record, and your Althais Training onboarding item is complete.</p>' +
         '<div class="mt-5 flex justify-center gap-2"><button type="button" class="btn btn-line" data-mod="0">Review The Course</button><a class="btn btn-primary" href="#training">Back To Training</a></div></div>';
     }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Revenue · Payer Intelligence</title>
+  <title>Althais | Revenue · Payer Intelligence</title>
   <script>
     var __ALTHAIS_USER__ = {{ user_json|safe }};
     var __ALTHAIS_NS__ = (function(){
@@ -17,7 +17,7 @@
   {% if verified == '1' %}
   <div id="verified-banner" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-semibold shadow" style="background:#d8f5e3;color:#0c8a4f;border:1px solid rgba(12,138,79,0.25);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Email verified — welcome to Althais.
+    Email verified. Welcome to Althais.
   </div>
   <script>setTimeout(()=>{const b=document.getElementById('verified-banner'); if(b){b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(()=>b.remove(),400);}}, 3500);</script>
   {% endif %}
@@ -45,7 +45,7 @@
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
           <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Avg Days To Pay</div>
-          <div id="payer-stat-days" class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div id="payer-stat-days" class="text-[22px] font-semibold text-ink-900 num mt-1">-</div>
         </div>
       </div>
 
@@ -63,7 +63,7 @@
   <script>
     const _NS = __ALTHAIS_NS__ + '::';
     const STORAGE_CLAIMS = _NS + 'althais.claims.v1';
-    // Not namespaced — matches the EMR's own key exactly so notes added
+    // Not namespaced - matches the EMR's own key exactly so notes added
     // here or in the EMR show up in both places.
     const STORAGE_PAYER_NOTES = 'althais.payer_notes.v1';
 
@@ -80,7 +80,7 @@
     function computePayerStats() {
       const byPayer = {};
       ALL_CLAIMS.forEach(function(c) {
-        const payer = c.payer || '—';
+        const payer = c.payer || '-';
         const status = (c.status || '').toLowerCase();
         const amt = Number(c.amount) || 0;
         if (!byPayer[payer]) byPayer[payer] = { name: payer, total: 0, paid: 0, denied: 0, amount: 0 };
@@ -103,7 +103,7 @@
 
       $('payer-stat-count').textContent = payers.length;
       $('payer-stat-approval').textContent = avgApproval + '%';
-      $('payer-stat-days').textContent = '—';
+      $('payer-stat-days').textContent = '-';
 
       if (!payers.length) {
         grid.innerHTML = '<div style="grid-column:1/-1;padding:32px;text-align:center;font-size:12.5px;color:#6b7280;" class="bg-panel border border-line rounded-sm">No payer data yet. Submit claims and per-payer approval, denial, and volume stats populate here.</div>';

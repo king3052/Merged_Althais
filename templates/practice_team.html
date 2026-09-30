@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Team</title>
+  <title>Althais | Team</title>
   <style>
     .modal-overlay { background: rgba(15,17,22,0.45); }
     #person-panel { transition: transform .22s ease; transform: translateX(100%); }
@@ -116,8 +116,8 @@
       <div class="flex items-center gap-2.5">
         <div id="pn-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px]">--</div>
         <div>
-          <div id="pn-name" class="text-[13.5px] font-semibold text-ink-900">—</div>
-          <div id="pn-sub" class="text-[11px] text-ink-500">—</div>
+          <div id="pn-name" class="text-[13.5px] font-semibold text-ink-900">-</div>
+          <div id="pn-sub" class="text-[11px] text-ink-500">-</div>
         </div>
       </div>
       <button id="pn-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -191,11 +191,11 @@
         <tr class="row-hover cursor-pointer" data-id="${esc(p.id)}">
           <td class="td"><div class="font-semibold text-ink-900">${esc(p.name)}</div><div class="text-[11px] text-ink-500">${esc(p.email || '')}</div></td>
           <td class="td text-ink-600">${esc(p.role)}${p.employment ? `<div class="text-[11px] text-ink-400">${esc(p.employment)}</div>` : ''}</td>
-          <td class="td text-ink-600">${esc(p.location || '—')}</td>
-          <td class="td">${p.status === 'active' ? S.pill(S.personCompliance(DOC, p)) : '<span class="text-ink-400">—</span>'}</td>
+          <td class="td text-ink-600">${esc(p.location || '-')}</td>
+          <td class="td">${p.status === 'active' ? S.pill(S.personCompliance(DOC, p)) : '<span class="text-ink-400">-</span>'}</td>
           <td class="td text-ink-600 num">${creds.length ? `${verified} of ${creds.length} current` : '<span class="text-ink-400">None on file</span>'}</td>
-          <td class="td text-[12px] ${tone}">${next ? esc(S.fmtDate(next.date)) + `<div class="text-[11px] text-ink-400">${esc(next.label)}</div>` : '—'}</td>
-          <td class="td text-[12px] text-ink-600">${LOGINS == null ? '<span class="text-ink-400">—</span>' : (login ? esc(login.role) : '<span class="text-ink-400">No login</span>')}</td>
+          <td class="td text-[12px] ${tone}">${next ? esc(S.fmtDate(next.date)) + `<div class="text-[11px] text-ink-400">${esc(next.label)}</div>` : '-'}</td>
+          <td class="td text-[12px] text-ink-600">${LOGINS == null ? '<span class="text-ink-400">-</span>' : (login ? esc(login.role) : '<span class="text-ink-400">No login</span>')}</td>
           <td class="td">${S.pill(S.status(p))}</td>
         </tr>`;
       }).join('');
@@ -235,7 +235,7 @@
           <div><label class="lbl" for="pd-email">Email</label><input id="pd-email" class="fld" value="${esc(p.email || '')}" ${dis}></div>
           <div><label class="lbl" for="pd-phone">Phone</label><input id="pd-phone" class="fld" value="${esc(p.phone || '')}" ${dis}></div>
           <div><label class="lbl" for="pd-role">Role</label><select id="pd-role" class="fld" ${dis}>${S.options(S.ROLES_LIST, p.role)}</select></div>
-          <div><label class="lbl" for="pd-employment">Employment</label><select id="pd-employment" class="fld" ${dis}>${S.options(S.EMPLOYMENT_TYPES, p.employment || '', '—')}</select></div>
+          <div><label class="lbl" for="pd-employment">Employment</label><select id="pd-employment" class="fld" ${dis}>${S.options(S.EMPLOYMENT_TYPES, p.employment || '', '-')}</select></div>
           <div><label class="lbl" for="pd-location">Location</label><input id="pd-location" class="fld" list="a-loc-list" value="${esc(p.location || '')}" ${dis}></div>
           <div><label class="lbl" for="pd-start">Start date</label><input id="pd-start" type="date" class="fld num" value="${esc(p.start || '')}" ${dis}></div>
         </div>
@@ -254,7 +254,7 @@
         <textarea id="pd-notes" rows="3" class="fld" placeholder="Internal notes…" ${dis}>${esc(p.notes || '')}</textarea>
 
         <div class="sec">History</div>
-        <div class="text-[11.5px] text-ink-500 space-y-1">${p.audit.slice().reverse().slice(0, 12).map(a => `<div>${esc(S.fmtDate(a.at))} — ${esc(a.text)}</div>`).join('') || 'No history.'}</div>
+        <div class="text-[11.5px] text-ink-500 space-y-1">${p.audit.slice().reverse().slice(0, 12).map(a => `<div>${esc(S.fmtDate(a.at))}: ${esc(a.text)}</div>`).join('') || 'No history.'}</div>
 
         <div class="mt-5 pt-4 border-t border-line flex flex-wrap gap-1.5">
           ${p.email ? `<a href="mailto:${encodeURIComponent(p.email)}" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800">Email</a>` : ''}
@@ -369,7 +369,7 @@
       fillFilters(); render();
       const q = new URLSearchParams(location.search).get('person');
       if (q) openPanel(q);
-      // Logins are visible to admins only; everyone else just sees "—".
+      // Logins are visible to admins only; everyone else just sees "-".
       if (((window.__ALTHAIS_USER__ || {}).role || 'admin') === 'admin') fetch('/api/org/users', { credentials: 'same-origin' })   // only managers can see logins.then(r => r.ok ? r.json() : null).then(list => { if (Array.isArray(list)) { LOGINS = list; render(); } }).catch(() => {});
     }).catch(e => { $('team-count').textContent = e.message; });
   </script>

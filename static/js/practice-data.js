@@ -29,9 +29,9 @@
   function money(n) { return "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function moneyShort(n) { n = Number(n) || 0; return n >= 10000 ? "$" + (n / 1000).toFixed(n >= 100000 ? 0 : 1) + "k" : "$" + Math.round(n).toLocaleString("en-US"); }
   function fmtDate(iso) {
-    if (!iso) return "—";
+    if (!iso) return "-";
     var d = new Date(String(iso).length <= 10 ? iso + "T00:00:00" : iso);
-    return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+    return isNaN(d.getTime()) ? "-" : d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
   }
   function relTime(ts) {
     var t = typeof ts === "number" ? ts : new Date(ts).getTime();
@@ -167,7 +167,7 @@
           task: "Follow up with " + (pa.payer || "the payer") + " on the prior auth for " + p.name + (pa.service ? " (" + pa.service + ")" : "")
         });
       });
-      if (!p.insPrimary || p.insPrimary === "—") add({
+      if (!p.insPrimary || /^[\u2014-]$/.test(p.insPrimary)) add({
         id: "noins:" + p.mrn, level: "Low", category: "Clinical",
         title: "No insurance on file: " + p.name,
         detail: "Claims for this patient can't be submitted until coverage is added.",
@@ -289,7 +289,7 @@
           title: "Referral not scheduled: " + p.name, detail: [r.specialty, r.provider, "sent " + fmtDate(r.date)].filter(Boolean).join(" · "),
           mrn: p.mrn, ownerRole: "Front Desk", ownerPerson: "", action: "Follow Up", href: chart(p.mrn), since: r.date });
       });
-      if ((!p.insPrimary || p.insPrimary === "—") && upcomingByMrn[p.mrn]) {
+      if ((!p.insPrimary || /^[\u2014-]$/.test(p.insPrimary)) && upcomingByMrn[p.mrn]) {
         var ap = upcomingByMrn[p.mrn];
         add({ id: "ins:" + p.mrn + ":" + ap.date, kind: "followup", score: ap.date === today ? 85 : 62,
           title: "No insurance before visit: " + p.name, detail: "Visit " + (ap.date === today ? "today" : fmtDate(ap.date)) + (ap.time ? " at " + ap.time : ""),

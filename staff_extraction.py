@@ -1,5 +1,5 @@
 """
-staff_extraction.py — reading a staff document: what it is, how usable it is, and what it says.
+staff_extraction.py, reading a staff document: what it is, how usable it is, and what it says.
 
 The analyzer only *observes*. It classifies the document, reports quality problems and anything that looks
 unusual, and extracts typed fields with a confidence and where on the page each came from. It never decides
