@@ -20,6 +20,8 @@ to the record's history, never deleted.
 
 import datetime as dt
 import json
+import os
+import re
 import random
 import secrets
 
@@ -29,12 +31,15 @@ from sqlalchemy.orm import Mapped, mapped_column, Session
 
 from auth import Base, engine, get_db, require_user, User
 import staff_onboarding as so
+import training_content as tc
 
 router = APIRouter()
 
 COURSE_KEY = "althais_training"
 COURSE_VERSION = so.ALTHAIS_COURSE_VERSION
 QUIZ_SIZE = 8
+CLAUDE_MODEL = "claude-opus-5-5"
+CHECK_SIZE = 2
 DEFAULT_PASS_SCORE = 80
 
 
@@ -400,7 +405,7 @@ def _role_module(family: str, areas: set, role: str) -> list:
     return cards
 
 
-def build_course(role: str, areas: set, first_name: str) -> list:
+def _lessons(role: str, areas: set, first_name: str) -> list:
     family = _role_family(role)
     tour = [{"name": AREA_TOUR[a][0], "text": AREA_TOUR[a][1]} for a in AREA_TOUR if a in areas] + \
            [{"name": n, "text": t} for n, t in ALWAYS_TOUR]
@@ -415,9 +420,11 @@ def build_course(role: str, areas: set, first_name: str) -> list:
                   "This course shows you the real software, shaped to your role.",
                   ["It keeps patient records, visit notes, claims and payments in one place.",
                    "It automates routine work (drafting notes, suggesting codes, checking documents, reminders) so people can focus on patients.",
-                   "Althea is the assistant built into Althais. You can type or talk to it."]),
-            _card("How this course works", f"Seven short lessons and a knowledge check. You'll watch Althais in use, tour its real screens, practice with "
-                  f"hands-on exercises and finish with a knowledge check. As a {role or 'team member'}, you'll see the parts of Althais "
+                   "Althea is the assistant built into Althais. You can type or talk to it."],
+                  takeaway="Althais does the routine work. People make the decisions."),
+            _card("How this course works", f"Everyone starts with the same basics. Then your {role or 'role'} path teaches your part of the work, "
+                  "and you practice it in a copy of Althais with made-up patients. Each lesson ends with two real-life situations: get both "
+                  f"right and the lesson counts as mastered. Stuck? Ask Althea under any step. As a {role or 'team member'}, you'll see the parts of Althais "
                   "your role uses. Your progress saves as you go.", kind="recap",
                   bullets=["Watch: a visit from note to paid claim", "Tour: real Althais screens, one hotspot at a time",
                            "Practice: find the errors, put the steps in order, talk to Althea", "Check: a short knowledge check"]),
@@ -517,7 +524,78 @@ def build_course(role: str, areas: set, first_name: str) -> list:
     ]
 
 
-LESSON_KEYS = ["welcome", "workspace", "workflow", "privacy", "althea", "role", "ai_safety"]
+LESSON_KEYS = ["welcome", "workspace", "workflow", "privacy", "althea", "ai_safety", "role", "practice"]
+CHECKED = {"workspace", "workflow", "privacy", "althea", "ai_safety", "role"}      # end with graded situations
+ROLE_NAMES = {"front_desk": "Front Desk", "physician": "Provider", "clinical": "Clinical Team", "biller": "Billing", "manager": "Manager", "general": "Team Member"}
+
+# one clear takeaway for each step, shown under it
+TAKEAWAYS = {
+    "How this course works": "Clicking Next records progress. Getting the situations right proves you've got it.",
+    "Watch: a visit, start to finish": "Every visit becomes a claim through the same steps, and a person approves each one.",
+    "Tour: the EMR": "Check whose chart you're in before you change anything.",
+    "Your navigation": "You only see the areas your role opens. Ask your manager if your work needs more.",
+    "Finding things fast": "Search or Althea gets you anywhere faster than clicking around.",
+    "One visit, many hands": "A mistake early in the visit travels all the way to the claim.",
+    "Put the visit in order": "No claim until the provider approves the note and codes.",
+    "Why the order matters": "Codes come from the finished note, and denials come back with a next step.",
+    "Only what you need": "Having access isn't a reason to look.",
+    "Your login is yours": "Everything under your login is recorded as you. Never share it.",
+    "Activity is recorded": "Every chart you open is logged, and patients can ask who looked.",
+    "Spot the privacy risks": "Lock your screen, never write down passwords, verify callers.",
+    "What would you do?": "When in doubt, don't look, don't share, and tell your manager.",
+    "Speak up": "Reporting quickly limits the damage. It's never the wrong call.",
+    "What Althea does": "Althea only sees what your role can see, and never makes clinical decisions.",
+    "Try it: talk to Althea": "Ask naturally. Althea refuses what your role can't see.",
+    "When to double-check": "Check Althea's answer against the source before anything official.",
+    "Althais assists; you decide": "AI output is a draft until a person checks it.",
+    "Confidence isn't correctness": "A 95% suggestion can still be wrong. Check it against the note.",
+    "Stay inside your permissions": "Patient information never goes into outside tools.",
+    "Your day in Althais": "Start where the work that needs you is waiting.",
+    "Your part of the visit": "What you enter is what the provider sees. Double-check it.",
+    "What only people approve": "Althais prepares the work. People make every clinical decision.",
+    "Tour: the Note step": "Recording stays locked until the patient agrees.",
+    "Tour: AI Coding": "Accept only what the note supports and the setting allows.",
+    "Find the problems in this AI draft": "Drafts can add things nobody said and drop things that matter.",
+    "Tour: the CMS-1500 claim": "Every box on the claim comes from something someone entered earlier.",
+    "Tour: Claims Overview": "Start each day with Denied and Pending.",
+    "Tour: Payer Intelligence": "Check a payer's rules before you bill something unfamiliar.",
+    "Find the problems on this claim": "The code must match the setting, and every line must point to a real diagnosis.",
+    "Denials and appeals": "The reason code decides whether you correct or appeal.",
+    "Why check-in matters so much": "Most claim rejections start with a registration typo.",
+    "Where your details end up": "Your check-in details become boxes 1a, 2 and 5 of the claim.",
+    "Find the problems at check-in": "Names and member IDs must match the card exactly.",
+    "What you won't see": "Clinical questions go to the clinical team.",
+    "Your staff tools": "Althais handles the routine; To-Do holds what needs you.",
+    "Find the risks in this access review": "Access follows the role. No shared logins, no one-off favors.",
+    "Offboarding is a security step": "Offboard people on their last day.",
+    "Your work in Althais": "If you need more access, ask. Don't work around it.",
+    "Practice in Althais": "Do it the way you would at work. Althais checks every step.",
+}
+IMAGES = {"One visit, many hands": ("submission.png", "The last step you'll see in the demo: the claim sent to the payer."),
+          "Your day in Althais": ("claim-tracking.png", "Claims Overview, with status, risk and AI confidence for every claim.")}
+
+
+def build_course(role: str, areas: set, first_name: str) -> list:
+    family = _role_family(role)
+    mods = {m["key"]: m for m in _lessons(role, areas, first_name)}
+    mods["practice"] = {"key": "practice", "title": "Practice In Althais", "minutes": 8, "cards": [
+        _card("Practice in Althais", "A practice copy of Althais with made-up patients. Do each task the way you would at work. Althais checks your "
+              "work and tells you what to fix, and you can try as many times as you need.", kind="sandbox", **tc.practice_for(family))]}
+    mods["role"]["title"] = f"Your Role: {ROLE_NAMES.get(family, 'Team Member')}"
+    order = LESSON_KEYS + ["quiz", "complete"]
+    out = []
+    for k in order:
+        m = mods[k]
+        m["path"] = "role" if k in ("role", "practice") else ("basics" if k in LESSON_KEYS else "finish")
+        m["check"] = k in CHECKED
+        m["tutor"] = k in tc.TUTOR
+        for c in m["cards"]:
+            if c["title"] in TAKEAWAYS and not c.get("takeaway"):
+                c["takeaway"] = TAKEAWAYS[c["title"]]
+            if c["kind"] == "text" and c["title"] in IMAGES and not c.get("image"):
+                c["image"], c["imageCaption"] = SHOT + IMAGES[c["title"]][0], IMAGES[c["title"]][1]
+        out.append(m)
+    return out
 
 
 # the knowledge check: practical, one clearly right answer, never trick questions
@@ -634,38 +712,303 @@ def _areas(doc, p) -> set:
     return set(so.role_access(doc, p.get("role", ""))["areas"])
 
 
+def _mastered(r: dict) -> list:
+    return r.setdefault("modulesDone", [])
+
+
+def _family(p) -> str:
+    return _role_family(p.get("role", ""))
+
+
+def _first(p) -> str:
+    return p.get("info", {}).get("personal", {}).get("preferred") or p.get("firstName") or p.get("name", "").split(" ")[0]
+
+
+def _start(doc, p, t):
+    r = so.training_record(doc, p, t)
+    r.setdefault("startedAt", so._today().isoformat())
+    if t.get("status") in ("NOT_STARTED", "WAITING_ON_EMPLOYEE"):
+        so.set_task(p, t["key"], "IN_PROGRESS")
+    return r
+
+
+def _master(r: dict, key: str):
+    done = _mastered(r)
+    if key not in done:
+        done.append(key)
+
+
 @router.get("/api/portal/course/althais")
 def course(user: User = Depends(require_user), db: Session = Depends(get_db)):
     org_key, row, doc, p, t = _ctx(user, db)
     r = so.training_record(doc, p, t)
-    first = (p.get("info", {}).get("personal", {}).get("preferred") or p.get("firstName") or p.get("name", "").split(" ")[0])
-    return {"version": COURSE_VERSION, "role": p.get("role", ""), "modules": build_course(p.get("role", ""), _areas(doc, p), first),
-            "progress": r.get("modulesDone", []), "record": {k: r.get(k) for k in ("completed", "score", "version", "startedAt", "expires")},
-            "status": so.effective_status(t), "passScore": pass_score(doc), "quizSize": QUIZ_SIZE, "name": p.get("name", "")}
+    fam = _family(p)
+    return {"version": COURSE_VERSION, "role": p.get("role", ""), "path": ROLE_NAMES.get(fam, "Team Member"),
+            "modules": build_course(p.get("role", ""), _areas(doc, p), _first(p)),
+            "progress": _mastered(r), "visited": r.get("modulesVisited", []), "fails": r.get("lessonFails", {}),
+            "practice": r.get("practice", {}), "tutor": {k: {"simple": v["simple"]} for k, v in tc.TUTOR.items()},
+            "record": {k: r.get(k) for k in ("completed", "score", "version", "startedAt", "expires")},
+            "status": so.effective_status(t), "due": t.get("dueDate", ""), "passScore": pass_score(doc), "quizSize": QUIZ_SIZE,
+            "checkSize": CHECK_SIZE, "name": p.get("name", "")}
 
 
 @router.post("/api/portal/course/althais/progress")
 async def course_progress(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Reading a lesson to the end records progress. Lessons without a check (Welcome) count as mastered once read."""
     org_key, row, doc, p, t = _ctx(user, db)
     body = await request.json()
     key = str(body.get("module") or "")
     if key not in LESSON_KEYS:
         raise HTTPException(status_code=400, detail="Unknown module.")
-    r = so.training_record(doc, p, t)
-    done = r.setdefault("modulesDone", [])
-    if key not in done:
-        done.append(key)
-    r.setdefault("startedAt", so._today().isoformat())
-    if t.get("status") in ("NOT_STARTED", "WAITING_ON_EMPLOYEE"):
-        so.set_task(p, t["key"], "IN_PROGRESS")
+    r = _start(doc, p, t)
+    seen = r.setdefault("modulesVisited", [])
+    if key not in seen:
+        seen.append(key)
+    if key not in CHECKED and key != "practice":
+        _master(r, key)
     so.refresh(p)
     so.save_staff(db, org_key, row, doc)
-    return {"ok": True, "progress": done}
+    return {"ok": True, "progress": _mastered(r), "visited": seen}
 
 
+# ── the situations at the end of each lesson ──────────────────────────────
+def _ask(qs: list, n: int) -> list:
+    asked = []
+    for q in random.sample(qs, min(n, len(qs))):
+        order = list(range(len(q["options"])))
+        random.shuffle(order)
+        asked.append({"id": q["id"], "order": order})
+    return asked
+
+
+@router.post("/api/portal/course/althais/check")
+async def check_start(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, row, doc, p, t = _ctx(user, db)
+    key = str((await request.json()).get("module") or "")
+    if key not in CHECKED:
+        raise HTTPException(status_code=400, detail="This lesson has no check.")
+    qs = tc.checks_for(key, _family(p))
+    last = db.scalar(select(TrainingAttempt).where(TrainingAttempt.org_key == org_key, TrainingAttempt.person_id == p["id"],
+                                                   TrainingAttempt.course == f"{COURSE_KEY}:{key}").order_by(TrainingAttempt.id.desc()).limit(1))
+    asked = _ask(qs, CHECK_SIZE)
+    if last and last.submitted_at and not last.passed:          # a retry leads with the situations they haven't seen yet
+        before = {x["id"] for x in json.loads(last.questions)}
+        fresh = [q for q in qs if q["id"] not in before]
+        asked = (_ask(fresh, CHECK_SIZE) + _ask([q for q in qs if q["id"] in before], CHECK_SIZE))[:CHECK_SIZE]
+    a = TrainingAttempt(org_key=org_key, person_id=p["id"], course=f"{COURSE_KEY}:{key}", token=secrets.token_hex(12),
+                        questions=json.dumps(asked), pass_score=100)
+    db.add(a)
+    db.commit()
+    Q = tc.ALL_CHECKS
+    return {"attempt": a.token, "questions": [{"id": x["id"], "q": Q[x["id"]]["q"], "options": [Q[x["id"]]["options"][i]["t"] for i in x["order"]]} for x in asked]}
+
+
+@router.post("/api/portal/course/althais/check/submit")
+async def check_submit(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, row, doc, p, t = _ctx(user, db)
+    body = await request.json()
+    a = db.scalar(select(TrainingAttempt).where(TrainingAttempt.token == str(body.get("attempt") or ""), TrainingAttempt.org_key == org_key,
+                                                TrainingAttempt.person_id == p["id"], TrainingAttempt.course.like(f"{COURSE_KEY}:%")))
+    if not a or a.submitted_at:
+        raise HTTPException(status_code=400, detail="Start the check again.")
+    key = a.course.split(":", 1)[1]
+    answers = body.get("answers") if isinstance(body.get("answers"), dict) else {}
+    out, right = [], 0
+    for x in json.loads(a.questions):
+        q = tc.ALL_CHECKS[x["id"]]
+        pick = answers.get(x["id"])
+        chosen = x["order"][pick] if isinstance(pick, int) and 0 <= pick < len(x["order"]) else None
+        ok = chosen is not None and q["options"][chosen]["ok"]
+        right += ok
+        # every option, in the order shown, with why it's right or wrong
+        out.append({"id": x["id"], "correct": ok, "picked": pick,
+                    "options": [{"t": q["options"][i]["t"], "ok": q["options"][i]["ok"], "why": q["options"][i]["why"]} for i in x["order"]]})
+    passed = right == len(out)
+    a.answers, a.score, a.passed, a.submitted_at = json.dumps(answers), round(100 * right / max(1, len(out))), int(passed), so._now()
+    r = _start(doc, p, t)
+    if passed:
+        _master(r, key)
+    else:
+        fails = r.setdefault("lessonFails", {})
+        fails[key] = int(fails.get(key, 0)) + 1
+    r["lastActivity"] = so._today().isoformat()
+    so.refresh(p)
+    so.save_staff(db, org_key, row, doc)
+    return {"passed": passed, "right": right, "total": len(out), "results": out, "progress": _mastered(r),
+            "help": None if passed else tc.TUTOR.get(key, {}).get("simple", ""), "fails": r.get("lessonFails", {}).get(key, 0)}
+
+
+# ── the practice copy of Althais ─────────────────────────────────────────
+@router.post("/api/portal/course/althais/practice")
+async def practice_task(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, row, doc, p, t = _ctx(user, db)
+    body = await request.json()
+    key = str(body.get("task") or "")
+    mine = tc.PATHS.get(_family(p)) or tc.PATHS["general"]
+    if key not in mine:
+        raise HTTPException(status_code=400, detail="That task isn't part of your practice.")
+    ok, msg = tc.check_task(key, body.get("answer"))
+    r = _start(doc, p, t)
+    pr = r.setdefault("practice", {})
+    tries = pr.setdefault("tries", {})
+    tries[key] = int(tries.get(key, 0)) + 1
+    if ok:
+        pr.setdefault("done", [])
+        if key not in pr["done"]:
+            pr["done"].append(key)
+    elif tries[key] >= 3 and key not in pr.get("done", []):
+        fails = r.setdefault("lessonFails", {})
+        fails["practice"] = max(int(fails.get("practice", 0)), tries[key] - 1)
+    if all(k in pr.get("done", []) for k in mine):
+        _master(r, "practice")
+    r["lastActivity"] = so._today().isoformat()
+    so.refresh(p)
+    so.save_staff(db, org_key, row, doc)
+    return {"ok": ok, "message": msg, "done": pr.get("done", []), "progress": _mastered(r)}
+
+
+# ── Althea as the course tutor ────────────────────────────────────────────
+def _card_text(c: dict) -> str:
+    parts = [c.get("title", ""), c.get("body", ""), *c.get("bullets", []), c.get("takeaway", "")]
+    parts += [f"{s['title']}: {s['text']}" for s in c.get("spots", [])]
+    parts += [f"{s['name']}: {s['text']}" for s in c.get("tour", [])]
+    parts += [f"{f['label']}: {f['issue'] or f['ok']}" for f in c.get("fields", [])]
+    parts += [f"{s['situation']} {s['explain']}" for s in c.get("steps", []) if isinstance(s, dict) and "situation" in s]
+    parts += [f"{x['title']}: {x['text']}" for x in c.get("chapters", [])]
+    parts += [f"{t['title']}: {t['instruction']}" for t in c.get("tasks", [])]
+    return " ".join(x for x in parts if x)
+
+
+def _material(mods: list, howtos: list) -> list:
+    out = []
+    for m in mods:
+        for i, c in enumerate(m["cards"]):
+            readable = " ".join(x for x in [c.get("body", ""), *c.get("bullets", []), f"Key takeaway: {c['takeaway']}" if c.get("takeaway") else ""] if x)
+            out.append({"module": m["key"], "card": i, "title": f"{m['title']} › {c['title']}", "text": _card_text(c), "answer": readable})
+        if m["key"] in tc.TUTOR:
+            T = tc.TUTOR[m["key"]]
+            out.append({"module": m["key"], "card": None, "title": m["title"], "text": " ".join([T["simple"], T["example"], *T["steps"]]),
+                        "answer": T["simple"] + " For example: " + T["example"]})
+    for h in howtos:
+        out.append({"module": h["lesson"], "card": None, "title": f"How to: {h['q']}", "text": h["q"] + ". " + " ".join(h["steps"]), "howto": h["id"]})
+    return out
+
+
+_STOP = set("a an the and or to of in on for is it i my me do does how what when where why can you your with this that be are was at by as".split())
+
+
+def _search(material: list, q: str, n: int = 3) -> list:
+    words = [w for w in re.findall(r"[a-z0-9]+", q.lower()) if w not in _STOP and len(w) > 1]
+    if not words:
+        return []
+    scored = []
+    for m in material:
+        text, title = m["text"].lower(), m["title"].lower()
+        s = sum(text.count(w) + 3 * title.count(w) for w in words)
+        if s:
+            scored.append((s, m))
+    return [m for s, m in sorted(scored, key=lambda x: -x[0])[:n]]
+
+
+def _claude_answer(question: str, snippets: list, mode: str) -> str:
+    """Althea answers from the course material only. None when Claude isn't configured or doesn't answer."""
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        return None
+    try:
+        import anthropic
+        client = anthropic.Anthropic(timeout=25.0, max_retries=1)
+        material = "\n\n".join(f"[{s['title']}]\n{s['text']}" for s in snippets)
+        style = {"simple": "Explain it simply, in 2 or 3 short sentences a new employee would understand.",
+                 "example": "Give one short, concrete example from a clinic day that shows it.",
+                 "walk": "Walk them through it as 3 to 6 short numbered steps."}.get(mode, "Answer in 2 to 4 short sentences.")
+        msg = client.messages.create(
+            model=CLAUDE_MODEL, max_tokens=500,
+            system=("You are Althea, the tutor inside Althais Training, a course for clinic staff learning the Althais software. "
+                    "Answer ONLY from the course material provided. If the material doesn't cover the question, say you don't have that in the "
+                    "course and suggest asking their manager. Never give clinical advice. Use plain language, no markdown headings, and never use "
+                    "em dashes."),
+            messages=[{"role": "user", "content": f"Course material:\n{material}\n\nLearner's request: {question}\n\n{style}"}])
+        text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()
+        return re.sub(r"\s*\u2014\s*", ", ", text) or None      # no em dashes in what Althea says
+    except Exception:
+        return None
+
+
+@router.post("/api/portal/course/althais/tutor")
+async def tutor(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Althea's tutor buttons (Explain this simply / Show an example / Walk me through it) and free questions, from course material only."""
+    org_key, m, row, doc, p = so.portal_ctx(user, db)
+    body = await request.json()
+    mode = str(body.get("mode") or "ask")
+    areas = _areas(doc, p)
+    mods = build_course(p.get("role", ""), areas, _first(p))
+    howtos = tc.howtos_for(areas)
+    material = _material(mods, howtos)
+    key = str(body.get("module") or "")
+    mod = next((x for x in mods if x["key"] == key), None)
+    card = None
+    if mod is not None and isinstance(body.get("card"), int) and 0 <= body["card"] < len(mod["cards"]):
+        card = mod["cards"][body["card"]]
+    T = tc.TUTOR.get(key, {})
+    if mode in ("simple", "example", "walk") and mod:
+        here = [x for x in material if x["module"] == key and (card is None or x["card"] in (body.get("card"), None))]
+        topic = card["title"] if card else mod["title"]
+        ai = _claude_answer(f"{['Explain', 'Show an example of', 'Walk me through'][['simple', 'example', 'walk'].index(mode)]}: {topic}", here, mode)
+        if ai:
+            return {"answer": ai, "ai": True, "sources": [{"title": x["title"], "module": x["module"]} for x in here[:1]]}
+        if mode == "simple":
+            ans = ((card.get("takeaway") + " ") if card and card.get("takeaway") else "") + T.get("simple", "")
+        elif mode == "example":
+            ans = T.get("example", "")
+        else:
+            steps = (card.get("bullets") if card and card.get("bullets") and card["kind"] == "text" else None) or T.get("steps", [])
+            ans = "\n".join(f"{i + 1}. {s}" for i, s in enumerate(steps))
+        return {"answer": ans.strip() or "Ask me about this step in your own words below.", "ai": False,
+                "sources": [{"title": mod["title"], "module": key}]}
+    q = str(body.get("question") or "").strip()[:500]
+    if not q:
+        raise HTTPException(status_code=400, detail="Ask a question.")
+    if re.search(r"\b(diagnos|dose|dosage|prescrib|treat|should .* (take|get))", q, re.I):
+        return {"answer": "I can't help with clinical decisions. That's always the provider's call. I can explain how Althais works.", "ai": False, "sources": []}
+    hits = _search(material, q)
+    if not hits:
+        return {"answer": "I don't have that in the course. Try different words, or ask your manager.", "ai": False, "sources": []}
+    ai = _claude_answer(q, hits, "ask")
+    if ai:
+        return {"answer": ai, "ai": True, "sources": [{"title": h["title"], "module": h["module"], "howto": h.get("howto")} for h in hits]}
+    top = hits[0]
+    if top.get("howto"):
+        h = next(x for x in howtos if x["id"] == top["howto"])
+        ans = f"{h['q']}:\n" + "\n".join(f"{i + 1}. {s}" for i, s in enumerate(h["steps"]))
+    else:
+        ans = (top.get("answer") or top["text"])[:700]
+    return {"answer": ans, "ai": False, "sources": [{"title": h["title"], "module": h["module"], "howto": h.get("howto")} for h in hits]}
+
+
+# ── the Althais Guide: the course stays available after it's finished ─────
+@router.get("/api/portal/guide")
+def guide(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, m, row, doc, p = so.portal_ctx(user, db)
+    areas = _areas(doc, p)
+    mods = [x for x in build_course(p.get("role", ""), areas, _first(p)) if x["key"] in LESSON_KEYS]
+    t = next((t for t in p["requirements"] if t.get("type") == "training" and t.get("trainingKey") == COURSE_KEY), None)
+    r = so.training_record(doc, p, t, create=False) if t else None
+    return {"lessons": [{"key": x["key"], "title": x["title"], "path": x["path"], "minutes": x["minutes"],
+                         "cards": [{"i": i, "title": c["title"], "text": _card_text(c)[:400], "takeaway": c.get("takeaway", "")} for i, c in enumerate(x["cards"])]}
+                        for x in mods],
+            "howtos": tc.howtos_for(areas), "assigned": bool(t), "completed": bool(r and r.get("completed")),
+            "mastered": (r or {}).get("modulesDone", []), "role": p.get("role", "")}
+
+
+# ── the final knowledge check ─────────────────────────────────────────────
 @router.post("/api/portal/course/althais/quiz")
 def quiz_start(user: User = Depends(require_user), db: Session = Depends(get_db)):
     org_key, row, doc, p, t = _ctx(user, db)
+    r = so.training_record(doc, p, t)
+    left = [k for k in LESSON_KEYS if k not in _mastered(r)]
+    if left and not r.get("completed"):
+        titles = {x["key"]: x["title"] for x in build_course(p.get("role", ""), _areas(doc, p), "")}
+        raise HTTPException(status_code=409, detail="Master every lesson first: " + ", ".join(titles[k] for k in left) + ".")
     picks = random.sample(BANK, min(QUIZ_SIZE, len(BANK)))
     asked = []
     for q in picks:
@@ -684,7 +1027,7 @@ async def quiz_submit(request: Request, user: User = Depends(require_user), db: 
     org_key, row, doc, p, t = _ctx(user, db)
     body = await request.json()
     a = db.scalar(select(TrainingAttempt).where(TrainingAttempt.token == str(body.get("attempt") or ""), TrainingAttempt.org_key == org_key,
-                                                TrainingAttempt.person_id == p["id"]))
+                                                TrainingAttempt.person_id == p["id"], TrainingAttempt.course == COURSE_KEY))
     if not a or a.submitted_at:
         raise HTTPException(status_code=400, detail="Start the knowledge check again.")
     answers = body.get("answers") if isinstance(body.get("answers"), dict) else {}
@@ -718,3 +1061,97 @@ async def quiz_submit(request: Request, user: User = Depends(require_user), db: 
         so.audit(db, org_key, user, "training_attempt", p, "training", COURSE_KEY, f"Althais Training knowledge check attempt: {score}%")
         db.commit()
     return result
+
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Manager readiness: who's ready, in progress, overdue or needs help
+#  (tracked on its own, apart from documents and account access)
+# ──────────────────────────────────────────────────────────────────────────
+HELP_AFTER = 2          # failed tries at one lesson (or the final check) before someone shows as needing help
+
+
+def _mgr(user, db):
+    if getattr(user, "portal_only", 0) or (user.role or "admin") != "admin":
+        raise HTTPException(status_code=403, detail="Only your clinic's admins can see training readiness.")
+    so.ensure_product(user, db, "staff")
+    so.ensure_area(user, "training")
+    org_key = so._doc_org_key(user)
+    row, doc = so.load_staff(db, org_key)
+    return org_key, row, doc
+
+
+def readiness_rows(db, org_key: str, doc: dict) -> list:
+    quiz = {}
+    for a in db.scalars(select(TrainingAttempt).where(TrainingAttempt.org_key == org_key, TrainingAttempt.course == COURSE_KEY,
+                                                      TrainingAttempt.submitted_at.is_not(None))).all():
+        q = quiz.setdefault(a.person_id, {"tries": 0, "fails": 0, "best": None, "last": None})
+        q["tries"] += 1
+        q["fails"] += 0 if a.passed else 1
+        q["best"] = max(q["best"] or 0, a.score or 0)
+        q["last"] = max(q["last"] or "", a.submitted_at.date().isoformat())
+    rows = []
+    for p in doc["people"]:
+        if p.get("lifecycle") in ("OFFBOARDED", "DRAFT"):
+            continue
+        t = next((t for t in p["requirements"] if t.get("type") == "training" and t.get("trainingKey") == COURSE_KEY), None)
+        base = {"personId": p["id"], "name": p.get("name", ""), "role": p.get("role", ""), "lifecycle": so.LIFECYCLE_LABELS.get(p.get("lifecycle"), "")}
+        if not t:
+            rows.append(dict(base, status="NOT_ASSIGNED", mastered=0, total=len(LESSON_KEYS), struggling=[], due="", quiz=None, last=""))
+            continue
+        r = so.training_record(doc, p, t, create=False) or {}
+        mastered = [k for k in LESSON_KEYS if k in r.get("modulesDone", [])]
+        fails = {k: int(v) for k, v in (r.get("lessonFails") or {}).items()}
+        q = quiz.get(p["id"])
+        struggling = [k for k, v in fails.items() if v >= HELP_AFTER and k not in mastered] + (["quiz"] if q and q["fails"] >= HELP_AFTER and not r.get("completed") else [])
+        if r.get("completed"):
+            status = "READY"
+        elif struggling:
+            status = "NEEDS_HELP"
+        elif so.effective_status(t) == "OVERDUE":
+            status = "OVERDUE"
+        elif mastered or r.get("modulesVisited") or r.get("startedAt"):
+            status = "IN_PROGRESS"
+        else:
+            status = "NOT_STARTED"
+        last = max(filter(None, [r.get("lastActivity"), r.get("startedAt"), (q or {}).get("last"), r.get("completed")]), default="")
+        rows.append(dict(base, status=status, mastered=len(mastered), total=len(LESSON_KEYS), struggling=struggling, due=t.get("dueDate", ""),
+                         quiz=q, last=last, completed=r.get("completed", ""), score=r.get("score"), version=r.get("version", ""),
+                         current=r.get("version") == COURSE_VERSION))
+    order = {"NEEDS_HELP": 0, "OVERDUE": 1, "IN_PROGRESS": 2, "NOT_STARTED": 3, "READY": 4, "NOT_ASSIGNED": 5}
+    return sorted(rows, key=lambda x: (order[x["status"]], x["name"].lower()))
+
+
+LESSON_TITLES = {"welcome": "Welcome", "workspace": "Workspace", "workflow": "Visit To Claim", "privacy": "Privacy", "althea": "Althea",
+                 "ai_safety": "Using AI Safely", "role": "Role Lesson", "practice": "Practice", "quiz": "Final Check"}
+
+
+@router.get("/api/staff/onboarding/training/readiness")
+def readiness(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, row, doc = _mgr(user, db)
+    rows = readiness_rows(db, org_key, doc)
+    counts = {s: sum(1 for r in rows if r["status"] == s) for s in ("READY", "IN_PROGRESS", "NEEDS_HELP", "OVERDUE", "NOT_STARTED", "NOT_ASSIGNED")}
+    return {"rows": rows, "counts": counts, "version": COURSE_VERSION, "lessons": LESSON_TITLES, "helpAfter": HELP_AFTER}
+
+
+@router.post("/api/staff/onboarding/training/remind/{person_id}")
+def remind(person_id: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """A manager's nudge, at most once a day per person (the automatic due-date reminders keep running on their own)."""
+    import staff_lifecycle as sl
+    import html as _html
+    org_key, row, doc = _mgr(user, db)
+    p = next((x for x in doc["people"] if x["id"] == person_id), None)
+    if not p:
+        raise HTTPException(status_code=404, detail="Not found.")
+    if not p.get("email"):
+        raise HTTPException(status_code=400, detail="They don't have an email address on file.")
+    r = next((x for x in readiness_rows(db, org_key, doc) if x["personId"] == person_id), None)
+    if not r or r["status"] in ("READY", "NOT_ASSIGNED"):
+        raise HTTPException(status_code=400, detail="There's nothing to remind them about.")
+    clinic = _html.escape(so._clinic_name(org_key))
+    extra = (" If you're stuck, open the lesson and use Ask Althea under any step, or talk to your manager." if r["status"] == "NEEDS_HELP" else "")
+    body = (f"{clinic} asked us to remind you to finish Althais Training. You've mastered {r['mastered']} of {r['total']} lessons"
+            + (f", and it's due {so._fmt_date(r['due'])}" if r["due"] else "") + "." + extra)
+    sent = sl._notify_once(db, org_key, p, COURSE_KEY, "manager_nudge", so._today().isoformat(), "Reminder: Althais Training", body)
+    so.audit(db, org_key, user, "training_reminder", p, "training", COURSE_KEY, "Sent an Althais Training reminder" if sent else "Reminder already sent today")
+    db.commit()
+    return {"ok": True, "sent": sent, "message": "Reminder sent" if sent else "They were already reminded today"}

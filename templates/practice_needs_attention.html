@@ -83,7 +83,7 @@
   <script>
     const S = window.StaffStore, $ = (id) => document.getElementById(id), esc = S.esc;
     let ITEMS = [], FILTER = 'All';
-    const ORDER = ['Documents', 'Identity & Professional Information', 'Credentials', 'Ready To Activate', 'Access Setup', 'Offboarding', 'Invitations', 'Overdue'];
+    const ORDER = ['Documents', 'Identity & Professional Information', 'Credentials', 'Ready To Activate', 'Access Setup', 'Training', 'Offboarding', 'Invitations', 'Overdue'];
     const PRIO = { 0: ['Urgent', '#c83838'], 1: ['Needs You', '#b86a00'], 2: ['When You Can', '#6b7280'] };
     async function api(method, url, body) {
       const r = await fetch(url, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
@@ -102,6 +102,7 @@
         case 'resend_invite': return b('Resend Invite', 'btn-primary', 'resend');
         case 'offboarding_task': return b('Mark Done', 'btn-primary', 'offboarding_done');
         case 'manager_task': return b('Mark Complete', 'btn-primary', 'task_done') + a('Open', personUrl(it));
+        case 'training_help': return a('View Training', `/staff/training/readiness?person=${encodeURIComponent(it.personId)}`, 'btn-primary');
         default: return a('Open', personUrl(it), 'btn-primary');
       }
     }

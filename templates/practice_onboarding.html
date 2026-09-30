@@ -297,7 +297,7 @@
       }).join('') : `<tr><td class="td text-ink-500 py-8 text-center" colspan="6">${OVERVIEW.rows.length ? 'No one matches.' : 'No staff yet. Click <b>+ Add Staff Member</b> to invite your first person.'}</td></tr>`;
       const attn = OVERVIEW.attention;
       $('attn-count').textContent = attn.length; $('attn-count').classList.toggle('alert', attn.some(a => a.severity === 0));
-      const BTN = { review_document: 'Review', review_info: 'Review', review_onboarding: 'Review Onboarding', resend_invite: 'Resend Invite', open: 'Open' };
+      const BTN = { review_document: 'Review', review_info: 'Review', review_onboarding: 'Review Onboarding', resend_invite: 'Resend Invite', training_help: 'View Training', open: 'Open' };
       $('attention').innerHTML = attn.length ? attn.map((a, i) => `
         <div class="attn">
           <span class="dot ${a.severity === 0 ? 'risk' : 'warn'}"></span>
@@ -320,6 +320,7 @@
       const b = e.target.closest('[data-attn]'); if (!b) return;
       const a = OVERVIEW.attention[Number(b.dataset.attn)];
       if (a.action === 'resend_invite') return sendInvite(a.personId);
+      if (a.action === 'training_help') { location.href = '/staff/training/readiness?person=' + encodeURIComponent(a.personId); return; }
       await openDrawer(a.personId);
       if (a.action === 'review_document') reviewDocument(Number(a.ref));
       else if (a.action === 'review_info') reviewInfo();

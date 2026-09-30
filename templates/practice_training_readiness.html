@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais | Training Readiness</title>
+  <style>
+    .btn { font-size:11.5px; padding:5px 10px; border-radius:2px; font-weight:600; white-space:nowrap; display:inline-flex; align-items:center; }
+    .btn-primary { background:var(--brand); color:var(--brand-on); } .btn-primary:hover { background:var(--brand-700); } .btn-primary:disabled { opacity:.5; }
+    .btn-line { border:1px solid #e4e6eb; background:#fff; color:#2c313b; } .btn-line:hover { background:#f4f5f7; }
+    .rt { width:100%; border-collapse:collapse; }
+    .rt th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; padding:9px 16px; background:#f8f9fb; border-bottom:1px solid #e4e6eb; white-space:nowrap; }
+    .rt td { padding:12px 16px; border-bottom:1px solid #eceef2; vertical-align:middle; font-size:13px; }
+    .rt tr:last-child td { border-bottom:0; }
+    .rt tr.is-focus td { background:var(--brand-50, #f4f7ff); }
+    .chip { font-size:12px; padding:5px 11px; border-radius:2px; color:#4b5563; white-space:nowrap; }
+    .chip:hover { background:#f4f5f7; } .chip.is-on { background:var(--brand-100); color:var(--brand-text-strong); font-weight:600; }
+    .chip b { font-weight:600; margin-left:4px; opacity:.7; }
+    .st { font-size:11px; font-weight:700; padding:2px 8px; border-radius:2px; white-space:nowrap; }
+    .bar { height:6px; border-radius:3px; background:#e4e6eb; overflow:hidden; width:110px; } .bar i { display:block; height:100%; background:#0c8a4f; }
+    .tag { font-size:11px; padding:1px 7px; border-radius:2px; background:#fdecec; color:#c83838; margin:0 4px 2px 0; display:inline-block; }
+    .kpi { cursor:pointer; } .kpi.is-on { outline:2px solid var(--brand); outline-offset:-2px; }
+    @media (max-width: 900px) {
+      .rt thead { display:none; } .rt tr { display:grid; gap:6px; padding:12px 16px; border-bottom:1px solid #eceef2; } .rt td { padding:0; border:0; }
+    }
+    html[data-theme-resolved="dark"] .btn-line { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .rt th { background:#14181f; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .rt td, html[data-theme-resolved="dark"] .rt tr { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .rt tr.is-focus td { background:var(--brand-dark-tint); }
+    html[data-theme-resolved="dark"] .chip { color:#b8bdcd; } html[data-theme-resolved="dark"] .chip.is-on { background:var(--brand-dark-tint); color:var(--brand-dark-link); }
+    html[data-theme-resolved="dark"] .bar { background:#2c313b; } html[data-theme-resolved="dark"] .tag { background:rgba(200,56,56,.18); }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Althais Training Readiness</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Who can use Althais safely in their role. Tracked on its own, separate from documents and account access.</p>
+      </div>
+      <a href="/staff/training" class="btn btn-line" style="font-size:12.5px;padding:7px 12px">All Training</a>
+    </div>
+
+    <div class="p-5 pb-24 space-y-4">
+      <div class="grid gap-3 grid-cols-2 lg:grid-cols-5" id="kpis"></div>
+      <div class="px-3 py-2.5 rounded-sm border border-line bg-panel text-[12px] text-ink-600">
+        Staff are assigned Althais Training from their role's onboarding template, and get automatic reminders before it's due. A lesson counts as
+        <b class="text-ink-900">mastered</b> when they get its real-life situations right, and the practice lesson when they finish every hands-on task.
+        Anyone who misses the same lesson <span id="help-after">2</span> times shows as <b class="text-ink-900">Needs Help</b>, here and in To-Do.
+      </div>
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-3 py-2 border-b border-line flex gap-1 flex-wrap" id="chips"></div>
+        <div id="list"><div class="px-4 py-8 text-[12.5px] text-ink-500">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script>
+    const S = window.StaffStore, $ = (id) => document.getElementById(id), esc = S.esc;
+    const FOCUS = new URLSearchParams(location.search).get('person');
+    const ST = {
+      NEEDS_HELP: ['Needs Help', '#c83838', '#fdecec', 'Missed the same lesson more than once'],
+      OVERDUE: ['Overdue', '#b86a00', '#fff4e0', 'Past the due date'],
+      IN_PROGRESS: ['In Progress', 'var(--brand-text-strong)', 'var(--brand-100)', 'Working through it'],
+      NOT_STARTED: ['Not Started', '#4b5563', '#f1f2f5', 'Assigned, not opened yet'],
+      READY: ['Ready', '#0c8a4f', '#e3f5ec', 'Completed the course'],
+      NOT_ASSIGNED: ['Not Assigned', '#6b7280', '#f1f2f5', 'Not in their onboarding'],
+    };
+    let D = null, FILTER = 'ALL';
+    async function api(method, url) {
+      const r = await fetch(url, { method, credentials: 'same-origin' });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || j.detail || 'Something went wrong.');
+      return j;
+    }
+    const pill = (s) => `<span class="st" style="color:${ST[s][1]};background:${ST[s][2]}">${ST[s][0]}</span>`;
+    function render() {
+      const c = D.counts;
+      $('help-after').textContent = D.helpAfter;
+      $('kpis').innerHTML = ['READY', 'IN_PROGRESS', 'NEEDS_HELP', 'OVERDUE', 'NOT_STARTED'].map(s => `
+        <button type="button" class="kpi text-left bg-panel border border-line rounded-sm p-4${FILTER === s ? ' is-on' : ''}" data-filter="${s}">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${ST[s][0]}</div>
+          <div class="text-[22px] font-semibold num mt-1" style="color:${c[s] ? ST[s][1] : 'inherit'}">${c[s]}</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">${ST[s][3]}</div></button>`).join('');
+      const shown = D.rows.filter(r => FILTER === 'ALL' || r.status === FILTER);
+      $('chips').innerHTML = ['ALL', 'NEEDS_HELP', 'OVERDUE', 'IN_PROGRESS', 'NOT_STARTED', 'READY', 'NOT_ASSIGNED'].filter(s => s === 'ALL' || c[s])
+        .map(s => `<button type="button" class="chip${FILTER === s ? ' is-on' : ''}" data-filter="${s}">${s === 'ALL' ? 'Everyone' : ST[s][0]}<b>${s === 'ALL' ? D.rows.length : c[s]}</b></button>`).join('');
+      if (!shown.length) { $('list').innerHTML = `<div class="p-10 text-center text-[13px] text-ink-500">${D.rows.length ? 'Nobody in this group.' : 'No staff yet. Add someone in Staff Onboarding.'}</div>`; return; }
+      $('list').innerHTML = `<table class="rt"><thead><tr><th>Staff Member</th><th>Status</th><th>Lessons Mastered</th><th>Final Check</th><th>Needs Help With</th><th>Due</th><th>Last Activity</th><th style="text-align:right">Actions</th></tr></thead><tbody>` +
+        shown.map(r => `<tr class="${r.personId === FOCUS ? 'is-focus' : ''}" id="row-${esc(r.personId)}">
+          <td><a class="font-semibold text-ink-900 hover:underline" href="/staff/onboarding?person=${encodeURIComponent(r.personId)}">${esc(r.name)}</a><div class="text-[11.5px] text-ink-500">${esc(r.role || 'No role')} · ${esc(r.lifecycle)}</div></td>
+          <td>${pill(r.status)}${r.status === 'READY' && !r.current ? `<div class="text-[11px] text-ink-400 mt-1">v${esc(r.version)} (current v${esc(D.version)})</div>` : ''}</td>
+          <td>${r.status === 'NOT_ASSIGNED' ? '<span class="text-ink-400">-</span>' : `<div class="flex items-center gap-2"><div class="bar"><i style="width:${Math.round(100 * r.mastered / r.total)}%"></i></div><span class="text-[12px] text-ink-600 num">${r.mastered} of ${r.total}</span></div>`}</td>
+          <td class="text-[12.5px]">${r.completed ? `<span class="text-ok-600 font-semibold">${esc(r.score)}%</span> <span class="text-ink-400">on ${esc(S.fmtDate(r.completed))}</span>` : r.quiz ? `Best ${esc(r.quiz.best)}% <span class="text-ink-400">(${r.quiz.tries} tr${r.quiz.tries === 1 ? 'y' : 'ies'})</span>` : '<span class="text-ink-400">Not taken</span>'}</td>
+          <td>${r.struggling.length ? r.struggling.map(k => `<span class="tag">${esc(D.lessons[k] || k)}</span>`).join('') : '<span class="text-ink-400">-</span>'}</td>
+          <td class="text-[12.5px] ${r.status === 'OVERDUE' ? 'text-warn-600 font-semibold' : 'text-ink-600'}">${r.due ? esc(S.fmtDate(r.due)) : '-'}</td>
+          <td class="text-[12.5px] text-ink-600">${r.last ? esc(S.fmtDate(r.last)) : '-'}</td>
+          <td><div class="flex gap-1.5 justify-end">${['READY', 'NOT_ASSIGNED'].includes(r.status) ? '' : `<button type="button" class="btn btn-primary" data-remind="${esc(r.personId)}">Remind</button>`}<a class="btn btn-line" href="/staff/onboarding?person=${encodeURIComponent(r.personId)}">Profile</a></div></td></tr>`).join('') + '</tbody></table>';
+      const f = FOCUS && document.getElementById('row-' + FOCUS); if (f) f.scrollIntoView({ block: 'center' });
+    }
+    async function load() {
+      try { D = await api('GET', '/api/staff/onboarding/training/readiness'); render(); }
+      catch (e) { $('list').innerHTML = `<div class="px-4 py-6 text-[12.5px] text-risk-600">${esc(e.message)}</div>`; }
+    }
+    document.addEventListener('click', async (e) => {
+      const f = e.target.closest('[data-filter]');
+      if (f) { FILTER = FILTER === f.dataset.filter && f.classList.contains('kpi') ? 'ALL' : f.dataset.filter; return render(); }
+      const b = e.target.closest('[data-remind]'); if (!b) return;
+      b.disabled = true;
+      try { const r = await api('POST', `/api/staff/onboarding/training/remind/${encodeURIComponent(b.dataset.remind)}`); S.toast(r.message); }
+      catch (err) { S.toast(err.message, 'error'); }
+      b.disabled = false;
+    });
+    load();
+  </script>
+</body>
+</html>

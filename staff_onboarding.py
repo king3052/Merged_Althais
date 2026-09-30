@@ -326,11 +326,11 @@ DEFAULT_TRAININGS = [
      "description": "How patient health information is protected at {clinic}, and your part in it."},
     {"key": "security_training", "title": "Security Awareness Training", "category": "Clinic Policy", "version": "1", "validMonths": 12, "url": "",
      "description": "Passwords, phishing, and keeping devices and records safe."},
-    {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "2.0", "validMonths": 0, "url": "",
+    {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "2.1", "validMonths": 0, "url": "",
      "builtIn": True, "passScore": 80,
-     "description": "An interactive course built on the real Althais software: a chaptered demo video, guided screen tours, hands-on practice and a knowledge check, shaped to your role (about 40 minutes)."},
+     "description": "Learn Althais on the real software: shared basics, then your role's path, hands-on practice in a copy of Althais with made-up patients, and real-life situations that show you've got it. Althea can explain any step (about 50 minutes)."},
 ]
-ALTHAIS_COURSE_VERSION = "2.0"
+ALTHAIS_COURSE_VERSION = "2.1"
 DEFAULT_FORM_PREFILL = ["legal_first", "legal_last", "role", "start", "location", "address1", "city", "state", "zip", "phone", "email"]   # althais_training.COURSE_VERSION; bump when the course changes
 
 # Credential types (keep the keys in step with CREDENTIAL_TYPES in staff-store.js)
@@ -1153,6 +1153,12 @@ def attention_items(db: Session, org_key: str, doc: dict, invites: dict) -> list
                 for t in waiting:   # e.g. EHR Access: outside systems are set up by a person
                     items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 1, "action": "manager_task", "ref": t["key"],
                                   "text": f"{t['title']} needed"})
+    import althais_training as _at      # here, not at the top: althais_training imports this module
+    for r in _at.readiness_rows(db, org_key, doc):
+        if r["status"] == "NEEDS_HELP":
+            topics = ", ".join(_at.LESSON_TITLES.get(k, k) for k in r["struggling"])
+            items.append({"personId": r["personId"], "name": r["name"], "severity": 1, "action": "training_help", "ref": "",
+                          "text": f"Having trouble with Althais Training ({topics})", "category": "Training"})
     for it in items:
         it.setdefault("role", (people.get(it["personId"]) or {}).get("role", ""))
         it.setdefault("category", {"review_document": "Documents", "review_info": "Identity & Professional Information",

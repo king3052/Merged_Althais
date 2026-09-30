@@ -564,6 +564,7 @@ _WORKSPACE_PAGES = {
     "/staff/credentials": "practice_credentials.html",
     "/staff/compliance": "practice_compliance.html",
     "/staff/training": "practice_training.html",
+    "/staff/training/readiness": "practice_training_readiness.html",
     "/staff/roles": "practice_roles.html",
     "/staff/clinic-onboarding": "practice_clinic_onboarding.html",
     "/staff/onboarding/templates": "practice_onboarding_templates.html",

@@ -71,6 +71,13 @@
     ".ac-chips button:hover{border-color:var(--brand);color:var(--brand-text-strong)}.ac-chips button.is-used{opacity:.5}",
     ".ac-recap li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eceef2;font-size:13.5px}.ac-recap li:last-child{border-bottom:0}",
     "@media (max-width:1023px){.ac-list:not(.is-open){display:none}.ac-list.is-open{margin-top:6px}}",
+    ".ac-take{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:4px;background:var(--brand-50,#f4f7ff);border:1px solid var(--brand-100)}",
+    ".ac-take-i{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--brand);color:var(--brand-on,#fff);font-size:13px}",
+    ".ac-tutor{border-top:1px dashed #d7dae0;padding-top:14px}",
+    ".ac-tbtn{font-size:12.5px;padding:5px 11px;border-radius:999px;border:1px solid #d7dae0;background:#fff;color:#2c313b;font-weight:500}",
+    ".ac-tbtn:hover{border-color:var(--brand);color:var(--brand-text-strong)}.ac-tbtn.is-on{background:var(--brand-100);border-color:var(--brand);color:var(--brand-text-strong)}",
+    ".ac-tans{margin-top:10px;padding:12px 14px;border-radius:10px 10px 10px 2px;background:#f4f5f7;border:1px solid #e4e6eb;font-size:14px;line-height:1.55;color:#1a1d24}",
+    ".ac-why{padding:10px 12px;border:1px solid #e4e6eb;border-radius:3px;background:#fff}.ac-why.is-ok{border-color:#0c8a4f;background:#eaf6ef}.ac-why.is-bad{border-color:rgba(200,56,56,.4);background:#fdecec}",
     ".ac-meter{height:4px;border-radius:2px;background:#e4e6eb;overflow:hidden}.ac-meter i{display:block;height:100%;background:#0c8a4f;transition:width .3s}",
     DK + ".ac-shot," + DK + ".ac-lens{border-color:#2c313b}",
     DK + ".ac-chap," + DK + ".ac-step," + DK + ".ac-doc," + DK + ".ac-chat," + DK + ".ac-her," + DK + ".ac-chips button," + DK + ".ac-seg button{background:#1a1d24;border-color:#2c313b;color:#d6dae5}",
@@ -79,19 +86,22 @@
     DK + ".ac-row.is-issue{background:rgba(200,56,56,.16)}" + DK + ".ac-row.is-ok{background:rgba(12,138,79,.16)}",
     DK + ".ac-recap li," + DK + ".ac-chat-h{border-color:#2c313b}",
     DK + ".ac-track," + DK + ".ac-meter{background:#2c313b}" + DK + ".ac-track u{background:#d6dae5}",
-    DK + ".ac-chap.is-cur{background:var(--brand-dark-tint)}" + DK + ".ac-seg button.is-on{background:var(--brand);color:var(--brand-on,#fff)}"
+    DK + ".ac-chap.is-cur{background:var(--brand-dark-tint)}" + DK + ".ac-take{background:var(--brand-dark-tint);border-color:#2c313b}" + DK + ".ac-tbtn," + DK + ".ac-why{background:#1a1d24;border-color:#2c313b;color:#d6dae5}",
+    DK + ".ac-tans{background:#14181f;border-color:#2c313b;color:#d6dae5}" + DK + ".ac-why.is-ok{background:rgba(12,138,79,.16)}" + DK + ".ac-why.is-bad{background:rgba(200,56,56,.16)}" + DK + ".ac-tutor{border-color:#2c313b}" + DK + ".ac-seg button.is-on{background:var(--brand);color:var(--brand-on,#fff)}"
   ].join("\n");
 
   function mount(el, opt) {
-    var api = opt.api, esc = opt.esc, C = null, mi = 0, ci = 0, st = {}, quiz = null, result = null, video = null, outline = false;
+    var api = opt.api, esc = opt.esc, C = null, mi = 0, ci = 0, st = {}, quiz = null, result = null, video = null, outline = false, CK = {}, TU = {};
 
     if (!document.getElementById("ac-css")) { var s = document.createElement("style"); s.id = "ac-css"; s.textContent = CSS; document.head.appendChild(s); }
 
     function load() {
       return api("GET", "/api/portal/course/althais").then(function (c) {
-        C = c;
+        C = c; C.practice = C.practice || {}; C.visited = C.visited || []; C.fails = C.fails || {};
+        var start = opt.start ? c.modules.findIndex(function (m) { return m.key === opt.start; }) : -1;
+        if (start >= 0) { mi = start; ci = Math.max(0, Math.min(Number(opt.card) || 0, c.modules[start].cards.length - 1)); return render(); }
         if (c.record && c.record.completed) { mi = c.modules.length - 1; }
-        else { var i = c.modules.findIndex(function (m) { return m.key !== "quiz" && m.key !== "complete" && c.progress.indexOf(m.key) < 0; }); mi = i < 0 ? c.modules.length - 2 : i; }
+        else { var i = c.modules.findIndex(function (m) { return isLesson(m) && c.progress.indexOf(m.key) < 0; }); mi = i < 0 ? c.modules.length - 2 : i; }
         ci = 0; render();
       }).catch(function (e) { el.innerHTML = '<div class="card p-5 text-[13px] text-risk-600">' + esc(e.message) + "</div>"; });
     }
@@ -100,7 +110,13 @@
     function S() { var k = key(); return st[k] = st[k] || {}; }
     function cur() { var m = C.modules[mi]; return m && m.cards[ci]; }
     function done(k) { return C.progress.indexOf(k) >= 0 || (k === "quiz" && !!(C.record && C.record.completed)); }
+    function seen(k) { return C.visited.indexOf(k) >= 0 || done(k); }
+    function isLesson(m) { return m.key !== "quiz" && m.key !== "complete"; }
+    function lessons() { return C.modules.filter(isLesson); }
+    function allMastered() { return lessons().every(function (m) { return done(m.key); }) || !!(C.record && C.record.completed); }
+    function steps(m) { return m.cards.length + (m.check ? 1 : 0); }
     function mins() { return C.modules.reduce(function (a, m) { return a + (m.minutes || 0); }, 0); }
+    function minsLeft() { return C.modules.reduce(function (a, m) { return a + (done(m.key) ? 0 : (m.minutes || 0)); }, 0); }
     function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
     function meter(n, of, label) {
       return '<div class="mt-3 flex items-center gap-3"><div class="ac-meter flex-1"><i style="width:' + Math.round(100 * n / Math.max(1, of)) + '%"></i></div>' +
@@ -108,27 +124,33 @@
     }
     function yours(on) { return on ? '<span class="ac-tag">Your Part</span>' : ""; }
 
-    /* ---------- the outline ---------- */
+    /* ---------- the outline: the basics everyone takes, then this person's role path ---------- */
     function nav() {
-      var total = C.modules.length - 1, count = C.modules.filter(function (m) { return m.key !== "complete" && done(m.key); }).length, pct = Math.round(100 * count / total);
+      var L = lessons(), count = L.filter(function (m) { return done(m.key); }).length, pct = Math.round(100 * count / L.length), left = minsLeft();
+      var groups = [["basics", "The Basics · Everyone"], ["role", "Your Path · " + (C.path || "Your Role")], ["finish", "Finish"]];
+      function item(m) {
+        var i = C.modules.indexOf(m), d = done(m.key), v = seen(m.key), isCur = i === mi;
+        var open = m.key === "complete" ? !!(C.record && C.record.completed) : m.key === "quiz" ? allMastered() : (i <= mi || v || C.modules.slice(0, i).filter(isLesson).every(function (x) { return seen(x.key); }));
+        var mark = d ? '<span class="w-4 text-center text-ok-600" title="Mastered">✓</span>' : v && m.check ? '<span class="w-4 text-center text-warn-600" title="Read, check not passed yet">◐</span>' : '<span class="w-4 text-center text-ink-400">' + (L.indexOf(m) + 1 || "") + "</span>";
+        return '<button type="button" class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-sm text-[13px] ' + (isCur ? "bg-med-100 font-semibold text-ink-900" : "text-ink-700 hover:bg-shell") + '" data-mod="' + i + '"' + (open ? "" : ' disabled style="opacity:.45"') + ">" +
+          mark + '<span class="min-w-0">' + esc(m.title) + "</span>" + (m.minutes ? '<span class="ml-auto text-[10.5px] text-ink-400 font-normal whitespace-nowrap">' + m.minutes + " min</span>" : "") + "</button>";
+      }
       return '<div class="card p-3 lg:sticky lg:top-[72px]"><div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold px-1">Althais Training · v' + esc(C.version) + "</div>" +
-        '<div class="text-[11.5px] text-ink-400 px-1 mb-2">About ' + mins() + " minutes · " + pct + "% done</div>" +
+        '<div class="text-[12px] text-ink-500 px-1 mb-2">' + count + " of " + L.length + " lessons mastered" + (left ? " · about " + left + " min left" : "") + "</div>" +
         '<div class="ac-meter mb-2 mx-1"><i style="width:' + pct + '%"></i></div>' +
         '<button type="button" class="lg:hidden w-full flex justify-between items-center px-2 py-1.5 rounded-sm bg-med-100 text-[12.5px] font-semibold text-ink-900" data-outline>' +
-        "<span>" + (mi + 1) + " of " + C.modules.length + " · " + esc(C.modules[mi].title) + '</span><span class="text-ink-500 font-normal">' + (outline ? "Hide ▴" : "All lessons ▾") + "</span></button>" +
-        '<div class="ac-list' + (outline ? " is-open" : "") + '">' +
-        C.modules.map(function (m, i) {
-          var d = done(m.key), isCur = i === mi, open = i <= mi || d || C.modules.slice(0, i).every(function (x) { return x.key === "complete" || done(x.key); });
-          return '<button type="button" class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-sm text-[12.5px] ' + (isCur ? "bg-med-100 font-semibold text-ink-900" : "text-ink-700 hover:bg-shell") + '" data-mod="' + i + '"' + (open ? "" : ' disabled style="opacity:.45"') + ">" +
-            '<span class="w-4 text-center ' + (d ? "text-ok-600" : "text-ink-400") + '">' + (d ? "✓" : i + 1) + "</span>" + esc(m.title) +
-            (m.minutes ? '<span class="ml-auto text-[10.5px] text-ink-400 font-normal">' + m.minutes + " min</span>" : "") + "</button>";
-        }).join("") + "</div></div>";
+        "<span>" + esc(C.modules[mi].title) + '</span><span class="text-ink-500 font-normal">' + (outline ? "Hide ▴" : "All lessons ▾") + "</span></button>" +
+        '<div class="ac-list' + (outline ? " is-open" : "") + '">' + groups.map(function (g) {
+          var ms = C.modules.filter(function (m) { return m.path === g[0]; });
+          return ms.length ? '<div class="text-[10.5px] uppercase tracking-wider text-ink-400 font-semibold px-2 pt-2.5 pb-1">' + esc(g[1]) + "</div>" + ms.map(item).join("") : "";
+        }).join("") + '<div class="text-[11px] text-ink-400 px-2 pt-2 leading-snug">✓ mastered · ◐ read, check to pass</div></div></div>';
     }
 
     /* ---------- cards ---------- */
     function head(c) {
-      return '<h3 class="text-[17px] font-semibold text-ink-900">' + esc(c.title) + "</h3>" + (c.body ? '<p class="text-[13.5px] text-ink-700 mt-2 leading-relaxed">' + esc(c.body) + "</p>" : "") +
-        (c.bullets.length && c.kind !== "recap" ? '<ul class="mt-3 space-y-1.5">' + c.bullets.map(function (b) { return '<li class="flex gap-2 text-[13px] text-ink-700 leading-relaxed"><span class="text-med-600">•</span><span>' + esc(b) + "</span></li>"; }).join("") + "</ul>" : "");
+      return '<h3 class="text-[22px] leading-tight font-semibold text-ink-900">' + esc(c.title) + "</h3>" + (c.body ? '<p class="text-[15.5px] text-ink-700 mt-3 leading-relaxed">' + esc(c.body) + "</p>" : "") +
+        (c.bullets.length && c.kind !== "recap" ? '<ul class="mt-4 space-y-2">' + c.bullets.map(function (b) { return '<li class="flex gap-2.5 text-[15px] text-ink-700 leading-relaxed"><span class="text-med-600 font-bold">•</span><span>' + esc(b) + "</span></li>"; }).join("") + "</ul>" : "") +
+        (c.image ? '<figure class="mt-5"><img src="' + esc(c.image) + '" alt="" class="rounded-sm border border-line max-h-[340px] w-auto">' + (c.imageCaption ? '<figcaption class="text-[12px] text-ink-500 mt-1.5">' + esc(c.imageCaption) + "</figcaption>" : "") + "</figure>" : "");
     }
     function chapTime(t) { return Math.floor(t / 60) + ":" + ("0" + Math.floor(t % 60)).slice(-2); }
 
@@ -251,6 +273,8 @@
           }).join("") + "</div>" + (a != null ? '<p class="text-[12.5px] mt-2 ' + (a === c.answer ? "text-ok-600" : "text-ink-700") + '">' + (a === c.answer ? "Right. " : "Not quite. ") + esc(c.explain) + "</p>" : "") + "</div>";
       },
 
+      sandbox: function () { return '<div class="mt-5" id="ac-sandbox"></div>'; },
+
       althea: function (c) {
         var n = S().n || 1;
         return '<div class="mt-4 space-y-2">' + c.exchanges.slice(0, n).map(function (x) {
@@ -260,7 +284,10 @@
       }
     };
 
-    function cardHtml(c) { return head(c) + (KINDS[c.kind] ? KINDS[c.kind](c) : ""); }
+    function cardHtml(c) {
+      return head(c) + (KINDS[c.kind] ? KINDS[c.kind](c) : "") +
+        (c.takeaway ? '<div class="ac-take mt-5"><span class="ac-take-i" aria-hidden="true">★</span><div><div class="text-[11px] uppercase tracking-wider font-semibold text-ink-500">Key takeaway</div><div class="text-[15px] font-semibold text-ink-900 mt-0.5">' + esc(c.takeaway) + "</div></div></div>" : "");
+    }
 
     function ready(c, k) {
       if (done(C.modules[mi].key)) return true;
@@ -274,25 +301,86 @@
         case "scenario": return (v.at || 0) >= c.steps.length;
         case "althea_sim": return (v.asked || 0) >= 3;
         case "check": return v.a != null;
+        case "sandbox": return c.tasks.every(function (t) { return (C.practice.done || []).indexOf(t.key) >= 0; });
       }
       return true;
     }
     var NEEDS = { video: "Watch every chapter to continue", hotspots: "Explore every hotspot to continue", workspace: "Tap every area to continue",
                   sequence: "Put every step in order to continue", spot: "Find every problem to continue", scenario: "Finish the situations to continue",
-                  althea_sim: "Ask Althea three questions to continue", check: "Answer the question to continue" };
+                  althea_sim: "Ask Althea three questions to continue", check: "Answer the question to continue", sandbox: "Finish every practice task to continue" };
 
+    function stepDots(m) {
+      var n = steps(m);
+      return '<div class="flex gap-1 items-center" aria-hidden="true">' + Array.apply(null, Array(n)).map(function (x, i) {
+        return '<span style="width:18px;height:5px;border-radius:3px;background:' + (i < ci ? "#0c8a4f" : i === ci ? "var(--brand)" : "#d7dae0") + '"></span>'; }).join("") + "</div>";
+    }
+    function header(m) {
+      var L = lessons(), n = steps(m), left = Math.max(1, Math.round((m.minutes || 1) * (n - ci) / n));
+      return '<div class="flex items-center justify-between mb-4 gap-3 flex-wrap"><div><div class="text-[13px] font-semibold text-ink-900">Lesson ' + (L.indexOf(m) + 1) + " of " + L.length + " · About " + left + " minute" + (left === 1 ? "" : "s") + " remaining</div>" +
+        '<div class="text-[12px] text-ink-500">' + esc(m.title) + " · " + (ci >= m.cards.length ? "Check your understanding" : "Step " + (ci + 1) + " of " + n) + (done(m.key) ? ' · <span class="text-ok-600 font-semibold">Mastered ✓</span>' : "") + "</div></div>" + stepDots(m) + "</div>";
+    }
+    function tutorHtml(m) {
+      if (!m.tutor) return "";
+      var t = TU[key()] || {};
+      return '<div class="ac-tutor mt-6" id="ac-tutor"><div class="flex items-center gap-2 flex-wrap"><span class="ac-orb" style="width:24px;height:24px;line-height:24px;font-size:11px">A</span>' +
+        '<span class="text-[12.5px] font-semibold text-ink-900 mr-1">Ask Althea</span>' +
+        [["simple", "Explain this simply"], ["example", "Show an example"], ["walk", "Walk me through it"]].map(function (b) {
+          return '<button type="button" class="ac-tbtn' + (t.mode === b[0] ? " is-on" : "") + '" data-tutor="' + b[0] + '">' + b[1] + "</button>"; }).join("") + "</div>" +
+        '<form class="flex gap-2 mt-2" data-tutor-form><input class="fld flex-1" id="ac-tq" placeholder="Or ask about this step in your own words…" autocomplete="off" aria-label="Ask Althea about this step"><button type="submit" class="btn btn-line">Ask</button></form>' +
+        (t.loading ? '<div class="ac-tans"><span class="ac-dots"><span></span><span></span><span></span></span></div>' : t.answer ? '<div class="ac-tans" role="status">' + esc(t.answer).replace(/\n/g, "<br>") +
+          (t.sources && t.sources.length ? '<div class="text-[11px] text-ink-400 mt-2">From the course: ' + t.sources.map(function (x) { return esc(x.title); }).join(" · ") + "</div>" : "") + "</div>" : "") + "</div>";
+    }
     function moduleHtml() {
       var m = C.modules[mi];
       if (m.key === "quiz") return quizHtml();
       if (m.key === "complete") return completeHtml();
+      if (ci >= m.cards.length) return '<div class="card p-6 md:p-8">' + header(m) + '<div id="ac-card">' + checkHtml(m) + "</div>" + tutorHtml(m) + "</div>";
       var c = m.cards[ci], last = ci === m.cards.length - 1, ok = ready(c, key());
-      return '<div class="card p-6"><div class="flex items-center justify-between mb-3 gap-3"><div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Lesson ' + (mi + 1) + " · " + esc(m.title) + "</div>" +
-        '<div class="flex gap-1 items-center" title="Step ' + (ci + 1) + " of " + m.cards.length + '"><span class="text-[11px] text-ink-400 mr-1">' + (ci + 1) + "/" + m.cards.length + "</span>" + m.cards.map(function (x, i) {
-          return '<span style="width:16px;height:4px;border-radius:2px;background:' + (i < ci ? "#0c8a4f" : i === ci ? "var(--brand)" : "#d7dae0") + '"></span>'; }).join("") + "</div></div>" +
-        '<div id="ac-card">' + cardHtml(c) + "</div>" +
+      var nextLabel = !last ? "Next ›" : m.check ? (done(m.key) ? "Finish Lesson ›" : "Check Your Understanding ›") : "Finish Lesson ›";
+      return '<div class="card p-6 md:p-8">' + header(m) + '<div id="ac-card">' + cardHtml(c) + "</div>" + tutorHtml(m) +
         '<div class="mt-6 flex items-center justify-between gap-3"><button type="button" class="btn btn-line" data-back' + (mi === 0 && ci === 0 ? ' disabled style="visibility:hidden"' : "") + ">‹ Back</button>" +
-        '<span class="text-[12px] text-ink-400 text-center" id="ac-need">' + (ok ? "" : esc(NEEDS[c.kind] || "")) + "</span>" +
-        '<button type="button" class="btn btn-primary" id="ac-next" data-next' + (ok ? "" : " disabled") + ">" + (last ? "Finish Lesson ›" : "Next ›") + "</button></div></div>";
+        '<span class="text-[12.5px] text-ink-500 text-center" id="ac-need">' + (ok ? "" : esc(NEEDS[c.kind] || "")) + "</span>" +
+        '<button type="button" class="btn btn-primary" id="ac-next" data-next' + (ok ? "" : " disabled") + ">" + nextLabel + "</button></div></div>";
+    }
+
+    /* ---------- the check at the end of a lesson: two real-life situations, graded on the server ---------- */
+    function checkHtml(m) {
+      var k = CK[m.key] || {};
+      if (k.result) {
+        var r = k.result;
+        return '<h3 class="text-[22px] font-semibold text-ink-900">' + (r.passed ? "Lesson mastered ✓" : "Not quite yet") + "</h3>" +
+          '<p class="text-[15px] text-ink-700 mt-2">' + (r.passed ? "You got both situations right. Here's why each answer is right or wrong:" : "You got " + r.right + " of " + r.total + ". Read why each answer is right or wrong, then try again with new situations.") + "</p>" +
+          r.results.map(function (x, qi) {
+            var q = k.q.questions[qi];
+            return '<div class="mt-5"><div class="text-[15px] font-semibold text-ink-900">' + (x.correct ? '<span class="text-ok-600">✓</span> ' : '<span class="text-risk-600">✗</span> ') + esc(q.q) + '</div><div class="mt-2 space-y-1.5">' +
+              x.options.map(function (o, oi) {
+                var mine = oi === x.picked;
+                return '<div class="ac-why ' + (o.ok ? "is-ok" : mine ? "is-bad" : "") + '"><div class="text-[14px] ' + (o.ok ? "font-semibold text-ink-900" : "text-ink-800") + '">' + (o.ok ? "✓ " : "✗ ") + esc(o.t) +
+                  (mine ? ' <span class="ac-tag" style="margin-left:6px">Your answer</span>' : "") + '</div><div class="text-[13px] text-ink-600 mt-0.5">' + esc(o.why) + "</div></div>";
+              }).join("") + "</div></div>";
+          }).join("") +
+          (r.passed ? '<div class="mt-6 flex justify-end"><button type="button" class="btn btn-primary" data-check-continue>Continue ›</button></div>'
+            : '<div class="ac-tans mt-5"><b class="block text-[12px] uppercase tracking-wider text-ink-500 mb-1">Althea · the short version</b>' + esc(r.help || "") + "</div>" +
+              '<div class="mt-5 flex gap-2 flex-wrap justify-end"><button type="button" class="btn btn-line" data-check-review>Review The Lesson</button><button type="button" class="btn btn-primary" data-check-start>Try Again With New Situations</button></div>');
+      }
+      if (k.q) {
+        var n = Object.keys(k.answers).length;
+        return '<h3 class="text-[22px] font-semibold text-ink-900">Check your understanding</h3><p class="text-[14px] text-ink-600 mt-1">' + n + " of " + k.q.questions.length + " answered</p>" +
+          k.q.questions.map(function (q, qi) {
+            return '<fieldset class="mt-5"><legend class="text-[16px] font-semibold text-ink-900 mb-2 leading-snug">' + (qi + 1) + ". " + esc(q.q) + "</legend>" + q.options.map(function (o, i) {
+              return '<label class="flex items-start gap-2.5 px-3.5 py-3 rounded-sm border border-line mb-2 text-[14.5px] cursor-pointer hover:bg-shell"><input type="radio" name="ck-' + esc(q.id) + '" data-ck="' + esc(q.id) + '" value="' + i + '" class="mt-1"' + (k.answers[q.id] === i ? " checked" : "") + "><span>" + esc(o) + "</span></label>";
+            }).join("") + "</fieldset>";
+          }).join("") + '<div class="mt-5 flex justify-between"><button type="button" class="btn btn-line" data-check-review>‹ Back To The Lesson</button><button type="button" class="btn btn-primary" data-check-submit' + (n < k.q.questions.length ? " disabled" : "") + ">Submit Answers</button></div>";
+      }
+      if (done(m.key)) {
+        return '<h3 class="text-[22px] font-semibold text-ink-900">You\'ve mastered this lesson ✓</h3><p class="text-[15px] text-ink-700 mt-2">You can practice the situations again any time.</p>' +
+          '<div class="mt-6 flex gap-2 justify-end"><button type="button" class="btn btn-line" data-check-start>Practice Again</button><button type="button" class="btn btn-primary" data-check-continue>Continue ›</button></div>';
+      }
+      return '<h3 class="text-[22px] font-semibold text-ink-900">Check your understanding</h3>' +
+        '<p class="text-[15.5px] text-ink-700 mt-3 leading-relaxed">' + (C.checkSize || 2) + " real-life situations from this lesson. Get " + ((C.checkSize || 2) === 2 ? "both" : "all") + " right and the lesson counts as mastered. " +
+        "If you miss one, you'll see why, get a simpler explanation, and try again with different situations.</p>" +
+        (C.fails[m.key] ? '<p class="text-[13px] text-warn-600 mt-2">Tried ' + C.fails[m.key] + " time" + (C.fails[m.key] === 1 ? "" : "s") + " so far. Use the Althea buttons below if you'd like it explained another way.</p>" : "") +
+        '<div class="mt-6 flex justify-between"><button type="button" class="btn btn-line" data-check-review>‹ Back To The Lesson</button><button type="button" class="btn btn-primary" data-check-start>Start The Check</button></div>';
     }
     function refreshNext() {
       var c = cur(), b = document.getElementById("ac-next"), n = document.getElementById("ac-need");
@@ -302,7 +390,16 @@
     function renderCard() {
       var box = document.getElementById("ac-card");
       if (!box) return render();
-      box.innerHTML = cardHtml(cur()); refreshNext(); wire();
+      var m = C.modules[mi];
+      box.innerHTML = ci >= m.cards.length ? checkHtml(m) : cardHtml(cur()); refreshNext(); wire();
+    }
+    function renderTutor() { var t = document.getElementById("ac-tutor"); if (t) t.outerHTML = tutorHtml(C.modules[mi]); }
+    function askTutor(mode, question) {
+      var m = C.modules[mi], k = key();
+      TU[k] = { mode: mode, loading: true }; renderTutor();
+      api("POST", "/api/portal/course/althais/tutor", { module: m.key, card: ci < m.cards.length ? ci : null, mode: mode, question: question || "" }).then(function (r) {
+        TU[k] = { mode: mode, answer: r.answer, sources: r.sources }; if (key() === k) renderTutor();
+      }).catch(function (e) { TU[k] = { mode: mode, answer: e.message }; if (key() === k) renderTutor(); });
     }
 
     function quizHtml() {
@@ -313,6 +410,11 @@
           "% to complete the course. Here's what to look at again:</p>" +
           '<div class="mt-3 space-y-2">' + result.missed.map(function (x) { return '<div class="p-3 rounded-sm border border-line bg-shell"><div class="text-[13px] text-ink-900 font-medium">' + esc(x.q) + '</div><div class="text-[12.5px] text-ink-700 mt-1">' + esc(x.concept) + '</div><div class="text-[12px] text-ok-600 mt-1">Best answer: ' + esc(x.correct) + "</div></div>"; }).join("") + "</div>" +
           '<div class="mt-5 flex gap-2"><button type="button" class="btn btn-line" data-mod="0">Review The Lessons</button><button type="button" class="btn btn-primary" data-quiz-start>Try Again</button></div></div>';
+      }
+      if (!quiz && !allMastered()) {
+        var left = lessons().filter(function (m) { return !done(m.key); });
+        return '<div class="card p-6 md:p-8"><h3 class="text-[22px] font-semibold text-ink-900">Almost ready for the final check</h3><p class="text-[15px] text-ink-700 mt-2">Master every lesson first. Still to go:</p>' +
+          '<div class="mt-3 space-y-1.5">' + left.map(function (m) { return '<button type="button" class="w-full text-left px-3 py-2.5 rounded-sm border border-line hover:bg-shell text-[14px]" data-mod="' + C.modules.indexOf(m) + '">' + esc(m.title) + (seen(m.key) && m.check ? ' <span class="text-warn-600 text-[12.5px]">· check not passed yet</span>' : "") + "</button>"; }).join("") + "</div></div>";
       }
       if (!quiz) {
         return '<div class="card p-6"><div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Lesson ' + lessonNo + ' · Knowledge Check</div><h3 class="text-[17px] font-semibold text-ink-900 mt-2">Show what you know</h3>' +
@@ -361,6 +463,13 @@
       refreshNext();
     }
     function wire() {
+      var sb = document.getElementById("ac-sandbox"), c0 = cur();
+      if (sb && c0 && c0.kind === "sandbox" && window.AlthaisPractice) {
+        window.AlthaisPractice.render(sb, c0, { api: api, esc: esc, done: C.practice.done || [], onChange: function (r) {
+          C.practice.done = r.done; C.progress = r.progress || C.progress; refreshNext();
+          if (r.ok && ready(c0, key())) { var nv = el.querySelector(".card.p-3"); if (nv) nv.outerHTML = nav(); }
+        } });
+      }
       var c = cur(), vid = document.getElementById("ac-vid");
       if (!c || c.kind !== "video" || !vid) return;
       if (video && video !== vid) { try { video.pause(); } catch (e) {} }
@@ -427,17 +536,39 @@
     }
     function scrollMsgs() { var m = document.getElementById("ac-msgs"); if (m) m.scrollTop = m.scrollHeight; }
 
+    function recordVisit(m) {
+      return seen(m.key) && (done(m.key) || m.check) ? Promise.resolve() : api("POST", "/api/portal/course/althais/progress", { module: m.key }).then(function (r) { C.progress = r.progress; C.visited = r.visited || C.visited; });
+    }
     function finishModule() {
       var m = C.modules[mi];
-      var p = done(m.key) ? Promise.resolve() : api("POST", "/api/portal/course/althais/progress", { module: m.key }).then(function (r) { C.progress = r.progress; });
-      return p.then(function () { mi = Math.min(mi + 1, C.modules.length - 1); ci = 0; render(); window.scrollTo(0, 0); if (opt.onChange) opt.onChange(); });
+      return recordVisit(m).then(function () {
+        if (m.check && !done(m.key) && ci < m.cards.length) { ci = m.cards.length; render(); window.scrollTo(0, 0); return; }
+        mi = Math.min(mi + 1, C.modules.length - 1); ci = 0; render(); window.scrollTo(0, 0); if (opt.onChange) opt.onChange();
+      });
     }
+    function nextModule() { mi = Math.min(mi + 1, C.modules.length - 1); ci = 0; render(); window.scrollTo(0, 0); if (opt.onChange) opt.onChange(); }
     function go(nci) { ci = nci; render(); var top = el.getBoundingClientRect().top + window.scrollY - 70; if (window.scrollY > top) window.scrollTo(0, top); }
     function stepSpot(c, d) { var v = S(); v.cur = v.cur == null ? 0 : Math.max(0, Math.min(c.spots.length - 1, v.cur + d)); (v.seen = v.seen || {})[v.cur] = 1; renderCard(); }
 
     el.addEventListener("click", function (e) {
       var t, c = C && cur(), v;
       if (e.target.closest("[data-outline]")) { outline = !outline; render(); return; }
+      if ((t = e.target.closest("[data-tutor]"))) { askTutor(t.dataset.tutor); return; }
+      if (e.target.closest("[data-check-review]")) { var mm = C.modules[mi]; delete CK[mm.key]; go(0); return; }
+      if (e.target.closest("[data-check-continue]")) { delete CK[C.modules[mi].key]; nextModule(); return; }
+      if ((t = e.target.closest("[data-check-start]"))) {
+        var km = C.modules[mi].key; t.disabled = true;
+        api("POST", "/api/portal/course/althais/check", { module: km }).then(function (q) { CK[km] = { q: q, answers: {} }; renderCard(); }).catch(function (er) { t.disabled = false; opt.toast(er.message, "error"); });
+        return;
+      }
+      if ((t = e.target.closest("[data-check-submit]")) && !t.disabled) {
+        var ks = C.modules[mi].key, K = CK[ks]; t.disabled = true;
+        api("POST", "/api/portal/course/althais/check/submit", { attempt: K.q.attempt, answers: K.answers }).then(function (r) {
+          K.result = r; C.progress = r.progress; if (!r.passed) C.fails[ks] = r.fails;
+          render(); var top = el.getBoundingClientRect().top + window.scrollY - 70; window.scrollTo(0, Math.max(0, top)); if (opt.onChange) opt.onChange();
+        }).catch(function (er) { t.disabled = false; opt.toast(er.message, "error"); });
+        return;
+      }
       if ((t = e.target.closest("[data-mod]")) && !t.disabled) { outline = false; mi = Number(t.dataset.mod); ci = 0; result = null; if (C.modules[mi].key !== "quiz") quiz = null; render(); return; }
       if ((t = e.target.closest("[data-spot]"))) { v = S(); v.cur = Number(t.dataset.spot); (v.seen = v.seen || {})[v.cur] = 1; renderCard(); return; }
       if ((t = e.target.closest("[data-spot-step]")) && !t.disabled) { stepSpot(c, S().cur == null ? 0 : Number(t.dataset.spotStep)); return; }
@@ -478,13 +609,19 @@
       }
     });
     el.addEventListener("submit", function (e) {
+      if (e.target.closest("[data-tutor-form]")) { e.preventDefault(); var tq = document.getElementById("ac-tq"), qv = tq.value.trim(); if (qv) askTutor("ask", qv); return; }
       if (!e.target.closest("[data-sim-form]")) return;
       e.preventDefault();
       var inp = document.getElementById("ac-sim-in"), q = inp.value.trim(); inp.value = ""; simAsk(q);
     });
     el.addEventListener("change", function (e) {
-      if (quiz && e.target.type === "radio") { quiz.answers[e.target.name] = Number(e.target.value); var qc = document.getElementById("ac-qcount"); if (qc) qc.textContent = Object.keys(quiz.answers).length + " of " + quiz.questions.length + " answered"; }
+      if (quiz && e.target.type === "radio" && !e.target.dataset.ck) { quiz.answers[e.target.name] = Number(e.target.value); var qc = document.getElementById("ac-qcount"); if (qc) qc.textContent = Object.keys(quiz.answers).length + " of " + quiz.questions.length + " answered"; }
       if (e.target.id === "ac-guided") S().guided = e.target.checked;
+      if (e.target.dataset && e.target.dataset.ck) {
+        var K2 = CK[C.modules[mi].key]; if (!K2) return;
+        K2.answers[e.target.dataset.ck] = Number(e.target.value);
+        var sb2 = el.querySelector("[data-check-submit]"); if (sb2) sb2.disabled = Object.keys(K2.answers).length < K2.q.questions.length;
+      }
     });
     /* arrow keys step through a screen tour; one listener, whichever course is mounted */
     if (window.__acKeys) document.removeEventListener("keydown", window.__acKeys);
