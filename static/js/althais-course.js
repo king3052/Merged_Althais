@@ -60,6 +60,7 @@
     ".ac-row .why{display:block;font-size:12px;margin-top:4px;line-height:1.45}",
     ".ac-chat{border:1px solid #e4e6eb;border-radius:12px;background:#fff;overflow:hidden}",
     ".ac-chat-h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #eceef2;font-size:13px;font-weight:600}",
+    ".ac-mark{display:inline-flex;flex-shrink:0}.ac-mark svg{width:100%;height:100%;display:block}",
     ".ac-orb{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.6),transparent 45%),var(--brand);color:#fff;font:700 12px/26px system-ui;text-align:center}",
     ".ac-msgs{height:250px;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#fafbfc}",
     ".ac-me{align-self:flex-end;max-width:80%;padding:7px 11px;border-radius:12px 12px 2px 12px;background:var(--brand);color:var(--brand-on,#fff);font-size:13px}",
@@ -121,6 +122,11 @@
     function meter(n, of, label) {
       return '<div class="mt-3 flex items-center gap-3"><div class="ac-meter flex-1"><i style="width:' + Math.round(100 * n / Math.max(1, of)) + '%"></i></div>' +
              '<span class="text-[11.5px] text-ink-500 whitespace-nowrap">' + n + " of " + of + " " + label + "</span></div>";
+    }
+    /* Althea's logo, the same mark as her launcher in the corner */
+    function mark(px) {
+      var m = window.AltheaUI && window.AltheaUI.MARK;
+      return m ? '<span class="ac-mark" style="width:' + px + "px;height:" + px + 'px">' + m + "</span>" : '<span class="ac-orb">A</span>';
     }
     function yours(on) { return on ? '<span class="ac-tag">Your Part</span>' : ""; }
 
@@ -256,7 +262,7 @@
 
       althea_sim: function (c) {
         var v = S(), msgs = v.msgs || [];
-        return '<div class="mt-4 ac-chat"><div class="ac-chat-h"><span class="ac-orb">A</span>Althea <span class="text-[11px] text-ink-400 font-normal ml-auto">Practice mode · sample answers</span></div>' +
+        return '<div class="mt-4 ac-chat"><div class="ac-chat-h">' + mark(22) + 'Althea <span class="text-[11px] text-ink-400 font-normal ml-auto">Practice mode · sample answers</span></div>' +
           '<div class="ac-msgs" id="ac-msgs">' + (msgs.length ? "" : '<div class="ac-her">Hi, I’m Althea. Ask me something, or tap a suggestion below.</div>') +
           msgs.map(function (m) { return m.me ? '<div class="ac-me">' + esc(m.t) + "</div>" : '<div class="ac-her">' + (m.typing ? '<span class="ac-dots"><span></span><span></span><span></span></span>' : esc(m.t)) + "</div>"; }).join("") + "</div>" +
           '<div class="ac-chips">' + c.prompts.map(function (p, i) { return '<button type="button" data-sim="' + i + '"' + ((v.used || {})[i] ? ' class="is-used"' : "") + ">" + esc(p.q) + "</button>"; }).join("") + "</div>" +
@@ -322,7 +328,7 @@
     function tutorHtml(m) {
       if (!m.tutor) return "";
       var t = TU[key()] || {};
-      return '<div class="ac-tutor mt-6" id="ac-tutor"><div class="flex items-center gap-2 flex-wrap"><span class="ac-orb" style="width:24px;height:24px;line-height:24px;font-size:11px">A</span>' +
+      return '<div class="ac-tutor mt-6" id="ac-tutor"><div class="flex items-center gap-2 flex-wrap">' + mark(22) + '' +
         '<span class="text-[12.5px] font-semibold text-ink-900 mr-1">Ask Althea</span>' +
         [["simple", "Explain this simply"], ["example", "Show an example"], ["walk", "Walk me through it"]].map(function (b) {
           return '<button type="button" class="ac-tbtn' + (t.mode === b[0] ? " is-on" : "") + '" data-tutor="' + b[0] + '">' + b[1] + "</button>"; }).join("") + "</div>" +

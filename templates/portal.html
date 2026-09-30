@@ -467,7 +467,7 @@
       root.innerHTML = `
         <div class="card p-4 mb-4">
           <input id="guide-q" class="fld" style="font-size:14px;padding:9px 12px" placeholder="Search: upload a license, find a patient, denied claim…" value="${esc(GQ)}" aria-label="Search the Althais Guide" autocomplete="off">
-          <form id="guide-ask" class="flex gap-2 mt-3 items-center"><span class="text-[12.5px] font-semibold text-ink-900 whitespace-nowrap">Ask Althea</span>
+          <form id="guide-ask" class="flex gap-2 mt-3 items-center"><span class="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-900 whitespace-nowrap">${window.AltheaUI && AltheaUI.MARK ? `<span style="width:20px;height:20px;display:inline-flex">${AltheaUI.MARK.replace('<svg ', '<svg width="20" height="20" ')}</span>` : ''}Ask Althea</span>
             <input id="guide-ask-q" class="fld flex-1" placeholder="How do I…? Althea answers from your training material." autocomplete="off" aria-label="Ask Althea a how-to question">
             <button class="btn btn-primary" type="submit">Ask</button></form>
           ${GANS ? `<div class="mt-3 p-3 rounded-sm border border-line bg-shell text-[13.5px] leading-relaxed">${GANS.loading ? 'Thinking…' : esc(GANS.answer).replace(/\n/g, '<br>')}

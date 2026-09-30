@@ -220,5 +220,5 @@
     if (window.ResizeObserver) { var ro = new ResizeObserver(ensureFits); ro.observe(foot); ro.observe(head); }
   }
 
-  window.AltheaUI = { mount: mount, supportsVoice: !!SR, SR: SR };
+  window.AltheaUI = { mount: mount, supportsVoice: !!SR, SR: SR, MARK: MARK };   /* MARK: Althea's logo, for anywhere else she appears */
 })();
