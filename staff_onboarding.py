@@ -328,7 +328,7 @@ DEFAULT_TRAININGS = [
      "description": "Passwords, phishing, and keeping devices and records safe."},
     {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "2.0", "validMonths": 0, "url": "",
      "builtIn": True, "passScore": 80,
-     "description": "An interactive course built on the real Althais software: a chaptered demo video, guided screen tours, hands-on practice and a knowledge check, shaped to your role (about 35 minutes)."},
+     "description": "An interactive course built on the real Althais software: a chaptered demo video, guided screen tours, hands-on practice and a knowledge check, shaped to your role (about 40 minutes)."},
 ]
 ALTHAIS_COURSE_VERSION = "2.0"
 DEFAULT_FORM_PREFILL = ["legal_first", "legal_last", "role", "start", "location", "address1", "city", "state", "zip", "phone", "email"]   # althais_training.COURSE_VERSION; bump when the course changes
