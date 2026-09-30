@@ -986,6 +986,8 @@ def _run_sync(db, org):
         enqueue(db, org, kind, payload, key=key)
     staff_changed = sync_billers(db, org, doc)
     staff_changed = evaluate_billers(db, org, doc, data) or staff_changed
+    for p in doc["people"]:
+        staff_changed = so.check_portal_lock(db, org, doc, p) or staff_changed      # anyone who finished while offline
     if staff_changed:
         for p in doc["people"]:
             so.refresh(p)
@@ -1570,6 +1572,7 @@ def _billers_json(db, org, doc):
         uid = user_for_person(db, org, p["id"])
         a = access_row(db, org, uid) if uid else None
         out.append({"personId": p["id"], "name": p.get("name", ""), "lifecycle": so.LIFECYCLE_LABELS.get(p.get("lifecycle"), ""),
+                    "lock": so.lock_view(doc, p),
                     "checklist": biller_checklist(doc, p), "access": a.status if a else ("NO_LOGIN" if not uid else "PENDING"),
                     "grantedVia": a.granted_via if a else "", "grantedBy": a.granted_by if a else "", "grantedAt": _iso(a.granted_at.date()) if a and a.granted_at else ""})
     return out
@@ -2108,14 +2111,16 @@ async def portal_practice(request: Request, user: User = Depends(require_user), 
     if not p or _family(p.get("role", "")) != "biller":
         raise HTTPException(status_code=403, detail="The practice claim is part of biller onboarding.")
     ok, msg = check_practice((await request.json()).get("claim"))
+    unlocked = False
     if ok and so._find(p["requirements"], "billing_practice_claim"):
         so.set_task(p, "billing_practice_claim", "COMPLETE", actor=p.get("name", ""))
+        unlocked = so.check_portal_lock(db, org, doc, p)
         so.refresh(p)
         so.save_staff(db, org, row, doc)
         request_sync(db, org, "practice claim")
     so.audit(db, org, user, "billing_practice_claim", p, "training", "billing_practice_claim", "Passed" if ok else "Tried")
     db.commit()
-    return {"ok": ok, "message": msg}
+    return {"ok": ok, "message": msg, "unlocked": unlocked}
 
 
 # ── inbound status from a clearinghouse ──

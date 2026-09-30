@@ -1054,6 +1054,7 @@ async def quiz_submit(request: Request, user: User = Depends(require_user), db: 
                  expires=(today + dt.timedelta(days=round(months * 30.44))).isoformat() if months else "")
         so.set_task(p, t["key"], "COMPLETE", note="")
         so.audit(db, org_key, user, "training_completed", p, "training", r["id"], f"Completed Althais Training v{COURSE_VERSION} ({score}%)")
+        result["unlocked"] = so.check_portal_lock(db, org_key, doc, p)
         so.refresh(p)
         so.save_staff(db, org_key, row, doc)
         result.update(completed=today.isoformat(), version=COURSE_VERSION, name=p.get("name", ""))

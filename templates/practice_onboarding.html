@@ -462,6 +462,8 @@
       A.push(['Change Role', 'btn-line', changeRole]);
       if (!['SUSPENDED', 'OFFBOARDED'].includes(lc)) A.push(['Edit Requirements', 'btn-line', editRequirements]);
       A.push(['Edit Details', 'btn-line', editDetails]);
+      if (DETAIL.portalLock) A.push(['Unlock Althais', 'btn-primary', unlockPortal]);
+      else if (['ACTIVE', 'INVITE_ACCEPTED', 'ONBOARDING', 'PENDING_REVIEW'].includes(lc)) A.push(['Send To Training', 'btn-line', lockDialog]);
       if (['ACTIVE', 'INVITE_ACCEPTED', 'ONBOARDING', 'PENDING_REVIEW'].includes(lc)) A.push(['Suspend', 'btn-risk', () => setStatus('suspend')]);
       if (!['OFFBOARDED'].includes(lc)) A.push(['Offboard', 'btn-risk', offboardDialog]);
       if (['SUSPENDED', 'OFFBOARDED'].includes(lc)) A.push(['Reactivate', 'btn-primary', () => setStatus('reactivate')]);
@@ -469,7 +471,7 @@
       A.forEach(([l, c, fn]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + c; b.style.cssText = 'padding:4px 9px;font-size:11.5px'; b.textContent = l; b.onclick = fn; $('d-actions').appendChild(b); });
 
       document.querySelectorAll('.dtab').forEach(b => b.classList.toggle('is-on', b.dataset.tab === tab));
-      $('d-body').innerHTML = { checklist: renderChecklist, documents: renderDocuments, info: renderInfo, activity: renderActivity }[tab]();
+      $('d-body').innerHTML = lockBanner() + { checklist: renderChecklist, documents: renderDocuments, info: renderInfo, activity: renderActivity }[tab]();
     }
 
     function offboardingHtml() {
@@ -589,6 +591,30 @@
     function cancelInvite() {
       if (!confirm('Cancel this invitation? The link stops working right away. You can send a new one later.')) return;
       act(() => api('POST', `/api/staff/onboarding/people/${activeId}/invite/cancel`), 'Invitation cancelled');
+    }
+    // ── keep someone in their Staff Portal until they finish training ──
+    function lockBanner() {
+      const L = DETAIL.portalLock; if (!L) return '';
+      return `<div class="mb-3 p-3 rounded-sm border border-warn-600/30 bg-warn-100 text-[12.5px] text-ink-800"><b>Kept in the Staff Portal</b> until they ${esc(L.reason)}.
+        ${L.steps.length ? '<div class="mt-1">' + L.steps.map(s => `${s.done ? '✓' : '○'} ${esc(s.title)}`).join(' · ') + '</div>' : ''}
+        <div class="text-[11.5px] text-ink-500 mt-1">By ${esc(L.by)} on ${esc(S.fmtDate(L.at))}${L.mode === 'manual' ? '. Only a manager can unlock it.' : '. Access comes back automatically when they finish.'}</div></div>`;
+    }
+    function lockDialog() {
+      const p = DETAIL.person;
+      modal('Send To Training', `
+        <p class="text-[12.5px] text-ink-700">${esc(p.name)} will only be able to use their Staff Portal. The EMR and everything else is blocked until they're done. They get an email saying what's left.</p>
+        <label class="lbl mt-3" for="m-lock">Until they</label><select id="m-lock" class="fld">
+          ${DETAIL.isBiller ? '<option value="billing">Finish their billing training (Althais Training, practice claim, acknowledgment)</option>' : ''}
+          <option value="training">Finish Althais Training</option><option value="manual">I unlock it myself</option></select>
+        <label class="lbl mt-3" for="m-lock-note">Note (optional, kept in the activity log)</label><input id="m-lock-note" class="fld" maxlength="300">`,
+        [['Cancel', 'btn-line', closeModal], ['Send To Training', 'btn-primary', async () => {
+          await act(() => api('POST', `/api/staff/onboarding/people/${activeId}/portal-lock`, { action: 'lock', mode: $('m-lock').value, note: $('m-lock-note').value }), 'Sent to training');
+          closeModal();
+        }]]);
+    }
+    function unlockPortal() {
+      if (!confirm(`Give ${DETAIL.person.name} their Althais access back now? It's restored to what their role allows.`)) return;
+      act(() => api('POST', `/api/staff/onboarding/people/${activeId}/portal-lock`, { action: 'unlock' }), 'Access restored');
     }
     function setStatus(action) {
       const p = DETAIL.person;

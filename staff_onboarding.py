@@ -1490,6 +1490,7 @@ def person_detail(pid: str, user: User = Depends(require_user), db: Session = De
             "credentials": [c for c in doc["credentials"] if c.get("personId") == pid],
             "trainings": [t for t in doc["trainings"] if t.get("personId") == pid],
             "access": role_access(doc, p.get("role", "")),
+            "portalLock": lock_view(doc, p), "isBiller": _family_of(p.get("role", "")) == "biller",
             "membership": {"status": m.status, "appAccess": bool(m.app_access), "role": m.role} if m else None,
             "events": [{"at": _iso(e.created_at), "by": e.actor_name, "action": e.action, "detail": e.detail} for e in events]}
 
@@ -1724,10 +1725,125 @@ def _apply_access(db: Session, org_key: str, doc: dict, p: dict, actor) -> dict:
     m = _staff_membership(db, org_key, p)
     if m and m.kind == "staff":
         m.app_access, m.role, m.blocked, m.status = 1 if access["app_access"] else 0, access["role"], access["blocked"], "active"
+        if p.get("portalLock"):
+            m.app_access = 0        # locked to the Staff Portal until they finish training: nothing reopens it early
         sync_if_active(db, p["userId"], m)
         opened = ", ".join(a for a in access["areas"]) or "Staff Portal only"
         audit(db, org_key, actor, "permissions_changed", p, "membership", m.id, f"Althais access set from the {p.get('role')} role: {opened}")
     return access
+
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Staff Portal lock: keep someone in their Staff Portal until they finish training
+# ──────────────────────────────────────────────────────────────────────────
+LOCK_MODES = {"billing": "finish your billing training", "training": "finish Althais Training", "manual": "your manager unlocks it"}
+
+
+def _family_of(role: str) -> str:
+    import althais_training
+    return althais_training._role_family(role)
+
+
+def lock_steps(doc: dict, p: dict, mode: str) -> list:
+    """What unlocks them. Billers: training, practice claim and acknowledgment. Everyone else: Althais Training."""
+    rec = next((r for r in doc["trainings"] if r.get("personId") == p["id"] and r.get("trainingKey") == "althais_training"), {})
+    task = lambda k: (_find(p["requirements"], k) or {}).get("status") == "COMPLETE"
+    steps = [{"key": "althais_training", "title": "Finish Althais Training", "done": bool(rec.get("completed")), "link": "#course"}]
+    if mode == "billing":
+        steps += [{"key": "billing_practice_claim", "title": "Build the practice claim", "done": task("billing_practice_claim"), "link": "#billing"},
+                  {"key": "billing_ack", "title": "Acknowledge claim submission responsibilities", "done": task("billing_ack"), "link": "#forms"}]
+    return steps
+
+
+def lock_view(doc: dict, p: dict):
+    lk = p.get("portalLock")
+    if not lk:
+        return None
+    return {"mode": lk["mode"], "reason": LOCK_MODES.get(lk["mode"], ""), "note": lk.get("note", ""), "by": lk.get("by", ""), "at": lk.get("at", ""),
+            "steps": lock_steps(doc, p, lk["mode"]) if lk["mode"] != "manual" else []}
+
+
+def _ensure_lock_items(db, org_key, doc, p, mode):
+    have = {t["key"] for t in p["requirements"]}
+    add = [] if "althais_training" in have else [_item_from_catalog("althais_training", p.get("role", ""))]
+    if add:
+        p["requirements"] = build_tasks(p, p["requirements"] + add)
+        for t in p["requirements"]:
+            if t.get("type") == "training":
+                training_record(doc, p, t)
+    if mode == "billing":
+        import billing_activation
+        billing_activation.sync_billers(db, org_key, doc)
+
+
+def _unlock(db, org_key, doc, p, actor, why):
+    lk = p.pop("portalLock", None)
+    m = _staff_membership(db, org_key, p)
+    if m:
+        if m.kind == "staff" and p.get("lifecycle") == "ACTIVE":
+            _apply_access(db, org_key, doc, p, actor)
+        elif m.kind != "staff":
+            m.app_access = 1 if (lk or {}).get("prevAppAccess", 1) else 0
+            sync_if_active(db, m.user_id, m)
+    audit(db, org_key, actor, "portal_unlocked", p, "person", p["id"], why)
+    if p.get("email"):
+        send_email(p["email"], "Your Althais access is back", _email_html("Your Althais access is back",
+                   "Thanks for finishing your training. The rest of Althais is open to you again, as your role allows.",
+                   f"{(os.environ.get('APP_URL') or 'https://app.althais.com').rstrip('/')}/", "Open Althais"))
+
+
+def check_portal_lock(db, org_key, doc, p, actor=None) -> bool:
+    """Unlock automatically once every step is done (never for a manual lock). Returns True when it unlocked."""
+    lk = p.get("portalLock")
+    if not lk or lk.get("mode") == "manual":
+        return False
+    if all(s["done"] for s in lock_steps(doc, p, lk["mode"])):
+        _unlock(db, org_key, doc, p, actor, "Finished " + ("billing training" if lk["mode"] == "billing" else "Althais Training") + "; access restored automatically")
+        return True
+    return False
+
+
+@router.post("/api/staff/onboarding/people/{pid}/portal-lock")
+async def portal_lock(pid: str, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """lock | unlock. Locking keeps them in their Staff Portal (the EMR and every other page is blocked on the server)."""
+    org_key, row, doc, p = _manager_person(user, db, pid)
+    body = await request.json()
+    action = body.get("action")
+    m = _staff_membership(db, org_key, p)
+    if m and m.user_id == user.id:
+        return _err("You can’t lock yourself out.")
+    who = _actor_name(user)
+    if action == "lock":
+        mode = body.get("mode") or ("billing" if _family_of(p.get("role", "")) == "biller" else "training")
+        if mode not in LOCK_MODES:
+            return _err("Choose billing training, Althais Training or a manual lock.")
+        if mode == "billing" and _family_of(p.get("role", "")) != "biller":
+            return _err("Billing training is only for staff with the Biller role.")
+        if p.get("lifecycle") in ("SUSPENDED", "OFFBOARDED"):
+            return _err("They’re suspended or offboarded, so they can’t sign in anyway.")
+        _ensure_lock_items(db, org_key, doc, p, mode)
+        if mode != "manual" and all(st["done"] for st in lock_steps(doc, p, mode)):
+            return _err("They’ve already finished everything this would ask for.")
+        p["portalLock"] = {"mode": mode, "note": str(body.get("note") or "").strip()[:300], "by": who, "at": _today().isoformat(),
+                           "prevAppAccess": int(m.app_access) if m else 1}
+        if m:
+            m.app_access = 0
+            sync_if_active(db, m.user_id, m)
+        audit(db, org_key, user, "portal_locked", p, "person", pid, f"Kept in the Staff Portal until they {LOCK_MODES[mode]}")
+        if p.get("email"):
+            send_email(p["email"], "Please finish your training in Althais", _email_html("Please finish your training",
+                       f"Your clinic has asked you to {_html.escape(LOCK_MODES[mode])} before using the rest of Althais. "
+                       "Your Staff Portal shows exactly what's left. Everything else opens again as soon as you're done.",
+                       f"{(os.environ.get('APP_URL') or 'https://app.althais.com').rstrip('/')}/portal", "Open Staff Portal"))
+    elif action == "unlock":
+        if not p.get("portalLock"):
+            return {"ok": True}
+        _unlock(db, org_key, doc, p, user, f"Unlocked by {who}")
+    else:
+        return _err("Unknown action.")
+    refresh(p)
+    save_staff(db, org_key, row, doc)
+    return {"ok": True, "lock": lock_view(doc, p)}
 
 
 @router.get("/api/staff/onboarding/people/{pid}/activation")
@@ -2214,6 +2330,9 @@ def _group_of(t: dict) -> str:
 def portal_me(user: User = Depends(require_user), db: Session = Depends(get_db)):
     org_key, m, row, doc, p = portal_ctx(user, db)
     run_reminders(db, org_key, doc, row)
+    if check_portal_lock(db, org_key, doc, p):
+        save_staff(db, org_key, row, doc)
+        db.refresh(m)
     refresh(p)
     mine = [t for t in p["requirements"] if t.get("owner") != "manager"]
     groups = []
@@ -2235,7 +2354,7 @@ def portal_me(user: User = Depends(require_user), db: Session = Depends(get_db))
                    "role": p.get("role", ""), "location": p.get("location", ""), "start": p.get("start", ""),
                    "employment": p.get("employment", ""), "supervisor": p.get("supervisor", ""), "lifecycle": p["lifecycle"],
                    "label": LIFECYCLE_LABELS[p["lifecycle"]]},
-        "appAccess": bool(m.app_access), "progress": progress(p), "groups": groups, "nextSteps": todo[:4],
+        "appAccess": bool(m.app_access), "portalLock": lock_view(doc, p), "progress": progress(p), "groups": groups, "nextSteps": todo[:4],
         "tasks": [t for t in _tasks_json(p) if t.get("owner") != "manager"],
         "managerTasks": [{"title": t["title"], "status": effective_status(t)} for t in p["requirements"] if t.get("owner") == "manager"],
         "info": {"personal": info["personal"], "emergency": info["emergency"], "professional": info["professional"],
@@ -2608,6 +2727,7 @@ async def portal_form(key: str, request: Request, user: User = Depends(require_u
         set_task(p, key, "COMPLETE", note="")
         audit(db, org_key, user, "form_completed", p, "form", key,
               f"{'Signed' if signature else 'Acknowledged'} {form.get('title') or t['title']} (version {t['version']})")
+        check_portal_lock(db, org_key, doc, p)
     else:
         return _err("Unknown action.")
     refresh(p)

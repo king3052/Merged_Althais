@@ -454,6 +454,16 @@
 
     // ---------------------------------------------------------------- render + events
     function route() { return (location.hash || '#home').slice(1).split('?')[0]; }
+    // your clinic kept you in the Staff Portal until you finish training: say exactly what's left
+    function lockBanner(r) {
+      const L = ME && ME.portalLock; if (!L || r === 'course') return '';
+      const left = L.steps.filter(s => !s.done);
+      return `<div class="card mb-4 p-4" style="border-color:var(--brand);box-shadow:inset 3px 0 var(--brand)"><div class="text-[14px] font-semibold text-ink-900">Finish your training to use the rest of Althais</div>
+        <p class="text-[12.5px] text-ink-600 mt-1">Your clinic asked you to ${esc(L.reason)} first.${L.note ? ' Note from your manager: ' + esc(L.note) : ''} Everything else opens again as soon as you're done.</p>
+        ${L.steps.length ? `<div class="mt-2 space-y-1.5">${L.steps.map(s => `<div class="flex items-center gap-2 text-[13px]"><span class="check ${s.done ? 'ok' : ''}" style="width:18px;height:18px">${s.done ? '✓' : ''}</span><span class="${s.done ? 'text-ink-500 line-through' : 'text-ink-900'}">${esc(s.title)}</span>${s.done ? '' : `<a class="btn btn-primary ml-auto" style="padding:4px 10px" href="${esc(s.link)}">Go</a>`}</div>`).join('')}</div>`
+          : '<p class="text-[12.5px] text-ink-500 mt-2">Your manager will unlock it.</p>'}
+        ${left.length === 0 && L.steps.length ? '<p class="text-[12.5px] text-ok-600 mt-2">All done. Refresh to open Althais.</p>' : ''}</div>`;
+    }
 
     // ---------------------------------------------------------------- Billing: the biller's checklist and practice claim, providers' requests
     let BILL = null, PC = { cpts: [], pointers: {} }, PCMSG = null;
@@ -582,7 +592,7 @@
         el.className = left ? 'count-pill med' : 'text-ok-600 text-[12px]'; el.textContent = l.length ? (left || '✓') : '';
       });
       document.body.classList.toggle('is-course', r === 'course');
-      $('main').innerHTML = PAGES[r]();
+      $('main').innerHTML = lockBanner(r) + PAGES[r]();
       if (r === 'course') {
         document.querySelector('[data-nav="training"]').classList.add('is-on');
         const qp = new URLSearchParams((location.hash.split('?')[1]) || '');
