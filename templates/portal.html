@@ -252,6 +252,12 @@
             <div class="min-w-0"><span class="text-ink-900">${v ? esc(fmtv(v)) : '<span class="text-ink-400">—</span>'}</span>
             ${v && pv.source ? ` <span class="text-[11px] ${pv.verified ? 'text-ok-600' : 'text-ink-400'}">${esc(pv.source)}${pv.verified ? ' · verified' : ''}</span>` : ''}</div></div>`;
         };
+        const renewLine = (r) => `<a href="#${r.section}" class="flex items-start gap-2 py-1.5 hover:bg-shell -mx-2 px-2 rounded-sm">${mark(r.days < 0 ? 'OVERDUE' : 'IN_PROGRESS')}
+            <div><div class="text-[13px] font-medium text-ink-900">Upload your renewed ${esc(r.title)}</div>
+            <div class="text-[11.5px] ${r.days < 0 ? 'text-risk-600' : 'text-warn-600'}">${r.days < 0 ? 'Expired ' : 'Expires '}${esc(S.fmtDate(r.expires))}</div></div></a>`;
+        const todayHtml = ((now.length || renewNow.length) ? now.map(line).join('') + renewNow.map(renewLine).join('')
+                                                            : '<div class="text-[13px] text-ok-600 font-semibold">✓ Nothing due today</div>')
+          + (soon.length ? '<div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mt-3 mb-1">This Week</div>' + soon.map(line).join('') : '');
         const addr = [per.address1, per.address2, [per.city, per.state].filter(Boolean).join(', '), per.zip].filter(Boolean).join(' ');
         const creds = ME.credentials || [], trains = ME.trainingRecords || [], docs = (ME.documents || []).filter(d => d.status === 'VERIFIED' && !d.superseded);
         const forms = ME.tasks.filter(t => t.type === 'form' && t.status === 'COMPLETE');
@@ -272,9 +278,7 @@
           </div>
           <div class="grid gap-4 lg:grid-cols-2 items-start">
             <div>
-              ${card('Today', (now.length || renewNow.length) ? now.map(line).join('') + renewNow.map(r => `<a href="#${r.section}" class="flex items-start gap-2 py-1.5 hover:bg-shell -mx-2 px-2 rounded-sm">${mark(r.days < 0 ? 'OVERDUE' : 'IN_PROGRESS')}
-                  <div><div class="text-[13px] font-medium text-ink-900">Upload your renewed ${esc(r.title)}</div><div class="text-[11.5px] ${r.days < 0 ? 'text-risk-600' : 'text-warn-600'}">${r.days < 0 ? 'Expired ' : 'Expires '}${esc(S.fmtDate(r.expires))}</div></div></a>`).join('')
-                : `<div class="text-[13px] text-ok-600 font-semibold">✓ Nothing due today</div>`) + (soon.length ? `<div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mt-3 mb-1">This Week</div>${soon.map(line).join('')}` : ''))}
+              ${card('Today', todayHtml)}
               ${card(`Still Missing (${open.length})`, open.length ? open.map(line).join('') : '<div class="text-[13px] text-ok-600 font-semibold">✓ Nothing missing</div>', '<a href="#tasks" class="text-[12px] font-semibold text-med-600">All Tasks</a>')}
               ${card('Credentials', creds.length ? creds.map(c => { const days = S.daysUntil(c.expires); const st = c.status === 'archived' ? 'Archived' : days != null && days < 0 ? 'Expired' : days != null && days <= 30 ? 'Expiring Soon' : 'Active';
                   return `<div class="py-1.5 border-b border-lineSoft last:border-0"><div class="flex justify-between gap-2"><span class="text-[13px] font-semibold text-ink-900">${esc(c.label)}</span>${S.pill(st === 'Active' ? 'Verified' : st)}</div>
