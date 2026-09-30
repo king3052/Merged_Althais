@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accept Invitation | Althais</title>
+  <meta name="robots" content="noindex" />
+  <meta name="referrer" content="no-referrer" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <script src="/static/js/theme.js"></script>
+  <link rel="stylesheet" href="/static/althais-landing.css" />
+  <link rel="stylesheet" href="/static/althais-auth.css" />
+  <link rel="stylesheet" href="/static/althais-dark.css" />
+  <style>
+    .inv-details { display:grid; grid-template-columns:110px 1fr; gap:6px 12px; font-size:14px; margin:0 0 22px; padding:14px 16px; border:1px solid rgba(127,127,127,.25); border-radius:10px; }
+    .inv-details dt { opacity:.6; } .inv-details dd { margin:0; font-weight:600; }
+  </style>
+</head>
+<body class="login-page">
+<div class="lg-shell">
+  <section class="lg-left">
+    <header class="lg-top">
+      <a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+    </header>
+
+    <main class="lg-main">
+      <div class="lg-form">
+        <div class="eyebrow">Staff Invitation</div>
+        <h1 class="lg-title" id="title">Loading your<br /><span class="em">invitation…</span></h1>
+        <p class="lg-sub" id="sub"></p>
+
+        <div id="msg" class="lg-msg" role="alert" hidden></div>
+        <dl class="inv-details" id="details" hidden></dl>
+
+        <form id="form" novalidate hidden>
+          <div class="field">
+            <label for="f-email">Email</label>
+            <input id="f-email" type="email" disabled />
+          </div>
+          <div class="field" id="name-field" hidden>
+            <label for="f-name">Your full name</label>
+            <input id="f-name" type="text" autocomplete="name" />
+          </div>
+          <div class="field" id="pw-field">
+            <div class="field-row"><label for="f-password" id="pw-label">Password</label><a href="/forgot-password" id="forgot" class="lg-forgot" hidden>Forgot Password</a></div>
+            <div class="pw"><input id="f-password" type="password" /></div>
+            <p id="pw-hint" class="lg-hint" hidden>Use at least 8 characters.</p>
+          </div>
+          <button id="submit" type="submit" class="btn btn-dark btn-lg lg-submit">
+            <span>Accept Invitation</span>
+            <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </button>
+        </form>
+
+        <form id="signout" method="POST" action="/logout" hidden><button type="submit" class="btn btn-dark btn-lg lg-submit"><span>Sign Out</span></button></form>
+        <p class="lg-switch" id="to-login" hidden><a class="lg-link" href="/login">Go To Sign In</a></p>
+      </div>
+    </main>
+    <footer class="lg-foot">&copy; 2026 Althais Health, Inc.</footer>
+  </section>
+</div>
+
+<script>
+  (function () {
+    const token = {{ token | tojson }};
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const fmt = (iso) => { const d = new Date(iso + "T00:00:00"); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); };
+    function say(text, bad) { const m = $("msg"); m.textContent = text; m.hidden = false; m.classList.toggle("is-error", !!bad); }
+    let info = null, mode = "new";
+
+    fetch("/api/invitations/" + encodeURIComponent(token), { credentials: "same-origin" })
+      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!ok) {
+          $("title").innerHTML = 'This invitation<br /><span class="em">can’t be used.</span>';
+          say(j.error || "This invitation isn’t valid.", true);
+          $("to-login").hidden = false;
+          return;
+        }
+        info = j;
+        $("title").innerHTML = 'You’re invited to join<br /><span class="em">' + esc(j.clinic) + '.</span>';
+        $("sub").textContent = (j.invitedBy ? j.invitedBy + " invited you" : "You’ve been invited") + " to complete your onboarding on Althais.";
+        $("details").innerHTML = "<dt>Clinic</dt><dd>" + esc(j.clinic) + "</dd><dt>Role</dt><dd>" + esc(j.role || "—") + "</dd>" + (j.start ? "<dt>Start Date</dt><dd>" + esc(fmt(j.start)) + "</dd>" : "");
+        $("details").hidden = false;
+        if (j.signedInAs && j.signedInAs.toLowerCase() !== j.email.toLowerCase()) {
+          say("You’re signed in as " + j.signedInAs + ", but this invitation is for " + j.email + ". Sign out, then open the link again.", true);
+          $("signout").hidden = false;
+          return;
+        }
+        $("f-email").value = j.email;
+        $("form").hidden = false;
+        if (j.signedInAs) { mode = "signed-in"; $("pw-field").hidden = true; }
+        else if (j.accountExists) {
+          mode = "existing";
+          $("sub").textContent += " You already have an Althais account, so sign in to add " + j.clinic + " to it.";
+          $("pw-label").textContent = "Your Althais password"; $("f-password").autocomplete = "current-password"; $("forgot").hidden = false;
+        } else {
+          $("name-field").hidden = false; $("f-name").value = j.name || "";
+          $("pw-label").textContent = "Create a password"; $("f-password").autocomplete = "new-password"; $("pw-hint").hidden = false;
+        }
+      })
+      .catch(() => say("Couldn’t reach Althais. Check your connection and reload.", true));
+
+    $("form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const password = $("f-password").value, fullName = $("f-name").value.trim();
+      if (mode === "new" && !fullName) { $("f-name").focus(); return say("Add your full name.", true); }
+      if (mode === "new" && password.length < 8) { $("f-password").focus(); return say("Use at least 8 characters for your password.", true); }
+      if (mode === "existing" && !password) { $("f-password").focus(); return say("Enter your password.", true); }
+      $("submit").disabled = true;
+      fetch("/api/invitations/accept", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password, fullName }) })
+        .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+        .then(({ ok, j }) => { if (ok) { location.href = j.redirect || "/portal"; } else { say(j.error || "Couldn’t accept the invitation.", true); $("submit").disabled = false; } })
+        .catch(() => { say("Couldn’t reach Althais. Try again.", true); $("submit").disabled = false; });
+    });
+  })();
+</script>
+</body>
+</html>

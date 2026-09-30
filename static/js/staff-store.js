@@ -17,17 +17,23 @@
   "use strict";
 
   /* ---------- reference data ---------- */
-  var ROLES_LIST = ["Physician", "Nurse", "Medical Assistant", "Biller", "Practice Manager", "Volunteer", "Student", "Administrator"];
+  var ROLES_LIST = ["Physician", "NP / PA", "Nurse", "Medical Assistant", "Front Desk", "Biller", "Practice Manager", "Volunteer", "Student", "Administrator"];
   var EMPLOYMENT_TYPES = ["Full-Time", "Part-Time", "Volunteer", "Contractor"];
 
   var REQUIREMENT_LABELS = {
     personal: "Personal Information", role_info: "Employment / Volunteer Role", hipaa: "HIPAA Training",
     bls: "BLS / CPR Certification", license: "Professional License", immunizations: "Immunization Records",
     background: "Background Check", gov_id: "Government-Issued ID", policies: "Signed Clinic Policies",
-    emergency_contact: "Emergency Contact", location: "Assigned Location", access: "System Access & Permissions"
+    emergency_contact: "Emergency Contact", location: "Assigned Location", access: "Althais Permissions",
+    /* added by Staff Onboarding (staff_onboarding.py CATALOG); a person's own task titles win where they have them */
+    professional: "Professional Information", dea: "DEA Registration", security_training: "Security Awareness Training",
+    althais_training: "Althais Training", confidentiality: "Confidentiality Agreement", handbook: "Employee Handbook Acknowledgment",
+    security_policy: "Security Policy", ehr_access: "EHR Access", manager_review: "Manager Review"
   };
   var ROLE_REQUIREMENTS = {
     "Physician":         ["personal", "role_info", "license", "bls", "hipaa", "background", "immunizations", "gov_id", "policies", "emergency_contact", "location", "access"],
+    "NP / PA":           ["personal", "role_info", "license", "bls", "hipaa", "background", "immunizations", "gov_id", "policies", "emergency_contact", "location", "access"],
+    "Front Desk":        ["personal", "role_info", "hipaa", "background", "gov_id", "policies", "emergency_contact", "location", "access"],
     "Nurse":             ["personal", "role_info", "license", "bls", "hipaa", "background", "immunizations", "gov_id", "policies", "emergency_contact", "location", "access"],
     "Medical Assistant": ["personal", "role_info", "bls", "hipaa", "background", "immunizations", "gov_id", "policies", "emergency_contact", "location", "access"],
     "Biller":            ["personal", "role_info", "hipaa", "background", "gov_id", "policies", "emergency_contact", "access"],
@@ -72,9 +78,12 @@
     { key: "compliance", label: "Compliance" }, { key: "settings", label: "Settings" }
   ];
   var DEFAULT_ROLES = [
+    /* keep in step with DEFAULT_ROLES in staff_onboarding.py */
     { name: "Physician",         perms: { patients: 1, notes: 1, coding: 1, claims: 1, revenue: 0, staff: 0, compliance: 0, settings: 0 } },
+    { name: "NP / PA",           perms: { patients: 1, notes: 1, coding: 1, claims: 1, revenue: 0, staff: 0, compliance: 0, settings: 0 } },
     { name: "Nurse",             perms: { patients: 1, notes: 1, coding: 0, claims: 0, revenue: 0, staff: 0, compliance: 0, settings: 0 } },
     { name: "Medical Assistant", perms: { patients: 1, notes: 1, coding: 0, claims: 0, revenue: 0, staff: 0, compliance: 0, settings: 0 } },
+    { name: "Front Desk",        perms: { patients: 1, notes: 0, coding: 0, claims: 0, revenue: 0, staff: 0, compliance: 0, settings: 0 } },
     { name: "Biller",            perms: { patients: 1, notes: 0, coding: 1, claims: 1, revenue: 1, staff: 0, compliance: 0, settings: 0 } },
     { name: "Practice Manager",  perms: { patients: 1, notes: 0, coding: 0, claims: 1, revenue: 1, staff: 1, compliance: 1, settings: 1 } },
     { name: "Volunteer",         perms: { patients: 0, notes: 0, coding: 0, claims: 0, revenue: 0, staff: 0, compliance: 0, settings: 0 } },
@@ -172,12 +181,22 @@
       return keep[key] || { key: key, done: false };
     });
   }
+  /* optional requirements (required: false) don't count toward progress */
   function progress(p) {
-    var total = p.requirements.length, done = p.requirements.filter(function (r) { return r.done; }).length;
-    return total ? Math.round((done / total) * 100) : 0;
+    var req = p.requirements.filter(function (r) { return r.required !== false; });
+    var done = req.filter(function (r) { return r.done; }).length;
+    return req.length ? Math.round((done / req.length) * 100) : 0;
   }
+  /* people added through Staff Onboarding carry a lifecycle (staff_onboarding.py LIFECYCLE_LABELS) */
+  var LIFECYCLE_LABELS = { DRAFT: "Draft", INVITED: "Invite Sent", INVITE_ACCEPTED: "Onboarding", ONBOARDING: "Onboarding",
+    PENDING_REVIEW: "Needs Review", ACTIVE: "Active", SUSPENDED: "Suspended", OFFBOARDED: "Offboarded" };
   /* onboarding pipeline status; people who finished onboarding are "Active" or "Inactive" */
   function status(p) {
+    if (p.lifecycle && LIFECYCLE_LABELS[p.lifecycle]) {
+      if (p.status === "active") return "Active";
+      if (p.status === "inactive" && p.lifecycle !== "SUSPENDED" && p.lifecycle !== "OFFBOARDED") return "Inactive";
+      return LIFECYCLE_LABELS[p.lifecycle];
+    }
     if (p.status === "active") return "Active";
     if (p.status === "inactive") return "Inactive";
     var pct = progress(p);
@@ -206,6 +225,8 @@
   }
   var PILL = {
     "Invited": "background:#eceef2;color:#4a505c", "In Progress": "background:var(--brand-100);color:var(--brand-text-strong)", "Needs Review": "background:#fff0d6;color:#b86a00",
+    "Draft": "background:#eceef2;color:#4a505c", "Invite Sent": "background:#eceef2;color:#4a505c", "Onboarding": "background:var(--brand-100);color:var(--brand-text-strong)",
+    "Suspended": "background:#fff0d6;color:#b86a00", "Offboarded": "background:#eceef2;color:#4a505c", "Invite Expired": "background:#ffe1e1;color:#c83838",
     "Active": "background:#d8f5e3;color:#0c8a4f", "Inactive": "background:#eceef2;color:#4a505c",
     "Verified": "background:#d8f5e3;color:#0c8a4f", "Pending Verification": "background:var(--brand-100);color:var(--brand-text-strong)", "Expiring Soon": "background:#fff0d6;color:#b86a00",
     "Expired": "background:#ffe1e1;color:#c83838", "Rejected": "background:#ffe1e1;color:#c83838",
@@ -257,7 +278,7 @@
     var el = document.getElementById("staff-toast");
     if (!el) {
       el = document.createElement("div"); el.id = "staff-toast";
-      el.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;padding:9px 14px;border-radius:6px;font-size:12.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:opacity .2s;opacity:0;pointer-events:none;";
+      el.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:300;padding:9px 14px;border-radius:6px;font-size:12.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:opacity .2s;opacity:0;pointer-events:none;";
       document.body.appendChild(el);
     }
     el.style.background = tone === "error" ? "#c83838" : "#0f1116"; el.style.color = "#fff";
@@ -293,7 +314,7 @@
   }
 
   window.StaffStore = {
-    ROLES_LIST: ROLES_LIST, EMPLOYMENT_TYPES: EMPLOYMENT_TYPES, REQUIREMENT_LABELS: REQUIREMENT_LABELS, ROLE_REQUIREMENTS: ROLE_REQUIREMENTS,
+    LIFECYCLE_LABELS: LIFECYCLE_LABELS, ROLES_LIST: ROLES_LIST, EMPLOYMENT_TYPES: EMPLOYMENT_TYPES, REQUIREMENT_LABELS: REQUIREMENT_LABELS, ROLE_REQUIREMENTS: ROLE_REQUIREMENTS,
     CREDENTIAL_TYPES: CREDENTIAL_TYPES, TRAINING_CATEGORIES: TRAINING_CATEGORIES, TRAINING_CATALOG: TRAINING_CATALOG,
     PERMISSION_AREAS: PERMISSION_AREAS, DEFAULT_ROLES: DEFAULT_ROLES, expiringDays: function () { return EXPIRING_DAYS; },
     load: load, update: update, save: save, canEdit: function () { return editable; }, doc: function () { return doc; },

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Onboarding Templates</title>
+  <style>
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:var(--brand); }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .btn { font-size:12px; padding:6px 10px; border-radius:2px; font-weight:600; white-space:nowrap; }
+    .btn-primary { background:var(--brand); color:var(--brand-on); } .btn-primary:hover { background:var(--brand-700); }
+    .btn-line { border:1px solid #e4e6eb; background:#fff; color:#2c313b; } .btn-line:hover { background:#f4f5f7; }
+    .side-item { display:flex; justify-content:space-between; align-items:center; width:100%; text-align:left; padding:8px 12px; font-size:12.5px; color:#2c313b; border-left:2px solid transparent; }
+    .side-item:hover { background:#f4f5f7; }
+    .side-item.is-on { background:var(--brand-100); color:var(--brand-text-strong); font-weight:600; border-left-color:var(--brand); }
+    .ptab { font-size:12.5px; padding:9px 2px; margin-right:18px; color:#6b7280; border-bottom:2px solid transparent; font-weight:500; }
+    .ptab.is-on { color:#0f1116; border-bottom-color:var(--brand-mark); font-weight:600; }
+    html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .btn-line { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .side-item { color:#b8bdcd; }
+    html[data-theme-resolved="dark"] .side-item.is-on { background:var(--brand-dark-tint); color:var(--brand-dark-link); } html[data-theme-resolved="dark"] .ptab.is-on { color:#e7eaf2; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 pt-5 bg-panel border-b border-line">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <a href="/staff/onboarding" class="text-[11.5px] font-semibold text-med-600">← Staff Onboarding</a>
+          <h1 class="text-[18px] font-semibold text-ink-900 mt-1">Onboarding Templates</h1>
+          <p class="text-[12px] text-ink-500 mt-0.5">What each role completes when they join. Your clinic decides its own requirements; these start as suggestions.</p>
+        </div>
+      </div>
+      <div class="flex mt-3" role="tablist">
+        <button class="ptab is-on" data-ptab="templates" type="button">Role Templates</button>
+        <button class="ptab" data-ptab="forms" type="button">Forms &amp; Agreements</button>
+        <button class="ptab" data-ptab="trainings" type="button">Training</button>
+      </div>
+    </div>
+
+    <div class="p-5">
+      <div id="readonly-note"></div>
+      <div id="load-error" class="hidden mb-4 px-3 py-2 rounded-sm border border-line bg-panel text-[12px] text-risk-600"></div>
+
+      <!-- Role templates -->
+      <div data-pane="templates" class="grid gap-4 md:grid-cols-[240px_minmax(0,1fr)] items-start">
+        <div class="bg-panel border border-line rounded-sm py-1">
+          <div class="px-3 py-2 text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Roles</div>
+          <div id="role-list"></div>
+          <div class="px-3 py-2 text-[11px] text-ink-400 border-t border-line mt-1">Roles come from <a href="/staff/roles" class="font-semibold text-med-600">Staff › Roles</a>.</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm min-w-0">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2 min-w-0"><input id="tpl-name" class="fld" style="width:280px;padding:5px 9px;font-weight:600" aria-label="Template name" /><span id="tpl-state" class="text-[11px] text-ink-400"></span></div>
+            <div class="flex gap-2">
+              <button id="tpl-reset" data-admin-only type="button" class="btn btn-line">Reset To Suggested</button>
+              <button id="tpl-save" data-admin-only type="button" class="btn btn-primary">Save Template</button>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-[11.5px] text-ink-500 mb-1">Due is in days from the start date (negative is before it). Reminders go to the employee that many days before the deadline, on the day, and once if it's overdue. "After" makes an item wait for another one.</p>
+            <div id="tpl-editor"></div>
+            <p class="text-[11.5px] text-ink-500 mt-3">Changes apply to people you add from now on. People already onboarding keep their own list (change it from their page).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forms -->
+      <div data-pane="forms" class="hidden grid gap-4 md:grid-cols-[240px_minmax(0,1fr)] items-start">
+        <div class="bg-panel border border-line rounded-sm py-1">
+          <div class="px-3 py-2 text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Forms</div>
+          <div id="form-list"></div>
+          <div class="px-3 py-2 border-t border-line mt-1"><button id="form-add" data-admin-only type="button" class="text-[12px] font-semibold text-med-600">+ Add Form</button></div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4 min-w-0" id="form-edit"></div>
+      </div>
+
+      <!-- Trainings -->
+      <div data-pane="trainings" class="hidden grid gap-4 md:grid-cols-[240px_minmax(0,1fr)] items-start">
+        <div class="bg-panel border border-line rounded-sm py-1">
+          <div class="px-3 py-2 text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Training</div>
+          <div id="training-list"></div>
+          <div class="px-3 py-2 border-t border-line mt-1"><button id="training-add" data-admin-only type="button" class="text-[12px] font-semibold text-med-600">+ Add Training</button></div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4 min-w-0" id="training-edit"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script src="/static/js/onboarding-editor.js"></script>
+  <script>
+    const S = window.StaffStore, E = window.OnboardingEditor;
+    const $ = (id) => document.getElementById(id);
+    const esc = S.esc;
+    let META = null, DOC = null, role = null, editor = null, formKey = null, trainingKey = null;
+
+    async function meta() {
+      const r = await fetch('/api/staff/onboarding/meta', { credentials: 'same-origin' });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || j.detail || 'Could not load templates.');
+      return j;
+    }
+    const saved = (list, key, field = 'key') => (DOC[list] || []).find(x => x[field] === key);
+
+    // ---------------------------------------------------------------- tabs
+    document.querySelectorAll('.ptab').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('.ptab').forEach(x => x.classList.toggle('is-on', x === b));
+      document.querySelectorAll('[data-pane]').forEach(p => p.classList.toggle('hidden', p.dataset.pane !== b.dataset.ptab));
+    }));
+
+    // ---------------------------------------------------------------- role templates
+    function renderRoles() {
+      $('role-list').innerHTML = META.roles.map(r => `<button type="button" class="side-item ${r === role ? 'is-on' : ''}" data-role="${esc(r)}">${esc(r)}${saved('onboardingTemplates', r, 'role') ? '' : ' <span class="text-[10.5px] text-ink-400 font-normal">Suggested</span>'}</button>`).join('');
+    }
+    function pickRole(r) {
+      role = r;
+      const tpl = saved('onboardingTemplates', r, 'role') || META.templates.find(t => t.role === r) || META.generic;
+      $('tpl-name').value = tpl.name || `${r} Onboarding`;
+      $('tpl-state').textContent = saved('onboardingTemplates', r, 'role') ? '' : 'Suggested — save it to make it yours';
+      editor = E.mount($('tpl-editor'), tpl.items, { catalog: META.catalog, detailed: true });
+      renderRoles();
+    }
+    $('role-list').addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (b) pickRole(b.dataset.role); });
+    $('tpl-save').addEventListener('click', async () => {
+      const items = editor.items();
+      if (!items.length) return S.toast('Keep at least one requirement', 'error');
+      const tpl = { id: 'tpl_' + role.toLowerCase().replace(/[^a-z0-9]+/g, '_'), role, name: $('tpl-name').value.trim() || `${role} Onboarding`, items };
+      DOC = await S.save(d => {
+        d.onboardingTemplates = (d.onboardingTemplates || []).filter(t => t.role !== role).concat([tpl]);
+        // custom forms and trainings get a library entry to fill in
+        d.onboardingForms = d.onboardingForms || []; d.onboardingTrainings = d.onboardingTrainings || [];
+        items.forEach(it => {
+          if (it.type === 'form' && !META.forms.some(f => f.key === (it.formKey || it.key)) && !d.onboardingForms.some(f => f.key === (it.formKey || it.key)))
+            d.onboardingForms.push({ key: it.formKey || it.key, title: it.title, action: 'acknowledge', version: '1', body: '' });
+          if (it.type === 'training' && !META.trainings.some(t => t.key === (it.trainingKey || it.key)) && !d.onboardingTrainings.some(t => t.key === (it.trainingKey || it.key)))
+            d.onboardingTrainings.push({ key: it.trainingKey || it.key, title: it.title, category: 'Role-Specific', version: '1', validMonths: 0, url: '', description: '' });
+        });
+      }, 'Template saved').catch(() => DOC);
+      await reload();
+      pickRole(role);
+    });
+    $('tpl-reset').addEventListener('click', async () => {
+      if (!confirm(`Reset the ${role} template to Althais's suggestion?`)) return;
+      DOC = await S.save(d => { d.onboardingTemplates = (d.onboardingTemplates || []).filter(t => t.role !== role); }, 'Reset to suggested').catch(() => DOC);
+      await reload();
+      pickRole(role);
+    });
+
+    // ---------------------------------------------------------------- forms library
+    function renderForms() {
+      $('form-list').innerHTML = META.forms.map(f => `<button type="button" class="side-item ${f.key === formKey ? 'is-on' : ''}" data-form="${esc(f.key)}">${esc(f.title)}${f.isSample ? ' <span class="text-[10.5px] text-warn-600 font-normal">Sample</span>' : ''}</button>`).join('');
+      const f = META.forms.find(x => x.key === formKey);
+      if (!f) { $('form-edit').innerHTML = '<div class="text-[12px] text-ink-500">Pick a form.</div>'; return; }
+      $('form-edit').innerHTML = `
+        ${f.isSample ? '<div class="mb-3 px-3 py-2 rounded-sm border border-line bg-shell text-[12px] text-warn-600">This is sample text from Althais. Replace it with your clinic’s own before asking staff to sign it.</div>' : ''}
+        <div class="grid grid-cols-[1fr_180px_110px] gap-3">
+          <div><label class="lbl" for="f-title">Title</label><input id="f-title" class="fld" value="${esc(f.title)}"></div>
+          <div><label class="lbl" for="f-action">Employee Action</label><select id="f-action" class="fld">${S.options([{ value: 'acknowledge', label: 'Read & Acknowledge' }, { value: 'sign', label: 'Sign (typed name)' }], f.action)}</select></div>
+          <div><label class="lbl">Version</label><div class="text-[13px] font-semibold text-ink-900 mt-1.5 num">${esc(f.version || '1')}</div></div>
+        </div>
+        <div class="mt-3"><label class="lbl" for="f-body">Text</label><textarea id="f-body" rows="14" class="fld" style="font-family:inherit;line-height:1.55">${esc(f.body || '')}</textarea>
+          <p class="text-[11px] text-ink-500 mt-1">Filled in for each person: {name} {role} {clinic} {location} {start_date} {today}. Saving changed text makes a new version; people who already signed keep the version they signed.</p></div>
+        <div class="mt-3 flex justify-end"><button id="f-save" data-admin-only type="button" class="btn btn-primary">Save Form</button></div>`;
+      $('f-save').onclick = async () => {
+        const body = $('f-body').value, changed = body !== (f.body || '');
+        const rec = { key: f.key, title: $('f-title').value.trim() || f.title, action: $('f-action').value, body,
+                      version: changed ? String((parseInt(f.version, 10) || 1) + 1) : (f.version || '1'), isSample: changed ? false : !!f.isSample };
+        DOC = await S.save(d => { d.onboardingForms = (d.onboardingForms || []).filter(x => x.key !== f.key).concat([rec]); }, changed ? `Saved as version ${rec.version}` : 'Form saved').catch(() => DOC);
+        await reload(); renderForms();
+      };
+    }
+    $('form-list').addEventListener('click', e => { const b = e.target.closest('[data-form]'); if (b) { formKey = b.dataset.form; renderForms(); } });
+    $('form-add').addEventListener('click', async () => {
+      const title = (prompt('Form title:') || '').trim(); if (!title) return;
+      const key = 'form_' + title.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40);
+      DOC = await S.save(d => { d.onboardingForms = (d.onboardingForms || []).concat([{ key, title, action: 'acknowledge', version: '1', body: '' }]); }, 'Form added').catch(() => DOC);
+      await reload(); formKey = key; renderForms();
+      S.toast('Add it to a role template to assign it');
+    });
+
+    // ---------------------------------------------------------------- training library
+    function renderTrainings() {
+      $('training-list').innerHTML = META.trainings.map(t => `<button type="button" class="side-item ${t.key === trainingKey ? 'is-on' : ''}" data-training="${esc(t.key)}">${esc(t.title)}</button>`).join('');
+      const t = META.trainings.find(x => x.key === trainingKey);
+      if (!t) { $('training-edit').innerHTML = '<div class="text-[12px] text-ink-500">Pick a training.</div>'; return; }
+      $('training-edit').innerHTML = `
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="t-title">Title</label><input id="t-title" class="fld" value="${esc(t.title)}"></div>
+          <div><label class="lbl" for="t-cat">Category</label><select id="t-cat" class="fld">${S.options(S.TRAINING_CATEGORIES, t.category)}</select></div>
+          <div class="col-span-2"><label class="lbl" for="t-url">Course Link</label><input id="t-url" class="fld" placeholder="https://… (where staff take the training)" value="${esc(t.url || '')}"></div>
+          <div><label class="lbl" for="t-valid">Valid For (Months)</label><input id="t-valid" type="number" min="0" class="fld num" value="${esc(t.validMonths || 0)}"><p class="text-[11px] text-ink-500 mt-1">0 = doesn't expire</p></div>
+          <div><label class="lbl" for="t-version">Version</label><input id="t-version" class="fld num" value="${esc(t.version || '1')}"></div>
+          <div class="col-span-2"><label class="lbl" for="t-desc">Description</label><textarea id="t-desc" rows="4" class="fld">${esc(t.description || '')}</textarea></div>
+        </div>
+        <p class="text-[11px] text-ink-500 mt-2">Staff open the link, then confirm they completed it (and can note a certificate number). Completion is recorded as training documentation for your clinic.</p>
+        <div class="mt-3 flex justify-end"><button id="t-save" data-admin-only type="button" class="btn btn-primary">Save Training</button></div>`;
+      $('t-save').onclick = async () => {
+        const url = $('t-url').value.trim();
+        if (url && !/^https?:\/\//i.test(url)) return S.toast('The link should start with https://', 'error');
+        const rec = { key: t.key, title: $('t-title').value.trim() || t.title, category: $('t-cat').value, url, version: $('t-version').value.trim() || '1',
+                      validMonths: Math.max(0, parseInt($('t-valid').value, 10) || 0), description: $('t-desc').value };
+        DOC = await S.save(d => { d.onboardingTrainings = (d.onboardingTrainings || []).filter(x => x.key !== t.key).concat([rec]); }, 'Training saved').catch(() => DOC);
+        await reload(); renderTrainings();
+      };
+    }
+    $('training-list').addEventListener('click', e => { const b = e.target.closest('[data-training]'); if (b) { trainingKey = b.dataset.training; renderTrainings(); } });
+    $('training-add').addEventListener('click', async () => {
+      const title = (prompt('Training title:') || '').trim(); if (!title) return;
+      const key = 'training_' + title.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40);
+      DOC = await S.save(d => { d.onboardingTrainings = (d.onboardingTrainings || []).concat([{ key, title, category: 'Role-Specific', version: '1', validMonths: 0, url: '', description: '' }]); }, 'Training added').catch(() => DOC);
+      await reload(); trainingKey = key; renderTrainings();
+      S.toast('Add it to a role template to assign it');
+    });
+
+    async function reload() { META = await meta(); META.generic = META.generic || { items: [] }; renderRoles(); }
+
+    Promise.all([S.load(), meta()]).then(([d, m]) => {
+      DOC = d; META = m;
+      S.readOnlyBanner('readonly-note');
+      formKey = META.forms[0] && META.forms[0].key; trainingKey = META.trainings[0] && META.trainings[0].key;
+      pickRole(new URLSearchParams(location.search).get('role') || META.roles[0]);
+      renderForms(); renderTrainings();
+    }).catch(e => { $('load-error').textContent = e.message; $('load-error').classList.remove('hidden'); });
+  </script>
+</body>
+</html>

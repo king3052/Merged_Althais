@@ -72,9 +72,12 @@
     } else if (activeWorkspace) {
       const isBlocked = window.__ALTHAIS_IS_BLOCKED__ || (() => false);
       const items = (menus[activeWorkspace] || { items: [] }).items.filter(item => !isBlocked(item.href));   // switched off by their manager
+      const norm = (href) => href.replace(/\/+$/, '') || '/';
+      // a page under an item (e.g. /staff/onboarding/templates) marks that item when nothing matches exactly
+      const exact = items.some(item => norm(item.href) === path);
       secondaryNav.innerHTML = items.map(item => {
-        const itemPath = item.href.replace(/\/+$/, '') || '/';
-        const isActive = path === itemPath;
+        const itemPath = norm(item.href);
+        const isActive = path === itemPath || (!exact && path.startsWith(itemPath + '/'));
         return `<a class="nav-tab${isActive ? ' active' : ''}" href="${item.href}">${item.label}</a>`;
       }).join('');
     }

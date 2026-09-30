@@ -266,6 +266,12 @@
       $('pd-save').addEventListener('click', async () => {
         const vals = { email: $('pd-email').value.trim().toLowerCase(), phone: $('pd-phone').value.trim(), role: $('pd-role').value, employment: $('pd-employment').value, location: $('pd-location').value.trim(), start: $('pd-start').value };
         if (vals.email && DOC.people.some(x => x.id !== p.id && x.email === vals.email)) { S.toast('Someone else already uses that email', 'error'); return; }
+        if (p.userId) {
+          // joined through an invitation: their role sets their Althais access, and their email is their login
+          vals.email = p.email;
+          if (vals.role !== p.role && !(await staffApi(`/role`, { role: vals.role, applyTemplate: false }, 'Role changed'))) return;
+          delete vals.role;
+        }
         DOC = await S.save(d => {
           const x = S.person(d, p.id);
           if (vals.role !== x.role) { S.audit(x, `Role changed from ${x.role} to ${vals.role}`); x.requirements = S.requirementsFor(vals.role, x.requirements); }
@@ -280,11 +286,17 @@
       });
       $('pd-toggle').addEventListener('click', async () => {
         const toActive = p.status !== 'active';
+        if (p.userId) {   // takes away (or gives back) their Althais access too
+          if (!toActive && !confirm(`Mark ${p.name} inactive? They lose access to your clinic in Althais right away.`)) return;
+          await staffApi('/status', { action: toActive ? 'reactivate' : 'suspend' }, toActive ? 'Reactivated' : 'Marked inactive');
+          return render();
+        }
         DOC = await S.save(d => { const x = S.person(d, p.id); x.status = toActive ? 'active' : 'inactive'; S.audit(x, toActive ? 'Reactivated' : 'Marked inactive'); }, toActive ? 'Reactivated' : 'Marked inactive').catch(() => DOC);
         render();
       });
       $('pd-remove').addEventListener('click', async () => {
         if (!confirm(`Remove ${p.name} from the team? Their credentials and training records are deleted too. This doesn't delete any Althais login.`)) return;
+        if (p.userId && p.lifecycle !== 'OFFBOARDED' && !(await staffApi('/status', { action: 'offboard' }))) return;   // end their access first
         DOC = await S.save(d => {
           d.people = d.people.filter(x => x.id !== p.id);
           d.credentials = d.credentials.filter(c => c.personId !== p.id);
@@ -292,6 +304,17 @@
         }, 'Removed from team').catch(() => DOC);
         closePanel(); fillFilters(); render();
       });
+    }
+
+    // people who joined through a Staff Onboarding invitation: access changes go through the server (staff_onboarding.py)
+    async function staffApi(path, body, ok) {
+      const id = activeId;
+      const res = await fetch(`/api/staff/onboarding/people/${encodeURIComponent(id)}${path}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { S.toast(j.error || j.detail || 'Could not save.', 'error'); return false; }
+      if (ok) S.toast(ok);
+      DOC = await S.load(true);
+      return true;
     }
 
     $('team-rows').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) openPanel(tr.dataset.id); });

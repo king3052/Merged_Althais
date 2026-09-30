@@ -2,21 +2,45 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Team Onboarding</title>
+  <title>Althais — Staff Onboarding</title>
   <style>
+    /* drawer and dialogs sit above Althea's chat card (z-index 250, static/css/althea.css) */
     .modal-overlay { background: rgba(15,17,22,0.45); }
-    #profile-panel { transition: transform .22s ease; transform: translateX(100%); }
-    #profile-panel.is-open { transform: translateX(0); }
-    .req-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid #eceef2; }
-    .req-check { width:18px; height:18px; border-radius:4px; border:1.5px solid #c7cad1; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-top:1px; background:transparent; }
-    .req-check.is-done { background:#0c8a4f; border-color:#0c8a4f; }
-    .req-check:disabled { cursor:default; }
+    #drawer { transition: transform .22s ease; transform: translateX(100%); }
+    #drawer.is-open { transform: translateX(0); }
     .row-hover { cursor: pointer; }
     .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:12.5px; color:#0f1116; outline:none; }
     .fld:focus { border-color:var(--brand); }
+    .fld.is-bad { border-color:#c83838; }
     .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .btn { font-size:12px; padding:6px 10px; border-radius:2px; font-weight:600; white-space:nowrap; }
+    .btn-primary { background:var(--brand); color:var(--brand-on); }
+    .btn-primary:hover { background:var(--brand-700); }
+    .btn-primary:disabled { opacity:.5; cursor:default; }
+    .btn-line { border:1px solid #e4e6eb; background:#fff; color:#2c313b; }
+    .btn-line:hover { background:#f4f5f7; }
+    .btn-risk { border:1px solid rgba(200,56,56,.3); background:#fff; color:#c83838; }
+    .btn-risk:hover { background:#ffe1e1; }
+    .btn-ok { background:#0c8a4f; color:#fff; }
+    .btn-ok:disabled { opacity:.5; cursor:default; }
+    .filter-tab { font-size:11.5px; padding:4px 9px; border-radius:2px; color:#4a505c; font-weight:500; }
+    .filter-tab.is-on { background:var(--brand-100); color:var(--brand-text-strong); font-weight:600; }
+    .dtab { font-size:12px; padding:8px 2px; margin-right:16px; color:#6b7280; border-bottom:2px solid transparent; font-weight:500; }
+    .dtab.is-on { color:#0f1116; border-bottom-color:var(--brand-mark); font-weight:600; }
+    .task { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #eceef2; }
+    .dot { width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; background:#c7cad1; }
+    .dot.ok { background:#0c8a4f; } .dot.warn { background:#b86a00; } .dot.risk { background:#c83838; } .dot.brand { background:var(--brand); }
+    .step { font-size:11.5px; color:#8b909c; font-weight:600; display:flex; align-items:center; gap:6px; }
+    .step .n { width:18px; height:18px; border-radius:50%; border:1.5px solid currentColor; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
+    .step.is-on { color:var(--brand-text); } .step.is-done { color:#0c8a4f; }
+    .attn { display:flex; gap:10px; padding:10px 14px; border-bottom:1px solid #eceef2; align-items:flex-start; }
+    .kv { display:grid; grid-template-columns: 150px 1fr; gap:4px 10px; font-size:12px; }
+    .kv dt { color:#6b7280; } .kv dd { color:#0f1116; }
     html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
-    html[data-theme-resolved="dark"] .req-row { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .btn-line, html[data-theme-resolved="dark"] .btn-risk { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .task, html[data-theme-resolved="dark"] .attn { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .filter-tab.is-on { background:var(--brand-dark-tint); color:var(--brand-dark-link); }
+    html[data-theme-resolved="dark"] .dtab.is-on, html[data-theme-resolved="dark"] .kv dd { color:#e7eaf2; }
   </style>
 </head>
 <body class="bg-shell">
@@ -24,464 +48,648 @@
   {% include "_nav.html" %}
 
   <div class="max-w-[1560px] mx-auto">
-    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
       <div>
-        <h1 class="text-[18px] font-semibold text-ink-900">Team Onboarding</h1>
-        <p class="text-[12px] text-ink-500 mt-0.5">Invite, verify, and prepare staff before they begin working with patients.</p>
+        <h1 class="text-[18px] font-semibold text-ink-900">Staff Onboarding</h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Invite staff, see where each person is, and review what they submit.</p>
       </div>
       <div class="flex items-center gap-2">
-        <a href="/staff/team" class="text-[12px] px-2.5 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell font-semibold whitespace-nowrap">View Team</a>
-        <button id="invite-btn" data-admin-only type="button" class="text-[12px] px-2.5 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold whitespace-nowrap">+ Invite Team Member</button>
+        <a href="/staff/onboarding/templates" class="btn btn-line">Onboarding Templates</a>
+        <button id="add-btn" type="button" class="btn btn-primary">+ Add Staff Member</button>
       </div>
     </div>
 
     <div class="p-5">
-      <div id="readonly-note"></div>
-      <!-- Summary cards -->
+      <div id="load-error" class="hidden mb-4 px-3 py-2 rounded-sm border border-line bg-panel text-[12px] text-risk-600"></div>
+
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Invited</div>
-          <div id="stat-invited" class="text-[22px] font-semibold text-ink-900 num mt-1">0</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Nothing completed yet</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Staff</div>
+          <div id="st-total" class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Everyone not offboarded</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">In Progress</div>
-          <div id="stat-inprogress" class="text-[22px] font-semibold text-med-600 num mt-1">0</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Completing requirements</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Currently Onboarding</div>
+          <div id="st-onboarding" class="text-[22px] font-semibold text-med-600 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Invited through final review</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Ready for Review</div>
-          <div id="stat-review" class="text-[22px] font-semibold text-warn-600 num mt-1">0</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Needs admin approval</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Needs Attention</div>
+          <div id="st-attention" class="text-[22px] font-semibold text-warn-600 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Reviews, overdue items, expired invites</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Completed</div>
-          <div id="stat-completed" class="text-[22px] font-semibold text-ok-600 num mt-1">0</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Approved &amp; on the Team</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Credentials Expiring</div>
+          <div id="st-expiring" class="text-[22px] font-semibold text-risk-600 num mt-1">—</div>
+          <div id="st-expiring-sub" class="text-[11px] text-ink-400 mt-0.5">Active staff</div>
         </div>
       </div>
 
-      <!-- Onboarding table -->
-      <div class="bg-panel border border-line rounded-sm">
-        <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-          <h3 class="text-[13px] font-semibold text-ink-900">Onboarding Pipeline</h3>
-          <span id="ob-count-label" class="text-[11px] text-ink-500">Loading…</span>
-        </div>
-        <div class="overflow-x-auto thin-scroll">
-          <table class="w-full">
-            <thead>
-              <tr class="table-head">
-                <th class="td text-left">Team Member</th>
-                <th class="td text-left">Role</th>
-                <th class="td text-left">Location</th>
-                <th class="td text-left">Onboarding Progress</th>
-                <th class="td text-left">Missing Requirements</th>
-                <th class="td text-left">Start Date</th>
-                <th class="td text-left">Status</th>
-                <th class="td text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="ob-rows"></tbody>
-          </table>
-          <div id="ob-empty" class="px-4 py-10 text-center text-[12px] text-ink-500" style="display:none">
-            No one is onboarding right now. Click <span class="font-semibold text-med-600">+ Invite Team Member</span> to start.
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
+        <div class="bg-panel border border-line rounded-sm min-w-0">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-1" id="filters" role="tablist" aria-label="Filter staff"></div>
+            <input id="search" type="search" placeholder="Search staff…" class="fld" style="width:200px;padding:5px 9px" aria-label="Search staff" />
+          </div>
+          <div class="overflow-x-auto thin-scroll">
+            <table class="w-full">
+              <thead>
+                <tr class="table-head">
+                  <th class="td text-left">Employee</th>
+                  <th class="td text-left">Role</th>
+                  <th class="td text-left">Location</th>
+                  <th class="td text-left">Status</th>
+                  <th class="td text-left">Onboarding Progress</th>
+                  <th class="td text-left">Next Action</th>
+                </tr>
+              </thead>
+              <tbody id="rows"><tr><td class="td text-ink-500" colspan="6">Loading…</td></tr></tbody>
+            </table>
           </div>
         </div>
+
+        <div class="bg-panel border border-line rounded-sm">
+          <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
+            <h3 class="text-[13px] font-semibold text-ink-900">Needs Attention</h3>
+            <span id="attn-count" class="count-pill">0</span>
+          </div>
+          <div id="attention"><div class="px-4 py-6 text-[12px] text-ink-500">Loading…</div></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- =================== INVITE MODAL =================== -->
-  <div id="invite-modal" class="fixed inset-0 z-40 hidden items-center justify-center modal-overlay">
-    <div class="bg-white rounded-sm shadow-xl w-[460px] max-w-[92vw] max-h-[92vh] overflow-y-auto thin-scroll">
+  <!-- =================== ADD STAFF MEMBER =================== -->
+  <div id="add-modal" class="fixed inset-0 z-[270] hidden items-center justify-center modal-overlay">
+    <div class="bg-white rounded-sm shadow-xl w-[640px] max-w-[94vw] max-h-[92vh] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="add-title">
       <div class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h3 class="text-[13.5px] font-semibold text-ink-900">Invite Team Member</h3>
-        <button id="invite-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close">
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
+        <h3 id="add-title" class="text-[13.5px] font-semibold text-ink-900">Add Staff Member</h3>
+        <button type="button" data-close="add-modal" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       </div>
-      <div class="p-4 space-y-3">
-        <div><label class="lbl" for="inv-name">Full name</label><input id="inv-name" type="text" placeholder="Jane Doe" class="fld" /></div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="lbl" for="inv-email">Email</label><input id="inv-email" type="email" placeholder="jane@clinic.com" class="fld" /></div>
-          <div><label class="lbl" for="inv-phone">Phone</label><input id="inv-phone" type="tel" placeholder="(555) 555-0100" class="fld" /></div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="lbl" for="inv-role">Role</label><select id="inv-role" class="fld"></select></div>
-          <div><label class="lbl" for="inv-employment">Employment type</label><select id="inv-employment" class="fld"></select></div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="lbl" for="inv-location">Location</label><input id="inv-location" type="text" list="loc-list" placeholder="Main Clinic" class="fld" /><datalist id="loc-list"></datalist></div>
-          <div><label class="lbl" for="inv-start">Start date</label><input id="inv-start" type="date" class="fld num" /></div>
-        </div>
-        <label class="flex items-start gap-2 pt-1 text-[12px] text-ink-700 cursor-pointer">
-          <input id="inv-account" type="checkbox" class="mt-0.5" />
-          <span>Also create an Althais login for them<span class="block text-[11px] text-ink-500">Emails them a temporary password. Needs an email address.</span></span>
-        </label>
-        <div id="inv-account-role-wrap" class="hidden">
-          <label class="lbl" for="inv-account-role">Login access level</label>
-          <select id="inv-account-role" class="fld">
-            <option value="viewer">Viewer: read-only</option>
-            <option value="provider">Provider: patients and claims, limited editing</option>
-            <option value="biller" selected>Biller: create and submit claims</option>
-            <option value="admin">Admin: full access</option>
-          </select>
-        </div>
-        <div id="inv-error" class="hidden text-[12px] text-risk-600"></div>
+      <div class="px-4 pt-3 flex items-center gap-4" id="steps">
+        <span class="step" data-step="1"><span class="n">1</span>Basic Information</span>
+        <span class="step" data-step="2"><span class="n">2</span>Onboarding Requirements</span>
+        <span class="step" data-step="3"><span class="n">3</span>Send Invitation</span>
       </div>
-      <div class="px-4 py-3 border-t border-line flex items-center justify-end gap-2">
-        <button id="invite-cancel" type="button" class="text-[12px] px-3 py-1.5 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Cancel</button>
-        <button id="invite-submit" type="button" class="text-[12px] px-3 py-1.5 rounded-sm bg-med-600 text-white hover:bg-med-700 font-semibold">Add To Onboarding</button>
+      <div class="p-4 overflow-y-auto thin-scroll flex-1">
+        <div data-pane="1" class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lbl" for="a-first">First Name</label><input id="a-first" class="fld" autocomplete="off" /></div>
+            <div><label class="lbl" for="a-last">Last Name</label><input id="a-last" class="fld" autocomplete="off" /></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lbl" for="a-email">Email</label><input id="a-email" type="email" class="fld" placeholder="name@clinic.com" autocomplete="off" /></div>
+            <div><label class="lbl" for="a-phone">Phone <span class="normal-case tracking-normal font-normal text-ink-400">(optional)</span></label><input id="a-phone" type="tel" class="fld" /></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lbl" for="a-role">Role</label><select id="a-role" class="fld"></select>
+              <input id="a-role-custom" class="fld mt-1.5 hidden" placeholder="Name of the new role" />
+              <p class="text-[11px] text-ink-400 mt-1">Roles and what they can access are set on <a href="/staff/roles" class="font-semibold text-med-600">Staff › Roles</a>.</p></div>
+            <div><label class="lbl" for="a-location">Location</label><input id="a-location" class="fld" list="loc-list" /><datalist id="loc-list"></datalist></div>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="lbl" for="a-start">Start Date</label><input id="a-start" type="date" class="fld num" /></div>
+            <div><label class="lbl" for="a-employment">Employment Type</label><select id="a-employment" class="fld"></select></div>
+            <div><label class="lbl" for="a-supervisor">Supervisor <span class="normal-case tracking-normal font-normal text-ink-400">(optional)</span></label><input id="a-supervisor" class="fld" list="sup-list" /><datalist id="sup-list"></datalist></div>
+          </div>
+        </div>
+        <div data-pane="2" class="hidden">
+          <p class="text-[12px] text-ink-600 mb-2">Suggested from the <b id="tpl-name"></b> template. Change anything for this person; the template itself stays the same. Due dates count from their start date.</p>
+          <div id="a-editor"></div>
+        </div>
+        <div data-pane="3" class="hidden">
+          <dl class="kv mb-4" id="a-summary"></dl>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Onboarding Requirements</div>
+          <div id="a-req-summary" class="text-[12px] text-ink-700 space-y-1"></div>
+          <p class="text-[11.5px] text-ink-500 mt-4">They'll get an email with a secure link that works once, for this email address only, for <span id="a-days">7</span> days. They won't have access to anything until they accept it.</p>
+        </div>
+        <div id="a-error" class="hidden mt-3 text-[12px] text-risk-600"></div>
+      </div>
+      <div class="px-4 py-3 border-t border-line flex items-center justify-between gap-2">
+        <button id="a-back" type="button" class="btn btn-line">Back</button>
+        <div class="flex gap-2">
+          <button id="a-draft" type="button" class="btn btn-line hidden">Save As Draft</button>
+          <button id="a-next" type="button" class="btn btn-primary">Next</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- =================== PROFILE SLIDE-OVER =================== -->
-  <div id="profile-backdrop" class="fixed inset-0 z-40 hidden modal-overlay"></div>
-  <aside id="profile-panel" class="fixed top-0 right-0 z-50 h-screen w-[460px] max-w-[94vw] bg-white border-l border-line shadow-xl overflow-y-auto thin-scroll" aria-label="Onboarding profile">
-    <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
-      <div class="flex items-center gap-2.5">
-        <div id="pp-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px]">--</div>
-        <div>
-          <div id="pp-name" class="text-[13.5px] font-semibold text-ink-900">—</div>
-          <div id="pp-role" class="text-[11px] text-ink-500">—</div>
-        </div>
+  <!-- =================== GENERIC MODAL (review, requirements, details, invite link) =================== -->
+  <div id="modal" class="fixed inset-0 z-[280] hidden items-center justify-center modal-overlay">
+    <div id="modal-box" class="bg-white rounded-sm shadow-xl w-[560px] max-w-[94vw] max-h-[92vh] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="px-4 py-3 border-b border-line flex items-center justify-between">
+        <h3 id="modal-title" class="text-[13.5px] font-semibold text-ink-900"></h3>
+        <button type="button" data-close="modal" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       </div>
-      <button id="pp-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close">
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
+      <div id="modal-body" class="p-4 overflow-y-auto thin-scroll flex-1"></div>
+      <div id="modal-foot" class="px-4 py-3 border-t border-line flex items-center justify-end gap-2"></div>
     </div>
+  </div>
 
-    <div class="p-4">
-      <div class="flex items-center justify-between mb-1.5">
-        <span class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Overall completion</span>
-        <span id="pp-pct" class="text-[13px] font-semibold text-ink-900 num">0%</span>
-      </div>
-      <div class="w-full h-2 bg-shell rounded-sm overflow-hidden"><div id="pp-bar" class="h-full bg-med-600" style="width:0%"></div></div>
-
-      <div class="mt-4">
-        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Required checklist</div>
-        <p class="text-[11px] text-ink-400 mb-1">Licenses and certifications need an expiration date. Verifying them adds them to Credentials.</p>
-        <div id="pp-checklist"></div>
-      </div>
-
-      <div class="mt-4">
-        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Contact</div>
-        <div id="pp-contact" class="text-[12px] text-ink-700"></div>
-      </div>
-
-      <div class="mt-4">
-        <label class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5 block" for="pp-notes">Notes</label>
-        <textarea id="pp-notes" rows="2" placeholder="Add an internal note…" class="fld"></textarea>
-      </div>
-
-      <div class="mt-4">
-        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Approval history &amp; audit trail</div>
-        <div id="pp-audit" class="text-[11.5px] text-ink-500 space-y-1.5"></div>
-      </div>
-
-      <div class="mt-5 border-t border-line pt-4 space-y-1.5">
-        <a id="pp-remind" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
-          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span>Send Reminder</span></a>
-        <a id="pp-request" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-line bg-white hover:bg-shell text-ink-800 text-[12px]">
-          <svg class="h-3.5 w-3.5 text-med-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M12 3v12M7 10l5 5 5-5"/></svg><span>Request Missing Documents</span></a>
-        <button id="pp-approve" data-admin-only type="button" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm bg-ok-600 hover:brightness-105 text-white text-[12px] font-semibold">
-          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>Approve Onboarding</button>
-        <div class="flex gap-1.5" data-admin-only>
-          <select id="pp-role-select" class="fld flex-1" aria-label="Change role"></select>
-          <button id="pp-remove" type="button" class="flex-1 px-2.5 py-1.5 rounded-sm border border-risk-600/30 bg-white hover:bg-risk-100 text-risk-600 text-[12px] font-semibold">Remove Invitation</button>
+  <!-- =================== STAFF MEMBER DRAWER =================== -->
+  <div id="drawer-backdrop" class="fixed inset-0 z-[255] hidden modal-overlay"></div>
+  <aside id="drawer" class="fixed top-0 right-0 z-[260] h-screen w-[620px] max-w-[96vw] bg-white border-l border-line shadow-xl overflow-y-auto thin-scroll" aria-label="Staff member">
+    <div class="sticky top-0 bg-panel border-b border-line z-10">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div id="d-initials" class="flex h-9 w-9 items-center justify-center rounded-sm bg-med-100 text-med-700 font-semibold text-[13px] flex-shrink-0">--</div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2"><span id="d-name" class="text-[13.5px] font-semibold text-ink-900 truncate">—</span><span id="d-status"></span></div>
+            <div id="d-sub" class="text-[11px] text-ink-500 truncate">—</div>
+          </div>
         </div>
+        <button id="d-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="px-4 pb-2">
+        <div class="flex items-center justify-between mb-1"><span id="d-invite" class="text-[11.5px] text-ink-500"></span><span id="d-pct" class="text-[12px] font-semibold text-ink-900 num"></span></div>
+        <div class="w-full h-1.5 bg-shell rounded-sm overflow-hidden"><div id="d-bar" class="h-full bg-med-600" style="width:0%"></div></div>
+        <div id="d-actions" class="flex flex-wrap gap-1.5 mt-3"></div>
+      </div>
+      <div class="px-4 flex border-t border-line" role="tablist">
+        <button class="dtab is-on" data-tab="checklist" type="button">Checklist</button>
+        <button class="dtab" data-tab="documents" type="button">Documents</button>
+        <button class="dtab" data-tab="info" type="button">Information</button>
+        <button class="dtab" data-tab="activity" type="button">Activity</button>
       </div>
     </div>
+    <div id="d-body" class="p-4"></div>
   </aside>
 
   <script src="/static/js/staff-store.js"></script>
+  <script src="/static/js/onboarding-editor.js"></script>
   <script>
-    const S = window.StaffStore;
+    const S = window.StaffStore, E = window.OnboardingEditor;
     const $ = (id) => document.getElementById(id);
     const esc = S.esc;
-    let DOC = null;
-    let activeId = null;
+    let META = null, OVERVIEW = null, DETAIL = null, filter = 'all', tab = 'checklist', activeId = null;
 
-    const onboarding = () => DOC.people.filter(p => p.status !== 'active' && p.status !== 'inactive');
-
-    function renderSummary() {
-      const list = onboarding();
-      const count = (st) => list.filter(p => S.status(p) === st).length;
-      $('stat-invited').textContent = count('Invited');
-      $('stat-inprogress').textContent = count('In Progress');
-      $('stat-review').textContent = count('Needs Review');
-      $('stat-completed').textContent = DOC.people.filter(p => p.status === 'active').length;
-      $('ob-count-label').textContent = list.length + ' in pipeline';
+    async function api(method, url, body) {
+      const res = await fetch(url, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(data.error || data.detail || 'Something went wrong.'); e.data = data; throw e; }
+      return data;
     }
 
-    function renderTable() {
-      const list = onboarding();
-      $('ob-empty').style.display = list.length ? 'none' : 'block';
-      $('ob-rows').innerHTML = list.map(p => {
-        const pct = S.progress(p);
-        const missing = p.requirements.filter(r => !r.done).map(r => S.REQUIREMENT_LABELS[r.key]);
-        return `
-        <tr class="row-hover" data-id="${esc(p.id)}">
-          <td class="td font-semibold text-ink-900">${esc(p.name)}</td>
-          <td class="td text-ink-600">${esc(p.role)}</td>
-          <td class="td text-ink-600">${esc(p.location || '—')}</td>
-          <td class="td">
-            <div class="flex items-center gap-2 num">
-              <div class="w-20 h-1.5 bg-shell rounded-sm overflow-hidden"><div class="h-full bg-med-600" style="width:${pct}%"></div></div>
-              <span class="text-ink-900 font-semibold text-[11.5px]">${pct}%</span>
-            </div>
-          </td>
-          <td class="td text-ink-500 text-[11.5px]">${missing.length ? esc(missing.slice(0, 2).join(', ')) + (missing.length > 2 ? ` +${missing.length - 2}` : '') : '—'}</td>
-          <td class="td text-ink-600 mono text-[11.5px]">${esc(S.fmtDate(p.start))}</td>
-          <td class="td">${S.pill(S.status(p))}</td>
-          <td class="td text-right"><button class="text-[11px] font-semibold text-med-600 hover:text-med-700" data-view="${esc(p.id)}">View</button></td>
+    const TASK_LABEL = { NOT_STARTED: 'Not Started', IN_PROGRESS: 'In Progress', WAITING_ON_EMPLOYEE: 'Waiting On Employee', WAITING_ON_MANAGER: 'Waiting On You',
+                         NEEDS_REVIEW: 'Needs Review', COMPLETE: 'Complete', OVERDUE: 'Overdue' };
+    const TASK_DOT = { COMPLETE: 'ok', NEEDS_REVIEW: 'warn', WAITING_ON_MANAGER: 'warn', OVERDUE: 'risk', IN_PROGRESS: 'brand', WAITING_ON_EMPLOYEE: 'risk' };
+    const DOC_LABEL = { UPLOADED: 'Uploaded', PROCESSING: 'Processing', NEEDS_REVIEW: 'Needs Review', VERIFIED: 'Verified', REJECTED: 'Rejected', EXPIRED: 'Expired' };
+    const DOC_PILL = { 'Needs Review': 'Needs Review', Verified: 'Verified', Rejected: 'Rejected', Expired: 'Expired', Uploaded: 'Submitted', Processing: 'Submitted' };
+    const statusPill = (label, expired) => S.pill(expired ? 'Invite Expired' : label);
+
+    // ---------------------------------------------------------------- overview
+    const FILTERS = [['all', 'All'], ['onboarding', 'Onboarding'], ['review', 'Needs Review'], ['active', 'Active'], ['inactive', 'Suspended / Offboarded']];
+    function matches(r) {
+      if (filter === 'onboarding' && !['DRAFT', 'INVITED', 'INVITE_ACCEPTED', 'ONBOARDING'].includes(r.lifecycle)) return false;
+      if (filter === 'review' && r.lifecycle !== 'PENDING_REVIEW') return false;
+      if (filter === 'active' && r.lifecycle !== 'ACTIVE') return false;
+      if (filter === 'inactive' && !['SUSPENDED', 'OFFBOARDED'].includes(r.lifecycle)) return false;
+      if (filter === 'all' && r.lifecycle === 'OFFBOARDED') return false;
+      const q = $('search').value.trim().toLowerCase();
+      return !q || [r.name, r.email, r.role, r.location].some(v => (v || '').toLowerCase().includes(q));
+    }
+    function renderOverview() {
+      const st = OVERVIEW.stats;
+      $('st-total').textContent = st.total; $('st-onboarding').textContent = st.onboarding;
+      $('st-attention').textContent = st.attention; $('st-expiring').textContent = st.expiring;
+      $('st-expiring-sub').textContent = `Active staff, within ${st.warnDays} days`;
+      $('filters').innerHTML = FILTERS.map(([k, l]) => `<button type="button" role="tab" aria-selected="${filter === k}" class="filter-tab ${filter === k ? 'is-on' : ''}" data-filter="${k}">${l}</button>`).join('');
+      const list = OVERVIEW.rows.filter(matches);
+      $('rows').innerHTML = list.length ? list.map(r => {
+        const expired = r.lifecycle === 'INVITED' && r.invite.state === 'expired';
+        const next = r.nextAction === 'Complete' ? `<span class="text-ok-600 font-semibold">Complete</span>` : esc(r.nextAction);
+        return `<tr class="row-hover" data-id="${esc(r.id)}">
+          <td class="td"><div class="font-semibold text-ink-900">${esc(r.name)}</div><div class="text-[11px] text-ink-500">${esc(r.email || '')}</div></td>
+          <td class="td text-ink-600">${esc(r.role)}</td>
+          <td class="td text-ink-600">${esc(r.location || '—')}</td>
+          <td class="td">${statusPill(S.LIFECYCLE_LABELS[r.lifecycle], expired)}</td>
+          <td class="td"><div class="flex items-center gap-2 num"><div class="w-20 h-1.5 bg-shell rounded-sm overflow-hidden"><div class="h-full ${r.progress === 100 ? 'bg-ok-600' : 'bg-med-600'}" style="width:${r.progress}%"></div></div><span class="text-ink-900 font-semibold text-[11.5px]">${r.progress}%</span></div></td>
+          <td class="td text-[12px] text-ink-700">${next}</td>
         </tr>`;
-      }).join('');
-      renderSummary();
+      }).join('') : `<tr><td class="td text-ink-500 py-8 text-center" colspan="6">${OVERVIEW.rows.length ? 'No one matches.' : 'No staff yet. Click <b>+ Add Staff Member</b> to invite your first person.'}</td></tr>`;
+      const attn = OVERVIEW.attention;
+      $('attn-count').textContent = attn.length; $('attn-count').classList.toggle('alert', attn.some(a => a.severity === 0));
+      const BTN = { review_document: 'Review', review_info: 'Review', review_onboarding: 'Review Onboarding', resend_invite: 'Resend Invite', open: 'Open' };
+      $('attention').innerHTML = attn.length ? attn.map((a, i) => `
+        <div class="attn">
+          <span class="dot ${a.severity === 0 ? 'risk' : 'warn'}"></span>
+          <div class="flex-1 min-w-0"><div class="text-[12.5px] font-semibold text-ink-900">${esc(a.name)}</div><div class="text-[12px] text-ink-600">${esc(a.text)}</div></div>
+          <button type="button" class="btn btn-line" style="padding:3px 8px;font-size:11px" data-attn="${i}">${BTN[a.action] || 'Open'}</button>
+        </div>`).join('') : '<div class="px-4 py-8 text-center text-[12px] text-ink-500">Nothing needs you right now.</div>';
     }
-
-    function refresh() {
-      renderTable();
-      if (activeId) {
-        const p = S.person(DOC, activeId);
-        if (p && p.status !== 'active') renderProfile(p); else closeProfile();
-      }
+    async function loadOverview() {
+      try { OVERVIEW = await api('GET', '/api/staff/onboarding/overview'); $('load-error').classList.add('hidden'); renderOverview(); }
+      catch (e) { $('load-error').textContent = e.message; $('load-error').classList.remove('hidden'); $('rows').innerHTML = ''; $('attention').innerHTML = ''; }
     }
-
-    // ---- Invite modal -------------------------------------------------------
-    function openInvite() {
-      $('inv-role').innerHTML = S.options(S.ROLES_LIST, 'Medical Assistant');
-      $('inv-employment').innerHTML = S.options(S.EMPLOYMENT_TYPES, 'Full-Time');
-      $('loc-list').innerHTML = S.locations(DOC).map(l => `<option value="${esc(l)}">`).join('');
-      $('inv-error').classList.add('hidden');
-      $('invite-modal').classList.remove('hidden'); $('invite-modal').classList.add('flex');
-      $('inv-name').focus();
-    }
-    function closeInvite() { $('invite-modal').classList.add('hidden'); $('invite-modal').classList.remove('flex'); }
-    function inviteError(msg) { $('inv-error').textContent = msg; $('inv-error').classList.remove('hidden'); }
-    $('invite-btn').addEventListener('click', openInvite);
-    $('invite-close').addEventListener('click', closeInvite);
-    $('invite-cancel').addEventListener('click', closeInvite);
-    $('inv-account').addEventListener('change', () => $('inv-account-role-wrap').classList.toggle('hidden', !$('inv-account').checked));
-
-    $('invite-submit').addEventListener('click', async () => {
-      const name = $('inv-name').value.trim();
-      const email = $('inv-email').value.trim().toLowerCase();
-      if (!name) { $('inv-name').focus(); return; }
-      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { inviteError('That email address doesn’t look right.'); return; }
-      if (DOC.people.some(p => email && p.email === email)) { inviteError('Someone with that email is already on the team or onboarding.'); return; }
-      const wantsLogin = $('inv-account').checked;
-      if (wantsLogin && !email) { inviteError('Add an email address to create a login.'); return; }
-
-      $('invite-submit').disabled = true;
-      let accountNote = '';
-      if (wantsLogin) {
-        try {
-          const fd = new FormData();
-          fd.append('email', email); fd.append('full_name', name); fd.append('role', $('inv-account-role').value);
-          const res = await fetch('/api/org/invite', { method: 'POST', body: fd, credentials: 'same-origin' });
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) { inviteError(body.error || body.detail || 'Could not create the login.'); $('invite-submit').disabled = false; return; }
-          accountNote = 'Althais login created and emailed';
-        } catch (e) { inviteError('Could not reach the server to create the login.'); $('invite-submit').disabled = false; return; }
-      }
-
-      const role = $('inv-role').value;
-      const person = {
-        id: S.uid('p'), name, email, phone: $('inv-phone').value.trim(), role,
-        employment: $('inv-employment').value, location: $('inv-location').value.trim(), start: $('inv-start').value,
-        status: 'onboarding', notes: '', requirements: S.requirementsFor(role), audit: [],
-      };
-      S.audit(person, `Added to onboarding as ${role}`);
-      if (accountNote) S.audit(person, accountNote);
-      try {
-        DOC = await S.save(d => {
-          if (d.clinic && person.location && !d.clinic.locations.some(l => l.name === person.location)) d.clinic.locations.push({ name: person.location, address: '' });
-          d.people.push(person);
-        }, name + ' added to onboarding');
-      } catch (e) { $('invite-submit').disabled = false; return; }
-      $('invite-submit').disabled = false;
-      closeInvite();
-      ['inv-name', 'inv-email', 'inv-phone', 'inv-location', 'inv-start'].forEach(id => { $(id).value = ''; });
-      $('inv-account').checked = false; $('inv-account-role-wrap').classList.add('hidden');
-      refresh();
-      openProfile(person.id);
+    $('filters').addEventListener('click', e => { const b = e.target.closest('[data-filter]'); if (b) { filter = b.dataset.filter; renderOverview(); } });
+    $('search').addEventListener('input', () => OVERVIEW && renderOverview());
+    $('rows').addEventListener('click', e => { const r = e.target.closest('tr[data-id]'); if (r) openDrawer(r.dataset.id); });
+    $('attention').addEventListener('click', async e => {
+      const b = e.target.closest('[data-attn]'); if (!b) return;
+      const a = OVERVIEW.attention[Number(b.dataset.attn)];
+      if (a.action === 'resend_invite') return sendInvite(a.personId);
+      await openDrawer(a.personId);
+      if (a.action === 'review_document') reviewDocument(Number(a.ref));
+      else if (a.action === 'review_info') reviewInfo();
+      else if (a.action === 'review_onboarding') reviewOnboarding();
     });
 
-    // ---- Profile slide-over --------------------------------------------------
-    function openProfile(id) {
-      const p = S.person(DOC, id);
-      if (!p) return;
-      activeId = id;
-      renderProfile(p);
-      $('profile-backdrop').classList.remove('hidden');
-      $('profile-panel').classList.add('is-open');
-    }
-    function credentialFor(p, reqKey) {
-      const type = S.credentialTypeForRequirement(reqKey, p.role);
-      return type ? DOC.credentials.find(c => c.personId === p.id && c.fromRequirement === reqKey) : null;
-    }
-    function renderProfile(p) {
-      const editable = S.canEdit();
-      const pct = S.progress(p);
-      $('pp-initials').textContent = S.initials(p.name);
-      $('pp-name').textContent = p.name;
-      $('pp-role').textContent = `${p.role}${p.location ? ' · ' + p.location : ''}${p.employment ? ' · ' + p.employment : ''}`;
-      $('pp-pct').textContent = pct + '%';
-      $('pp-bar').style.width = pct + '%';
-      $('pp-checklist').innerHTML = p.requirements.map(r => {
-        const credType = S.credentialTypeForRequirement(r.key, p.role);
-        const cred = credentialFor(p, r.key);
-        const sub = r.done
-          ? `Verified${r.verifiedBy ? ' by ' + esc(r.verifiedBy) : ''}${cred && cred.expires ? ' · expires ' + esc(S.fmtDate(cred.expires)) : ''}`
-          : 'Pending';
-        const expiryInput = credType && !r.done && editable
-          ? `<div class="mt-1.5 flex items-center gap-1.5"><span class="text-[11px] text-ink-500">Expires</span><input type="date" class="fld num" style="width:150px;padding:4px 8px;font-size:11.5px" data-exp="${esc(r.key)}" aria-label="${esc(S.REQUIREMENT_LABELS[r.key])} expiration date"></div>`
-          : '';
-        return `
-        <div class="req-row">
-          <button type="button" class="req-check ${r.done ? 'is-done' : ''}" data-req="${esc(r.key)}" ${editable ? '' : 'disabled'} aria-label="${r.done ? 'Mark pending' : 'Mark verified'}: ${esc(S.REQUIREMENT_LABELS[r.key])}">
-            ${r.done ? '<svg class="h-3 w-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>' : ''}
-          </button>
-          <div class="flex-1 min-w-0">
-            <div class="text-[12.5px] font-medium text-ink-900">${esc(S.REQUIREMENT_LABELS[r.key])}</div>
-            <div class="text-[11px] text-ink-400">${sub}</div>
-            ${expiryInput}
-          </div>
-        </div>`;
-      }).join('');
-      $('pp-contact').innerHTML = [p.email ? esc(p.email) : '<span class="text-ink-400">No email on file</span>', p.phone ? esc(p.phone) : '', p.start ? 'Starts ' + esc(S.fmtDate(p.start)) : '']
-        .filter(Boolean).map(x => `<div>${x}</div>`).join('');
-      $('pp-notes').value = p.notes || '';
-      $('pp-notes').disabled = !editable;
-      $('pp-audit').innerHTML = p.audit.slice().reverse().map(a => `<div>${esc(S.fmtDate(a.at))} — ${esc(a.text)}${a.by ? ' <span class="text-ink-400">(' + esc(a.by) + ')</span>' : ''}</div>`).join('') || '<div>No activity yet.</div>';
-
-      const missing = p.requirements.filter(r => !r.done).map(r => S.REQUIREMENT_LABELS[r.key]);
-      const remind = S.mailto(p, 'Your onboarding at ' + (window.__ALTHAIS_USER__ || {}).organization,
-        `Hi ${p.name.split(' ')[0]},\n\nA quick reminder to finish your onboarding. You're ${pct}% done.` + (missing.length ? `\n\nStill needed:\n- ${missing.join('\n- ')}` : '') + `\n\nThanks!`);
-      const request = S.mailto(p, 'Documents needed for your onboarding',
-        `Hi ${p.name.split(' ')[0]},\n\nPlease send us the following so we can complete your onboarding:\n- ${(missing.length ? missing : ['(nothing outstanding)']).join('\n- ')}\n\nThank you.`);
-      [['pp-remind', remind], ['pp-request', request]].forEach(([id, href]) => {
-        const a = $(id);
-        if (href) { a.href = href; a.style.opacity = ''; a.style.pointerEvents = ''; a.title = ''; }
-        else { a.removeAttribute('href'); a.style.opacity = '.5'; a.style.pointerEvents = 'none'; a.title = 'Add an email address first'; }
+    // ---------------------------------------------------------------- generic modal
+    function modal(title, body, buttons, wide) {
+      $('modal-title').textContent = title; $('modal-body').innerHTML = body; $('modal-body').onclick = null;
+      $('modal-box').style.width = wide ? '900px' : '560px';
+      $('modal-foot').innerHTML = '';
+      (buttons || []).forEach(([label, cls, fn]) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label;
+        b.addEventListener('click', async () => { b.disabled = true; try { await fn(b); } catch (e) { /* act() already showed it */ } finally { b.disabled = false; } });
+        $('modal-foot').appendChild(b);
       });
-      $('pp-request').style.display = missing.length ? '' : 'none';
-      $('pp-approve').disabled = pct < 100;
-      $('pp-approve').style.opacity = pct < 100 ? '.5' : '';
-      $('pp-approve').title = pct < 100 ? 'Verify every requirement first' : '';
-      $('pp-role-select').innerHTML = S.options(S.ROLES_LIST.map(r => ({ value: r, label: 'Role: ' + r })), p.role);
+      $('modal').classList.remove('hidden'); $('modal').classList.add('flex');
+    }
+    function closeModal() { $('modal').classList.add('hidden'); $('modal').classList.remove('flex'); }
+    function showInviteLink(res, name) {
+      if (res.emailed || !res.inviteLink) { S.toast(`Invitation emailed to ${name}`); return; }
+      modal('Share This Invitation Link', `
+        <p class="text-[12.5px] text-ink-700 mb-3">Email isn't set up for Althais here, so the invitation wasn't sent. Send ${esc(name)} this link yourself. It works once, only for their email address, and stops working if you resend or cancel the invite.</p>
+        <input id="invite-link" class="fld mono text-[11.5px]" readonly value="${esc(res.inviteLink)}" />`,
+        [['Copy Link', 'btn-primary', async () => { $('invite-link').select(); await navigator.clipboard.writeText(res.inviteLink).catch(() => document.execCommand('copy')); S.toast('Link copied'); }],
+         ['Done', 'btn-line', closeModal]]);
     }
 
-    $('ob-rows').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-view]');
-      const row = e.target.closest('tr[data-id]');
-      const id = btn ? btn.dataset.view : (row ? row.dataset.id : null);
-      if (id) openProfile(id);
-    });
-
-    $('pp-close').addEventListener('click', closeProfile);
-    $('profile-backdrop').addEventListener('click', closeProfile);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeInvite(); } });
-    function closeProfile() { $('profile-backdrop').classList.add('hidden'); $('profile-panel').classList.remove('is-open'); activeId = null; }
-
-    // Checking off a requirement. Licenses/certifications become credential records (with their expiry),
-    // HIPAA becomes a completed training, so Credentials, Training and Compliance pick them up.
-    $('pp-checklist').addEventListener('click', async (e) => {
-      const box = e.target.closest('[data-req]');
-      if (!box || !activeId || !S.canEdit()) return;
-      const key = box.dataset.req;
-      const expInput = document.querySelector(`[data-exp="${key}"]`);
-      const expires = expInput ? expInput.value : '';
-      const cur = S.person(DOC, activeId).requirements.find(r => r.key === key);
-      const credType = S.credentialTypeForRequirement(key, S.person(DOC, activeId).role);
-      if (!cur.done && credType && key !== 'background' && !expires) {
-        expInput && expInput.focus();
-        S.toast('Add the expiration date first', 'error');
-        return;
+    // ---------------------------------------------------------------- add staff member
+    let step = 1, addEditor = null;
+    function openAdd() {
+      step = 1;
+      ['a-first', 'a-last', 'a-email', 'a-phone', 'a-location', 'a-start', 'a-supervisor', 'a-role-custom'].forEach(id => { $(id).value = ''; $(id).classList.remove('is-bad'); });
+      $('a-role').innerHTML = S.options(META.roles.map(r => ({ value: r, label: r })).concat([{ value: '__custom', label: 'Custom…' }]), META.roles.includes('Medical Assistant') ? 'Medical Assistant' : META.roles[0]);
+      $('a-role-custom').classList.add('hidden');
+      $('a-employment').innerHTML = S.options(S.EMPLOYMENT_TYPES, 'Full-Time');
+      const people = OVERVIEW ? OVERVIEW.rows : [];
+      $('loc-list').innerHTML = [...new Set(people.map(r => r.location).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join('');
+      $('sup-list').innerHTML = people.filter(r => r.lifecycle === 'ACTIVE').map(r => `<option value="${esc(r.name)}">`).join('');
+      $('a-days').textContent = META.inviteDays;
+      addEditor = null;
+      showStep();
+      $('add-modal').classList.remove('hidden'); $('add-modal').classList.add('flex');
+      $('a-first').focus();
+    }
+    const roleValue = () => $('a-role').value === '__custom' ? $('a-role-custom').value.trim() : $('a-role').value;
+    function templateFor(role) { return META.templates.find(t => t.role === role) || META.generic; }
+    function showStep() {
+      document.querySelectorAll('#add-modal [data-pane]').forEach(p => p.classList.toggle('hidden', Number(p.dataset.pane) !== step));
+      document.querySelectorAll('#steps .step').forEach(s => { const n = Number(s.dataset.step); s.classList.toggle('is-on', n === step); s.classList.toggle('is-done', n < step); });
+      $('a-back').style.visibility = step === 1 ? 'hidden' : '';
+      $('a-next').textContent = step === 3 ? 'Send Onboarding Invite' : 'Next';
+      $('a-draft').classList.toggle('hidden', step !== 3);
+      $('a-error').classList.add('hidden');
+    }
+    function addError(msg) { $('a-error').textContent = msg; $('a-error').classList.remove('hidden'); }
+    $('a-role').addEventListener('change', () => { $('a-role-custom').classList.toggle('hidden', $('a-role').value !== '__custom'); addEditor = null; });
+    $('a-back').addEventListener('click', () => { step = Math.max(1, step - 1); showStep(); });
+    $('a-next').addEventListener('click', async () => {
+      if (step === 1) {
+        let bad = null;
+        [['a-first', v => v], ['a-last', v => v], ['a-email', v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)]].forEach(([id, ok]) => {
+          const good = ok($(id).value.trim()); $(id).classList.toggle('is-bad', !good); if (!good && !bad) bad = id;
+        });
+        if (bad) { $(bad).focus(); return addError('Add their name and a valid email address.'); }
+        if (!roleValue()) { $('a-role-custom').focus(); return addError('Name the new role.'); }
+        const tpl = templateFor(roleValue());
+        $('tpl-name').textContent = META.templates.some(t => t.role === roleValue()) ? tpl.name : 'standard';
+        if (!addEditor) addEditor = E.mount($('a-editor'), tpl.items, { catalog: META.catalog });
+        step = 2; return showStep();
       }
-      DOC = await S.save(d => {
-        const p = S.person(d, activeId), r = p.requirements.find(x => x.key === key);
-        r.done = !r.done;
-        r.verifiedBy = r.done ? S.currentUserName() : '';
-        r.verifiedAt = r.done ? new Date().toISOString() : '';
-        S.audit(p, `${S.REQUIREMENT_LABELS[key]} ${r.done ? 'verified' : 'marked pending'}`);
-        if (credType) {
-          const existing = d.credentials.find(c => c.personId === p.id && c.fromRequirement === key);
-          if (r.done) {
-            const rec = existing || { id: S.uid('c'), personId: p.id, fromRequirement: key };
-            Object.assign(rec, { type: credType, expires: expires || rec.expires || '', status: 'verified', verifiedBy: S.currentUserName(), verifiedAt: S.todayIso() });
-            if (!existing) d.credentials.push(rec);
-          } else if (existing) {
-            existing.status = 'pending';
-          }
-        }
-        if (key === 'hipaa') {
-          const t = d.trainings.find(x => x.personId === p.id && x.category === 'HIPAA');
-          if (r.done && !t) d.trainings.push({ id: S.uid('t'), personId: p.id, course: 'HIPAA Privacy & Security', category: 'HIPAA', due: S.todayIso(), completed: S.todayIso(), certificate: '' });
-          if (r.done && t && !t.completed) t.completed = S.todayIso();
-        }
-      }).catch(() => DOC);
-      refresh();
+      if (step === 2) {
+        const items = addEditor.items();
+        if (!items.length) return addError('Keep at least one requirement.');
+        const v = id => esc($(id).value.trim() || '—');
+        $('a-summary').innerHTML = `<dt>Employee</dt><dd>${v('a-first')} ${v('a-last')}</dd><dt>Email</dt><dd>${v('a-email')}</dd>
+          <dt>Clinic</dt><dd>${esc(META.clinic)}</dd><dt>Role</dt><dd>${esc(roleValue())}</dd>
+          <dt>Start Date</dt><dd>${$('a-start').value ? esc(S.fmtDate($('a-start').value)) : '—'}</dd><dt>Location</dt><dd>${v('a-location')}</dd>`;
+        const groups = {};
+        items.forEach(it => { const g = E.groupOf(it); (groups[g] = groups[g] || []).push(it); });
+        $('a-req-summary').innerHTML = E.GROUPS.filter(g => groups[g]).map(g => `<div><b class="text-ink-900">${esc(g)}</b> <span class="text-ink-500">· ${groups[g].map(i => esc(i.title) + (i.required === false ? ' (optional)' : '')).join(', ')}</span></div>`).join('');
+        step = 3; return showStep();
+      }
+      await submitAdd(true);
     });
+    $('a-draft').addEventListener('click', () => submitAdd(false));
+    async function submitAdd(invite) {
+      $('a-next').disabled = $('a-draft').disabled = true;
+      try {
+        const res = await api('POST', '/api/staff/onboarding/people', {
+          firstName: $('a-first').value.trim(), lastName: $('a-last').value.trim(), email: $('a-email').value.trim(), phone: $('a-phone').value.trim(),
+          role: roleValue(), location: $('a-location').value.trim(), start: $('a-start').value, employment: $('a-employment').value,
+          supervisor: $('a-supervisor').value.trim(), requirements: addEditor.items(), sendInvite: invite });
+        closeAdd();
+        if (!META.roles.includes(roleValue())) META = await api('GET', '/api/staff/onboarding/meta').then(withGeneric);
+        await loadOverview();
+        const name = $('a-first').value.trim();
+        if (invite) showInviteLink(res, name); else S.toast(`${name} saved as a draft`);
+      } catch (e) { addError(e.message); }
+      finally { $('a-next').disabled = $('a-draft').disabled = false; }
+    }
+    function closeAdd() { $('add-modal').classList.add('hidden'); $('add-modal').classList.remove('flex'); }
+    $('add-btn').addEventListener('click', () => META && openAdd());
 
-    $('pp-notes').addEventListener('change', async () => {
+    // ---------------------------------------------------------------- drawer
+    async function openDrawer(id) {
+      activeId = id;
+      $('drawer-backdrop').classList.remove('hidden'); $('drawer').classList.add('is-open');
+      await loadDetail();
+    }
+    async function loadDetail() {
       if (!activeId) return;
-      const text = $('pp-notes').value;
-      DOC = await S.save(d => { S.person(d, activeId).notes = text; }, 'Note saved').catch(() => DOC);
+      try { DETAIL = await api('GET', `/api/staff/onboarding/people/${encodeURIComponent(activeId)}`); renderDrawer(); }
+      catch (e) { $('d-body').innerHTML = `<div class="text-[12px] text-risk-600">${esc(e.message)}</div>`; }
+    }
+    function closeDrawer() { $('drawer-backdrop').classList.add('hidden'); $('drawer').classList.remove('is-open'); activeId = null; DETAIL = null; }
+    $('d-close').addEventListener('click', closeDrawer);
+    $('drawer-backdrop').addEventListener('click', closeDrawer);
+    document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; renderDrawer(); }));
+
+    function renderDrawer() {
+      const p = DETAIL.person, lc = p.lifecycle, inv = DETAIL.invite;
+      $('d-initials').textContent = S.initials(p.name);
+      $('d-name').textContent = p.name;
+      $('d-status').innerHTML = statusPill(DETAIL.label, lc === 'INVITED' && inv.state === 'expired');
+      $('d-sub').textContent = [p.role, p.location, p.employment, p.start ? 'Starts ' + S.fmtDate(p.start) : ''].filter(Boolean).join(' · ');
+      $('d-pct').textContent = DETAIL.progress + '%'; $('d-bar').style.width = DETAIL.progress + '%';
+      $('d-invite').textContent = lc === 'DRAFT' ? 'Not invited yet'
+        : lc === 'INVITED' ? (inv.state === 'expired' ? `Invitation expired ${S.fmtDate(inv.expires_at)}` : `Invitation sent ${S.fmtDate(inv.sent_at)} · expires ${S.fmtDate(inv.expires_at)}`)
+        : inv.accepted_at ? `Joined ${S.fmtDate(inv.accepted_at)} as ${p.email}` : p.email;
+
+      const A = [];
+      if (lc === 'DRAFT') A.push(['Send Invite', 'btn-primary', () => sendInvite(p.id)]);
+      if (lc === 'INVITED') { A.push(['Resend Invite', 'btn-primary', () => sendInvite(p.id)]); A.push(['Cancel Invite', 'btn-risk', cancelInvite]); }
+      if (['INVITE_ACCEPTED', 'ONBOARDING', 'PENDING_REVIEW'].includes(lc)) A.push(['Review Onboarding', lc === 'PENDING_REVIEW' ? 'btn-primary' : 'btn-line', reviewOnboarding]);
+      A.push(['Change Role', 'btn-line', changeRole]);
+      if (!['SUSPENDED', 'OFFBOARDED'].includes(lc)) A.push(['Edit Requirements', 'btn-line', editRequirements]);
+      A.push(['Edit Details', 'btn-line', editDetails]);
+      if (['ACTIVE', 'INVITE_ACCEPTED', 'ONBOARDING', 'PENDING_REVIEW'].includes(lc)) A.push(['Suspend', 'btn-risk', () => setStatus('suspend')]);
+      if (!['OFFBOARDED'].includes(lc)) A.push(['Offboard', 'btn-risk', () => setStatus('offboard')]);
+      if (['SUSPENDED', 'OFFBOARDED'].includes(lc)) A.push(['Reactivate', 'btn-primary', () => setStatus('reactivate')]);
+      $('d-actions').innerHTML = '';
+      A.forEach(([l, c, fn]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + c; b.style.cssText = 'padding:4px 9px;font-size:11.5px'; b.textContent = l; b.onclick = fn; $('d-actions').appendChild(b); });
+
+      document.querySelectorAll('.dtab').forEach(b => b.classList.toggle('is-on', b.dataset.tab === tab));
+      $('d-body').innerHTML = { checklist: renderChecklist, documents: renderDocuments, info: renderInfo, activity: renderActivity }[tab]();
+    }
+
+    function renderChecklist() {
+      const groups = {};
+      DETAIL.tasks.forEach(t => { const g = E.groupOf(t); (groups[g] = groups[g] || []).push(t); });
+      const latestDoc = key => DETAIL.documents.find(d => d.requirementKey === key && !d.superseded);
+      return E.GROUPS.filter(g => groups[g]).map(g => `
+        <div class="mb-3"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-0.5">${esc(g)}</div>
+        ${groups[g].map(t => {
+          const st = t.effectiveStatus, d = latestDoc(t.key);
+          const acts = [];
+          if (st === 'NEEDS_REVIEW' && t.type === 'document' && d) acts.push(`<button class="text-[11px] font-semibold text-med-600" data-review-doc="${d.id}">Review</button>`);
+          if (st === 'NEEDS_REVIEW' && t.key === 'professional') acts.push(`<button class="text-[11px] font-semibold text-med-600" data-review-info>Review</button>`);
+          if (t.status !== 'COMPLETE' && !['access', 'manager_review'].includes(t.key) && st !== 'NEEDS_REVIEW')
+            acts.push(`<button class="text-[11px] font-semibold ${t.owner === 'manager' ? 'text-med-600' : 'text-ink-500'}" data-complete="${esc(t.key)}">${t.owner === 'manager' ? 'Mark Complete' : 'Mark Done'}</button>`);
+          if (t.status === 'COMPLETE' && !['access', 'manager_review', 'location'].includes(t.key)) acts.push(`<button class="text-[11px] font-semibold text-ink-500" data-reopen="${esc(t.key)}">Reopen</button>`);
+          const meta = [TASK_LABEL[st] || st, t.required === false ? 'Optional' : '', t.dueDate && t.status !== 'COMPLETE' ? 'Due ' + S.fmtDate(t.dueDate) : '',
+                        t.status === 'COMPLETE' && t.approvedBy ? 'by ' + t.approvedBy : '', t.owner === 'manager' ? 'Your task' : ''].filter(Boolean).join(' · ');
+          return `<div class="task"><span class="dot ${TASK_DOT[st] || ''}"></span>
+            <div class="flex-1 min-w-0"><div class="text-[12.5px] font-medium text-ink-900">${esc(t.title)}</div>
+            <div class="text-[11px] text-ink-500">${esc(meta)}</div>
+            ${t.reviewNote && t.status !== 'COMPLETE' ? `<div class="text-[11px] text-risk-600 mt-0.5">Sent back: ${esc(t.reviewNote)}</div>` : ''}</div>
+            <div class="flex gap-2 flex-shrink-0">${acts.join('')}</div></div>`;
+        }).join('')}</div>`).join('');
+    }
+    function renderDocuments() {
+      if (!DETAIL.documents.length) return '<div class="text-[12px] text-ink-500">Nothing uploaded yet. Documents your employee uploads in their Staff Portal show up here.</div>';
+      return DETAIL.documents.map(d => {
+        const t = DETAIL.tasks.find(x => x.key === d.requirementKey);
+        const label = DOC_LABEL[d.status] || d.status;
+        return `<div class="task"><span class="dot ${d.status === 'VERIFIED' ? 'ok' : d.status === 'NEEDS_REVIEW' ? 'warn' : d.status === 'REJECTED' || d.status === 'EXPIRED' ? 'risk' : ''}"></span>
+          <div class="flex-1 min-w-0"><div class="text-[12.5px] font-medium text-ink-900">${esc(t ? t.title : d.docType)}${d.superseded ? ' <span class="text-[10.5px] text-ink-400 font-normal">(replaced)</span>' : ''}</div>
+          <div class="text-[11px] text-ink-500">${esc(d.filename)} · uploaded ${esc(S.fmtDate(d.uploadedAt))}${d.expirationDate ? ' · expires ' + esc(S.fmtDate(d.expirationDate)) : ''}${d.verifiedBy ? ' · verified by ' + esc(d.verifiedBy) : ''}</div>
+          ${d.reviewNote && d.status === 'REJECTED' ? `<div class="text-[11px] text-risk-600">${esc(d.reviewNote)}</div>` : ''}</div>
+          <div class="flex items-center gap-2 flex-shrink-0">${S.pill(DOC_PILL[label] || label)}
+            <a class="text-[11px] font-semibold text-med-600" href="/api/staff/onboarding/documents/${d.id}/file" target="_blank" rel="noopener">View</a>
+            ${d.status === 'NEEDS_REVIEW' && !d.superseded ? `<button class="text-[11px] font-semibold text-med-600" data-review-doc="${d.id}">Review</button>` : ''}</div></div>`;
+      }).join('');
+    }
+    function kvList(fields, values) {
+      const rows = fields.filter(([k]) => values && values[k]).map(([k, l]) => `<dt>${esc(l)}</dt><dd>${esc(k.endsWith('_expiration') || k === 'dob' ? S.fmtDate(values[k]) : values[k])}</dd>`);
+      return rows.length ? `<dl class="kv">${rows.join('')}</dl>` : '<div class="text-[12px] text-ink-500">Not filled in yet.</div>';
+    }
+    function renderInfo() {
+      const p = DETAIL.person, sec = DETAIL.sections, meta = p.infoMeta || {};
+      const upd = s => meta[s] ? `<span class="text-[10.5px] text-ink-400 font-normal normal-case tracking-normal">Updated ${esc(S.fmtDate(meta[s].updatedAt))}</span>` : '';
+      const hasProf = DETAIL.tasks.some(t => t.key === 'professional');
+      const pending = p.pendingInfo && p.pendingInfo.professional;
+      const ver = p.infoVerified && p.infoVerified.professional;
+      return `
+        <div class="mb-4"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5 flex justify-between">Employment <span class="normal-case tracking-normal font-normal text-ink-400">Set by your clinic</span></div>
+          <dl class="kv"><dt>Role</dt><dd>${esc(p.role)}</dd><dt>Location</dt><dd>${esc(p.location || '—')}</dd><dt>Start Date</dt><dd>${esc(S.fmtDate(p.start))}</dd>
+          <dt>Employment Type</dt><dd>${esc(p.employment || '—')}</dd><dt>Supervisor</dt><dd>${esc(p.supervisor || '—')}</dd><dt>Email</dt><dd>${esc(p.email)}</dd></dl></div>
+        <div class="mb-4"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5 flex justify-between">Personal Information ${upd('personal')}</div>${kvList(sec.personal, p.info.personal)}</div>
+        <div class="mb-4"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5 flex justify-between">Emergency Contact ${upd('emergency')}</div>${kvList(sec.emergency, p.info.emergency)}</div>
+        ${hasProf ? `<div class="mb-4"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5 flex justify-between">Professional Information
+            <span class="normal-case tracking-normal font-normal ${ver ? 'text-ok-600' : 'text-ink-400'}">${ver ? 'Confirmed by ' + esc(ver.by) + ' ' + esc(S.fmtDate(ver.at)) : 'Not confirmed yet'}</span></div>
+          ${kvList(sec.professional, p.info.professional)}
+          ${pending ? `<div class="mt-2 p-2.5 rounded-sm border border-line bg-shell"><div class="text-[11.5px] font-semibold text-warn-600 mb-1">Change awaiting your confirmation</div>${kvList(sec.professional, pending)}</div>` : ''}
+          ${pending || DETAIL.tasks.find(t => t.key === 'professional' && t.effectiveStatus === 'NEEDS_REVIEW') ? '<button class="btn btn-primary mt-2" data-review-info>Review Professional Information</button>' : ''}</div>` : ''}`;
+    }
+    function renderActivity() {
+      return DETAIL.events.length ? `<div class="space-y-2">${DETAIL.events.map(e => `<div class="text-[12px]"><span class="text-ink-900">${esc(e.detail || e.action)}</span><div class="text-[11px] text-ink-400">${esc(e.by)} · ${esc(new Date(e.at + (e.at.endsWith('Z') || e.at.includes('+') ? '' : 'Z')).toLocaleString())}</div></div>`).join('')}</div>`
+        : '<div class="text-[12px] text-ink-500">No activity yet.</div>';
+    }
+
+    $('d-body').addEventListener('click', async e => {
+      const rd = e.target.closest('[data-review-doc]'); if (rd) return reviewDocument(Number(rd.dataset.reviewDoc));
+      if (e.target.closest('[data-review-info]')) return reviewInfo();
+      const c = e.target.closest('[data-complete]');
+      if (c) {
+        const t = DETAIL.tasks.find(x => x.key === c.dataset.complete);
+        const note = t.owner === 'manager' ? '' : prompt(`Mark "${t.title}" done without their submission? Add a note for the record (e.g. "Paper copy on file").`);
+        if (note === null) return;
+        return act(() => api('POST', `/api/staff/onboarding/people/${activeId}/tasks/${encodeURIComponent(t.key)}`, { action: 'complete', note }), `${t.title} marked complete`);
+      }
+      const r = e.target.closest('[data-reopen]');
+      if (r) {
+        const t = DETAIL.tasks.find(x => x.key === r.dataset.reopen);
+        const note = prompt(`Reopen "${t.title}"? Optionally say why (they'll see it).`, '');
+        if (note === null) return;
+        return act(() => api('POST', `/api/staff/onboarding/people/${activeId}/tasks/${encodeURIComponent(t.key)}`, { action: 'reopen', note }), `${t.title} reopened`);
+      }
     });
 
-    $('pp-role-select').addEventListener('change', async () => {
-      if (!activeId) return;
-      const role = $('pp-role-select').value;
-      DOC = await S.save(d => {
-        const p = S.person(d, activeId);
-        if (p.role === role) return;
-        S.audit(p, `Role changed from ${p.role} to ${role}`);
-        p.role = role;
-        p.requirements = S.requirementsFor(role, p.requirements);
-      }, 'Role updated').catch(() => DOC);
-      refresh();
-    });
+    async function act(fn, ok) {
+      try { const r = await fn(); if (ok) S.toast(ok); await Promise.all([loadDetail(), loadOverview()]); return r; }
+      catch (e) { S.toast(e.message, 'error'); throw e; }
+    }
 
-    $('pp-approve').addEventListener('click', async () => {
-      if (!activeId) return;
-      const p = S.person(DOC, activeId);
-      if (S.progress(p) < 100) return;
-      DOC = await S.save(d => {
-        const x = S.person(d, activeId);
-        x.status = 'active';
-        x.activeSince = S.todayIso();
-        S.audit(x, 'Onboarding approved and added to Team');
-      }, p.name + ' approved and added to the Team').catch(() => DOC);
-      closeProfile();
-      refresh();
-    });
+    // ---------------------------------------------------------------- actions
+    async function sendInvite(pid) {
+      try {
+        const res = await api('POST', `/api/staff/onboarding/people/${encodeURIComponent(pid)}/invite`);
+        await Promise.all([loadOverview(), activeId ? loadDetail() : null]);
+        const row = OVERVIEW.rows.find(r => r.id === pid);
+        showInviteLink(res, row ? row.name.split(' ')[0] : 'them');
+      } catch (e) { S.toast(e.message, 'error'); }
+    }
+    function cancelInvite() {
+      if (!confirm('Cancel this invitation? The link stops working right away. You can send a new one later.')) return;
+      act(() => api('POST', `/api/staff/onboarding/people/${activeId}/invite/cancel`), 'Invitation cancelled');
+    }
+    function setStatus(action) {
+      const p = DETAIL.person;
+      const msg = { suspend: `Suspend ${p.name}? They lose access to ${META.clinic} in Althais right away. You can reactivate them later.`,
+                    offboard: `Offboard ${p.name}? They lose access right away and any open invitation is cancelled. Their records are kept.`,
+                    reactivate: `Reactivate ${p.name}?` }[action];
+      if (!confirm(msg)) return;
+      act(() => api('POST', `/api/staff/onboarding/people/${activeId}/status`, { action }), { suspend: 'Suspended', offboard: 'Offboarded', reactivate: 'Reactivated' }[action]);
+    }
+    function changeRole() {
+      const p = DETAIL.person, active = p.lifecycle === 'ACTIVE';
+      modal('Change Role', `
+        <label class="lbl" for="m-role">Role</label><select id="m-role" class="fld">${S.options(META.roles, p.role)}</select>
+        ${active ? `<p class="text-[12px] text-ink-600 mt-3">Their Althais access changes to match the new role right away (Staff › Roles).</p>`
+                 : `<label class="flex items-start gap-2 mt-3 text-[12px] text-ink-700"><input id="m-apply" type="checkbox" checked class="mt-0.5"><span>Update their requirements to the new role's template<span class="block text-[11px] text-ink-500">Anything they already completed stays complete.</span></span></label>`}`,
+        [['Cancel', 'btn-line', closeModal], ['Change Role', 'btn-primary', async () => {
+          await act(() => api('POST', `/api/staff/onboarding/people/${activeId}/role`, { role: $('m-role').value, applyTemplate: active ? false : $('m-apply').checked }), 'Role changed');
+          closeModal();
+        }]]);
+    }
+    function editRequirements() {
+      modal('Edit Requirements', `<p class="text-[12px] text-ink-600 mb-2">Only for ${esc(DETAIL.person.name)}. Anything they already completed stays complete.</p><div id="m-editor"></div>`,
+        [['Cancel', 'btn-line', closeModal], ['Save Requirements', 'btn-primary', async () => {
+          await act(() => api('PUT', `/api/staff/onboarding/people/${activeId}/requirements`, { items: ed.items() }), 'Requirements updated');
+          closeModal();
+        }]]);
+      const ed = E.mount($('m-editor'), DETAIL.tasks, { catalog: META.catalog, detailed: true });
+    }
+    function editDetails() {
+      const p = DETAIL.person;
+      modal('Edit Details', `
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="m-loc">Location</label><input id="m-loc" class="fld" value="${esc(p.location || '')}"></div>
+          <div><label class="lbl" for="m-start">Start Date</label><input id="m-start" type="date" class="fld num" value="${esc(p.start || '')}"></div>
+          <div><label class="lbl" for="m-emp">Employment Type</label><select id="m-emp" class="fld">${S.options(S.EMPLOYMENT_TYPES, p.employment)}</select></div>
+          <div><label class="lbl" for="m-sup">Supervisor</label><input id="m-sup" class="fld" value="${esc(p.supervisor || '')}"></div>
+          <div><label class="lbl" for="m-phone">Phone</label><input id="m-phone" class="fld" value="${esc(p.phone || '')}"></div>
+          <div><label class="lbl" for="m-email">Email</label><input id="m-email" class="fld" value="${esc(p.email || '')}" ${DETAIL.invite.state === 'accepted' ? 'disabled title="This is their Althais login now"' : ''}></div>
+        </div>
+        <p class="text-[11px] text-ink-500 mt-3">Changing the start date moves their due dates. Changing the email cancels an open invitation.</p>`,
+        [['Cancel', 'btn-line', closeModal], ['Save', 'btn-primary', async () => {
+          const body = { location: $('m-loc').value, start: $('m-start').value, employment: $('m-emp').value, supervisor: $('m-sup').value, phone: $('m-phone').value };
+          if (!$('m-email').disabled) body.email = $('m-email').value;
+          await act(() => api('PUT', `/api/staff/onboarding/people/${activeId}`, body), 'Details saved');
+          closeModal();
+        }]]);
+    }
 
-    $('pp-remove').addEventListener('click', async () => {
-      if (!activeId) return;
-      const p = S.person(DOC, activeId);
-      if (!confirm(`Remove ${p.name} from onboarding? Their checklist, credentials and training records are deleted too.`)) return;
-      const id = activeId;
-      DOC = await S.save(d => {
-        d.people = d.people.filter(x => x.id !== id);
-        d.credentials = d.credentials.filter(c => c.personId !== id);
-        d.trainings = d.trainings.filter(t => t.personId !== id);
-      }, 'Invitation removed').catch(() => DOC);
-      closeProfile();
-      refresh();
-    });
+    function reasonBox() {
+      return `<div id="m-reason-wrap" class="hidden mt-3"><label class="lbl" for="m-reason">What needs to change?</label><textarea id="m-reason" rows="2" class="fld" placeholder="They'll see this in their Staff Portal."></textarea></div>`;
+    }
+    async function withReason(action, send) {
+      const wrap = $('m-reason-wrap');
+      if (wrap.classList.contains('hidden') || wrap.dataset.for !== action) { wrap.dataset.for = action; wrap.classList.remove('hidden'); $('m-reason').focus(); return; }
+      if (!$('m-reason').value.trim()) { $('m-reason').focus(); return; }
+      await send($('m-reason').value.trim());
+      closeModal();
+    }
 
-    S.load().then(d => {
-      DOC = d;
-      S.readOnlyBanner('readonly-note');
-      refresh();
+    function reviewDocument(id) {
+      const d = DETAIL.documents.find(x => x.id === id);
+      if (!d) return;
+      const t = DETAIL.tasks.find(x => x.key === d.requirementKey) || { title: d.docType };
+      const fields = META.docFields[d.docType] || META.docFields.other;
+      const ex = d.extraction || {};
+      const url = `/api/staff/onboarding/documents/${d.id}/file`;
+      const preview = d.contentType === 'application/pdf' ? `<iframe src="${url}" title="${esc(t.title)}" class="w-full h-[460px] border border-line rounded-sm bg-white"></iframe>`
+        : d.contentType === 'image/heic' ? `<div class="text-[12px] text-ink-500 p-6 border border-line rounded-sm">HEIC photos can't be previewed here. <a class="font-semibold text-med-600" href="${url}" target="_blank" rel="noopener">Download it</a>.</div>`
+        : `<img src="${url}" alt="${esc(t.title)}" class="max-w-full max-h-[460px] border border-line rounded-sm">`;
+      const source = ex.status === 'extracted' ? `<div class="text-[11.5px] text-ink-600 mb-2">Althais read these from the document${ex.provider ? ' (' + esc(ex.provider) + ')' : ''}. Check each one.</div>`
+        : `<div class="text-[11.5px] text-ink-600 mb-2">${d.employeeConfirmed ? 'Typed in by ' + esc(DETAIL.person.name.split(' ')[0]) + ' from the document' : 'Not filled in by ' + esc(DETAIL.person.name.split(' ')[0]) + ' yet'}; Althais didn't read it automatically. Check each detail against the document.</div>`;
+      modal(`Review ${t.title} — ${DETAIL.person.name}`, `
+        <div class="grid md:grid-cols-[1fr_280px] gap-4">
+          <div>${preview}<div class="text-[11px] text-ink-400 mt-1">${esc(d.filename)} · uploaded ${esc(S.fmtDate(d.uploadedAt))}</div></div>
+          <div>${source}
+            ${fields.map(([k, l]) => {
+              const conf = ex.fields && ex.fields[k] && ex.fields[k].confidence;
+              return `<div class="mb-2"><label class="lbl" for="rf-${k}">${esc(l)}${conf ? ` <span class="normal-case tracking-normal font-normal text-ink-400">${Math.round(conf * 100)}% sure</span>` : ''}</label>
+                <input id="rf-${k}" data-field="${k}" class="fld ${k.endsWith('_date') ? 'num' : ''}" ${k.endsWith('_date') ? 'type="date"' : ''} value="${esc((d.fields || {})[k] || '')}"></div>`;
+            }).join('')}
+            ${reasonBox()}
+          </div>
+        </div>`,
+        [['Reject', 'btn-risk', () => withReason('reject', r => act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'reject', reason: r }), 'Document rejected'))],
+         ['Request Correction', 'btn-line', () => withReason('request_correction', r => act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'request_correction', reason: r }), 'Correction requested'))],
+         ['Confirm', 'btn-ok', async () => {
+           const f = {}; document.querySelectorAll('#modal [data-field]').forEach(i => { f[i.dataset.field] = i.value.trim(); });
+           try { await act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'approve', fields: f }), `${t.title} verified`); closeModal(); }
+           catch (e) { (e.data && e.data.fields ? Object.keys(e.data.fields) : []).forEach(k => $('rf-' + k) && $('rf-' + k).classList.add('is-bad')); }
+         }]], true);
+    }
+
+    function reviewInfo() {
+      const p = DETAIL.person, fields = DETAIL.sections.professional;
+      const vals = (p.pendingInfo && p.pendingInfo.professional) || p.info.professional || {};
+      modal(`Professional Information — ${p.name}`, `
+        <p class="text-[12px] text-ink-600 mb-3">${p.pendingInfo && p.pendingInfo.professional ? 'They changed details you already confirmed. The confirmed details stay until you confirm these.' : 'Check these against their documents, correct anything if needed, then confirm.'}</p>
+        <div class="grid grid-cols-2 gap-3">${fields.map(([k, l]) => `<div><label class="lbl" for="pf-${k}">${esc(l)}</label><input id="pf-${k}" data-field="${k}" class="fld" ${k.endsWith('_expiration') ? 'type="date"' : ''} value="${esc(vals[k] || '')}"></div>`).join('')}</div>
+        ${reasonBox()}`,
+        [['Send Back', 'btn-risk', () => withReason('reject', r => act(() => api('POST', `/api/staff/onboarding/people/${activeId}/info/review`, { action: 'request_correction', reason: r }), 'Sent back for correction'))],
+         ['Confirm', 'btn-ok', async () => {
+           const f = {}; document.querySelectorAll('#modal [data-field]').forEach(i => { f[i.dataset.field] = i.value.trim(); });
+           try { await act(() => api('POST', `/api/staff/onboarding/people/${activeId}/info/review`, { action: 'approve', fields: f }), 'Professional information confirmed'); closeModal(); }
+           catch (e) { (e.data && e.data.fields ? Object.keys(e.data.fields) : []).forEach(k => $('pf-' + k) && $('pf-' + k).classList.add('is-bad')); }
+         }]]);
+    }
+
+    async function reviewOnboarding() {
+      let chk;
+      try { chk = await api('GET', `/api/staff/onboarding/people/${activeId}/activation`); } catch (e) { return S.toast(e.message, 'error'); }
+      const p = DETAIL.person, acc = chk.access;
+      const areaLabel = { overview: 'Overview', patients: 'Patients & Charts', schedule: 'Schedule', scribe: 'Write A Note', code_a_note: 'Code A Note', coding_review: 'Coding Review',
+        claims: 'Claims', denials: 'Denials', appeals: 'Appeals', payments: 'Payments', payer_intelligence: 'Payer Intelligence', team: 'Team', onboarding: 'Onboarding',
+        clinic_onboarding: 'Clinic Onboarding', credentials: 'Credentials', compliance: 'Compliance', training: 'Training', roles: 'Roles', althea: 'Althea', settings: 'Settings' };
+      const empDone = chk.employeeDone;
+      const remaining = chk.remaining;
+      modal(`Review Onboarding — ${p.name}`, `
+        <div class="text-[12.5px] mb-3 ${empDone ? 'text-ok-600' : 'text-ink-700'} font-semibold">${empDone ? `${esc(p.name.split(' ')[0])} has completed all employee onboarding requirements.` : `${esc(p.name.split(' ')[0])} still has requirements to finish.`}</div>
+        ${!chk.accepted ? '<div class="text-[12px] text-risk-600 mb-3">They haven’t accepted their invitation yet.</div>' : ''}
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Remaining</div>
+        ${remaining.length ? remaining.map(r => `<div class="task"><span class="dot ${r.status === 'OVERDUE' ? 'risk' : 'warn'}"></span><div class="flex-1 text-[12.5px] text-ink-900">${esc(r.title)}<div class="text-[11px] text-ink-500">${esc(TASK_LABEL[r.status] || r.status)}${r.owner === 'manager' ? ' · your task' : ''}</div></div>
+          ${r.owner === 'manager' ? `<button class="text-[11px] font-semibold text-med-600" data-final-complete="${esc(r.key)}">Mark Complete</button>` : ''}</div>`).join('')
+          : '<div class="text-[12px] text-ink-500 mb-1">Nothing — only your approval is left.</div>'}
+        <div class="task"><span class="dot"></span><div class="flex-1 text-[12.5px] text-ink-900">Althais Permissions<div class="text-[11px] text-ink-500">Set when you activate them</div></div></div>
+        <div class="task"><span class="dot"></span><div class="flex-1 text-[12.5px] text-ink-900">Manager Review<div class="text-[11px] text-ink-500">This approval</div></div></div>
+        <div class="mt-4 p-3 rounded-sm border border-line bg-shell text-[12px] text-ink-700">
+          <b class="text-ink-900">Access from the ${esc(p.role)} role</b> (<a href="/staff/roles" class="font-semibold text-med-600">Staff › Roles</a>):<br>
+          ${acc.app_access ? 'Staff Portal, plus ' + acc.areas.map(a => esc(areaLabel[a] || a)).join(', ') + '.' : 'Staff Portal only. Give the role access on Staff › Roles to open parts of Althais.'}
+        </div>`,
+        [['Close', 'btn-line', closeModal], ['Approve & Activate Staff Member', 'btn-ok', async () => {
+          if (!chk.ready) return S.toast(remaining.length ? 'Finish the remaining items first' : 'They need to accept their invitation first', 'error');
+          await act(() => api('POST', `/api/staff/onboarding/people/${activeId}/activate`), `${p.name} is active`);
+          closeModal();
+        }]]);
+      $('modal-foot').lastChild.disabled = !chk.ready;
+      $('modal-body').onclick = async e => {
+        const b = e.target.closest('[data-final-complete]'); if (!b) return;
+        await act(() => api('POST', `/api/staff/onboarding/people/${activeId}/tasks/${encodeURIComponent(b.dataset.finalComplete)}`, { action: 'complete' }), 'Marked complete').catch(() => null);
+        reviewOnboarding();
+      };
+    }
+
+    // ---------------------------------------------------------------- start
+    document.addEventListener('click', e => { const c = e.target.closest('[data-close]'); if (c) { c.dataset.close === 'modal' ? closeModal() : closeAdd(); } });
+    document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!$('modal').classList.contains('hidden')) closeModal(); else if (!$('add-modal').classList.contains('hidden')) closeAdd(); else closeDrawer(); });
+    function withGeneric(m) { m.generic = m.generic || { name: 'Standard', items: Object.keys(m.catalog).filter(k => ['personal', 'emergency_contact', 'role_info', 'hipaa', 'security_training', 'confidentiality', 'policies', 'althais_training', 'access', 'manager_review'].includes(k)).map(k => m.catalog[k]) }; return m; }
+
+    Promise.all([api('GET', '/api/staff/onboarding/meta').then(withGeneric), loadOverview()]).then(([m]) => {
+      META = m;
       const q = new URLSearchParams(location.search);
-      // Overview's "+ Add Staff" quick action links here with ?invite=1 to open the invite form straight away.
-      if (q.get('invite') === '1' && S.canEdit()) openInvite();
-      if (q.get('person')) openProfile(q.get('person'));
-    }).catch(e => { $('ob-count-label').textContent = e.message; });
+      if (q.get('invite') === '1') openAdd();       // Overview's "+ Add Staff" quick action
+      if (q.get('person')) openDrawer(q.get('person'));
+    }).catch(e => { $('load-error').textContent = e.message; $('load-error').classList.remove('hidden'); $('add-btn').disabled = true; });
   </script>
 </body>
 </html>

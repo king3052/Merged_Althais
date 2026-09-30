@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Staff Portal</title>
+  <style>
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:13px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:var(--brand); } .fld.is-bad { border-color:#c83838; } .fld:disabled { background:#f4f5f7; color:#6b7280; }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .err { font-size:11px; color:#c83838; margin-top:3px; }
+    .btn { font-size:12.5px; padding:7px 12px; border-radius:2px; font-weight:600; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+    .btn-primary { background:var(--brand); color:var(--brand-on); } .btn-primary:hover { background:var(--brand-700); } .btn-primary:disabled { opacity:.5; cursor:default; }
+    .btn-line { border:1px solid #e4e6eb; background:#fff; color:#2c313b; } .btn-line:hover { background:#f4f5f7; }
+    .pnav a { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; font-size:13px; color:#2c313b; border-left:2px solid transparent; }
+    .pnav a:hover { background:#f4f5f7; }
+    .pnav a.is-on { background:var(--brand-100); color:var(--brand-text-strong); font-weight:600; border-left-color:var(--brand); }
+    .card { background:#fff; border:1px solid #e4e6eb; border-radius:3px; }
+    .item { display:flex; gap:12px; padding:12px 16px; border-bottom:1px solid #eceef2; align-items:flex-start; }
+    .item:last-child { border-bottom:0; }
+    .check { width:20px; height:20px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; border:1.5px solid #c7cad1; margin-top:1px; }
+    .check.ok { background:#0c8a4f; border-color:#0c8a4f; color:#fff; } .check.wait { border-color:#b86a00; color:#b86a00; } .check.bad { border-color:#c83838; color:#c83838; }
+    .formtext { white-space:pre-wrap; font-size:13px; line-height:1.65; color:#1a1d24; }
+    html[data-theme-resolved="dark"] .card { background:#1a1d24; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .item { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
+    html[data-theme-resolved="dark"] .btn-line { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .pnav a { color:#b8bdcd; }
+    html[data-theme-resolved="dark"] .pnav a.is-on { background:var(--brand-dark-tint); color:var(--brand-dark-link); } html[data-theme-resolved="dark"] .formtext { color:#d6dae5; }
+  </style>
+</head>
+<body class="bg-shell">
+  <script>window.__ALTHAIS_USER__ = {{ user_json | safe }};</script>
+
+  <header class="bg-med-600 text-white sticky top-0 z-30">
+    <div class="max-w-[1200px] mx-auto flex h-12 items-center px-4 gap-3">
+      <a href="/portal" id="nav-home" class="flex items-center gap-2 pr-4 border-r border-white/15 h-full select-none flex-shrink-0" aria-label="Althais Staff Portal">
+        <span class="text-[15px] font-semibold tracking-[0.18em] leading-none">ALTHAIS</span>
+        <span class="text-[12.5px] font-medium opacity-80 hidden sm:inline">Staff Portal</span>
+      </a>
+      <div id="org" class="text-[12.5px] text-white/85 truncate"></div>
+      <div class="ml-auto flex items-center gap-2">
+        <a id="app-link" href="/overview" class="hidden h-8 px-2.5 rounded-md border border-white/15 bg-white/[0.07] text-white/90 hover:bg-white/[0.16] text-[12.5px] font-medium items-center">Open Althais</a>
+        <button type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode" class="theme-btn flex items-center justify-center h-8 w-8 rounded-md border border-white/15 bg-white/[0.07] text-white/90 hover:bg-white/[0.16]">
+          <svg class="theme-moon h-[16px] w-[16px]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="theme-sun h-[16px] w-[16px]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+        <span id="who" class="text-[12.5px] text-white/85 hidden sm:block whitespace-nowrap"></span>
+        <form method="POST" action="/logout" style="margin:0">
+          <button type="submit" title="Sign out" aria-label="Sign out" class="flex items-center justify-center w-8 h-8 rounded-sm hover:bg-white/10 text-white/80 hover:text-white">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-[1200px] mx-auto p-4 md:p-6 grid gap-5 md:grid-cols-[210px_minmax(0,1fr)] items-start">
+    <nav class="card py-1 pnav md:sticky md:top-[72px]" aria-label="Staff Portal">
+      <a href="#home" data-nav="home">Home</a>
+      <a href="#info" data-nav="info">My Information <span data-count="info"></span></a>
+      <a href="#documents" data-nav="documents">Documents <span data-count="documents"></span></a>
+      <a href="#credentials" data-nav="credentials">Credentials <span data-count="credentials"></span></a>
+      <a href="#forms" data-nav="forms">Forms &amp; Agreements <span data-count="forms"></span></a>
+      <a href="#training" data-nav="training">Training <span data-count="training"></span></a>
+      <a href="#tasks" data-nav="tasks">Tasks</a>
+    </nav>
+    <main id="main" class="min-w-0"><div class="text-[13px] text-ink-500">Loading…</div></main>
+  </div>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script>{% raw %}
+    const S = window.StaffStore;
+    const $ = (id) => document.getElementById(id);
+    const esc = S.esc;
+    let ME = null, MEMBERSHIPS = null, openKey = null, focusKey = null;
+
+    async function api(method, url, body, isForm) {
+      const res = await fetch(url, { method, credentials: 'same-origin', headers: body && !isForm ? { 'Content-Type': 'application/json' } : {}, body: isForm ? body : body ? JSON.stringify(body) : undefined });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(data.error || data.detail || 'Something went wrong.'); e.data = data; throw e; }
+      return data;
+    }
+
+    const ST = { NOT_STARTED: ['To Do', ''], IN_PROGRESS: ['In Progress', 'wait'], WAITING_ON_EMPLOYEE: ['Needs Your Attention', 'bad'],
+                 NEEDS_REVIEW: ['Submitted — In Review', 'wait'], COMPLETE: ['Complete', 'ok'], OVERDUE: ['Overdue', 'bad'], WAITING_ON_MANAGER: ['With Your Clinic', 'wait'] };
+    const tick = '<svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>';
+    function mark(st) { const [, c] = ST[st] || ['', '']; return `<span class="check ${c}">${st === 'COMPLETE' ? tick : st === 'OVERDUE' || st === 'WAITING_ON_EMPLOYEE' ? '!' : ''}</span>`; }
+    function stLabel(st) { return (ST[st] || [st])[0]; }
+    function due(t) { return t.dueDate && t.status !== 'COMPLETE' ? ` · Due ${esc(S.fmtDate(t.dueDate))}` : ''; }
+    const sectionOf = t => t.type === 'info' ? 'info' : t.type === 'document' ? (t.credentialType ? 'credentials' : 'documents') : t.type === 'form' ? 'forms' : t.type === 'training' ? 'training' : 'tasks';
+    const blockedBy = t => (t.dependsOn || []).map(k => ME.tasks.find(x => x.key === k)).filter(x => x && x.status !== 'COMPLETE').map(x => x.title);
+    function heading(title, sub) { return `<h1 class="text-[20px] font-semibold text-ink-900">${esc(title)}</h1>${sub ? `<p class="text-[13px] text-ink-500 mt-1 mb-5">${sub}</p>` : '<div class="mb-5"></div>'}`; }
+    function note(t) { return t.reviewNote && t.status !== 'COMPLETE' ? `<div class="mt-1.5 text-[12px] text-risk-600"><b>From your clinic:</b> ${esc(t.reviewNote)}</div>` : ''; }
+
+    // ---------------------------------------------------------------- pages
+    const PAGES = {
+      home() {
+        const p = ME.person, done = p.lifecycle === 'ACTIVE';
+        const waiting = ME.managerTasks.filter(t => t.status !== 'COMPLETE');
+        const returned = ME.nextSteps.filter(t => t.effectiveStatus === 'WAITING_ON_EMPLOYEE');
+        return `
+          <h1 class="text-[22px] font-semibold text-ink-900">Welcome, ${esc(p.firstName)}</h1>
+          <p class="text-[13.5px] text-ink-600 mt-1 mb-5">${done ? `You’re all set at <b>${esc(ME.clinic)}</b>.` : `Complete your onboarding for <b>${esc(ME.clinic)}</b>.`}</p>
+          <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+            <div class="space-y-4 min-w-0">
+              ${ME.nextSteps.length ? `<div class="card"><div class="px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Next Steps</div>
+                ${ME.nextSteps.map(t => `<a href="#${sectionOf(t)}" data-open="${esc(t.key)}" class="item hover:bg-shell">${mark(t.effectiveStatus)}
+                  <div class="flex-1 min-w-0"><div class="text-[13.5px] font-semibold text-ink-900">${esc(actionTitle(t))}</div>
+                  <div class="text-[12px] ${t.effectiveStatus === 'OVERDUE' ? 'text-risk-600' : 'text-ink-500'}">${esc(stLabel(t.effectiveStatus))}${due(t)}</div>${note(t)}</div>
+                  <span class="text-[12px] font-semibold text-med-600 mt-0.5">${t.effectiveStatus === 'WAITING_ON_EMPLOYEE' ? 'Fix' : 'Start'} →</span></a>`).join('')}</div>`
+              : `<div class="card p-5 text-[13px] text-ink-700">${done ? 'Nothing needs your attention right now.' : 'You’ve done everything on your list. Your clinic is reviewing it.'}</div>`}
+              ${waiting.length && !done ? `<div class="card"><div class="px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Waiting On ${esc(ME.clinic)}</div>
+                ${waiting.map(t => `<div class="item"><span class="check wait"></span><div class="text-[13px] text-ink-700">${esc(t.title)}</div></div>`).join('')}</div>` : ''}
+            </div>
+            <div class="card p-4">
+              <div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Onboarding Progress</div>
+              <div class="text-[32px] font-semibold text-ink-900 num mt-1">${ME.progress}%</div>
+              <div class="w-full h-2 bg-shell rounded-sm overflow-hidden mt-1 mb-4"><div class="h-full ${ME.progress === 100 ? 'bg-ok-600' : 'bg-med-600'}" style="width:${ME.progress}%"></div></div>
+              ${ME.groups.map(g => `<a href="#${{ personal: 'info', employment: 'info' }[g.key] || g.key}" class="flex items-center justify-between py-1.5 text-[13px] text-ink-700 hover:text-ink-900">
+                <span>${esc(g.label)}</span>${g.done === g.total ? `<span class="text-ok-600 font-semibold">✓</span>` : `<span class="num text-ink-500">${g.done}/${g.total}</span>`}</a>`).join('')}
+            </div>
+          </div>`;
+      },
+
+      info() {
+        const hasProf = !!ME.sections.professional;
+        const emp = ME.tasks.find(t => t.key === 'role_info');
+        const prof = ME.tasks.find(t => t.key === 'professional');
+        const p = ME.person;
+        return heading('My Information', 'Saved to your staff record at ' + esc(ME.clinic) + '. Your clinic sees what you enter here.') + `
+          ${infoCard('personal', 'Personal Information', ME.tasks.find(t => t.key === 'personal'))}
+          ${infoCard('emergency', 'Emergency Contact', ME.tasks.find(t => t.key === 'emergency_contact'))}
+          <div class="card p-4 mb-4" id="sec-employment">
+            <div class="flex items-center justify-between mb-3"><h2 class="text-[14px] font-semibold text-ink-900">Employment Information</h2>
+              <span class="text-[11.5px] text-ink-500">Set by your clinic</span></div>
+            <div class="grid sm:grid-cols-2 gap-3">
+              ${[['Role', p.role], ['Location', p.location], ['Start Date', S.fmtDate(p.start)], ['Employment Type', p.employment], ['Supervisor', p.supervisor]]
+                .map(([l, v]) => `<div><div class="lbl">${l}</div><input class="fld" disabled value="${esc(v || '—')}" aria-label="${l}"></div>`).join('')}
+            </div>
+            ${emp && emp.status !== 'COMPLETE' ? `<div class="mt-3 flex items-center justify-between gap-3 flex-wrap"><span class="text-[12px] text-ink-600">Something wrong? Tell your manager — they update these.</span>
+              <button class="btn btn-primary" data-confirm-employment>This Looks Right</button></div>` : emp ? '<div class="mt-3 text-[12px] text-ok-600 font-semibold">✓ Confirmed</div>' : ''}
+          </div>
+          ${hasProf ? infoCard('professional', 'Professional Information', prof,
+            ME.info.pendingProfessional ? '<div class="mb-3 text-[12px] text-warn-600">Your changes are waiting for your manager to confirm. Until then, your clinic uses the details below that it already confirmed.</div>'
+            : ME.info.verified.professional ? `<div class="mb-3 text-[12px] text-ok-600">✓ Confirmed by your clinic on ${esc(S.fmtDate(ME.info.verified.professional.at))}. Changes go to your manager for review.</div>`
+            : prof && prof.status === 'NEEDS_REVIEW' ? '<div class="mb-3 text-[12px] text-warn-600">Submitted — your manager is reviewing these details.</div>' : '') : ''}
+          <div class="card p-4 mb-4">
+            <h2 class="text-[14px] font-semibold text-ink-900 mb-3">Account</h2>
+            <div class="text-[12.5px] text-ink-600 mb-3">You sign in as <b class="text-ink-900">${esc(ME.email)}</b>.</div>
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div><label class="lbl" for="pw-cur">Current Password</label><input id="pw-cur" type="password" class="fld" autocomplete="current-password"></div>
+              <div><label class="lbl" for="pw-new">New Password</label><input id="pw-new" type="password" class="fld" autocomplete="new-password" placeholder="At least 8 characters"></div>
+            </div>
+            <div class="mt-3 flex justify-end"><button class="btn btn-line" data-change-pw>Change Password</button></div>
+          </div>`;
+      },
+
+      documents() { return uploadsPage('documents', 'Documents', 'Upload what your clinic asked for. A PDF or a clear photo works.'); },
+      credentials() {
+        const creds = ME.credentials;
+        return uploadsPage('credentials', 'Credentials', 'Licenses and certifications. Your clinic verifies each one, and Althais reminds you before they expire.',
+          creds.length ? `<div class="card mb-4"><div class="px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-ink-500 font-semibold">On File</div>
+            ${creds.map(c => { const days = S.daysUntil(c.expires); const st = c.status !== 'verified' ? 'Pending Verification' : days != null && days < 0 ? 'Expired' : days != null && days <= 30 ? 'Expiring Soon' : 'Active';
+              return `<div class="item"><span class="check ${st === 'Active' ? 'ok' : st === 'Expired' ? 'bad' : 'wait'}">${st === 'Active' ? tick : ''}</span>
+                <div class="flex-1"><div class="text-[13.5px] font-semibold text-ink-900">${esc(c.label)}</div>
+                <div class="text-[12px] text-ink-500">${esc(st)}${c.expires ? ' · Expires ' + esc(S.fmtDate(c.expires)) : ''}${c.identifier ? ' · ' + esc(c.identifier) : ''}${c.state ? ' · ' + esc(c.state) : ''}</div></div></div>`; }).join('')}</div>` : '');
+      },
+
+      forms() {
+        const list = ME.tasks.filter(t => t.type === 'form');
+        return heading('Forms & Agreements', 'Read each one carefully. What you already told your clinic is filled in for you.') + (list.length ? list.map(t => {
+          const f = ME.forms[t.formKey] || {}, open = openKey === t.key, deps = blockedBy(t);
+          return `<div class="card mb-3" id="item-${esc(t.key)}">
+            <div class="item" style="border-bottom:${open ? '' : '0'}">${mark(t.effectiveStatus)}<div class="flex-1"><div class="text-[13.5px] font-semibold text-ink-900">${esc(f.title || t.title)}</div>
+              <div class="text-[12px] text-ink-500">${t.status === 'COMPLETE' ? `${t.signedAt ? 'Signed' : 'Acknowledged'} ${esc(S.fmtDate(t.signedAt || t.completedAt))} · Version ${esc(t.version || '1')}` : esc(stLabel(t.effectiveStatus)) + due(t)}</div>
+              ${deps.length ? `<div class="text-[12px] text-ink-500 mt-1">Available after: ${esc(deps.join(', '))}</div>` : ''}${note(t)}</div>
+              ${!deps.length ? `<button class="btn ${t.status === 'COMPLETE' ? 'btn-line' : 'btn-primary'}" data-toggle="${esc(t.key)}">${open ? 'Close' : t.status === 'COMPLETE' ? 'View' : f.action === 'sign' ? 'Review & Sign' : 'Review'}</button>` : ''}</div>
+            ${open ? formBody(t, f) : ''}</div>`;
+        }).join('') : '<div class="card p-5 text-[13px] text-ink-600">Your clinic hasn’t asked you to complete any forms.</div>');
+      },
+
+      training() {
+        const list = ME.tasks.filter(t => t.type === 'training');
+        return heading('Training', 'Take each training, then confirm you finished it. Your clinic keeps this as your training documentation.') + (list.length ? list.map(t => {
+          const tr = ME.trainings[t.trainingKey] || {}, rec = tr.record || {}, deps = blockedBy(t), open = openKey === t.key;
+          const expired = rec.expires && S.daysUntil(rec.expires) < 0;
+          const label = expired ? 'Expired' : t.status === 'COMPLETE' ? 'Completed' : t.status === 'IN_PROGRESS' ? 'In Progress' : t.effectiveStatus === 'OVERDUE' ? 'Overdue' : 'Not Started';
+          return `<div class="card mb-3" id="item-${esc(t.key)}"><div class="item">${mark(expired ? 'OVERDUE' : t.effectiveStatus)}
+            <div class="flex-1 min-w-0"><div class="text-[13.5px] font-semibold text-ink-900">${esc(tr.title || t.title)}</div>
+              <div class="text-[12px] text-ink-500">${esc(label)}${rec.completed ? ' · Completed ' + esc(S.fmtDate(rec.completed)) : ''}${rec.expires ? ' · Valid until ' + esc(S.fmtDate(rec.expires)) : ''}${t.status !== 'COMPLETE' ? due(t) : ''}</div>
+              ${tr.description ? `<div class="text-[12.5px] text-ink-600 mt-1">${esc(tr.description)}</div>` : ''}
+              ${deps.length ? `<div class="text-[12px] text-ink-500 mt-1">Available after: ${esc(deps.join(', '))}</div>` : ''}${note(t)}
+              ${!tr.url && t.status !== 'COMPLETE' ? '<div class="text-[11.5px] text-ink-400 mt-1">Your clinic will tell you how to take this one.</div>' : ''}
+              ${open && t.status !== 'COMPLETE' ? `<div class="mt-3 p-3 rounded-sm border border-line bg-shell">
+                <label class="flex items-start gap-2 text-[12.5px] text-ink-800"><input type="checkbox" id="attest-${esc(t.key)}" class="mt-0.5"><span>I completed ${esc(tr.title || t.title)}${tr.version ? ' (version ' + esc(tr.version) + ')' : ''}.</span></label>
+                <label class="lbl mt-3" for="evidence-${esc(t.key)}">Certificate Or Completion Number <span class="normal-case tracking-normal font-normal text-ink-400">(if you got one)</span></label>
+                <input id="evidence-${esc(t.key)}" class="fld" maxlength="300">
+                <div class="mt-3 flex gap-2 justify-end"><button class="btn btn-line" data-toggle="${esc(t.key)}">Cancel</button><button class="btn btn-primary" data-train-done="${esc(t.key)}">Mark Complete</button></div></div>` : ''}
+            </div>
+            ${!deps.length && t.status !== 'COMPLETE' && !open ? `<div class="flex flex-col gap-1.5 items-end">
+              ${tr.url ? `<a class="btn btn-primary" href="${esc(tr.url)}" target="_blank" rel="noopener" data-train-start="${esc(t.key)}">${t.status === 'IN_PROGRESS' ? 'Continue' : 'Start'} ↗</a>` : ''}
+              <button class="btn ${tr.url ? 'btn-line' : 'btn-primary'}" data-toggle="${esc(t.key)}">I Finished It</button></div>` : ''}
+          </div></div>`;
+        }).join('') : '<div class="card p-5 text-[13px] text-ink-600">No training assigned.</div>');
+      },
+
+      tasks() {
+        const groups = [['Your Onboarding', ME.tasks], ['Handled By ' + ME.clinic, ME.managerTasks.map(t => ({ title: t.title, effectiveStatus: t.status, status: t.status }))]];
+        return heading('Tasks', 'Everything on your onboarding list, in one place.') + groups.map(([title, list]) => list.length ? `
+          <div class="card mb-4"><div class="px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-ink-500 font-semibold">${esc(title)}</div>
+          ${list.map(t => `<a ${t.key ? `href="#${sectionOf(t)}" data-open="${esc(t.key)}"` : ''} class="item ${t.key ? 'hover:bg-shell' : ''}">${mark(t.effectiveStatus)}
+            <div class="flex-1"><div class="text-[13.5px] font-medium text-ink-900">${esc(t.title)}${t.required === false ? ' <span class="text-[11px] text-ink-400 font-normal">Optional</span>' : ''}</div>
+            <div class="text-[12px] text-ink-500">${esc(stLabel(t.effectiveStatus))}${t.key ? due(t) : ''}</div>${t.key ? note(t) : ''}</div></a>`).join('')}</div>` : '').join('');
+      },
+    };
+
+    function actionTitle(t) {
+      if (t.type === 'document') return (t.effectiveStatus === 'WAITING_ON_EMPLOYEE' ? 'Re-upload ' : 'Upload ') + t.title;
+      if (t.type === 'form') return (ME.forms[t.formKey] || {}).action === 'sign' ? 'Sign ' + t.title : 'Review ' + t.title;
+      if (t.type === 'training') return 'Complete ' + t.title;
+      if (t.type === 'info') return t.key === 'role_info' ? 'Confirm your employment information' : 'Fill in your ' + t.title.toLowerCase();
+      return t.title;
+    }
+
+    function infoCard(section, title, task, extra) {
+      const fields = ME.sections[section] || [], vals = (section === 'professional' && ME.info.pendingProfessional) || ME.info[section] || {};
+      const meta = ME.info.meta[section];
+      const locked = section === 'professional' && task && task.status === 'NEEDS_REVIEW' && !ME.info.verified.professional;
+      return `<div class="card p-4 mb-4" id="sec-${section}"><div class="flex items-center justify-between mb-3 gap-2 flex-wrap"><h2 class="text-[14px] font-semibold text-ink-900">${esc(title)}</h2>
+          <span class="text-[11.5px] ${task && task.status === 'COMPLETE' ? 'text-ok-600' : 'text-ink-500'}">${task ? esc(stLabel(task.effectiveStatus)) + due(task) : ''}${meta ? ' · Saved ' + esc(S.fmtDate(meta.updatedAt)) : ''}</span></div>
+        ${extra || ''}${task ? note(task) : ''}
+        <form data-section="${section}" novalidate><div class="grid sm:grid-cols-2 gap-3">
+          ${fields.map(([k, l, req]) => {
+            const type = k === 'dob' || k.endsWith('_expiration') ? 'date' : k.includes('phone') ? 'tel' : 'text';
+            const wide = ['address1', 'address2'].includes(k);
+            return `<div class="${wide ? 'sm:col-span-2' : ''}"><label class="lbl" for="f-${section}-${k}">${esc(l)}${req ? '' : ' <span class="normal-case tracking-normal font-normal text-ink-400">(optional)</span>'}</label>
+              <input id="f-${section}-${k}" name="${k}" type="${type}" class="fld ${type === 'date' ? 'num' : ''}" value="${esc(vals[k] || '')}" ${locked ? 'disabled' : ''}
+                ${k === 'state' || k === 'license_state' ? 'maxlength="2" style="text-transform:uppercase"' : ''} ${k === 'npi' ? 'inputmode="numeric" maxlength="10"' : ''}
+                autocomplete="${{ legal_first: 'given-name', legal_last: 'family-name', middle: 'additional-name', phone: 'tel', address1: 'address-line1', address2: 'address-line2', city: 'address-level2', state: 'address-level1', zip: 'postal-code', dob: 'bday' }[k] || 'off'}">
+              <div class="err hidden" data-err="${k}"></div></div>`;
+          }).join('')}
+        </div>${locked ? '' : `<div class="mt-3 flex justify-end"><button type="submit" class="btn btn-primary">${section === 'professional' ? 'Submit For Review' : 'Save'}</button></div>`}</form></div>`;
+    }
+
+    function uploadsPage(kind, title, sub, extra) {
+      const list = ME.tasks.filter(t => t.type === 'document' && (kind === 'credentials') === !!t.credentialType);
+      return heading(title, sub) + (extra || '') + (list.length ? list.map(t => {
+        const d = ME.documents.find(x => x.requirementKey === t.key && !x.superseded);
+        const deps = blockedBy(t), open = openKey === t.key;
+        const confirmNeeded = d && d.status === 'NEEDS_REVIEW' && !d.employeeConfirmed;
+        return `<div class="card mb-3" id="item-${esc(t.key)}"><div class="item">${mark(t.effectiveStatus)}
+          <div class="flex-1 min-w-0"><div class="text-[13.5px] font-semibold text-ink-900">${esc(t.title)}${t.required === false ? ' <span class="text-[11px] text-ink-400 font-normal">Optional</span>' : ''}</div>
+            <div class="text-[12px] text-ink-500">${t.status === 'COMPLETE' ? 'Verified' + (d && d.verifiedAt ? ' ' + esc(S.fmtDate(d.verifiedAt)) : '') : d && d.status === 'NEEDS_REVIEW' ? 'Submitted — your clinic is reviewing it' : t.effectiveStatus === 'WAITING_ON_EMPLOYEE' ? 'Needs a new upload' : t.required === false ? 'If you have one' : 'Required'}${due(t)}
+              ${d ? ` · <a class="font-semibold text-med-600" href="/api/portal/documents/${d.id}/file" target="_blank" rel="noopener">${esc(d.filename)}</a>` : ''}</div>
+            ${deps.length ? `<div class="text-[12px] text-ink-500 mt-1">Available after: ${esc(deps.join(', '))}</div>` : ''}${note(t)}
+            ${confirmNeeded || open ? confirmPanel(t, d) : ''}
+          </div>
+          ${!deps.length && !(d && d.status === 'NEEDS_REVIEW') && (t.status !== 'COMPLETE' || t.credentialType) ? `<label class="btn ${t.status === 'COMPLETE' ? 'btn-line' : 'btn-primary'} cursor-pointer">${t.status === 'COMPLETE' ? 'Upload Renewal' : d ? 'Upload Again' : 'Upload'}
+            <input type="file" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,application/pdf,image/*" data-upload="${esc(t.key)}"></label>` : ''}
+        </div></div>`;
+      }).join('') : `<div class="card p-5 text-[13px] text-ink-600">Your clinic hasn’t asked for any ${kind === 'credentials' ? 'credentials' : 'documents'}.</div>`);
+    }
+
+    function confirmPanel(t, d) {
+      if (!d) return '';
+      const fields = ME.docFields[t.docType] || ME.docFields.other || [], ex = d.extraction || {};
+      const found = ex.status === 'extracted' && Object.keys(ex.fields || {}).length;
+      return `<form class="mt-3 p-3 rounded-sm border border-line bg-shell" data-confirm-doc="${d.id}" novalidate>
+        <div class="text-[13px] font-semibold text-ink-900 mb-1">${found ? 'We found the following information.' : 'Enter the details from your document.'}</div>
+        <div class="text-[12px] text-ink-600 mb-3">${found ? 'Check each one against your document and correct anything that’s wrong.' : esc(ex.note || '')} Your clinic verifies them before they count.</div>
+        <div class="grid sm:grid-cols-2 gap-3">${fields.map(([k, l]) => `<div><label class="lbl" for="d-${d.id}-${k}">${esc(l)}</label>
+          <input id="d-${d.id}-${k}" name="${k}" class="fld ${k.endsWith('_date') ? 'num' : ''}" ${k.endsWith('_date') ? 'type="date"' : ''} value="${esc((d.fields || {})[k] || '')}" ${k === 'state' ? 'maxlength="2" style="text-transform:uppercase"' : ''}>
+          <div class="err hidden" data-err="${k}"></div></div>`).join('')}</div>
+        <div class="mt-3 flex justify-end"><button type="submit" class="btn btn-primary">Confirm Information</button></div></form>`;
+    }
+
+    function formBody(t, f) {
+      const info = ME.info.personal || {}, p = ME.person;
+      const addr = [info.address1, info.address2, [info.city, info.state].filter(Boolean).join(', '), info.zip].filter(Boolean).join(' ');
+      const legal = [info.legal_first, info.middle, info.legal_last].filter(Boolean).join(' ') || p.name;
+      return `<div class="p-4 border-t border-line">
+        <div class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-[12.5px] mb-4 p-3 rounded-sm bg-shell border border-line">
+          ${[['Name', legal], ['Role', p.role], ['Start Date', S.fmtDate(p.start)], ['Address', addr || '—']].map(([l, v]) => `<div><span class="text-ink-500">${l}:</span> <span class="text-ink-900">${esc(v || '—')}</span></div>`).join('')}
+        </div>
+        <div class="formtext">${f.body ? esc(f.body) : '<span class="text-ink-500">Your clinic hasn’t added the text of this form yet. Ask your manager before completing it.</span>'}</div>
+        ${t.status === 'COMPLETE' ? `<div class="mt-4 text-[12.5px] text-ok-600 font-semibold">✓ ${t.signature ? 'Signed as “' + esc(t.signature) + '”' : 'Acknowledged'} on ${esc(S.fmtDate(t.signedAt || t.completedAt))} (version ${esc(t.version || '1')})</div>`
+          : f.body ? `<div class="mt-4 pt-4 border-t border-line">
+          <label class="flex items-start gap-2 text-[13px] text-ink-800"><input type="checkbox" id="agree-${esc(t.key)}" class="mt-0.5"><span>I have read ${esc(f.title || t.title)} and ${f.action === 'sign' ? 'agree to it' : 'will follow it'}.</span></label>
+          ${f.action === 'sign' ? `<label class="lbl mt-3" for="sig-${esc(t.key)}">Type Your Full Legal Name To Sign</label><input id="sig-${esc(t.key)}" class="fld" style="max-width:360px;font-style:italic" value="${esc(legal)}">` : ''}
+          <div class="mt-3"><button class="btn btn-primary" data-form-done="${esc(t.key)}">${f.action === 'sign' ? 'Sign' : 'Acknowledge'}</button></div></div>` : ''}
+      </div>`;
+    }
+
+    // ---------------------------------------------------------------- render + events
+    function route() { return (location.hash || '#home').slice(1).split('?')[0]; }
+    function render() {
+      const r = PAGES[route()] ? route() : 'home';
+      document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('is-on', a.dataset.nav === r));
+      const counts = { info: ME.tasks.filter(t => t.type === 'info'), documents: ME.tasks.filter(t => t.type === 'document' && !t.credentialType),
+                       credentials: ME.tasks.filter(t => t.type === 'document' && t.credentialType), forms: ME.tasks.filter(t => t.type === 'form'), training: ME.tasks.filter(t => t.type === 'training') };
+      document.querySelectorAll('[data-count]').forEach(el => {
+        const l = counts[el.dataset.count] || [], left = l.filter(t => t.status !== 'COMPLETE' && t.status !== 'NEEDS_REVIEW').length;
+        el.className = left ? 'count-pill med' : 'text-ok-600 text-[12px]'; el.textContent = l.length ? (left || '✓') : '';
+      });
+      $('main').innerHTML = PAGES[r]();
+      const k = focusKey || openKey; focusKey = null;
+      if (k) { const el = $('item-' + k) || $('sec-' + ({ personal: 'personal', emergency_contact: 'emergency', role_info: 'employment', professional: 'professional' }[k] || '')); if (el) el.scrollIntoView({ block: 'center' }); }
+    }
+    async function load() {
+      ME = await api('GET', '/api/portal/me');
+      if (!document.getElementById('org-select')) $('org').textContent = ME.clinic;   // the switcher shows it when she has several
+      $('who').textContent = ME.person.name;
+      if (ME.appAccess) { $('app-link').classList.remove('hidden'); $('app-link').classList.add('flex'); }
+      render();
+    }
+    async function loadOrgs() {
+      try { MEMBERSHIPS = await api('GET', '/api/memberships'); } catch (e) { return; }
+      if (MEMBERSHIPS.organizations.length < 2) return;
+      $('org').innerHTML = `<label class="sr-only" for="org-select">Organization</label><select id="org-select" class="bg-white/10 border border-white/20 rounded-sm text-[12.5px] text-white px-2 py-1">
+        ${MEMBERSHIPS.organizations.map(o => `<option value="${esc(o.key)}" class="text-ink-900" ${o.current ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+      $('org-select').addEventListener('change', async e => {
+        try { const r = await api('POST', '/api/memberships/switch', { org: e.target.value }); location.href = r.redirect; }
+        catch (err) { S.toast(err.message, 'error'); }
+      });
+    }
+
+    function showErrors(form, fields) {
+      form.querySelectorAll('[data-err]').forEach(el => { const m = fields && fields[el.dataset.err]; el.textContent = m || ''; el.classList.toggle('hidden', !m); });
+      form.querySelectorAll('input').forEach(i => i.classList.toggle('is-bad', !!(fields && fields[i.name])));
+    }
+    async function run(fn, ok) {
+      try { await fn(); if (ok) S.toast(ok); await load(); return true; }
+      catch (e) { S.toast(e.message, 'error'); return e; }
+    }
+
+    // Next Steps and Tasks link to an item: go to its page, scroll to it, and open it when opening is the next step (a form to read)
+    let pending = null;
+    function focusItem(key) {
+      const t = ME.tasks.find(x => x.key === key);
+      focusKey = key; openKey = t && t.type === 'form' && t.status !== 'COMPLETE' ? key : null;
+      if (openKey) api('POST', `/api/portal/forms/${encodeURIComponent(key)}`, { action: 'open' }).catch(() => {});
+    }
+    window.addEventListener('hashchange', () => {
+      if (pending) { focusItem(pending); pending = null; } else { openKey = null; }
+      render();
+      if (!focusKey && !openKey) window.scrollTo(0, 0);
+    });
+    document.addEventListener('click', async e => {
+      const o = e.target.closest('[data-open]');
+      if (o) {
+        if (location.hash === o.getAttribute('href')) { e.preventDefault(); focusItem(o.dataset.open); render(); }
+        else pending = o.dataset.open;
+        return;
+      }
+      const tg = e.target.closest('[data-toggle]');
+      if (tg) {
+        const key = tg.dataset.toggle; openKey = openKey === key ? null : key;
+        const t = ME.tasks.find(x => x.key === key);
+        if (openKey && t && t.type === 'form' && t.status !== 'COMPLETE') api('POST', `/api/portal/forms/${encodeURIComponent(key)}`, { action: 'open' }).catch(() => {});
+        return render();
+      }
+      if (e.target.closest('[data-confirm-employment]')) return run(() => api('PUT', '/api/portal/info/employment', {}), 'Thanks — confirmed');
+      const fd = e.target.closest('[data-form-done]');
+      if (fd) {
+        const key = fd.dataset.formDone, sig = $('sig-' + key);
+        if (!$('agree-' + key).checked) return S.toast('Check the box to confirm', 'error');
+        fd.disabled = true;
+        const r = await run(() => api('POST', `/api/portal/forms/${encodeURIComponent(key)}`, { action: 'complete', agree: true, signature: sig ? sig.value.trim() : '' }), sig ? 'Signed' : 'Acknowledged');
+        if (r === true) openKey = null, render(); else fd.disabled = false;
+        return;
+      }
+      const ts = e.target.closest('[data-train-start]');
+      if (ts) { api('POST', `/api/portal/training/${encodeURIComponent(ts.dataset.trainStart)}`, { action: 'start' }).then(load).catch(err => S.toast(err.message, 'error')); return; }
+      const td = e.target.closest('[data-train-done]');
+      if (td) {
+        const key = td.dataset.trainDone;
+        if (!$('attest-' + key).checked) return S.toast('Confirm that you completed it', 'error');
+        td.disabled = true;
+        const r = await run(() => api('POST', `/api/portal/training/${encodeURIComponent(key)}`, { action: 'complete', attest: true, evidence: $('evidence-' + key).value.trim() }), 'Training recorded');
+        if (r === true) { openKey = null; render(); } else td.disabled = false;
+        return;
+      }
+      if (e.target.closest('[data-change-pw]')) {
+        const f = new FormData(); f.append('current_password', $('pw-cur').value); f.append('new_password', $('pw-new').value);
+        const res = await fetch('/api/change-password', { method: 'POST', body: f, credentials: 'same-origin' });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok) { $('pw-cur').value = $('pw-new').value = ''; S.toast('Password changed'); } else S.toast(j.detail || j.error || 'Could not change your password', 'error');
+      }
+    });
+    document.addEventListener('submit', async e => {
+      const form = e.target;
+      if (form.dataset.section) {
+        e.preventDefault();
+        const fields = Object.fromEntries(new FormData(form).entries());
+        const btn = form.querySelector('[type=submit]'); btn.disabled = true;
+        try { await api('PUT', `/api/portal/info/${form.dataset.section}`, { fields }); S.toast(form.dataset.section === 'professional' ? 'Sent to your manager for review' : 'Saved'); await load(); }
+        catch (err) { showErrors(form, err.data && err.data.fields); S.toast(err.message, 'error'); btn.disabled = false; }
+      }
+      if (form.dataset.confirmDoc) {
+        e.preventDefault();
+        const fields = Object.fromEntries(new FormData(form).entries());
+        try { await api('POST', `/api/portal/documents/${form.dataset.confirmDoc}/confirm`, { fields }); openKey = null; S.toast('Thanks — sent to your clinic'); await load(); }
+        catch (err) { showErrors(form, err.data && err.data.fields); S.toast(err.message, 'error'); }
+      }
+    });
+    document.addEventListener('change', async e => {
+      const inp = e.target.closest('[data-upload]');
+      if (!inp || !inp.files[0]) return;
+      const key = inp.dataset.upload, file = inp.files[0];
+      if (file.size > 10 * 1024 * 1024) { inp.value = ''; return S.toast('That file is over 10 MB', 'error'); }
+      const fd = new FormData(); fd.append('requirement', key); fd.append('file', file);
+      inp.closest('label').textContent = 'Uploading…';
+      try { await api('POST', '/api/portal/documents', fd, true); openKey = key; S.toast('Uploaded'); await load(); }
+      catch (err) { S.toast(err.message, 'error'); render(); }
+    });
+
+    load().catch(e => { $('main').innerHTML = `<div class="card p-5"><div class="text-[14px] font-semibold text-ink-900 mb-1">Your Staff Portal isn’t available</div><div class="text-[13px] text-ink-600">${esc(e.message)}</div></div>`; })
+      .finally(loadOrgs);
+  {% endraw %}</script>
+</body>
+</html>

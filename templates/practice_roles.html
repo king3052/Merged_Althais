@@ -32,7 +32,7 @@
     <div class="p-5">
       <div id="readonly-note"></div>
       <div class="mb-4 px-3 py-2.5 rounded-sm border border-line bg-panel text-[12px] text-ink-600">
-        This matrix records who <em>should</em> have access to what. It doesn't change what anyone can do in Althais. That's set by each person's login access level (Viewer, Provider, Biller or Admin), shown on <a href="/staff/team" class="font-semibold text-med-600">Team</a>.
+        Staff you activate through <a href="/staff/onboarding" class="font-semibold text-med-600">Onboarding</a> get exactly the Althais access their role has here, and it changes as soon as you change the role. A role with nothing checked gives the Staff Portal only. People added through Manager keep the login access level set there (Viewer, Provider, Biller or Admin).
       </div>
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
@@ -85,16 +85,27 @@
       const del = e.target.closest('[data-delete]');
       if (del) {
         const r = DOC.roles[Number(del.dataset.delete)];
-        if (!confirm(`Delete the ${r.name} role?`)) return;
+        if (!confirm(`Delete the ${r.name} role? Anyone activated with it keeps their staff record but loses their Althais access (Staff Portal only) until you give them another role.`)) return;
         DOC = await S.save(d => { d.roles = d.roles.filter(x => x.name !== r.name); }, 'Role deleted').catch(() => DOC);
+        syncAccess();
         return render();
       }
       const cell = e.target.closest('.perm-cell');
       if (!cell || !S.canEdit()) return;
       const name = DOC.roles[Number(cell.dataset.role)].name, area = cell.dataset.area;
       DOC = await S.save(d => { const r = d.roles.find(x => x.name === name); r.perms[area] = r.perms[area] ? 0 : 1; markReviewed(d); }).catch(() => DOC);
+      syncAccess();
       render();
     });
+
+    // Staff activated through Onboarding get their access from their role: bring it in line after every change.
+    async function syncAccess() {
+      try {
+        const r = await fetch('/api/staff/onboarding/roles/sync', { method: 'POST', credentials: 'same-origin' });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.updated) S.toast(`Access updated for ${j.updated} staff member${j.updated === 1 ? '' : 's'}`);
+      } catch (e) { /* the page still saved; access syncs on their next role change */ }
+    }
 
     // Clinic Onboarding's "Review Roles & Permissions" step checks itself off from this.
     function markReviewed(d) { d.clinic.rolesReviewedAt = S.todayIso(); d.clinic.rolesReviewedBy = S.currentUserName(); }
@@ -114,6 +125,7 @@
     $('reset-btn').addEventListener('click', async () => {
       if (!confirm('Reset every role to the default permissions? Custom roles are removed.')) return;
       DOC = await S.save(d => { d.roles = JSON.parse(JSON.stringify(S.DEFAULT_ROLES)); }, 'Reset to defaults').catch(() => DOC);
+      syncAccess();
       render();
     });
 

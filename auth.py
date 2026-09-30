@@ -21,7 +21,7 @@ from datetime import timezone, timedelta
 
 from fastapi import APIRouter, Depends, Request, Form, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import create_engine, String, Integer, DateTime, Text, UniqueConstraint, select, text
+from sqlalchemy import create_engine, String, Integer, DateTime, Text, UniqueConstraint, select, text, func
 from sqlalchemy.orm import declarative_base, sessionmaker, Mapped, mapped_column, Session
 import bcrypt
 import jwt  # PyJWT
@@ -100,6 +100,10 @@ class User(Base):
     tools: Mapped[str] = mapped_column(String(255), default="")
     # Pages and features (AREAS keys, comma-separated) the clinic's manager switched off for this person.
     blocked: Mapped[str] = mapped_column(String(1024), default="")
+    # 1 = the clinic this person is signed in to only gives them the Staff Portal (/portal): invited staff who
+    # are still onboarding, or whose role grants no app access. A cache of their active OrgMembership
+    # (staff_onboarding.py); main.py's middleware keeps them out of every other page and API.
+    portal_only: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
@@ -248,7 +252,7 @@ except Exception:
     pass  # column already exists
 
 for _ddl in ("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1", "ALTER TABLE users ADD COLUMN tools VARCHAR(255) DEFAULT ''",
-             "ALTER TABLE users ADD COLUMN blocked VARCHAR(1024) DEFAULT ''"):
+             "ALTER TABLE users ADD COLUMN blocked VARCHAR(1024) DEFAULT ''", "ALTER TABLE users ADD COLUMN portal_only INTEGER DEFAULT 0"):
     try:
         with engine.connect() as _conn:
             _conn.execute(text(_ddl))
@@ -469,7 +473,8 @@ def send_email(to: str, subject: str, html: str) -> bool:
         return False
 
 
-def _email_html(title: str, body: str, cta_url: str, cta_text: str) -> str:
+def _email_html(title: str, body: str, cta_url: str, cta_text: str,
+                note: str = "This link expires in 1 hour and can only be used once.") -> str:
     return f"""<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f4f5f7;font-family:Inter,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px">
@@ -482,7 +487,7 @@ def _email_html(title: str, body: str, cta_url: str, cta_text: str) -> str:
   <p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 28px">{body}</p>
   <a href="{cta_url}" style="display:inline-block;background:#0d5bd7;color:#fff;text-decoration:none;font-size:13px;font-weight:600;letter-spacing:0.05em;padding:14px 32px;border-radius:6px">{cta_text}</a>
   <p style="font-size:12px;color:#9ca3af;margin:24px 0 0">Or copy this link: <a href="{cta_url}" style="color:#0d5bd7">{cta_url}</a></p>
-  <p style="font-size:12px;color:#9ca3af;margin:8px 0 0">This link expires in 1 hour and can only be used once.</p>
+  <p style="font-size:12px;color:#9ca3af;margin:8px 0 0">{note}</p>
 </td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #f0f0f0">
   <p style="font-size:11px;color:#d1d5db;margin:0">© 2026 Althais Health, Inc. · If you didn't request this, ignore this email.</p>
@@ -517,7 +522,11 @@ def register(
         return JSONResponse({"error": "An account with that email already exists."}, status_code=400)
 
     org = organization.strip()
-    new_clinic = not org or not db.scalar(select(User).where(User.organization == org))
+    # Sign-up only ever starts a new clinic. Joining an existing one takes an invitation from its admins
+    # (Staff > Onboarding, or Manager): typing a clinic's name must not grant access to its records.
+    if org and db.scalar(select(User.id).where(func.lower(func.trim(User.organization)) == org.lower()).limit(1)):
+        return JSONResponse({"error": "That practice already uses Althais. Ask one of its admins to invite you."}, status_code=403)
+    new_clinic = True
     user = User(
         email=email,
         password_hash=hash_password(password),
@@ -582,7 +591,8 @@ def login(
     user.last_login = dt.datetime.now(timezone.utc)
     db.commit()
 
-    resp = JSONResponse({"ok": True, "redirect": "/overview"})
+    # invited staff whose clinic only gives them the Staff Portal land there; everyone else in the app
+    resp = JSONResponse({"ok": True, "redirect": "/portal" if getattr(user, "portal_only", 0) else "/overview"})
     _set_session_cookie(resp, user.id)
     return resp
 
@@ -598,6 +608,7 @@ def me(user: User = Depends(require_user)):
         "email_verified": bool(user.email_verified),
         "role": user.role or "admin",
         "provider_name": user.provider_name or "",
+        "portal_only": bool(getattr(user, "portal_only", 0)),
     }
 
 

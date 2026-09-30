@@ -59,6 +59,53 @@ from coding_rules import resolve_time_based_codes, is_governed_code
 from code_validation import validate_codes
 import policy_knowledge
 app.include_router(auth_router)
+import staff_onboarding
+from auth import decode_token, User
+app.include_router(staff_onboarding.router)
+
+
+# ── Staff Portal lockdown ─────────────────────────────────────────────────────
+# Invited staff whose clinic only gives them the Staff Portal (users.portal_only, set from their organization
+# membership in staff_onboarding.py) can reach the portal and their own account, nothing else: every other page
+# sends them to /portal and every other API answers 403. Enforced here, on the server, for every request.
+_APP_PAGE_PREFIXES = ("/overview", "/emr", "/revenue", "/staff", "/scribe", "/coding", "/settings", "/manager", "/onboarding")
+_PORTAL_APIS = ("/api/portal/", "/api/memberships", "/api/invitations/", "/api/me", "/api/change-password")
+
+
+@app.middleware("http")
+async def staff_portal_only(request: Request, call_next):
+    path = request.url.path
+    is_api = path.startswith("/api/")
+    guarded = (is_api and not path.startswith(_PORTAL_APIS)) or path.startswith(_APP_PAGE_PREFIXES)
+    if guarded and not (is_api and path == "/api/branding" and request.method == "GET"):   # brand.js paints the portal too
+        token = request.cookies.get(COOKIE_NAME)
+        data = decode_token(token) if token else None
+        if data:
+            with SessionLocal() as db:
+                try:
+                    u = db.get(User, int(data["sub"]))
+                except (KeyError, ValueError, TypeError):
+                    u = None
+                if u is not None and getattr(u, "portal_only", 0):
+                    if is_api:
+                        return JSONResponse({"error": "Your clinic has given you the Staff Portal only.", "detail": "Staff Portal only."}, status_code=403)
+                    return RedirectResponse(url="/portal", status_code=302)
+    return await call_next(request)
+
+
+@app.on_event("startup")
+async def _staff_reminders_job():
+    """Onboarding and credential reminders, a few times a day. Each one is sent once (staff_notifications)."""
+    import asyncio
+
+    async def loop():
+        while True:
+            try:
+                await asyncio.to_thread(staff_onboarding.run_all_reminders)
+            except Exception as e:
+                print(f"[REMINDERS] {e}")
+            await asyncio.sleep(6 * 3600)
+    asyncio.get_event_loop().create_task(loop())
 
 
 # ── Marketing / product site (Jinja2, shared nav+footer via base.html) ───────
@@ -333,7 +380,7 @@ async def root(request: Request, user=Depends(current_user)):
 @app.get("/login")
 async def login(request: Request, user=Depends(current_user)):
     if user:
-        return RedirectResponse(url="/overview", status_code=302)
+        return RedirectResponse(url=_home_for_user(user), status_code=302)
     # The "Forgot password?" link and the sign-in / create-account toggle live in the template itself.
     with open("templates/login.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
@@ -409,6 +456,8 @@ def _gate(request: Request, user):
 
 def _home_for_user(user, products=None) -> str:
     """The plan's home, or the first page this person still has when their manager switched that off."""
+    if getattr(user, "portal_only", 0):
+        return "/portal"   # invited staff whose clinic gives them the Staff Portal only
     products = products if products is not None else _user_products(user)
     blocked = member_blocked(user)
     home = _home_for(products)
@@ -483,6 +532,7 @@ _WORKSPACE_PAGES = {
     "/staff/training": "practice_training.html",
     "/staff/roles": "practice_roles.html",
     "/staff/clinic-onboarding": "practice_clinic_onboarding.html",
+    "/staff/onboarding/templates": "practice_onboarding_templates.html",
 }
 
 
@@ -512,6 +562,27 @@ def _workspace_route(template_name: str):
 
 for _path, _template in _WORKSPACE_PAGES.items():
     app.add_api_route(_path, _workspace_route(_template), methods=["GET"])
+
+
+# ── Staff Portal and invitations (staff_onboarding.py) ──────────────────────
+@app.get("/portal")
+async def staff_portal(request: Request, user=Depends(current_user)):
+    """The employee's own onboarding and staff information. Only for logins linked to a staff record at the
+    clinic they're signed in to; the API behind it checks that again on every call."""
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    with SessionLocal() as db:
+        m = staff_onboarding.membership(db, user.id, (user.organization or "").strip())
+        if (not m or not m.staff_person_id) and not getattr(user, "portal_only", 0):
+            return RedirectResponse(url=_home_for_user(user), status_code=302)   # no Staff Portal here: their app home
+    # portal-only without a usable staff record: the page shows why (/api/portal/me explains, e.g. access paused)
+    return templates.TemplateResponse(request, "portal.html", {"user": user, "user_json": _app_user_json(user)})
+
+
+@app.get("/invite/{token}")
+async def invite_page(request: Request, token: str):
+    """Where the emailed invitation lands. The token is checked (again) by /api/invitations/*."""
+    return templates.TemplateResponse(request, "invite.html", {"token": token})
 
 
 # ── Polished-placeholder pages ─────────────────────────────────────────────
