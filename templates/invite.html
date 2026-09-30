@@ -15,10 +15,6 @@
   <link rel="stylesheet" href="/static/althais-landing.css" />
   <link rel="stylesheet" href="/static/althais-auth.css" />
   <link rel="stylesheet" href="/static/althais-dark.css" />
-  <style>
-    .inv-details { display:grid; grid-template-columns:110px 1fr; gap:6px 12px; font-size:14px; margin:0 0 22px; padding:14px 16px; border:1px solid rgba(127,127,127,.25); border-radius:10px; }
-    .inv-details dt { opacity:.6; } .inv-details dd { margin:0; font-weight:600; }
-  </style>
 </head>
 <body class="login-page">
 <div class="lg-shell">
@@ -31,16 +27,14 @@
       <div class="lg-form">
         <div class="eyebrow">Staff Invitation</div>
         <h1 class="lg-title" id="title">Loading your<br /><span class="em">invitation…</span></h1>
-        <p class="lg-sub" id="sub"></p>
+        <p class="lg-lede" id="sub"></p>
 
-        <div id="msg" class="lg-msg" role="alert" hidden></div>
-        <dl class="inv-details" id="details" hidden></dl>
+        <dl class="lg-details" id="details" hidden></dl>
+        <p class="lg-note" id="how" hidden></p>
+        <div id="msg" class="lg-msg is-plain" role="alert" hidden></div>
 
-        <form id="form" novalidate hidden>
-          <div class="field">
-            <label for="f-email">Email</label>
-            <input id="f-email" type="email" disabled />
-          </div>
+        <form id="form" class="lg-plain" novalidate hidden>
+          <input id="f-email" type="email" autocomplete="username" hidden />
           <div class="field" id="name-field" hidden>
             <label for="f-name">Your full name</label>
             <input id="f-name" type="text" autocomplete="name" />
@@ -48,10 +42,9 @@
           <div class="field" id="pw-field">
             <div class="field-row"><label for="f-password" id="pw-label">Password</label><a href="/forgot-password" id="forgot" class="lg-forgot" hidden>Forgot Password</a></div>
             <div class="pw"><input id="f-password" type="password" /></div>
-            <p id="pw-hint" class="lg-hint" hidden>Use at least 8 characters.</p>
           </div>
           <button id="submit" type="submit" class="btn btn-dark btn-lg lg-submit">
-            <span>Accept Invitation</span>
+            <span id="submit-label">Accept Invitation</span>
             <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
           </button>
         </form>
@@ -85,7 +78,8 @@
         info = j;
         $("title").innerHTML = 'You’re invited to join<br /><span class="em">' + esc(j.clinic) + '.</span>';
         $("sub").textContent = (j.invitedBy ? j.invitedBy + " invited you" : "You’ve been invited") + " to complete your onboarding on Althais.";
-        $("details").innerHTML = "<dt>Clinic</dt><dd>" + esc(j.clinic) + "</dd><dt>Role</dt><dd>" + esc(j.role || "—") + "</dd>" + (j.start ? "<dt>Start Date</dt><dd>" + esc(fmt(j.start)) + "</dd>" : "");
+        $("details").innerHTML = "<dt>Clinic</dt><dd>" + esc(j.clinic) + "</dd><dt>Role</dt><dd>" + esc(j.role || "—") + "</dd>"
+          + (j.start ? "<dt>Start date</dt><dd>" + esc(fmt(j.start)) + "</dd>" : "") + "<dt>Email</dt><dd>" + esc(j.email) + "</dd>";
         $("details").hidden = false;
         if (j.signedInAs && j.signedInAs.toLowerCase() !== j.email.toLowerCase()) {
           say("You’re signed in as " + j.signedInAs + ", but this invitation is for " + j.email + ". Sign out, then open the link again.", true);
@@ -94,14 +88,20 @@
         }
         $("f-email").value = j.email;
         $("form").hidden = false;
+        const how = (t) => { $("how").textContent = t; $("how").hidden = false; };
         if (j.signedInAs) { mode = "signed-in"; $("pw-field").hidden = true; }
-        else if (j.accountExists) {
+        else if (j.tempPassword) {
+          mode = "temp";
+          how("Enter the temporary password from your invitation email. You’ll create your own password next.");
+          $("pw-label").textContent = "Temporary password"; $("f-password").autocomplete = "one-time-code";
+          $("submit-label").textContent = "Sign In";
+        } else if (j.accountExists) {
           mode = "existing";
-          $("sub").textContent += " You already have an Althais account, so sign in to add " + j.clinic + " to it.";
+          how("You already have an Althais account, so sign in with your password to add " + j.clinic + " to it.");
           $("pw-label").textContent = "Your Althais password"; $("f-password").autocomplete = "current-password"; $("forgot").hidden = false;
         } else {
           $("name-field").hidden = false; $("f-name").value = j.name || "";
-          $("pw-label").textContent = "Create a password"; $("f-password").autocomplete = "new-password"; $("pw-hint").hidden = false;
+          $("pw-label").textContent = "Create a password (at least 8 characters)"; $("f-password").autocomplete = "new-password";
         }
       })
       .catch(() => say("Couldn’t reach Althais. Check your connection and reload.", true));
@@ -111,7 +111,7 @@
       const password = $("f-password").value, fullName = $("f-name").value.trim();
       if (mode === "new" && !fullName) { $("f-name").focus(); return say("Add your full name.", true); }
       if (mode === "new" && password.length < 8) { $("f-password").focus(); return say("Use at least 8 characters for your password.", true); }
-      if (mode === "existing" && !password) { $("f-password").focus(); return say("Enter your password.", true); }
+      if ((mode === "existing" || mode === "temp") && !password) { $("f-password").focus(); return say(mode === "temp" ? "Enter the temporary password from your email." : "Enter your password.", true); }
       $("submit").disabled = true;
       fetch("/api/invitations/accept", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password, fullName }) })

@@ -265,7 +265,8 @@
           <td class="td text-ink-600">${esc(r.location || '—')}</td>
           <td class="td">${statusPill(S.LIFECYCLE_LABELS[r.lifecycle], expired)}</td>
           <td class="td"><div class="flex items-center gap-2 num"><div class="w-20 h-1.5 bg-shell rounded-sm overflow-hidden"><div class="h-full ${r.progress === 100 ? 'bg-ok-600' : 'bg-med-600'}" style="width:${r.progress}%"></div></div><span class="text-ink-900 font-semibold text-[11.5px]">${r.progress}%</span></div></td>
-          <td class="td text-[12px] text-ink-700">${next}</td>
+          <td class="td text-[12px] text-ink-700"><div class="flex items-center justify-between gap-3"><span>${next}</span>
+            ${r.lifecycle === 'INVITED' || r.lifecycle === 'DRAFT' ? `<button type="button" class="btn btn-line flex-shrink-0" style="padding:3px 8px;font-size:11px" data-row-invite="${esc(r.id)}">${r.lifecycle === 'DRAFT' ? 'Send Invite' : 'Resend Invite'}</button>` : ''}</div></td>
         </tr>`;
       }).join('') : `<tr><td class="td text-ink-500 py-8 text-center" colspan="6">${OVERVIEW.rows.length ? 'No one matches.' : 'No staff yet. Click <b>+ Add Staff Member</b> to invite your first person.'}</td></tr>`;
       const attn = OVERVIEW.attention;
@@ -284,7 +285,11 @@
     }
     $('filters').addEventListener('click', e => { const b = e.target.closest('[data-filter]'); if (b) { filter = b.dataset.filter; renderOverview(); } });
     $('search').addEventListener('input', () => OVERVIEW && renderOverview());
-    $('rows').addEventListener('click', e => { const r = e.target.closest('tr[data-id]'); if (r) openDrawer(r.dataset.id); });
+    $('rows').addEventListener('click', e => {
+      const inv = e.target.closest('[data-row-invite]');
+      if (inv) { inv.disabled = true; sendInvite(inv.dataset.rowInvite).finally(() => { inv.disabled = false; }); return; }
+      const r = e.target.closest('tr[data-id]'); if (r) openDrawer(r.dataset.id);
+    });
     $('attention').addEventListener('click', async e => {
       const b = e.target.closest('[data-attn]'); if (!b) return;
       const a = OVERVIEW.attention[Number(b.dataset.attn)];
@@ -310,9 +315,12 @@
     function closeModal() { $('modal').classList.add('hidden'); $('modal').classList.remove('flex'); }
     function showInviteLink(res, name) {
       if (res.emailed || !res.inviteLink) { S.toast(`Invitation emailed to ${name}`); return; }
-      modal('Share This Invitation Link', `
-        <p class="text-[12.5px] text-ink-700 mb-3">Email isn't set up for Althais here, so the invitation wasn't sent. Send ${esc(name)} this link yourself. It works once, only for their email address, and stops working if you resend or cancel the invite.</p>
-        <input id="invite-link" class="fld mono text-[11.5px]" readonly value="${esc(res.inviteLink)}" />`,
+      modal('Share This Invitation', `
+        <p class="text-[12.5px] text-ink-700 mb-3">Email isn't set up for Althais here, so the invitation wasn't sent. Send ${esc(name)} the link${res.tempPassword ? ' and temporary password' : ''} yourself. They stop working if you resend or cancel the invite.</p>
+        <label class="lbl" for="invite-link">Invitation Link</label>
+        <input id="invite-link" class="fld mono text-[11.5px]" readonly value="${esc(res.inviteLink)}" />
+        ${res.tempPassword ? `<label class="lbl mt-3" for="invite-temp">Temporary Password</label><input id="invite-temp" class="fld mono" readonly value="${esc(res.tempPassword)}" />
+          <p class="text-[11.5px] text-ink-500 mt-2">They'll sign in with it, then create their own password.</p>` : ''}`,
         [['Copy Link', 'btn-primary', async () => { $('invite-link').select(); await navigator.clipboard.writeText(res.inviteLink).catch(() => document.execCommand('copy')); S.toast('Link copied'); }],
          ['Done', 'btn-line', closeModal]]);
     }

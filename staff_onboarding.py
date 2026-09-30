@@ -438,13 +438,20 @@ def _fmt_date(iso) -> str:
 # ──────────────────────────────────────────────────────────────────────────
 #  Tasks, progress and lifecycle
 # ──────────────────────────────────────────────────────────────────────────
+NO_START_DAYS = 14   # no start date yet: deadlines count from two weeks after they were added
+
+
 def _anchor(p: dict) -> dt.date:
-    for v in (p.get("start"), (p.get("createdAt") or "")[:10]):
-        try:
-            return dt.date.fromisoformat(v)
-        except Exception:
-            continue
-    return _today()
+    """Deadlines count from the start date. Without one, from two weeks after they were added, so items due
+    "before start" aren't overdue the day the invitation goes out."""
+    try:
+        return dt.date.fromisoformat(p.get("start") or "")
+    except ValueError:
+        pass
+    try:
+        return dt.date.fromisoformat((p.get("createdAt") or "")[:10]) + timedelta(days=NO_START_DAYS)
+    except ValueError:
+        return _today() + timedelta(days=NO_START_DAYS)
 
 
 def build_tasks(p: dict, items: list) -> list:
@@ -690,12 +697,49 @@ def send_invite(db: Session, request: Request, org_key: str, p: dict, by: User) 
     clinic = _html.escape(_clinic_name(org_key))
     details = (f"<strong>Clinic:</strong> {clinic}<br><strong>Role:</strong> {_html.escape(p.get('role', ''))}"
                + (f"<br><strong>Start date:</strong> {_html.escape(_fmt_date(p.get('start')))}" if p.get("start") else ""))
+    # People new to Althais get a login now, with a temporary password in this email. It only works while an
+    # invitation is open (signing in with it accepts the invitation, auth.login), and they must choose their own
+    # right after (/set-password). People who already have an Althais login sign in with their own password.
+    user = db.scalar(select(User).where(User.email == p["email"]))
+    temp = None
+    if user is None:
+        temp = _temp_password()
+        user = User(email=p["email"], password_hash=hash_password(temp), full_name=p.get("name", ""), organization="",
+                    role="viewer", email_verified=0, onboarding_complete=1, portal_only=1, must_change_password=1, active=1)
+        db.add(user)
+        db.flush()
+    elif user.must_change_password:
+        temp = _temp_password()          # a resend replaces the earlier temporary password
+        user.password_hash, user.active = hash_password(temp), 1
+    who = _html.escape(p["email"])
+    how = (f"<strong>Sign in with:</strong><br>Email: {who}<br>Temporary password: "
+           f"<strong style='font-family:monospace;font-size:15px'>{_html.escape(temp)}</strong><br><br>"
+           "After you sign in, you'll create your own password."
+           if temp else
+           "You already have an Althais account with this email, so sign in with your existing password to accept. "
+           "If you don't remember it, use <strong>Forgot password</strong> on that page.")
     emailed = send_email(p["email"], f"You're invited to join {_clinic_name(org_key)} on Althais", _email_html(
         f"You're invited to join {clinic} on Althais",
-        f"{_html.escape(by.full_name or by.email)} invited you to complete your onboarding with {clinic}.<br><br>{details}",
+        f"{_html.escape(by.full_name or by.email)} invited you to complete your onboarding with {clinic}.<br><br>{details}<br><br>{how}",
         link, "Accept Invitation",
-        note=f"This invitation is for {_html.escape(p['email'])}, expires in {INVITE_TTL_DAYS} days and can only be used once."))
-    return {"invitation": inv, "emailed": emailed, "link": None if emailed else link}
+        note=f"This invitation is for {who} and expires in {INVITE_TTL_DAYS} days."
+             + (" The temporary password stops working once you set your own, or if your clinic sends a new invitation." if temp else "")))
+    return {"invitation": inv, "emailed": emailed, "link": None if emailed else link, "tempPassword": temp if not emailed else None}
+
+
+def _temp_password() -> str:
+    """Easy to type from an email: no look-alike characters (0/O, 1/l/I)."""
+    alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return "".join(secrets.choice(alphabet) for _ in range(12))
+
+
+def _retire_temp_login(db: Session, email: str) -> None:
+    """No open invitation left for a login that never set its own password: its temporary password stops working."""
+    db.flush()
+    u = db.scalar(select(User).where(User.email == email))
+    if u and u.must_change_password and not db.scalar(
+            select(StaffInvitation.id).where(StaffInvitation.email == email, StaffInvitation.status == "pending")):
+        u.active = 0
 
 
 def _valid_invite(db: Session, token: str):
@@ -1060,7 +1104,7 @@ async def add_staff(request: Request, user: User = Depends(require_user), db: Se
         res = send_invite(db, request, org_key, p, user)
         p["lifecycle"] = "INVITED"
         audit(db, org_key, user, "invite_sent", p, "invitation", "", f"Onboarding invitation sent to {email}")
-        out.update(emailed=res["emailed"], inviteLink=res["link"])
+        out.update(emailed=res["emailed"], inviteLink=res["link"], tempPassword=res["tempPassword"])
     refresh(p)
     save_staff(db, org_key, row, doc)
     return out
@@ -1089,7 +1133,8 @@ def invite_person(pid: str, request: Request, user: User = Depends(require_user)
           f"Onboarding invitation {'resent' if resend else 'sent'} to {p['email']}")
     refresh(p)
     save_staff(db, org_key, row, doc)
-    return {"ok": True, "emailed": res["emailed"], "inviteLink": res["link"], "invite": _invite_json(res["invitation"])}
+    return {"ok": True, "emailed": res["emailed"], "inviteLink": res["link"], "tempPassword": res["tempPassword"],
+            "invite": _invite_json(res["invitation"])}
 
 
 @router.post("/api/staff/onboarding/people/{pid}/invite/cancel")
@@ -1097,6 +1142,7 @@ def cancel_invite(pid: str, user: User = Depends(require_user), db: Session = De
     org_key, row, doc, p = _manager_person(user, db, pid)
     if not _revoke_pending(db, org_key, pid):
         return _err("There’s no open invitation to cancel.")
+    _retire_temp_login(db, p["email"])
     if p["lifecycle"] == "INVITED":
         p["lifecycle"] = "DRAFT"
     audit(db, org_key, user, "invite_cancelled", p, "invitation", "", "Invitation cancelled")
@@ -1177,9 +1223,11 @@ async def edit_person(pid: str, request: Request, user: User = Depends(require_u
                 return _err("Their email is their Althais login now. They can change it themselves.")
             if not _EMAIL.match(email):
                 return _err("Enter a valid email address.")
+            old = p["email"]
             p["email"] = email
             if _revoke_pending(db, org_key, pid):
                 p["lifecycle"] = "DRAFT"   # the old invitation went to the old address
+                _retire_temp_login(db, old)
             changed.append("email")
     if changed:
         audit(db, org_key, user, "staff_updated", p, "person", pid, "Updated " + ", ".join(changed))
@@ -1426,6 +1474,7 @@ async def change_status(pid: str, request: Request, user: User = Depends(require
     if action in ("suspend", "offboard"):
         if action == "offboard":
             _revoke_pending(db, org_key, pid)
+            _retire_temp_login(db, p.get("email", ""))
         if m:
             m.status = "suspended" if action == "suspend" else "offboarded"
             u = db.get(User, m.user_id)
@@ -1504,9 +1553,11 @@ def invitation_info(token: str, request: Request, db: Session = Depends(get_db))
     _, doc = load_staff(db, inv.org_key)
     p = person_of(doc, inv.person_id) or {}
     me = current_user(request, db)
+    existing = db.scalar(select(User).where(User.email == inv.email))
     return {"clinic": _clinic_name(inv.org_key), "role": inv.role_name, "start": p.get("start", ""), "email": inv.email,
             "name": p.get("name", ""), "invitedBy": inv.invited_by_name, "expiresAt": _iso(inv.expires_at),
-            "accountExists": bool(db.scalar(select(User.id).where(User.email == inv.email))),
+            "accountExists": bool(existing),
+            "tempPassword": bool(existing and existing.must_change_password),
             "signedInAs": me.email if me else None}
 
 
@@ -1528,7 +1579,8 @@ async def accept_invitation(request: Request, db: Session = Depends(get_db)):
         if me and me.id != existing.id:
             return _err(f"You’re signed in as {me.email}. This invitation is for {inv.email}. Sign out, then open the link again.", 403)
         if not (me and me.id == existing.id) and not verify_password(password, existing.password_hash):
-            return _err("That password isn’t right for this account.", 401)
+            return _err("That temporary password isn’t right. Copy it from your newest invitation email." if existing.must_change_password
+                        else "That password isn’t right for this account.", 401)
         if not existing.active:
             return _err("This Althais account is paused. Contact the clinic that paused it.", 403)
         user = existing
@@ -1546,6 +1598,13 @@ async def accept_invitation(request: Request, db: Session = Depends(get_db)):
                     role="viewer", email_verified=1, onboarding_complete=1, portal_only=1, active=1)
         db.add(user)
         db.flush()
+    _accept(db, inv, user, p, row, doc)
+    resp = JSONResponse({"ok": True, "redirect": "/set-password" if user.must_change_password else "/portal"})
+    _set_session_cookie(resp, user.id)
+    return resp
+
+
+def _accept(db: Session, inv, user: User, p: dict, row, doc: dict) -> None:
     m = membership(db, user.id, inv.org_key)
     if m:   # already works at this clinic in Althais: keep their access, link the staff record
         m.staff_person_id, m.status = p["id"], "active"
@@ -1564,9 +1623,23 @@ async def accept_invitation(request: Request, db: Session = Depends(get_db)):
     audit(db, inv.org_key, user, "invite_accepted", p, "invitation", inv.id, f"Invitation accepted by {user.email}")
     refresh(p)
     save_staff(db, inv.org_key, row, doc)
-    resp = JSONResponse({"ok": True, "redirect": "/portal"})
-    _set_session_cookie(resp, user.id)
-    return resp
+
+
+def accept_pending_invites(db: Session, user: User) -> int:
+    """Signing in with an invitation's temporary password (auth.login) accepts every open invitation to that email."""
+    n = 0
+    for inv in db.scalars(select(StaffInvitation).where(StaffInvitation.email == user.email, StaffInvitation.status == "pending")
+                          .order_by(StaffInvitation.id)).all():
+        if invite_state(inv) != "sent":
+            continue
+        row, doc = load_staff(db, inv.org_key)
+        p = person_of(doc, inv.person_id)
+        if not p or p.get("lifecycle") in ("SUSPENDED", "OFFBOARDED"):
+            continue
+        _snapshot(db, user)
+        _accept(db, inv, user, p, row, doc)
+        n += 1
+    return n
 
 
 # ──────────────────────────────────────────────────────────────────────────

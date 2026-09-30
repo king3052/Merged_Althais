@@ -93,3 +93,12 @@
 .lo-bar i { display: block; height: 100%; width: 100%; background: var(--accent); border-radius: 3px; }
 .lo-note { margin-top: 12px; }
 .lo-note #countdown { font-variant-numeric: tabular-nums; }
+
+/* ---------- staff invitation and "create your password" pages: longer text in plain sentences ---------- */
+.lg-lede { margin: 14px 0 0; font-size: 15px; line-height: 1.55; color: var(--muted, #555); }
+.lg-details { display: grid; grid-template-columns: 96px 1fr; gap: 8px 14px; margin: 24px 0 0; padding: 16px 18px; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 12px; }
+.lg-details dt { color: var(--faint); } .lg-details dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.lg-note { margin: 18px 0 0; padding: 12px 14px; font-size: 13.5px; line-height: 1.55; border-radius: 10px; background: var(--accent-soft); color: var(--ink, inherit); }
+.lg-plain { margin-top: 26px; }
+.lg-msg.is-plain { font-family: inherit; font-size: 13.5px; letter-spacing: 0; text-transform: none; line-height: 1.5; }

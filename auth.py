@@ -104,6 +104,9 @@ class User(Base):
     # are still onboarding, or whose role grants no app access. A cache of their active OrgMembership
     # (staff_onboarding.py); main.py's middleware keeps them out of every other page and API.
     portal_only: Mapped[int] = mapped_column(Integer, default=0)
+    # 1 = signed in with the temporary password from a staff invitation email: they must choose their own
+    # password (/set-password) before anything else (main.py's middleware holds them there).
+    must_change_password: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
@@ -252,7 +255,8 @@ except Exception:
     pass  # column already exists
 
 for _ddl in ("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1", "ALTER TABLE users ADD COLUMN tools VARCHAR(255) DEFAULT ''",
-             "ALTER TABLE users ADD COLUMN blocked VARCHAR(1024) DEFAULT ''", "ALTER TABLE users ADD COLUMN portal_only INTEGER DEFAULT 0"):
+             "ALTER TABLE users ADD COLUMN blocked VARCHAR(1024) DEFAULT ''", "ALTER TABLE users ADD COLUMN portal_only INTEGER DEFAULT 0",
+             "ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0"):
     try:
         with engine.connect() as _conn:
             _conn.execute(text(_ddl))
@@ -584,7 +588,15 @@ def login(
     if not user or not verify_password(password, user.password_hash):
         return JSONResponse({"error": "Invalid email or password."}, status_code=401)
     if getattr(user, "active", 1) == 0:
+        if getattr(user, "must_change_password", 0):
+            return JSONResponse({"error": "That invitation was cancelled or replaced. Use the newest invitation email from your clinic."}, status_code=403)
         return JSONResponse({"error": "Your clinic’s admin has paused this account. Ask them to turn it back on."}, status_code=403)
+    temp_login = bool(getattr(user, "must_change_password", 0))
+    if temp_login:
+        # the temporary password from a staff invitation: signing in with it accepts the invitation
+        from staff_onboarding import accept_pending_invites
+        if not accept_pending_invites(db, user):
+            return JSONResponse({"error": "Your invitation has expired or was cancelled. Ask your clinic to send a new one."}, status_code=403)
 
     # Track login stats
     user.login_count = (user.login_count or 0) + 1
@@ -592,9 +604,27 @@ def login(
     db.commit()
 
     # invited staff whose clinic only gives them the Staff Portal land there; everyone else in the app
-    resp = JSONResponse({"ok": True, "redirect": "/portal" if getattr(user, "portal_only", 0) else "/overview"})
+    resp = JSONResponse({"ok": True, "redirect": "/set-password" if temp_login else "/portal" if getattr(user, "portal_only", 0) else "/overview"})
     _set_session_cookie(resp, user.id)
     return resp
+
+
+@router.post("/api/me/set-password")
+async def set_own_password(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """After signing in with an invitation's temporary password: choose your own. The temporary one stops working."""
+    if not getattr(user, "must_change_password", 0):
+        return JSONResponse({"error": "Your password is already set. Change it from your account settings."}, status_code=400)
+    body = await request.json()
+    new = str(body.get("password") or "")
+    if len(new) < 8:
+        return JSONResponse({"error": "Use at least 8 characters."}, status_code=400)
+    if verify_password(new, user.password_hash):
+        return JSONResponse({"error": "Choose a password that’s different from the temporary one."}, status_code=400)
+    user.password_hash = hash_password(new)
+    user.must_change_password = 0
+    user.email_verified = 1   # they signed in with a password that was only ever sent to this address
+    db.commit()
+    return {"ok": True, "redirect": "/portal" if user.portal_only else "/overview"}
 
 
 @router.get("/api/me")
@@ -609,6 +639,7 @@ def me(user: User = Depends(require_user)):
         "role": user.role or "admin",
         "provider_name": user.provider_name or "",
         "portal_only": bool(getattr(user, "portal_only", 0)),
+        "must_change_password": bool(getattr(user, "must_change_password", 0)),
     }
 
 

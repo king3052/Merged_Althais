@@ -77,7 +77,9 @@ async def staff_portal_only(request: Request, call_next):
     path = request.url.path
     is_api = path.startswith("/api/")
     guarded = (is_api and not path.startswith(_PORTAL_APIS)) or path.startswith(_APP_PAGE_PREFIXES)
-    if guarded and not (is_api and path == "/api/branding" and request.method == "GET"):   # brand.js paints the portal too
+    # signed in with an invitation's temporary password: nothing but choosing their own password
+    temp_guarded = path.startswith(_APP_PAGE_PREFIXES + ("/portal",)) or (is_api and not path.startswith(("/api/me", "/api/invitations/")))
+    if (guarded or temp_guarded) and not (is_api and path == "/api/branding" and request.method == "GET"):   # brand.js paints the portal too
         token = request.cookies.get(COOKIE_NAME)
         data = decode_token(token) if token else None
         if data:
@@ -86,7 +88,11 @@ async def staff_portal_only(request: Request, call_next):
                     u = db.get(User, int(data["sub"]))
                 except (KeyError, ValueError, TypeError):
                     u = None
-                if u is not None and getattr(u, "portal_only", 0):
+                if u is not None and getattr(u, "must_change_password", 0) and temp_guarded:
+                    if is_api:
+                        return JSONResponse({"error": "Create your password first.", "detail": "Create your password first."}, status_code=403)
+                    return RedirectResponse(url="/set-password", status_code=302)
+                if u is not None and guarded and getattr(u, "portal_only", 0):
                     if is_api:
                         return JSONResponse({"error": "Your clinic has given you the Staff Portal only.", "detail": "Staff Portal only."}, status_code=403)
                     return RedirectResponse(url="/portal", status_code=302)
@@ -456,6 +462,8 @@ def _gate(request: Request, user):
 
 def _home_for_user(user, products=None) -> str:
     """The plan's home, or the first page this person still has when their manager switched that off."""
+    if getattr(user, "must_change_password", 0):
+        return "/set-password"   # signed in with an invitation's temporary password
     if getattr(user, "portal_only", 0):
         return "/portal"   # invited staff whose clinic gives them the Staff Portal only
     products = products if products is not None else _user_products(user)
@@ -577,6 +585,16 @@ async def staff_portal(request: Request, user=Depends(current_user)):
             return RedirectResponse(url=_home_for_user(user), status_code=302)   # no Staff Portal here: their app home
     # portal-only without a usable staff record: the page shows why (/api/portal/me explains, e.g. access paused)
     return templates.TemplateResponse(request, "portal.html", {"user": user, "user_json": _app_user_json(user)})
+
+
+@app.get("/set-password")
+async def set_password_page(request: Request, user=Depends(current_user)):
+    """Right after signing in with an invitation's temporary password: choose your own."""
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    if not getattr(user, "must_change_password", 0):
+        return RedirectResponse(url=_home_for_user(user), status_code=302)
+    return templates.TemplateResponse(request, "set_password.html", {"email": user.email, "name": user.full_name or ""})
 
 
 @app.get("/invite/{token}")
