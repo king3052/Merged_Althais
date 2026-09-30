@@ -150,7 +150,7 @@
     function head(c) {
       return '<h3 class="text-[22px] leading-tight font-semibold text-ink-900">' + esc(c.title) + "</h3>" + (c.body ? '<p class="text-[15.5px] text-ink-700 mt-3 leading-relaxed">' + esc(c.body) + "</p>" : "") +
         (c.bullets.length && c.kind !== "recap" ? '<ul class="mt-4 space-y-2">' + c.bullets.map(function (b) { return '<li class="flex gap-2.5 text-[15px] text-ink-700 leading-relaxed"><span class="text-med-600 font-bold">•</span><span>' + esc(b) + "</span></li>"; }).join("") + "</ul>" : "") +
-        (c.image ? '<figure class="mt-5"><img src="' + esc(c.image) + '" alt="" class="rounded-sm border border-line max-h-[340px] w-auto">' + (c.imageCaption ? '<figcaption class="text-[12px] text-ink-500 mt-1.5">' + esc(c.imageCaption) + "</figcaption>" : "") + "</figure>" : "");
+        (c.image && c.kind === "text" ? '<figure class="mt-5"><img src="' + esc(c.image) + '" alt="" class="rounded-sm border border-line max-h-[340px] w-auto">' + (c.imageCaption ? '<figcaption class="text-[12px] text-ink-500 mt-1.5">' + esc(c.imageCaption) + "</figcaption>" : "") + "</figure>" : "");
     }
     function chapTime(t) { return Math.floor(t / 60) + ":" + ("0" + Math.floor(t % 60)).slice(-2); }
 

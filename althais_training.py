@@ -592,7 +592,7 @@ def build_course(role: str, areas: set, first_name: str) -> list:
         for c in m["cards"]:
             if c["title"] in TAKEAWAYS and not c.get("takeaway"):
                 c["takeaway"] = TAKEAWAYS[c["title"]]
-            if c["kind"] == "text" and c["title"] in IMAGES and not c.get("image"):
+            if c["kind"] == "text" and c["title"] in IMAGES and not c.get("image") and not (c["title"] == "Your day in Althais" and family != "biller"):
                 c["image"], c["imageCaption"] = SHOT + IMAGES[c["title"]][0], IMAGES[c["title"]][1]
         out.append(m)
     return out
