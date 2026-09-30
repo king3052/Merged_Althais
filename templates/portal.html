@@ -68,18 +68,11 @@
     <main id="main" class="min-w-0"><div class="text-[13px] text-ink-500">Loading…</div></main>
   </div>
 
-  <!-- Althea, for questions about your own onboarding and staff records (staff_assistant.py) -->
-  <button id="althea-open" type="button" class="fixed bottom-5 right-5 z-40 btn btn-primary shadow-lg" style="border-radius:999px;padding:10px 16px">Ask Althea</button>
-  <div id="althea-panel" class="hidden fixed bottom-5 right-5 z-50 card shadow-xl flex flex-col" style="width:360px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 40px)" role="dialog" aria-label="Ask Althea">
-    <div class="px-4 py-3 border-b border-line flex items-center justify-between"><div><div class="text-[13.5px] font-semibold text-ink-900">Althea</div><div class="text-[11px] text-ink-500">Answers from your own staff record</div></div>
-      <button id="althea-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close">✕</button></div>
-    <div id="althea-log" class="flex-1 overflow-y-auto thin-scroll p-3 space-y-2" aria-live="polite"></div>
-    <div id="althea-chips" class="px-3 pb-2 flex flex-wrap gap-1.5"></div>
-    <form id="althea-form" class="p-3 border-t border-line flex gap-2"><input id="althea-q" class="fld" placeholder="Ask about your onboarding…" autocomplete="off" maxlength="500"><button class="btn btn-primary" type="submit">Ask</button></form>
-  </div>
-
   <script src="/static/js/staff-store.js"></script>
   <script src="/static/js/althais-course.js"></script>
+  <!-- Althea: the same assistant as the rest of Althais, answering staff-portal questions from your own record -->
+  <script src="/static/js/althea-ui.js"></script>
+  <script src="/static/js/portal-althea.js"></script>
   <script>{% raw %}
     const S = window.StaffStore;
     const $ = (id) => document.getElementById(id);
@@ -579,36 +572,6 @@
         await load();
       } catch (err) { clearInterval(tick); delete analyzing[key]; S.toast(err.message, 'error'); render(); }
     });
-
-    // ---------------------------------------------------------------- Althea
-    const ALTHEA_SUGGEST = ['What do I still need to do?', 'When does my BLS expire?', 'Which training do I need?', 'Where do I upload my license?',
-                            "Why wasn't my document accepted?", 'What do I need before my first day?'];
-    function altheaSay(who, html) {
-      const log = $('althea-log');
-      log.insertAdjacentHTML('beforeend', who === 'me' ? `<div class="flex justify-end"><div class="max-w-[85%] px-3 py-2 rounded-lg bg-med-600 text-white text-[13px]">${html}</div></div>`
-        : `<div class="flex"><div class="max-w-[90%] px-3 py-2 rounded-lg bg-shell border border-line text-[13px] text-ink-800">${html}</div></div>`);
-      log.scrollTop = log.scrollHeight;
-    }
-    async function altheaAsk(q) {
-      altheaSay('me', esc(q)); $('althea-chips').innerHTML = '';
-      try {
-        const r = await api('POST', '/api/portal/althea', { question: q });
-        altheaSay('althea', esc(r.answer).replace(/\n/g, '<br>') + (r.links && r.links.length ? '<div class="mt-2 flex flex-wrap gap-1.5">' +
-          r.links.map(l => `<a class="btn btn-line" style="padding:3px 8px;font-size:11.5px" href="${esc(l.href)}">${esc(l.label)}</a>`).join('') + '</div>' : ''));
-      } catch (e) { altheaSay('althea', esc(e.message)); }
-    }
-    $('althea-open').onclick = () => {
-      $('althea-panel').classList.remove('hidden'); $('althea-open').classList.add('hidden');
-      if (!$('althea-log').children.length) {
-        altheaSay('althea', 'Hi! I can answer questions about your onboarding, documents, credentials and training at ' + esc(ME ? ME.clinic : 'your clinic') + '.');
-        $('althea-chips').innerHTML = ALTHEA_SUGGEST.map(q => `<button type="button" class="text-[11.5px] px-2 py-1 rounded-full border border-line hover:bg-shell" data-ask="${esc(q)}">${esc(q)}</button>`).join('');
-      }
-      $('althea-q').focus();
-    };
-    $('althea-close').onclick = () => { $('althea-panel').classList.add('hidden'); $('althea-open').classList.remove('hidden'); };
-    $('althea-chips').addEventListener('click', e => { const b = e.target.closest('[data-ask]'); if (b) altheaAsk(b.dataset.ask); });
-    $('althea-form').addEventListener('submit', e => { e.preventDefault(); const q = $('althea-q').value.trim(); if (q) { $('althea-q').value = ''; altheaAsk(q); } });
-    $('althea-log').addEventListener('click', e => { if (e.target.closest('a[href^="#"]')) { $('althea-close').click(); } });
 
     load().catch(e => { $('main').innerHTML = `<div class="card p-5"><div class="text-[14px] font-semibold text-ink-900 mb-1">Your Staff Portal isn’t available</div><div class="text-[13px] text-ink-600">${esc(e.message)}</div></div>`; })
       .finally(loadOrgs);
