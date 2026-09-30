@@ -20,6 +20,7 @@
     .check { width:20px; height:20px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; border:1.5px solid #c7cad1; margin-top:1px; }
     .check.ok { background:#0c8a4f; border-color:#0c8a4f; color:#fff; } .check.wait { border-color:#b86a00; color:#b86a00; } .check.bad { border-color:#c83838; color:#c83838; }
     .formtext { white-space:pre-wrap; font-size:13px; line-height:1.65; color:#1a1d24; }
+    body.is-course .pnav { display:none; } body.is-course #portal-grid { grid-template-columns:minmax(0,1fr); } body.is-course #main { padding-bottom:96px; }   /* the course uses the full width */
     html[data-theme-resolved="dark"] .card { background:#1a1d24; border-color:#2c313b; }
     html[data-theme-resolved="dark"] .item { border-color:#2c313b; }
     html[data-theme-resolved="dark"] .fld { background:#14181f; border-color:#2c313b; color:#e7eaf2; }
@@ -54,7 +55,7 @@
     </div>
   </header>
 
-  <div class="max-w-[1200px] mx-auto p-4 md:p-6 grid gap-5 md:grid-cols-[210px_minmax(0,1fr)] items-start">
+  <div id="portal-grid" class="max-w-[1200px] mx-auto p-4 md:p-6 grid gap-5 md:grid-cols-[210px_minmax(0,1fr)] items-start">
     <nav class="card py-1 pnav md:sticky md:top-[72px]" aria-label="Staff Portal">
       <a href="#home" data-nav="home">Home</a>
       <a href="#profile" data-nav="profile">My Profile</a>
@@ -451,6 +452,7 @@
         const l = counts[el.dataset.count] || [], left = l.filter(t => t.status !== 'COMPLETE' && t.status !== 'NEEDS_REVIEW').length;
         el.className = left ? 'count-pill med' : 'text-ok-600 text-[12px]'; el.textContent = l.length ? (left || '✓') : '';
       });
+      document.body.classList.toggle('is-course', r === 'course');
       $('main').innerHTML = PAGES[r]();
       if (r === 'course') {
         document.querySelector('[data-nav="training"]').classList.add('is-on');

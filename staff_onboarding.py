@@ -326,11 +326,11 @@ DEFAULT_TRAININGS = [
      "description": "How patient health information is protected at {clinic}, and your part in it."},
     {"key": "security_training", "title": "Security Awareness Training", "category": "Clinic Policy", "version": "1", "validMonths": 12, "url": "",
      "description": "Passwords, phishing, and keeping devices and records safe."},
-    {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "1.0", "validMonths": 0, "url": "",
+    {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "2.0", "validMonths": 0, "url": "",
      "builtIn": True, "passScore": 80,
-     "description": "A short interactive course on using Althais safely in your role, with a quick knowledge check at the end (about 20 minutes)."},
+     "description": "An interactive course built on the real Althais software: a chaptered demo video, guided screen tours, hands-on practice and a knowledge check, shaped to your role (about 35 minutes)."},
 ]
-ALTHAIS_COURSE_VERSION = "1.0"
+ALTHAIS_COURSE_VERSION = "2.0"
 DEFAULT_FORM_PREFILL = ["legal_first", "legal_last", "role", "start", "location", "address1", "city", "state", "zip", "phone", "email"]   # althais_training.COURSE_VERSION; bump when the course changes
 
 # Credential types (keep the keys in step with CREDENTIAL_TYPES in staff-store.js)
