@@ -1134,7 +1134,7 @@ AREAS = {
     "payments":           ("Payments", "insurance", ["/revenue/payments"]),
     "payer_intelligence": ("Payer Intelligence", "insurance", ["/revenue/payer-intelligence"]),
     "team":               ("Team", "staff", ["/staff/team"]),
-    "onboarding":         ("Onboarding", "staff", ["/staff/onboarding", "/staff/needs-attention"]),
+    "onboarding":         ("Onboarding", "staff", ["/staff/onboarding", "/staff/todo", "/staff/needs-attention"]),
     "clinic_onboarding":  ("Clinic Onboarding", "staff", ["/staff/clinic-onboarding"]),
     "credentials":        ("Credentials", "staff", ["/staff/credentials"]),
     "compliance":         ("Compliance", "staff", ["/staff/compliance"]),

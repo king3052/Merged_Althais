@@ -2,40 +2,89 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Althais — Needs Attention</title>
+  <title>Althais — To-Do</title>
   <style>
-    .btn { font-size:11.5px; padding:4px 9px; border-radius:2px; font-weight:600; white-space:nowrap; }
+    .btn { font-size:11.5px; padding:5px 10px; border-radius:2px; font-weight:600; white-space:nowrap; display:inline-flex; align-items:center; }
     .btn-primary { background:var(--brand); color:var(--brand-on); } .btn-primary:hover { background:var(--brand-700); }
     .btn-line { border:1px solid #e4e6eb; background:#fff; color:#2c313b; } .btn-line:hover { background:#f4f5f7; }
-    .btn-ok { background:#0c8a4f; color:#fff; }
-    .btn-risk { border:1px solid rgba(200,56,56,.3); background:#fff; color:#c83838; }
-    .row { display:flex; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid #eceef2; }
-    .row:last-child { border-bottom:0; }
-    .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .btn-ok { background:#0c8a4f; color:#fff; } .btn-ok:hover { background:#0a7543; }
+    .btn-risk { border:1px solid rgba(200,56,56,.3); background:#fff; color:#c83838; } .btn-risk:hover { background:#fdecec; }
+    .todo-table { width:100%; border-collapse:collapse; }
+    .todo-table th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; padding:9px 16px; background:#f8f9fb; border-bottom:1px solid #e4e6eb; white-space:nowrap; }
+    .todo-table td { padding:12px 16px; border-bottom:1px solid #eceef2; vertical-align:middle; font-size:13px; }
+    .todo-table tr:last-child td { border-bottom:0; }
+    .todo-table tr:hover td { background:#fafbfc; }
+    .prio { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; white-space:nowrap; }
+    .prio i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .chip { font-size:12px; padding:5px 11px; border-radius:2px; color:#4b5563; white-space:nowrap; }
+    .chip:hover { background:#f4f5f7; } .chip.is-on { background:var(--brand-100); color:var(--brand-text-strong); font-weight:600; }
+    .chip b { font-weight:600; margin-left:4px; opacity:.7; }
+    .cat { font-size:11px; padding:2px 8px; border-radius:2px; background:#f1f2f5; color:#4b5563; white-space:nowrap; }
+    @media (max-width: 860px) {
+      .todo-table thead { display:none; }
+      .todo-table tr { display:grid; grid-template-columns:1fr; gap:6px; padding:12px 16px; border-bottom:1px solid #eceef2; }
+      .todo-table td { padding:0; border:0; }
+      .todo-table td.acts > div { justify-content:flex-start; }
+    }
     html[data-theme-resolved="dark"] .btn-line, html[data-theme-resolved="dark"] .btn-risk { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
-    html[data-theme-resolved="dark"] .row { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .todo-table th { background:#14181f; border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .todo-table td, html[data-theme-resolved="dark"] .todo-table tr { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .todo-table tr:hover td { background:#20242c; }
+    html[data-theme-resolved="dark"] .chip { color:#b8bdcd; } html[data-theme-resolved="dark"] .chip:hover { background:#20242c; }
+    html[data-theme-resolved="dark"] .chip.is-on { background:var(--brand-dark-tint); color:var(--brand-dark-link); }
+    html[data-theme-resolved="dark"] .cat { background:#20242c; color:#b8bdcd; }
   </style>
 </head>
 <body class="bg-shell">
 
   {% include "_nav.html" %}
 
-  <div class="max-w-[1100px] mx-auto">
+  <div class="max-w-[1560px] mx-auto">
     <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
       <div>
-        <h1 class="text-[18px] font-semibold text-ink-900">Needs Attention <span id="count" class="count-pill ml-1 align-middle">…</span></h1>
+        <h1 class="text-[18px] font-semibold text-ink-900">To-Do <span id="count" class="count-pill ml-1 align-middle">…</span></h1>
         <p class="text-[12px] text-ink-500 mt-0.5">Only what needs a person. Clean documents, reminders, renewals and training are handled automatically.</p>
       </div>
-      <a href="/staff/onboarding" class="btn btn-line">Staff Onboarding</a>
+      <a href="/staff/onboarding" class="btn btn-line" style="font-size:12.5px;padding:7px 12px">Staff Onboarding</a>
     </div>
-    <div class="p-5" id="list"><div class="text-[12.5px] text-ink-500">Loading…</div></div>
+
+    <div class="p-5 pb-24 space-y-4">
+      <div class="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total</div>
+          <div id="st-total" class="text-[22px] font-semibold text-ink-900 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Everything waiting on you</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Urgent</div>
+          <div id="st-urgent" class="text-[22px] font-semibold text-risk-600 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Overdue or expired</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">To Review</div>
+          <div id="st-review" class="text-[22px] font-semibold text-warn-600 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Documents and information</div>
+        </div>
+        <div class="bg-panel border border-line rounded-sm p-4">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Ready To Activate</div>
+          <div id="st-ready" class="text-[22px] font-semibold text-ok-600 num mt-1">—</div>
+          <div class="text-[11px] text-ink-400 mt-0.5">Onboarding finished, awaiting you</div>
+        </div>
+      </div>
+
+      <div class="bg-panel border border-line rounded-sm">
+        <div class="px-3 py-2 border-b border-line flex gap-1 flex-wrap" id="chips"></div>
+        <div id="list"><div class="px-4 py-8 text-[12.5px] text-ink-500">Loading…</div></div>
+      </div>
+    </div>
   </div>
 
   <script src="/static/js/staff-store.js"></script>
   <script>
     const S = window.StaffStore, $ = (id) => document.getElementById(id), esc = S.esc;
-    let ITEMS = [];
+    let ITEMS = [], FILTER = 'All';
     const ORDER = ['Documents', 'Identity & Professional Information', 'Credentials', 'Ready To Activate', 'Access Setup', 'Offboarding', 'Invitations', 'Overdue'];
+    const PRIO = { 0: ['Urgent', '#c83838'], 1: ['Needs You', '#b86a00'], 2: ['When You Can', '#6b7280'] };
     async function api(method, url, body) {
       const r = await fetch(url, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
       const j = await r.json().catch(() => ({}));
@@ -56,22 +105,35 @@
         default: return a('Open', personUrl(it), 'btn-primary');
       }
     }
+    function cats() { return ORDER.concat([...new Set(ITEMS.map(i => i.category))].filter(g => !ORDER.includes(g))).filter(g => ITEMS.some(i => i.category === g)); }
     function render() {
+      const n = (f) => ITEMS.filter(f).length;
       $('count').textContent = ITEMS.length;
       $('count').classList.toggle('alert', ITEMS.some(i => i.severity === 0));
-      if (!ITEMS.length) { $('list').innerHTML = '<div class="bg-panel border border-line rounded-sm p-10 text-center"><div class="text-[28px] text-ok-600">✓</div><div class="text-[14px] font-semibold text-ink-900 mt-1">Nothing needs you right now</div><div class="text-[12.5px] text-ink-500 mt-1">Althais will put anything uncertain, conflicting or unusual here.</div></div>'; return; }
-      const groups = {};
-      ITEMS.forEach((it, i) => { (groups[it.category] = groups[it.category] || []).push([it, i]); });
-      $('list').innerHTML = ORDER.concat(Object.keys(groups).filter(g => !ORDER.includes(g))).filter(g => groups[g]).map(g => `
-        <div class="bg-panel border border-line rounded-sm mb-4"><div class="px-4 py-2.5 border-b border-line flex justify-between"><h3 class="text-[13px] font-semibold text-ink-900">${esc(g)}</h3><span class="count-pill">${groups[g].length}</span></div>
-        ${groups[g].map(([it, i]) => `<div class="row"><span class="dot" style="background:${it.severity === 0 ? '#c83838' : '#b86a00'}"></span>
-          <div class="flex-1 min-w-0"><a href="${personUrl(it)}" class="text-[13px] font-semibold text-ink-900 hover:underline">${esc(it.name)}</a><div class="text-[12.5px] text-ink-600">${esc(it.text)}</div></div>
-          <div class="flex gap-1.5 flex-wrap justify-end">${actions(it, i)}</div></div>`).join('')}</div>`).join('');
+      $('st-total').textContent = ITEMS.length;
+      $('st-urgent').textContent = n(i => i.severity === 0);
+      $('st-review').textContent = n(i => i.category === 'Documents' || i.category === 'Identity & Professional Information');
+      $('st-ready').textContent = n(i => i.category === 'Ready To Activate');
+      if (FILTER !== 'All' && !ITEMS.some(i => i.category === FILTER)) FILTER = 'All';
+      $('chips').innerHTML = ['All'].concat(cats()).map(g => `<button type="button" class="chip${g === FILTER ? ' is-on' : ''}" data-filter="${esc(g)}">${esc(g)}<b>${g === 'All' ? ITEMS.length : n(i => i.category === g)}</b></button>`).join('');
+      if (!ITEMS.length) {
+        $('list').innerHTML = '<div class="p-12 text-center"><div class="text-[28px] text-ok-600">✓</div><div class="text-[14px] font-semibold text-ink-900 mt-1">You’re all caught up</div><div class="text-[12.5px] text-ink-500 mt-1">Althais will put anything uncertain, conflicting or unusual here.</div></div>';
+        return;
+      }
+      const rows = ITEMS.map((it, i) => [it, i]).filter(([it]) => FILTER === 'All' || it.category === FILTER);
+      $('list').innerHTML = `<table class="todo-table"><thead><tr><th style="width:130px">Priority</th><th style="width:22%">Staff Member</th><th>To-Do</th><th style="width:190px">Category</th><th style="text-align:right">Actions</th></tr></thead><tbody>` +
+        rows.map(([it, i]) => `<tr>
+          <td><span class="prio" style="color:${PRIO[it.severity][1]}"><i style="background:${PRIO[it.severity][1]}"></i>${PRIO[it.severity][0]}</span></td>
+          <td><a href="${personUrl(it)}" class="font-semibold text-ink-900 hover:underline">${esc(it.name)}</a>${it.role ? `<div class="text-[11.5px] text-ink-500 mt-0.5">${esc(it.role)}</div>` : ''}</td>
+          <td class="text-ink-700 leading-relaxed">${esc(it.text)}</td>
+          <td><span class="cat">${esc(it.category)}</span></td>
+          <td class="acts"><div class="flex gap-1.5 flex-wrap justify-end">${actions(it, i)}</div></td></tr>`).join('') + '</tbody></table>';
     }
     async function load() {
       try { ITEMS = (await api('GET', '/api/staff/onboarding/overview')).attention; render(); }
-      catch (e) { $('list').innerHTML = `<div class="text-[12.5px] text-risk-600">${esc(e.message)}</div>`; }
+      catch (e) { $('list').innerHTML = `<div class="px-4 py-6 text-[12.5px] text-risk-600">${esc(e.message)}</div>`; }
     }
+    $('chips').addEventListener('click', (e) => { const c = e.target.closest('[data-filter]'); if (c) { FILTER = c.dataset.filter; render(); } });
     $('list').addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-act]'); if (!btn) return;
       const it = ITEMS[Number(btn.dataset.i)], act = btn.dataset.act;

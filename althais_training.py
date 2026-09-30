@@ -375,14 +375,14 @@ def _role_module(family: str, areas: set, role: str) -> list:
                            ["If a patient asks about results or a diagnosis, connect them with the clinical team rather than explaining it yourself.",
                             "If a caller asks for patient information, verify who they are first, following your clinic's policy."]))
     elif family == "manager":
-        cards.append(_card("Your day in Althais", "Start with Staff › Needs Attention. Althais handles the routine work (checking documents, "
+        cards.append(_card("Your day in Althais", "Start with Staff › To-Do. Althais handles the routine work (checking documents, "
                            "reminders, renewals, training) and only sends you what needs a decision.",
                            ["Overview and Analytics show how the clinic is running and where work is stuck.",
                             "Hiring, employment and access decisions are always yours."]))
         cards.append(_card("Your staff tools", "Tap each one to see what it's for.", kind="workspace", tour=[
             {"name": "Staff Onboarding", "text": "Add someone with their role and Althais builds their onboarding: forms, documents, training "
                                                  "and your manager tasks. It invites them with a temporary password."},
-            {"name": "Needs Attention", "text": "Only what needs a person: uncertain or conflicting documents, people ready to activate, "
+            {"name": "To-Do", "text": "Only what needs a person: uncertain or conflicting documents, people ready to activate, "
                                                 "offboarding tasks and overdue items."},
             {"name": "Staff › Roles", "text": "Each role's permissions decide what a person can open. Change the role, not individual workarounds."},
             {"name": "Onboarding Templates", "text": "What each role must complete, the forms and training, document automation settings "

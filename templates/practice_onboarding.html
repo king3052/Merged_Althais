@@ -74,7 +74,7 @@
           <div class="text-[11px] text-ink-400 mt-0.5">Invited through final review</div>
         </div>
         <div class="bg-panel border border-line rounded-sm p-4">
-          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Needs Attention</div>
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">To-Do</div>
           <div id="st-attention" class="text-[22px] font-semibold text-warn-600 num mt-1">—</div>
           <div class="text-[11px] text-ink-400 mt-0.5">Reviews, overdue items, expired invites</div>
         </div>
@@ -112,8 +112,8 @@
 
         <div class="bg-panel border border-line rounded-sm">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
-            <h3 class="text-[13px] font-semibold text-ink-900">Needs Attention</h3>
-            <span id="attn-count" class="count-pill">0</span>
+            <h3 class="text-[13px] font-semibold text-ink-900">To-Do</h3>
+            <span class="flex items-center gap-2"><a href="/staff/todo" class="text-[11.5px] font-semibold text-med-600 hover:underline">View All</a><span id="attn-count" class="count-pill">0</span></span>
           </div>
           <div id="attention"><div class="px-4 py-6 text-[12px] text-ink-500">Loading…</div></div>
         </div>
@@ -611,7 +611,7 @@
           <div><label class="lbl" for="o-date">Last Day</label><input id="o-date" type="date" class="fld num" value="${new Date().toISOString().slice(0, 10)}"></div>
         </div>
         <div class="lbl mt-4">Outside Systems To Remove Access From</div>
-        <p class="text-[11.5px] text-ink-500 mb-1">Althais can't switch these off, so each becomes a task for you in Needs Attention.</p>
+        <p class="text-[11.5px] text-ink-500 mb-1">Althais can't switch these off, so each becomes a task for you in To-Do.</p>
         ${systems.map(x => `<label class="flex items-center gap-2 text-[12.5px] text-ink-800 py-0.5"><input type="checkbox" data-sys="${esc(x)}" ${x !== 'EHR' || hadEhr ? 'checked' : ''}> ${esc(x)}</label>`).join('')}
         <input id="o-other" class="fld mt-1" placeholder="Other systems, comma-separated (e.g. Payroll, Pharmacy portal)">
         <label class="lbl mt-4" for="o-note">Note (Optional)</label><input id="o-note" class="fld" maxlength="500">
@@ -776,7 +776,7 @@
       META = m;
       const q = new URLSearchParams(location.search);
       if (q.get('invite') === '1') openAdd();       // Overview's "+ Add Staff" quick action
-      if (q.get('person')) openDrawer(q.get('person')).then(() => {   // links from Needs Attention
+      if (q.get('person')) openDrawer(q.get('person')).then(() => {   // links from To-Do
         if (q.get('doc')) reviewDocument(Number(q.get('doc')));
         else if (q.get('info')) reviewInfo();
         else if (q.get('activate')) reviewOnboarding();

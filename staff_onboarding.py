@@ -1154,6 +1154,7 @@ def attention_items(db: Session, org_key: str, doc: dict, invites: dict) -> list
                     items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 1, "action": "manager_task", "ref": t["key"],
                                   "text": f"{t['title']} needed"})
     for it in items:
+        it.setdefault("role", (people.get(it["personId"]) or {}).get("role", ""))
         it.setdefault("category", {"review_document": "Documents", "review_info": "Identity & Professional Information",
                                    "review_onboarding": "Ready To Activate", "resend_invite": "Invitations", "offboarding_task": "Offboarding",
                                    "manager_task": "Access Setup"}.get(it["action"], "Credentials" if str(it["ref"]).startswith("c_") else "Overdue"))

@@ -193,7 +193,7 @@ async def manager_althea(request: Request, user: User = Depends(require_user), d
         if not items:
             return {"spoken": "Nothing needs your attention right now.", "html": "Nothing needs your attention right now."}
         return {"spoken": f"{len(items)} {'item needs' if len(items) == 1 else 'items need'} your attention. " + ". ".join(f"{i['name']}: {i['text']}" for i in items[:3]) + ".",
-                "html": "".join(f"<div>{_esc(i['name'])}: {_esc(i['text'])}</div>" for i in items[:8]) + more("/staff/needs-attention", "Open Needs Attention")}
+                "html": "".join(f"<div>{_esc(i['name'])}: {_esc(i['text'])}</div>" for i in items[:8]) + more("/staff/todo", "Open To-Do")}
     if intent == "staff_althais_training":
         rows = [p for p in people if any(t.get("trainingKey") == "althais_training" and t.get("status") != "COMPLETE" for t in p["requirements"])]
         if not rows:

@@ -567,7 +567,7 @@ _WORKSPACE_PAGES = {
     "/staff/roles": "practice_roles.html",
     "/staff/clinic-onboarding": "practice_clinic_onboarding.html",
     "/staff/onboarding/templates": "practice_onboarding_templates.html",
-    "/staff/needs-attention": "practice_needs_attention.html",
+    "/staff/todo": "practice_needs_attention.html",
 }
 
 
@@ -744,6 +744,7 @@ _LEGACY_REDIRECTS = {
     "/practice/credentials": "/staff/credentials",
     "/practice/training": "/staff/training",
     "/practice/roles": "/staff/roles",
+    "/staff/needs-attention": "/staff/todo",
 }
 
 
