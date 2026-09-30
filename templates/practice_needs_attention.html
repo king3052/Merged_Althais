@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais — Needs Attention</title>
+  <style>
+    .btn { font-size:11.5px; padding:4px 9px; border-radius:2px; font-weight:600; white-space:nowrap; }
+    .btn-primary { background:var(--brand); color:var(--brand-on); } .btn-primary:hover { background:var(--brand-700); }
+    .btn-line { border:1px solid #e4e6eb; background:#fff; color:#2c313b; } .btn-line:hover { background:#f4f5f7; }
+    .btn-ok { background:#0c8a4f; color:#fff; }
+    .btn-risk { border:1px solid rgba(200,56,56,.3); background:#fff; color:#c83838; }
+    .row { display:flex; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid #eceef2; }
+    .row:last-child { border-bottom:0; }
+    .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    html[data-theme-resolved="dark"] .btn-line, html[data-theme-resolved="dark"] .btn-risk { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .row { border-color:#2c313b; }
+  </style>
+</head>
+<body class="bg-shell">
+
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1100px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Needs Attention <span id="count" class="count-pill ml-1 align-middle">…</span></h1>
+        <p class="text-[12px] text-ink-500 mt-0.5">Only what needs a person. Clean documents, reminders, renewals and training are handled automatically.</p>
+      </div>
+      <a href="/staff/onboarding" class="btn btn-line">Staff Onboarding</a>
+    </div>
+    <div class="p-5" id="list"><div class="text-[12.5px] text-ink-500">Loading…</div></div>
+  </div>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script>
+    const S = window.StaffStore, $ = (id) => document.getElementById(id), esc = S.esc;
+    let ITEMS = [];
+    const ORDER = ['Documents', 'Identity & Professional Information', 'Credentials', 'Ready To Activate', 'Access Setup', 'Offboarding', 'Invitations', 'Overdue'];
+    async function api(method, url, body) {
+      const r = await fetch(url, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || j.detail || 'Something went wrong.');
+      return j;
+    }
+    const personUrl = (it, extra) => `/staff/onboarding?person=${encodeURIComponent(it.personId)}${extra || ''}`;
+    function actions(it, i) {
+      const b = (label, cls, act) => `<button type="button" class="btn ${cls}" data-i="${i}" data-act="${act}">${label}</button>`;
+      const a = (label, href, cls) => `<a class="btn ${cls || 'btn-line'}" href="${href}">${label}</a>`;
+      switch (it.action) {
+        case 'review_document': return a('Review', personUrl(it, `&doc=${it.ref}`), 'btn-primary') + b('Approve', 'btn-ok', 'approve') + b('Reject', 'btn-risk', 'reject') + b('Request Correction', 'btn-line', 'request_correction');
+        case 'review_info': return a('Review', personUrl(it, '&info=1'), 'btn-primary');
+        case 'review_onboarding': return a('Review Onboarding', personUrl(it, '&activate=1'), 'btn-primary');
+        case 'resend_invite': return b('Resend Invite', 'btn-primary', 'resend');
+        case 'offboarding_task': return b('Mark Done', 'btn-primary', 'offboarding_done');
+        case 'manager_task': return b('Mark Complete', 'btn-primary', 'task_done') + a('Open', personUrl(it));
+        default: return a('Open', personUrl(it), 'btn-primary');
+      }
+    }
+    function render() {
+      $('count').textContent = ITEMS.length;
+      $('count').classList.toggle('alert', ITEMS.some(i => i.severity === 0));
+      if (!ITEMS.length) { $('list').innerHTML = '<div class="bg-panel border border-line rounded-sm p-10 text-center"><div class="text-[28px] text-ok-600">✓</div><div class="text-[14px] font-semibold text-ink-900 mt-1">Nothing needs you right now</div><div class="text-[12.5px] text-ink-500 mt-1">Althais will put anything uncertain, conflicting or unusual here.</div></div>'; return; }
+      const groups = {};
+      ITEMS.forEach((it, i) => { (groups[it.category] = groups[it.category] || []).push([it, i]); });
+      $('list').innerHTML = ORDER.concat(Object.keys(groups).filter(g => !ORDER.includes(g))).filter(g => groups[g]).map(g => `
+        <div class="bg-panel border border-line rounded-sm mb-4"><div class="px-4 py-2.5 border-b border-line flex justify-between"><h3 class="text-[13px] font-semibold text-ink-900">${esc(g)}</h3><span class="count-pill">${groups[g].length}</span></div>
+        ${groups[g].map(([it, i]) => `<div class="row"><span class="dot" style="background:${it.severity === 0 ? '#c83838' : '#b86a00'}"></span>
+          <div class="flex-1 min-w-0"><a href="${personUrl(it)}" class="text-[13px] font-semibold text-ink-900 hover:underline">${esc(it.name)}</a><div class="text-[12.5px] text-ink-600">${esc(it.text)}</div></div>
+          <div class="flex gap-1.5 flex-wrap justify-end">${actions(it, i)}</div></div>`).join('')}</div>`).join('');
+    }
+    async function load() {
+      try { ITEMS = (await api('GET', '/api/staff/onboarding/overview')).attention; render(); }
+      catch (e) { $('list').innerHTML = `<div class="text-[12.5px] text-risk-600">${esc(e.message)}</div>`; }
+    }
+    $('list').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-act]'); if (!btn) return;
+      const it = ITEMS[Number(btn.dataset.i)], act = btn.dataset.act;
+      try {
+        if (act === 'approve') {
+          if (!confirm(`Approve ${it.name}'s document with the details Althais read? Open Review to check or correct them first.`)) return;
+          await api('POST', `/api/staff/onboarding/documents/${it.ref}/review`, { action: 'approve' }); S.toast('Approved');
+        } else if (act === 'reject' || act === 'request_correction') {
+          const reason = prompt(act === 'reject' ? 'Why is it rejected? They’ll see this.' : 'What should they correct? They’ll see this.');
+          if (!reason || !reason.trim()) return;
+          await api('POST', `/api/staff/onboarding/documents/${it.ref}/review`, { action: act, reason: reason.trim() });
+          S.toast(act === 'reject' ? 'Rejected' : 'Correction requested');
+        } else if (act === 'resend') {
+          const r = await api('POST', `/api/staff/onboarding/people/${encodeURIComponent(it.personId)}/invite`);
+          S.toast(r.emailed ? 'Invitation resent' : 'New invitation created — open their page to copy the link');
+        } else if (act === 'offboarding_done') {
+          await api('POST', `/api/staff/onboarding/people/${encodeURIComponent(it.personId)}/offboarding/tasks/${encodeURIComponent(it.ref)}`, { done: true }); S.toast('Marked done');
+        } else if (act === 'task_done') {
+          await api('POST', `/api/staff/onboarding/people/${encodeURIComponent(it.personId)}/tasks/${encodeURIComponent(it.ref)}`, { action: 'complete' }); S.toast('Marked complete');
+        }
+        load();
+      } catch (err) { S.toast(err.message, 'error'); }
+    });
+    load();
+  </script>
+</body>
+</html>

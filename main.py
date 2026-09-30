@@ -62,6 +62,10 @@ app.include_router(auth_router)
 import staff_onboarding
 from auth import decode_token, User
 app.include_router(staff_onboarding.router)
+import althais_training
+app.include_router(althais_training.router)
+import staff_assistant
+app.include_router(staff_assistant.router)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
@@ -421,7 +425,13 @@ def _app_user_json(user) -> str:
         # pages and features this person's clinic manager switched off (Manager > employee), and their pages
         "blocked": sorted(member_blocked(user)),
         "blocked_pages": sorted({pg for a in member_blocked(user) for pg in AREAS[a][2]}),
+        **_staff_flags(user),
     })
+
+
+def _staff_flags(user) -> dict:
+    with SessionLocal() as db:
+        return {"can_view_staff": staff_onboarding.can_view_staff(user, db), "has_staff_profile": staff_onboarding.has_staff_profile(user, db)}
 
 
 # ── Tiers: which tool a page belongs to, and where each plan lands ─────────────
@@ -453,6 +463,10 @@ def _home_for(products: set) -> str:
 def _gate(request: Request, user):
     """Redirect to the user's own home when their plan doesn't include this page, or their clinic's manager
     switched it off for them, else None."""
+    if request.url.path.startswith("/staff/"):
+        with SessionLocal() as db:
+            if not staff_onboarding.can_view_staff(user, db):   # everyone's staff records: admins and the Staff Records permission
+                return RedirectResponse(url="/portal" if staff_onboarding.has_staff_profile(user, db) else _home_for_user(user), status_code=302)
     products = _user_products(user)
     area = area_for_path(request.url.path)
     if has_product(products, *_page_tools(request.url.path)) and area not in member_blocked(user):
@@ -461,6 +475,18 @@ def _gate(request: Request, user):
 
 
 def _home_for_user(user, products=None) -> str:
+    """Home, but never a Staff page for someone who can't view everyone's staff records."""
+    home = _home_for_user_base(user, products)
+    if home.startswith("/staff/"):
+        with SessionLocal() as db:
+            if not staff_onboarding.can_view_staff(user, db):
+                if staff_onboarding.has_staff_profile(user, db):
+                    return "/portal"
+                return "/settings" if "settings" not in member_blocked(user) else "/no-access"
+    return home
+
+
+def _home_for_user_base(user, products=None) -> str:
     """The plan's home, or the first page this person still has when their manager switched that off."""
     if getattr(user, "must_change_password", 0):
         return "/set-password"   # signed in with an invitation's temporary password
@@ -541,6 +567,7 @@ _WORKSPACE_PAGES = {
     "/staff/roles": "practice_roles.html",
     "/staff/clinic-onboarding": "practice_clinic_onboarding.html",
     "/staff/onboarding/templates": "practice_onboarding_templates.html",
+    "/staff/needs-attention": "practice_needs_attention.html",
 }
 
 
@@ -1613,6 +1640,7 @@ _ALTHEA_INTENT_TOOLS = {
     "payer_intelligence": ("insurance",), "payments_summary": ("insurance",), "claims_at_risk": ("insurance",),
     "claims_denial_scan": ("insurance",), "generate_appeal_letter": ("insurance",), "claim_status": ("insurance",),
     "staff_credentials_expiring": ("staff",), "staff_training_overdue": ("staff",),
+    "staff_onboarding_status": ("staff",), "staff_needs_attention": ("staff",), "staff_althais_training": ("staff",),
 }
 _ALTHEA_SECTION_TOOLS = {
     "scribe": ("scribe",), "code_a_note": ("coding",),
@@ -1702,6 +1730,9 @@ async def althea_command(request: Request, user=Depends(require_user), db: Sessi
 - "open_section" — navigate to a named part of the app. Params: {{"section": one of "overview", "inbox", "activity", "claims", "revenue", "denials", "appeals", "payments", "coding", "payer_intelligence", "scheduler", "patients", "soap", "settings", "staff", "scribe" (Write A Note), "code_a_note" (Code A Note), "credentials", "training", "onboarding", "roles", "compliance"}}
 - "staff_credentials_expiring" — which staff licenses or certifications are expired or expiring soon. No params.
 - "staff_training_overdue" — which staff have training that is overdue or due soon. No params.
+- "staff_onboarding_status" — who is still onboarding and how far along they are, e.g. "who's still onboarding". No params.
+- "staff_needs_attention" — what staff items need the manager's attention, e.g. "what requires my attention", "what do I need to review". No params.
+- "staff_althais_training" — who hasn't completed Althais Training yet. No params.
 - "generate_appeal_letter" — draft an appeal letter for a patient's denied claim. Params: {{"patient_name": "<name as spoken, or empty string if referring to the patient whose chart is currently open>"}}
 - "claim_status" — read back the status of a patient's most recent claim (submitted, paid, denied, pending, etc). Params: same "patient_name" rule as read_allergies.
 - "update_patient_field" — update one field on a patient's record: add an allergy, or change the primary insurance on file. Params: {{"patient_name": "<name as spoken, or empty string for the currently open patient>", "field": one of "allergy", "insurance", "value": "<the new value or allergy to add, as spoken>"}}
@@ -1734,6 +1765,7 @@ Spoken request: "{transcript}\""""
             "open_section",
             "generate_appeal_letter", "claim_status", "update_patient_field", "general_question",
             "staff_credentials_expiring", "staff_training_overdue",
+            "staff_onboarding_status", "staff_needs_attention", "staff_althais_training",
             "unknown"
         ]
         # params varies by intent (a patient name, a section, a date) — strict

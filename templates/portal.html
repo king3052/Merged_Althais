@@ -57,6 +57,7 @@
   <div class="max-w-[1200px] mx-auto p-4 md:p-6 grid gap-5 md:grid-cols-[210px_minmax(0,1fr)] items-start">
     <nav class="card py-1 pnav md:sticky md:top-[72px]" aria-label="Staff Portal">
       <a href="#home" data-nav="home">Home</a>
+      <a href="#profile" data-nav="profile">My Profile</a>
       <a href="#info" data-nav="info">My Information <span data-count="info"></span></a>
       <a href="#documents" data-nav="documents">Documents <span data-count="documents"></span></a>
       <a href="#credentials" data-nav="credentials">Credentials <span data-count="credentials"></span></a>
@@ -67,7 +68,18 @@
     <main id="main" class="min-w-0"><div class="text-[13px] text-ink-500">Loading…</div></main>
   </div>
 
+  <!-- Althea, for questions about your own onboarding and staff records (staff_assistant.py) -->
+  <button id="althea-open" type="button" class="fixed bottom-5 right-5 z-40 btn btn-primary shadow-lg" style="border-radius:999px;padding:10px 16px">Ask Althea</button>
+  <div id="althea-panel" class="hidden fixed bottom-5 right-5 z-50 card shadow-xl flex flex-col" style="width:360px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 40px)" role="dialog" aria-label="Ask Althea">
+    <div class="px-4 py-3 border-b border-line flex items-center justify-between"><div><div class="text-[13.5px] font-semibold text-ink-900">Althea</div><div class="text-[11px] text-ink-500">Answers from your own staff record</div></div>
+      <button id="althea-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close">✕</button></div>
+    <div id="althea-log" class="flex-1 overflow-y-auto thin-scroll p-3 space-y-2" aria-live="polite"></div>
+    <div id="althea-chips" class="px-3 pb-2 flex flex-wrap gap-1.5"></div>
+    <form id="althea-form" class="p-3 border-t border-line flex gap-2"><input id="althea-q" class="fld" placeholder="Ask about your onboarding…" autocomplete="off" maxlength="500"><button class="btn btn-primary" type="submit">Ask</button></form>
+  </div>
+
   <script src="/static/js/staff-store.js"></script>
+  <script src="/static/js/althais-course.js"></script>
   <script>{% raw %}
     const S = window.StaffStore;
     const $ = (id) => document.getElementById(id);
@@ -95,29 +107,41 @@
     // ---------------------------------------------------------------- pages
     const PAGES = {
       home() {
-        const p = ME.person, done = p.lifecycle === 'ACTIVE';
+        const p = ME.person, done = p.lifecycle === 'ACTIVE', st = ME.status || {}, na = ME.nextAction;
         const waiting = ME.managerTasks.filter(t => t.status !== 'COMPLETE');
-        const returned = ME.nextSteps.filter(t => t.effectiveStatus === 'WAITING_ON_EMPLOYEE');
+        const more = ME.nextSteps.filter(t => !na || t.key !== na.key).slice(0, 3);
+        const tile = (label, value, sub, ok) => `<div class="py-2.5 border-b border-lineSoft last:border-0"><div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">${label}</div>
+          <div class="text-[15px] font-semibold ${ok ? 'text-ok-600' : 'text-ink-900'} mt-0.5">${value}</div>${sub ? `<div class="text-[12px] text-ink-500">${sub}</div>` : ''}</div>`;
         return `
           <h1 class="text-[22px] font-semibold text-ink-900">Welcome, ${esc(p.firstName)}</h1>
           <p class="text-[13.5px] text-ink-600 mt-1 mb-5">${done ? `You’re all set at <b>${esc(ME.clinic)}</b>.` : `Complete your onboarding for <b>${esc(ME.clinic)}</b>.`}</p>
           <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
             <div class="space-y-4 min-w-0">
-              ${ME.nextSteps.length ? `<div class="card"><div class="px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Next Steps</div>
-                ${ME.nextSteps.map(t => `<a href="#${sectionOf(t)}" data-open="${esc(t.key)}" class="item hover:bg-shell">${mark(t.effectiveStatus)}
+              ${na ? `<a href="${na.href}" data-open="${esc(na.key)}" class="card block p-5 hover:bg-shell" style="border-left:3px solid var(--brand)">
+                  <div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Next Action</div>
+                  <div class="text-[17px] font-semibold text-ink-900 mt-1">${esc(na.title)}</div>
+                  <div class="text-[12.5px] ${/Overdue|Expired|fix/i.test(na.why) ? 'text-risk-600' : 'text-ink-500'} mt-0.5">${esc([na.why, na.due ? (S.daysUntil(na.due) >= 0 ? 'Due ' + S.fmtDate(na.due) + ' (' + S.daysUntil(na.due) + ' days)' : 'Was due ' + S.fmtDate(na.due)) : ''].filter(Boolean).join(' · '))}</div>
+                  <span class="btn btn-primary mt-3">Start →</span></a>`
+                : `<div class="card p-5"><div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Next Action</div>
+                  <div class="text-[15px] font-semibold text-ok-600 mt-1">${done ? 'Nothing right now' : 'You’ve done your part'}</div>
+                  <div class="text-[12.5px] text-ink-500 mt-0.5">${done ? 'Althais will let you know when something needs you, like a renewal.' : 'Your clinic is reviewing what you submitted.'}</div></div>`}
+              ${more.length ? `<div class="card"><div class="px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Then</div>
+                ${more.map(t => `<a href="#${sectionOf(t)}" data-open="${esc(t.key)}" class="item hover:bg-shell">${mark(t.effectiveStatus)}
                   <div class="flex-1 min-w-0"><div class="text-[13.5px] font-semibold text-ink-900">${esc(actionTitle(t))}</div>
-                  <div class="text-[12px] ${t.effectiveStatus === 'OVERDUE' ? 'text-risk-600' : 'text-ink-500'}">${esc(stLabel(t.effectiveStatus))}${due(t)}</div>${note(t)}</div>
-                  <span class="text-[12px] font-semibold text-med-600 mt-0.5">${t.effectiveStatus === 'WAITING_ON_EMPLOYEE' ? 'Fix' : 'Start'} →</span></a>`).join('')}</div>`
-              : `<div class="card p-5 text-[13px] text-ink-700">${done ? 'Nothing needs your attention right now.' : 'You’ve done everything on your list. Your clinic is reviewing it.'}</div>`}
+                  <div class="text-[12px] ${t.effectiveStatus === 'OVERDUE' ? 'text-risk-600' : 'text-ink-500'}">${esc(stLabel(t.effectiveStatus))}${due(t)}</div>${note(t)}</div></a>`).join('')}</div>` : ''}
               ${waiting.length && !done ? `<div class="card"><div class="px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Waiting On ${esc(ME.clinic)}</div>
                 ${waiting.map(t => `<div class="item"><span class="check wait"></span><div class="text-[13px] text-ink-700">${esc(t.title)}</div></div>`).join('')}</div>` : ''}
             </div>
-            <div class="card p-4">
-              <div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Onboarding Progress</div>
-              <div class="text-[32px] font-semibold text-ink-900 num mt-1">${ME.progress}%</div>
-              <div class="w-full h-2 bg-shell rounded-sm overflow-hidden mt-1 mb-4"><div class="h-full ${ME.progress === 100 ? 'bg-ok-600' : 'bg-med-600'}" style="width:${ME.progress}%"></div></div>
-              ${ME.groups.map(g => `<a href="#${{ personal: 'info', employment: 'info' }[g.key] || g.key}" class="flex items-center justify-between py-1.5 text-[13px] text-ink-700 hover:text-ink-900">
-                <span>${esc(g.label)}</span>${g.done === g.total ? `<span class="text-ok-600 font-semibold">✓</span>` : `<span class="num text-ink-500">${g.done}/${g.total}</span>`}</a>`).join('')}
+            <div class="card px-4 py-2">
+              <div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold pt-2 pb-1">Your Status</div>
+              ${done ? tile('Onboarding', 'Complete ✓', '', true)
+                     : tile('Onboarding', ME.progress + '%', `<div class="w-full h-1.5 bg-shell rounded-sm overflow-hidden mt-1"><div class="h-full bg-med-600" style="width:${ME.progress}%"></div></div>`)}
+              ${tile('Credentials', st.credentialsActive ? `${st.credentialsActive} Active` : 'None yet', st.credentialsTotal > st.credentialsActive ? `${st.credentialsTotal - st.credentialsActive} expired` : '', st.credentialsActive && st.credentialsTotal === st.credentialsActive)}
+              ${tile('Training', st.trainingTotal ? (st.trainingOpen ? `${st.trainingOpen} To Do` : 'All Current') : 'None assigned', '', st.trainingTotal && !st.trainingOpen)}
+              ${tile('Documents', String(st.documents || 0), 'Verified and on file')}
+              ${st.upcoming ? tile('Upcoming', `${esc(st.upcoming.title)} renewal`, `in ${st.upcoming.days} days (${esc(S.fmtDate(st.upcoming.expires))})`) : ''}
+              ${!done ? `<div class="pt-2 pb-1">${ME.groups.map(g => `<a href="#${{ personal: 'info', employment: 'info' }[g.key] || g.key}" class="flex items-center justify-between py-1 text-[12.5px] text-ink-700 hover:text-ink-900">
+                <span>${esc(g.label)}</span>${g.done === g.total ? `<span class="text-ok-600 font-semibold">✓</span>` : `<span class="num text-ink-500">${g.done}/${g.total}</span>`}</a>`).join('')}</div>` : ''}
             </div>
           </div>`;
       },
@@ -189,20 +213,104 @@
             <div class="flex-1 min-w-0"><div class="text-[13.5px] font-semibold text-ink-900">${esc(tr.title || t.title)}</div>
               <div class="text-[12px] text-ink-500">${esc(label)}${rec.completed ? ' · Completed ' + esc(S.fmtDate(rec.completed)) : ''}${rec.expires ? ' · Valid until ' + esc(S.fmtDate(rec.expires)) : ''}${t.status !== 'COMPLETE' ? due(t) : ''}</div>
               ${tr.description ? `<div class="text-[12.5px] text-ink-600 mt-1">${esc(tr.description)}</div>` : ''}
-              ${deps.length ? `<div class="text-[12px] text-ink-500 mt-1">Available after: ${esc(deps.join(', '))}</div>` : ''}${note(t)}
-              ${!tr.url && t.status !== 'COMPLETE' ? '<div class="text-[11.5px] text-ink-400 mt-1">Your clinic will tell you how to take this one.</div>' : ''}
+              ${deps.length ? `<div class="text-[12px] text-ink-500 mt-1">Available after: ${esc(deps.join(', '))}</div>` : ''}
+              ${latestDoc(t) && latestDoc(t).status === 'REJECTED' ? '' : note(t)}
+              ${!tr.url && !tr.builtIn && t.status !== 'COMPLETE' ? '<div class="text-[11.5px] text-ink-400 mt-1">Your clinic will tell you how to take this one.</div>' : ''}
+              ${tr.builtIn && rec.score != null && rec.completed ? `<div class="text-[12px] text-ink-500 mt-1">Version ${esc(rec.version || '')} · Score ${esc(rec.score)}%</div>` : ''}
+              ${docState(t, latestDoc(t))}
               ${open && t.status !== 'COMPLETE' ? `<div class="mt-3 p-3 rounded-sm border border-line bg-shell">
                 <label class="flex items-start gap-2 text-[12.5px] text-ink-800"><input type="checkbox" id="attest-${esc(t.key)}" class="mt-0.5"><span>I completed ${esc(tr.title || t.title)}${tr.version ? ' (version ' + esc(tr.version) + ')' : ''}.</span></label>
                 <label class="lbl mt-3" for="evidence-${esc(t.key)}">Certificate Or Completion Number <span class="normal-case tracking-normal font-normal text-ink-400">(if you got one)</span></label>
                 <input id="evidence-${esc(t.key)}" class="fld" maxlength="300">
                 <div class="mt-3 flex gap-2 justify-end"><button class="btn btn-line" data-toggle="${esc(t.key)}">Cancel</button><button class="btn btn-primary" data-train-done="${esc(t.key)}">Mark Complete</button></div></div>` : ''}
             </div>
-            ${!deps.length && t.status !== 'COMPLETE' && !open ? `<div class="flex flex-col gap-1.5 items-end">
+            ${tr.builtIn && !deps.length ? `<a class="btn ${t.status === 'COMPLETE' ? 'btn-line' : 'btn-primary'}" href="#course">${t.status === 'COMPLETE' ? 'Review Course' : (rec.modulesDone || []).length || t.status === 'IN_PROGRESS' ? 'Continue Course' : 'Start Course'}</a>` : ''}
+            ${!tr.builtIn && !deps.length && t.status !== 'COMPLETE' && !open ? `<div class="flex flex-col gap-1.5 items-end">
               ${tr.url ? `<a class="btn btn-primary" href="${esc(tr.url)}" target="_blank" rel="noopener" data-train-start="${esc(t.key)}">${t.status === 'IN_PROGRESS' ? 'Continue' : 'Start'} ↗</a>` : ''}
-              <button class="btn ${tr.url ? 'btn-line' : 'btn-primary'}" data-toggle="${esc(t.key)}">I Finished It</button></div>` : ''}
+              <button class="btn ${tr.url ? 'btn-line' : 'btn-primary'}" data-toggle="${esc(t.key)}">I Finished It</button>
+              ${uploadButton(t, latestDoc(t), 'Upload Certificate')}</div>` : ''}
           </div></div>`;
         }).join('') : '<div class="card p-5 text-[13px] text-ink-600">No training assigned.</div>');
       },
+
+      profile() {
+        const p = ME.person, info = ME.info || {}, per = info.personal || {}, prof = ME.profile || {}, labels = ME.profileLabels || {};
+        const today = S.todayIso(), week = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+        const open = ME.tasks.filter(t => !['COMPLETE', 'NEEDS_REVIEW', 'CLOSED'].includes(t.status));
+        const now = open.filter(t => t.effectiveStatus === 'WAITING_ON_EMPLOYEE' || t.effectiveStatus === 'OVERDUE' || (t.dueDate && t.dueDate <= today));
+        const soon = open.filter(t => !now.includes(t) && t.dueDate && t.dueDate <= week);
+        const renewNow = (ME.renewals || []).filter(r => r.days <= 7);
+        const name = [per.preferred || per.legal_first || p.firstName, per.legal_last].filter(Boolean).join(' ') || p.name;
+        const initials = name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        const card = (title, body, link) => `<div class="card mb-4"><div class="px-4 py-3 border-b border-line flex items-center justify-between"><div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">${title}</div>${link || ''}</div><div class="p-4">${body}</div></div>`;
+        const line = (t) => `<a href="#${sectionOf(t)}" data-open="${esc(t.key)}" class="flex items-start gap-2 py-1.5 hover:bg-shell -mx-2 px-2 rounded-sm">${mark(t.effectiveStatus)}
+            <div class="min-w-0"><div class="text-[13px] font-medium text-ink-900">${esc(actionTitle(t))}</div><div class="text-[11.5px] ${t.effectiveStatus === 'OVERDUE' || t.effectiveStatus === 'WAITING_ON_EMPLOYEE' ? 'text-risk-600' : 'text-ink-500'}">${esc(stLabel(t.effectiveStatus))}${due(t)}</div></div></a>`;
+        const fmtv = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? S.fmtDate(v) : (v || '');
+        const row = (key, label, value) => {
+          const pv = prof[key] || {}, v = value !== undefined ? value : pv.value;
+          return `<div class="grid grid-cols-[150px_1fr] gap-3 py-1 text-[12.5px]"><div class="text-ink-500">${esc(label || labels[key] || key)}</div>
+            <div class="min-w-0"><span class="text-ink-900">${v ? esc(fmtv(v)) : '<span class="text-ink-400">—</span>'}</span>
+            ${v && pv.source ? ` <span class="text-[11px] ${pv.verified ? 'text-ok-600' : 'text-ink-400'}">${esc(pv.source)}${pv.verified ? ' · verified' : ''}</span>` : ''}</div></div>`;
+        };
+        const addr = [per.address1, per.address2, [per.city, per.state].filter(Boolean).join(', '), per.zip].filter(Boolean).join(' ');
+        const creds = ME.credentials || [], trains = ME.trainingRecords || [], docs = (ME.documents || []).filter(d => d.status === 'VERIFIED' && !d.superseded);
+        const forms = ME.tasks.filter(t => t.type === 'form' && t.status === 'COMPLETE');
+        const npiV = (ME.verifications || {}).npi;
+        const areaNames = { overview: 'Overview', patients: 'Patients & Charts', schedule: 'Schedule', scribe: 'Write A Note', code_a_note: 'Code A Note', coding_review: 'Coding Review',
+          claims: 'Claims', denials: 'Denials', appeals: 'Appeals', payments: 'Payments', payer_intelligence: 'Payer Intelligence', team: 'Staff Records', onboarding: 'Staff Onboarding',
+          clinic_onboarding: 'Clinic Onboarding', credentials: 'Staff Credentials', compliance: 'Compliance', training: 'Staff Training', roles: 'Roles', althea: 'Althea', settings: 'Settings' };
+        return `
+          <div class="card p-5 mb-4 flex items-start gap-4 flex-wrap">
+            <div class="w-14 h-14 rounded-md bg-med-100 text-med-700 flex items-center justify-center text-[18px] font-semibold flex-shrink-0">${esc(initials)}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap"><h1 class="text-[20px] font-semibold text-ink-900">${esc(name)}</h1>${S.pill(p.label === 'Needs Review' ? 'Needs Review' : p.label)}</div>
+              <div class="text-[13px] text-ink-600 mt-0.5">${esc([p.role, p.location, p.employment].filter(Boolean).join(' · '))}</div>
+              <div class="text-[12.5px] text-ink-500 mt-1">${esc(ME.clinic)}${p.start ? ' · Started ' + esc(S.fmtDate(p.start)) : ''}${p.supervisor ? ' · Supervisor: ' + esc(p.supervisor) : ''}</div>
+              <div class="text-[12.5px] text-ink-500">${esc(ME.email)}${per.phone ? ' · ' + esc(per.phone) : ''}</div>
+            </div>
+            <div class="text-right"><div class="text-[26px] font-semibold num ${ME.progress === 100 ? 'text-ok-600' : 'text-ink-900'}">${ME.progress}%</div><div class="text-[11px] text-ink-500">Onboarding</div></div>
+          </div>
+          <div class="grid gap-4 lg:grid-cols-2 items-start">
+            <div>
+              ${card('Today', (now.length || renewNow.length) ? now.map(line).join('') + renewNow.map(r => `<a href="#${r.section}" class="flex items-start gap-2 py-1.5 hover:bg-shell -mx-2 px-2 rounded-sm">${mark(r.days < 0 ? 'OVERDUE' : 'IN_PROGRESS')}
+                  <div><div class="text-[13px] font-medium text-ink-900">Upload your renewed ${esc(r.title)}</div><div class="text-[11.5px] ${r.days < 0 ? 'text-risk-600' : 'text-warn-600'}">${r.days < 0 ? 'Expired ' : 'Expires '}${esc(S.fmtDate(r.expires))}</div></div></a>`).join('')
+                : `<div class="text-[13px] text-ok-600 font-semibold">✓ Nothing due today</div>`) + (soon.length ? `<div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mt-3 mb-1">This Week</div>${soon.map(line).join('')}` : ''))}
+              ${card(`Still Missing (${open.length})`, open.length ? open.map(line).join('') : '<div class="text-[13px] text-ok-600 font-semibold">✓ Nothing missing</div>', '<a href="#tasks" class="text-[12px] font-semibold text-med-600">All Tasks</a>')}
+              ${card('Credentials', creds.length ? creds.map(c => { const days = S.daysUntil(c.expires); const st = c.status === 'archived' ? 'Archived' : days != null && days < 0 ? 'Expired' : days != null && days <= 30 ? 'Expiring Soon' : 'Active';
+                  return `<div class="py-1.5 border-b border-lineSoft last:border-0"><div class="flex justify-between gap-2"><span class="text-[13px] font-semibold text-ink-900">${esc(c.label)}</span>${S.pill(st === 'Active' ? 'Verified' : st)}</div>
+                    <div class="text-[12px] text-ink-500">${esc([c.identifier, c.state, c.expires ? 'Expires ' + S.fmtDate(c.expires) : ''].filter(Boolean).join(' · '))}</div>
+                    <div class="text-[11.5px] text-ink-400">Verified ${c.verifiedBy === 'Althais' ? 'automatically by Althais' : 'by ' + esc(c.verifiedBy || 'your clinic')}${c.verification && c.verification.status === 'VERIFIED' ? ' · confirmed with ' + esc(c.verification.source) : ''}${(c.history || []).length ? ` · ${c.history.length} earlier version${c.history.length === 1 ? '' : 's'} kept` : ''}</div></div>`; }).join('')
+                : '<div class="text-[12.5px] text-ink-500">No verified credentials yet.</div>', '<a href="#credentials" class="text-[12px] font-semibold text-med-600">Upload</a>')}
+              ${card('Training', trains.length ? trains.map(r => `<div class="py-1.5 border-b border-lineSoft last:border-0"><div class="flex justify-between gap-2"><span class="text-[13px] font-semibold text-ink-900">${esc(r.course)}</span>${S.pill({ COMPLETED: 'Completed', EXPIRED: 'Expired', IN_PROGRESS: 'In Progress', NOT_STARTED: 'Not Started' }[r.status])}</div>
+                  <div class="text-[12px] text-ink-500">${esc([r.completed ? 'Completed ' + S.fmtDate(r.completed) : '', r.version ? 'Version ' + r.version : '', r.score != null && r.completed ? 'Score ' + r.score + '%' : '', r.expires ? 'Valid until ' + S.fmtDate(r.expires) : ''].filter(Boolean).join(' · '))}</div></div>`).join('')
+                : '<div class="text-[12.5px] text-ink-500">No training assigned.</div>', '<a href="#training" class="text-[12px] font-semibold text-med-600">Training</a>')}
+            </div>
+            <div>
+              ${card('My Information', `
+                <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold mb-1">Personal</div>
+                ${row('legal_first', 'Legal Name', [per.legal_first, per.middle, per.legal_last].filter(Boolean).join(' '))}${row('preferred')}${row('dob')}
+                <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold mt-3 mb-1">Contact</div>
+                ${row('email', 'Email', ME.email)}${row('phone')}${row('address1', 'Home Address', addr)}
+                <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold mt-3 mb-1">Emergency Contact</div>
+                ${row('', 'Name', (info.emergency || {}).ec_name)}${row('', 'Relationship', (info.emergency || {}).ec_relationship)}${row('', 'Phone', (info.emergency || {}).ec_phone)}
+                <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold mt-3 mb-1">Employment</div>
+                ${row('role')}${row('location')}${row('start')}${row('employment')}${row('supervisor')}
+                ${ME.sections && ME.sections.professional ? `<div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold mt-3 mb-1">Professional</div>
+                  ${row('npi')}${npiV ? `<div class="text-[11.5px] ${npiV.status === 'VERIFIED' ? 'text-ok-600' : 'text-warn-600'} -mt-0.5 mb-1 pl-[162px]">${esc(npiV.source || 'NPI Registry')}: ${esc(npiV.status === 'VERIFIED' ? 'confirmed' : npiV.details)}</div>` : ''}
+                  ${row('license_number')}${row('license_state')}${row('license_expiration')}${row('dea_number')}${row('dea_expiration')}` : ''}`,
+                '<a href="#info" class="text-[12px] font-semibold text-med-600">Edit</a>')}
+              ${card('Forms & Agreements', forms.length ? forms.map(t => `<div class="py-1 text-[12.5px]"><span class="text-ok-600">✓</span> <span class="text-ink-900">${esc(t.title)}</span> <span class="text-ink-500">· ${t.signedAt ? 'signed' : 'acknowledged'} ${esc(S.fmtDate(t.signedAt || t.completedAt))} · v${esc(t.version || '1')}</span></div>`).join('')
+                : '<div class="text-[12.5px] text-ink-500">None completed yet.</div>', '<a href="#forms" class="text-[12px] font-semibold text-med-600">Forms</a>')}
+              ${card('Documents On File', docs.length ? docs.map(d => { const t = ME.tasks.find(x => x.key === d.requirementKey); return `<div class="py-1 text-[12.5px] flex justify-between gap-2"><span class="text-ink-900">${esc(t ? t.title : d.docType)}</span>
+                  <a class="font-semibold text-med-600 truncate" href="/api/portal/documents/${d.id}/file" target="_blank" rel="noopener">${esc(d.filename)}</a></div>`; }).join('')
+                : '<div class="text-[12.5px] text-ink-500">No verified documents yet.</div>')}
+              ${card('Your Access', ME.appAccess ? `<div class="text-[12.5px] text-ink-700">As a ${esc(p.role)}, you can use: ${esc((ME.accessAreas || []).map(a => areaNames[a] || a).join(', ') || 'the Staff Portal')}.</div>`
+                : `<div class="text-[12.5px] text-ink-700">You have the Staff Portal. Your clinic turns on the rest when your onboarding is approved${(ME.accessAreas || []).length ? ` — as a ${esc(p.role)} you'll be able to use: ${esc(ME.accessAreas.map(a => areaNames[a] || a).join(', '))}` : ''}.</div>`)}
+            </div>
+          </div>`;
+      },
+
+      course() { return '<div id="course-root"><div class="text-[13px] text-ink-500">Loading your course…</div></div>'; },
 
       tasks() {
         const groups = [['Your Onboarding', ME.tasks], ['Handled By ' + ME.clinic, ME.managerTasks.map(t => ({ title: t.title, effectiveStatus: t.status, status: t.status }))]];
@@ -242,28 +350,69 @@
         </div>${locked ? '' : `<div class="mt-3 flex justify-end"><button type="submit" class="btn btn-primary">${section === 'professional' ? 'Submit For Review' : 'Save'}</button></div>`}</form></div>`;
     }
 
+    // ---------------------------------------------------------------- documents: upload -> automatic review -> result
+    const STEPS = ['Identifying the document', 'Reading the information', 'Checking that it’s yours', 'Checking dates',
+                   'Checking required fields', 'Checking credential details', 'Looking for inconsistencies', 'Checking for potential issues'];
+    const analyzing = {};   // requirement key -> step index while a document is being reviewed
+    const latestDoc = (t) => ME.documents.find(x => x.requirementKey === t.key && !x.superseded);
+    function manualMode(d) { const st = (d && d.extraction || {}).status; return st === 'unavailable' || st === 'failed'; }
+
+    function docState(t, d) {
+      if (analyzing[t.key] !== undefined) {
+        const n = analyzing[t.key];
+        return `<div class="mt-3 p-3 rounded-sm border border-line bg-shell" role="status" aria-live="polite">
+          <div class="text-[13px] font-semibold text-ink-900 mb-2">Analyzing your document…</div>
+          ${STEPS.map((s, i) => `<div class="flex items-center gap-2 text-[12.5px] py-0.5 ${i < n ? 'text-ok-600' : i === n ? 'text-ink-900' : 'text-ink-400'}">
+            <span class="w-4 text-center">${i < n ? '✓' : i === n ? '•' : ''}</span>${esc(s)}</div>`).join('')}</div>`;
+      }
+      if (!d) return '';
+      if (d.status === 'VERIFIED' && t.status === 'COMPLETE') {
+        return `<div class="mt-3 p-3 rounded-sm border border-line bg-shell"><div class="text-[13px] font-semibold text-ok-600">✓ Document Verified</div>
+          <div class="text-[12.5px] text-ink-700 mt-0.5">${esc(t.title)}${d.expirationDate ? ' · Expires ' + esc(S.fmtDate(d.expirationDate)) : ''}</div>
+          <div class="text-[12px] text-ink-500 mt-0.5">Your ${esc(t.title)} requirement is complete.</div></div>`;
+      }
+      if (d.status === 'REJECTED') {
+        return `<div class="mt-3 p-3 rounded-sm border border-risk-600/30 bg-risk-100"><div class="text-[13px] font-semibold text-risk-600">Action Required</div>
+          <div class="text-[12.5px] text-ink-800 mt-0.5">${esc(d.reviewNote || 'Please upload a new copy.')}</div></div>`;
+      }
+      if (d.status === 'NEEDS_REVIEW' || d.status === 'PROCESSING') {
+        return `<div class="mt-3 p-3 rounded-sm border border-line bg-shell"><div class="text-[13px] font-semibold text-warn-600">${d.status === 'PROCESSING' ? 'Checking' : 'Reviewing'}</div>
+          <div class="text-[12.5px] text-ink-700 mt-0.5">${d.status === 'PROCESSING' ? 'We’re still checking this document. Refresh in a moment.'
+            : 'We’ve sent this document to your clinic manager because we found information that needs review. You don’t need to do anything right now.'}</div>
+          ${manualMode(d) && !d.employeeConfirmed ? confirmPanel(t, d) : ''}</div>`;
+      }
+      return '';
+    }
+    function uploadButton(t, d, label) {
+      const busy = analyzing[t.key] !== undefined;
+      if (busy || blockedBy(t).length || (d && (d.status === 'NEEDS_REVIEW' || d.status === 'PROCESSING'))) return '';
+      if (t.status === 'COMPLETE' && !t.credentialType) return '';
+      const text = label || (t.status === 'COMPLETE' ? 'Upload Renewal' : d && d.status === 'REJECTED' ? 'Upload Replacement' : 'Upload');
+      return `<label class="btn ${t.status === 'COMPLETE' || label ? 'btn-line' : 'btn-primary'} cursor-pointer">${esc(text)}
+        <input type="file" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,application/pdf,image/*" data-upload="${esc(t.key)}"></label>`;
+    }
+
     function uploadsPage(kind, title, sub, extra) {
       const list = ME.tasks.filter(t => t.type === 'document' && (kind === 'credentials') === !!t.credentialType);
       return heading(title, sub) + (extra || '') + (list.length ? list.map(t => {
-        const d = ME.documents.find(x => x.requirementKey === t.key && !x.superseded);
-        const deps = blockedBy(t), open = openKey === t.key;
-        const confirmNeeded = d && d.status === 'NEEDS_REVIEW' && !d.employeeConfirmed;
+        const d = latestDoc(t), deps = blockedBy(t);
+        const line = t.status === 'COMPLETE' ? 'Complete' : t.required === false ? 'If you have one' : 'Required';
         return `<div class="card mb-3" id="item-${esc(t.key)}"><div class="item">${mark(t.effectiveStatus)}
           <div class="flex-1 min-w-0"><div class="text-[13.5px] font-semibold text-ink-900">${esc(t.title)}${t.required === false ? ' <span class="text-[11px] text-ink-400 font-normal">Optional</span>' : ''}</div>
-            <div class="text-[12px] text-ink-500">${t.status === 'COMPLETE' ? 'Verified' + (d && d.verifiedAt ? ' ' + esc(S.fmtDate(d.verifiedAt)) : '') : d && d.status === 'NEEDS_REVIEW' ? 'Submitted — your clinic is reviewing it' : t.effectiveStatus === 'WAITING_ON_EMPLOYEE' ? 'Needs a new upload' : t.required === false ? 'If you have one' : 'Required'}${due(t)}
+            <div class="text-[12px] text-ink-500">${line}${due(t)}
               ${d ? ` · <a class="font-semibold text-med-600" href="/api/portal/documents/${d.id}/file" target="_blank" rel="noopener">${esc(d.filename)}</a>` : ''}</div>
-            ${deps.length ? `<div class="text-[12px] text-ink-500 mt-1">Available after: ${esc(deps.join(', '))}</div>` : ''}${note(t)}
-            ${confirmNeeded || open ? confirmPanel(t, d) : ''}
+            ${deps.length ? `<div class="text-[12px] text-ink-500 mt-1">Available after: ${esc(deps.join(', '))}</div>` : ''}
+            ${d && d.status === 'REJECTED' ? '' : note(t)}
+            ${docState(t, d)}
           </div>
-          ${!deps.length && !(d && d.status === 'NEEDS_REVIEW') && (t.status !== 'COMPLETE' || t.credentialType) ? `<label class="btn ${t.status === 'COMPLETE' ? 'btn-line' : 'btn-primary'} cursor-pointer">${t.status === 'COMPLETE' ? 'Upload Renewal' : d ? 'Upload Again' : 'Upload'}
-            <input type="file" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,application/pdf,image/*" data-upload="${esc(t.key)}"></label>` : ''}
+          ${uploadButton(t, d)}
         </div></div>`;
       }).join('') : `<div class="card p-5 text-[13px] text-ink-600">Your clinic hasn’t asked for any ${kind === 'credentials' ? 'credentials' : 'documents'}.</div>`);
     }
 
     function confirmPanel(t, d) {
       if (!d) return '';
-      const fields = ME.docFields[t.docType] || ME.docFields.other || [], ex = d.extraction || {};
+      const fields = ME.docFields[t.docType || 'training_certificate'] || ME.docFields.other || [], ex = d.extraction || {};
       const found = ex.status === 'extracted' && Object.keys(ex.fields || {}).length;
       return `<form class="mt-3 p-3 rounded-sm border border-line bg-shell" data-confirm-doc="${d.id}" novalidate>
         <div class="text-[13px] font-semibold text-ink-900 mb-1">${found ? 'We found the following information.' : 'Enter the details from your document.'}</div>
@@ -276,15 +425,18 @@
 
     function formBody(t, f) {
       const info = ME.info.personal || {}, p = ME.person;
-      const addr = [info.address1, info.address2, [info.city, info.state].filter(Boolean).join(', '), info.zip].filter(Boolean).join(' ');
       const legal = [info.legal_first, info.middle, info.legal_last].filter(Boolean).join(' ') || p.name;
+      const src = (x) => !x.value ? '<span class="text-ink-400">Not on file — add it in <a class="font-semibold text-med-600" href="#info">My Information</a></span>'
+        : `<span class="text-ink-900">${esc(/^\d{4}-\d{2}-\d{2}$/.test(x.value) ? S.fmtDate(x.value) : x.value)}</span> <span class="text-[11px] ${x.verified ? 'text-ok-600' : 'text-ink-400'}">${esc(x.source || '')}${x.verified ? ' · verified' : ''}</span>`;
       return `<div class="p-4 border-t border-line">
+        <div class="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Your Details (Filled In For You)</div>
         <div class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-[12.5px] mb-4 p-3 rounded-sm bg-shell border border-line">
-          ${[['Name', legal], ['Role', p.role], ['Start Date', S.fmtDate(p.start)], ['Address', addr || '—']].map(([l, v]) => `<div><span class="text-ink-500">${l}:</span> <span class="text-ink-900">${esc(v || '—')}</span></div>`).join('')}
+          ${(f.prefillFields || []).map(x => `<div><span class="text-ink-500">${esc(x.label)}:</span> ${src(x)}</div>`).join('')}
         </div>
-        <div class="formtext">${f.body ? esc(f.body) : '<span class="text-ink-500">Your clinic hasn’t added the text of this form yet. Ask your manager before completing it.</span>'}</div>
+        ${f.fileId ? `<iframe src="/api/portal/forms/${encodeURIComponent(t.formKey)}/file" title="${esc(f.title || t.title)}" class="w-full h-[520px] border border-line rounded-sm bg-white mb-3"></iframe>` : ''}
+        ${f.body || !f.fileId ? `<div class="formtext">${f.body ? esc(f.body) : '<span class="text-ink-500">Your clinic hasn’t added the text of this form yet. Ask your manager before completing it.</span>'}</div>` : ''}
         ${t.status === 'COMPLETE' ? `<div class="mt-4 text-[12.5px] text-ok-600 font-semibold">✓ ${t.signature ? 'Signed as “' + esc(t.signature) + '”' : 'Acknowledged'} on ${esc(S.fmtDate(t.signedAt || t.completedAt))} (version ${esc(t.version || '1')})</div>`
-          : f.body ? `<div class="mt-4 pt-4 border-t border-line">
+          : f.body || f.fileId ? `<div class="mt-4 pt-4 border-t border-line">
           <label class="flex items-start gap-2 text-[13px] text-ink-800"><input type="checkbox" id="agree-${esc(t.key)}" class="mt-0.5"><span>I have read ${esc(f.title || t.title)} and ${f.action === 'sign' ? 'agree to it' : 'will follow it'}.</span></label>
           ${f.action === 'sign' ? `<label class="lbl mt-3" for="sig-${esc(t.key)}">Type Your Full Legal Name To Sign</label><input id="sig-${esc(t.key)}" class="fld" style="max-width:360px;font-style:italic" value="${esc(legal)}">` : ''}
           <div class="mt-3"><button class="btn btn-primary" data-form-done="${esc(t.key)}">${f.action === 'sign' ? 'Sign' : 'Acknowledge'}</button></div></div>` : ''}
@@ -303,6 +455,10 @@
         el.className = left ? 'count-pill med' : 'text-ok-600 text-[12px]'; el.textContent = l.length ? (left || '✓') : '';
       });
       $('main').innerHTML = PAGES[r]();
+      if (r === 'course') {
+        document.querySelector('[data-nav="training"]').classList.add('is-on');
+        window.AlthaisCourse.mount($('course-root'), { api, esc, fmtDate: S.fmtDate, toast: S.toast, onChange: () => api('GET', '/api/portal/me').then(d => { ME = d; }) });
+      }
       const k = focusKey || openKey; focusKey = null;
       if (k) { const el = $('item-' + k) || $('sec-' + ({ personal: 'personal', emergency_contact: 'emergency', role_info: 'employment', professional: 'professional' }[k] || '')); if (el) el.scrollIntoView({ block: 'center' }); }
     }
@@ -409,10 +565,46 @@
       const key = inp.dataset.upload, file = inp.files[0];
       if (file.size > 10 * 1024 * 1024) { inp.value = ''; return S.toast('That file is over 10 MB', 'error'); }
       const fd = new FormData(); fd.append('requirement', key); fd.append('file', file);
-      inp.closest('label').textContent = 'Uploading…';
-      try { await api('POST', '/api/portal/documents', fd, true); openKey = key; S.toast('Uploaded'); await load(); }
-      catch (err) { S.toast(err.message, 'error'); render(); }
+      analyzing[key] = 0; focusKey = key; render();
+      const tick = setInterval(() => { if (analyzing[key] < STEPS.length - 1) { analyzing[key]++; render(); } }, 1400);
+      try {
+        const res = await api('POST', '/api/portal/documents', fd, true);
+        clearInterval(tick); delete analyzing[key]; focusKey = key;
+        S.toast(res.decision === 'AUTO_APPROVED' ? 'Document verified' : res.decision === 'ACTION_REQUIRED_FROM_EMPLOYEE' ? 'Action required' : 'Sent to your clinic for review',
+                res.decision === 'ACTION_REQUIRED_FROM_EMPLOYEE' ? 'error' : undefined);
+        await load();
+      } catch (err) { clearInterval(tick); delete analyzing[key]; S.toast(err.message, 'error'); render(); }
     });
+
+    // ---------------------------------------------------------------- Althea
+    const ALTHEA_SUGGEST = ['What do I still need to do?', 'When does my BLS expire?', 'Which training do I need?', 'Where do I upload my license?',
+                            "Why wasn't my document accepted?", 'What do I need before my first day?'];
+    function altheaSay(who, html) {
+      const log = $('althea-log');
+      log.insertAdjacentHTML('beforeend', who === 'me' ? `<div class="flex justify-end"><div class="max-w-[85%] px-3 py-2 rounded-lg bg-med-600 text-white text-[13px]">${html}</div></div>`
+        : `<div class="flex"><div class="max-w-[90%] px-3 py-2 rounded-lg bg-shell border border-line text-[13px] text-ink-800">${html}</div></div>`);
+      log.scrollTop = log.scrollHeight;
+    }
+    async function altheaAsk(q) {
+      altheaSay('me', esc(q)); $('althea-chips').innerHTML = '';
+      try {
+        const r = await api('POST', '/api/portal/althea', { question: q });
+        altheaSay('althea', esc(r.answer).replace(/\n/g, '<br>') + (r.links && r.links.length ? '<div class="mt-2 flex flex-wrap gap-1.5">' +
+          r.links.map(l => `<a class="btn btn-line" style="padding:3px 8px;font-size:11.5px" href="${esc(l.href)}">${esc(l.label)}</a>`).join('') + '</div>' : ''));
+      } catch (e) { altheaSay('althea', esc(e.message)); }
+    }
+    $('althea-open').onclick = () => {
+      $('althea-panel').classList.remove('hidden'); $('althea-open').classList.add('hidden');
+      if (!$('althea-log').children.length) {
+        altheaSay('althea', 'Hi! I can answer questions about your onboarding, documents, credentials and training at ' + esc(ME ? ME.clinic : 'your clinic') + '.');
+        $('althea-chips').innerHTML = ALTHEA_SUGGEST.map(q => `<button type="button" class="text-[11.5px] px-2 py-1 rounded-full border border-line hover:bg-shell" data-ask="${esc(q)}">${esc(q)}</button>`).join('');
+      }
+      $('althea-q').focus();
+    };
+    $('althea-close').onclick = () => { $('althea-panel').classList.add('hidden'); $('althea-open').classList.remove('hidden'); };
+    $('althea-chips').addEventListener('click', e => { const b = e.target.closest('[data-ask]'); if (b) altheaAsk(b.dataset.ask); });
+    $('althea-form').addEventListener('submit', e => { e.preventDefault(); const q = $('althea-q').value.trim(); if (q) { $('althea-q').value = ''; altheaAsk(q); } });
+    $('althea-log').addEventListener('click', e => { if (e.target.closest('a[href^="#"]')) { $('althea-close').click(); } });
 
     load().catch(e => { $('main').innerHTML = `<div class="card p-5"><div class="text-[14px] font-semibold text-ink-900 mb-1">Your Staff Portal isn’t available</div><div class="text-[13px] text-ink-600">${esc(e.message)}</div></div>`; })
       .finally(loadOrgs);

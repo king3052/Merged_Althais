@@ -85,6 +85,8 @@
         </div>
       </div>
 
+      <div id="automation" class="hidden bg-panel border border-line rounded-sm px-4 py-3 mb-5 flex flex-wrap items-center gap-x-8 gap-y-2"></div>
+
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
         <div class="bg-panel border border-line rounded-sm min-w-0">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-3 flex-wrap">
@@ -232,7 +234,7 @@
     }
 
     const TASK_LABEL = { NOT_STARTED: 'Not Started', IN_PROGRESS: 'In Progress', WAITING_ON_EMPLOYEE: 'Waiting On Employee', WAITING_ON_MANAGER: 'Waiting On You',
-                         NEEDS_REVIEW: 'Needs Review', COMPLETE: 'Complete', OVERDUE: 'Overdue' };
+                         NEEDS_REVIEW: 'Needs Review', COMPLETE: 'Complete', OVERDUE: 'Overdue', CLOSED: 'Closed' };
     const TASK_DOT = { COMPLETE: 'ok', NEEDS_REVIEW: 'warn', WAITING_ON_MANAGER: 'warn', OVERDUE: 'risk', IN_PROGRESS: 'brand', WAITING_ON_EMPLOYEE: 'risk' };
     const DOC_LABEL = { UPLOADED: 'Uploaded', PROCESSING: 'Processing', NEEDS_REVIEW: 'Needs Review', VERIFIED: 'Verified', REJECTED: 'Rejected', EXPIRED: 'Expired' };
     const DOC_PILL = { 'Needs Review': 'Needs Review', Verified: 'Verified', Rejected: 'Rejected', Expired: 'Expired', Uploaded: 'Submitted', Processing: 'Submitted' };
@@ -254,6 +256,30 @@
       $('st-total').textContent = st.total; $('st-onboarding').textContent = st.onboarding;
       $('st-attention').textContent = st.attention; $('st-expiring').textContent = st.expiring;
       $('st-expiring-sub').textContent = `Active staff, within ${st.warnDays} days`;
+      const au = OVERVIEW.automation;
+      if (au) {
+        const n = (v, l, cls) => `<div><div class="text-[20px] font-semibold num ${cls}">${v}</div><div class="text-[11px] text-ink-500">${l}</div></div>`;
+        const on = au.enabled !== false;
+        const status = !on ? 'Off — every document comes to you to review' : !au.connected ? 'Not connected — every document comes to you'
+          : au.autoApprove ? 'Routine documents are verified automatically' : 'Checks run automatically; you approve every document';
+        $('automation').innerHTML = `<div class="mr-2 flex items-center gap-3">
+            <button type="button" id="auto-switch" role="switch" aria-checked="${on}" aria-label="Automated review"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${on ? 'bg-ok-600' : 'bg-ink-300'}">
+              <span class="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform" style="transform:translateX(${on ? '22px' : '2px'})"></span></button>
+            <div><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Automated Review · ${on ? 'On' : 'Off'}</div>
+            <div class="text-[11.5px] ${on && au.connected ? 'text-ink-500' : 'text-warn-600'} mt-0.5">${status}</div></div></div>
+          ${n(au.processed, 'Documents Processed', 'text-ink-900')}${n(au.autoApproved, 'Auto-Approved', 'text-ok-600')}
+          ${n(au.employeeCorrections, 'Employee Corrections Requested', 'text-ink-900')}${n(au.managerReviews, 'Manager Reviews Required', 'text-warn-600')}
+          <a href="/staff/onboarding/templates#automation" class="ml-auto text-[12px] font-semibold text-med-600">Automation Settings</a>`;
+        $('automation').classList.remove('hidden');
+        $('auto-switch').onclick = async () => {
+          const next = !on;
+          if (!next && !confirm('Turn off automated review? Uploaded documents will no longer be read or checked automatically, and every one will come to you to review.')) return;
+          $('auto-switch').disabled = true;
+          try { await api('POST', '/api/staff/onboarding/automation', { enabled: next }); S.toast(`Automated review turned ${next ? 'on' : 'off'}`); await loadOverview(); }
+          catch (e) { S.toast(e.message, 'error'); $('auto-switch').disabled = false; }
+        };
+      }
       $('filters').innerHTML = FILTERS.map(([k, l]) => `<button type="button" role="tab" aria-selected="${filter === k}" class="filter-tab ${filter === k ? 'is-on' : ''}" data-filter="${k}">${l}</button>`).join('');
       const list = OVERVIEW.rows.filter(matches);
       $('rows').innerHTML = list.length ? list.map(r => {
@@ -436,7 +462,7 @@
       if (!['SUSPENDED', 'OFFBOARDED'].includes(lc)) A.push(['Edit Requirements', 'btn-line', editRequirements]);
       A.push(['Edit Details', 'btn-line', editDetails]);
       if (['ACTIVE', 'INVITE_ACCEPTED', 'ONBOARDING', 'PENDING_REVIEW'].includes(lc)) A.push(['Suspend', 'btn-risk', () => setStatus('suspend')]);
-      if (!['OFFBOARDED'].includes(lc)) A.push(['Offboard', 'btn-risk', () => setStatus('offboard')]);
+      if (!['OFFBOARDED'].includes(lc)) A.push(['Offboard', 'btn-risk', offboardDialog]);
       if (['SUSPENDED', 'OFFBOARDED'].includes(lc)) A.push(['Reactivate', 'btn-primary', () => setStatus('reactivate')]);
       $('d-actions').innerHTML = '';
       A.forEach(([l, c, fn]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + c; b.style.cssText = 'padding:4px 9px;font-size:11.5px'; b.textContent = l; b.onclick = fn; $('d-actions').appendChild(b); });
@@ -445,11 +471,21 @@
       $('d-body').innerHTML = { checklist: renderChecklist, documents: renderDocuments, info: renderInfo, activity: renderActivity }[tab]();
     }
 
+    function offboardingHtml() {
+      const o = DETAIL.person.offboarding;
+      if (!o) return '';
+      return `<div class="mb-4 p-3 rounded-sm border border-line bg-shell">
+        <div class="text-[12.5px] font-semibold text-ink-900">Offboarded · last day ${esc(S.fmtDate(o.date))} <span class="font-normal text-ink-500">by ${esc(o.by)}</span></div>
+        ${o.steps.map(x => `<div class="text-[12px] text-ink-700 mt-1"><span class="text-ok-600">✓</span> ${esc(x.title)}</div>`).join('')}
+        ${o.tasks.length ? `<div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mt-3 mb-1">Outside Access To Remove</div>` +
+          o.tasks.map(x => `<label class="flex items-center gap-2 text-[12.5px] text-ink-800 py-0.5"><input type="checkbox" data-off-task="${esc(x.key)}" ${x.done ? 'checked' : ''}> ${esc(x.title)}${x.done ? ` <span class="text-[11px] text-ink-400">done by ${esc(x.doneBy || '')}</span>` : ''}</label>`).join('') : ''}
+      </div>`;
+    }
     function renderChecklist() {
       const groups = {};
       DETAIL.tasks.forEach(t => { const g = E.groupOf(t); (groups[g] = groups[g] || []).push(t); });
       const latestDoc = key => DETAIL.documents.find(d => d.requirementKey === key && !d.superseded);
-      return E.GROUPS.filter(g => groups[g]).map(g => `
+      return offboardingHtml() + E.GROUPS.filter(g => groups[g]).map(g => `
         <div class="mb-3"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-0.5">${esc(g)}</div>
         ${groups[g].map(t => {
           const st = t.effectiveStatus, d = latestDoc(t.key);
@@ -476,10 +512,11 @@
         return `<div class="task"><span class="dot ${d.status === 'VERIFIED' ? 'ok' : d.status === 'NEEDS_REVIEW' ? 'warn' : d.status === 'REJECTED' || d.status === 'EXPIRED' ? 'risk' : ''}"></span>
           <div class="flex-1 min-w-0"><div class="text-[12.5px] font-medium text-ink-900">${esc(t ? t.title : d.docType)}${d.superseded ? ' <span class="text-[10.5px] text-ink-400 font-normal">(replaced)</span>' : ''}</div>
           <div class="text-[11px] text-ink-500">${esc(d.filename)} · uploaded ${esc(S.fmtDate(d.uploadedAt))}${d.expirationDate ? ' · expires ' + esc(S.fmtDate(d.expirationDate)) : ''}${d.verifiedBy ? ' · verified by ' + esc(d.verifiedBy) : ''}</div>
-          ${d.reviewNote && d.status === 'REJECTED' ? `<div class="text-[11px] text-risk-600">${esc(d.reviewNote)}</div>` : ''}</div>
+          ${d.reviewNote && d.status === 'REJECTED' ? `<div class="text-[11px] text-risk-600">${esc(d.reviewNote)}</div>` : ''}
+          ${d.autoVerified ? '<div class="text-[11px] text-ok-600">Verified automatically by Althais</div>' : ''}</div>
           <div class="flex items-center gap-2 flex-shrink-0">${S.pill(DOC_PILL[label] || label)}
             <a class="text-[11px] font-semibold text-med-600" href="/api/staff/onboarding/documents/${d.id}/file" target="_blank" rel="noopener">View</a>
-            ${d.status === 'NEEDS_REVIEW' && !d.superseded ? `<button class="text-[11px] font-semibold text-med-600" data-review-doc="${d.id}">Review</button>` : ''}</div></div>`;
+            <button class="text-[11px] font-semibold text-med-600" data-review-doc="${d.id}">${d.status === 'NEEDS_REVIEW' && !d.superseded ? 'Review' : 'Details'}</button></div></div>`;
       }).join('');
     }
     function kvList(fields, values) {
@@ -501,6 +538,8 @@
         ${hasProf ? `<div class="mb-4"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5 flex justify-between">Professional Information
             <span class="normal-case tracking-normal font-normal ${ver ? 'text-ok-600' : 'text-ink-400'}">${ver ? 'Confirmed by ' + esc(ver.by) + ' ' + esc(S.fmtDate(ver.at)) : 'Not confirmed yet'}</span></div>
           ${kvList(sec.professional, p.info.professional)}
+          ${(p.verifications || {}).npi ? (() => { const v = p.verifications.npi; const good = v.status === 'VERIFIED';
+            return `<div class="mt-2 text-[12px] ${good ? 'text-ok-600' : v.status === 'ERROR' || v.status === 'NOT_RUN' ? 'text-ink-500' : 'text-warn-600'}">${good ? '✓' : '•'} ${esc(v.source || 'NPI Registry')}: ${esc(v.details || v.status)} <span class="text-ink-400">(${esc(S.fmtDate(v.timestamp))})</span></div>`; })() : ''}
           ${pending ? `<div class="mt-2 p-2.5 rounded-sm border border-line bg-shell"><div class="text-[11.5px] font-semibold text-warn-600 mb-1">Change awaiting your confirmation</div>${kvList(sec.professional, pending)}</div>` : ''}
           ${pending || DETAIL.tasks.find(t => t.key === 'professional' && t.effectiveStatus === 'NEEDS_REVIEW') ? '<button class="btn btn-primary mt-2" data-review-info>Review Professional Information</button>' : ''}</div>` : ''}`;
     }
@@ -509,6 +548,10 @@
         : '<div class="text-[12px] text-ink-500">No activity yet.</div>';
     }
 
+    $('d-body').addEventListener('change', e => {
+      const box = e.target.closest('[data-off-task]'); if (!box) return;
+      act(() => api('POST', `/api/staff/onboarding/people/${activeId}/offboarding/tasks/${encodeURIComponent(box.dataset.offTask)}`, { done: box.checked }), box.checked ? 'Marked done' : 'Reopened').catch(() => null);
+    });
     $('d-body').addEventListener('click', async e => {
       const rd = e.target.closest('[data-review-doc]'); if (rd) return reviewDocument(Number(rd.dataset.reviewDoc));
       if (e.target.closest('[data-review-info]')) return reviewInfo();
@@ -553,6 +596,31 @@
                     reactivate: `Reactivate ${p.name}?` }[action];
       if (!confirm(msg)) return;
       act(() => api('POST', `/api/staff/onboarding/people/${activeId}/status`, { action }), { suspend: 'Suspended', offboard: 'Offboarded', reactivate: 'Reactivated' }[action]);
+    }
+    function offboardDialog() {
+      const p = DETAIL.person;
+      const hadEhr = DETAIL.tasks.some(t => t.key === 'ehr_access' && t.status === 'COMPLETE');
+      const systems = ['EHR', 'Email', 'Building Access'];
+      modal(`Offboard ${p.name}`, `
+        <p class="text-[12.5px] text-ink-700">Althais will, right away:</p>
+        <ul class="text-[12.5px] text-ink-700 mt-1 space-y-0.5 list-disc pl-5">
+          <li>End their access to ${esc(META.clinic)} in Althais and revoke their permissions (their access to any other clinic isn't touched)</li>
+          <li>Cancel any open invitation and close their open onboarding items</li>
+          <li>Archive their credentials — their records, documents, training and history are all kept</li></ul>
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <div><label class="lbl" for="o-date">Last Day</label><input id="o-date" type="date" class="fld num" value="${new Date().toISOString().slice(0, 10)}"></div>
+        </div>
+        <div class="lbl mt-4">Outside Systems To Remove Access From</div>
+        <p class="text-[11.5px] text-ink-500 mb-1">Althais can't switch these off, so each becomes a task for you in Needs Attention.</p>
+        ${systems.map(x => `<label class="flex items-center gap-2 text-[12.5px] text-ink-800 py-0.5"><input type="checkbox" data-sys="${esc(x)}" ${x !== 'EHR' || hadEhr ? 'checked' : ''}> ${esc(x)}</label>`).join('')}
+        <input id="o-other" class="fld mt-1" placeholder="Other systems, comma-separated (e.g. Payroll, Pharmacy portal)">
+        <label class="lbl mt-4" for="o-note">Note (Optional)</label><input id="o-note" class="fld" maxlength="500">
+        <label class="lbl mt-4" for="o-confirm">Type “${esc(p.name)}” To Confirm</label><input id="o-confirm" class="fld" autocomplete="off">`,
+        [['Cancel', 'btn-line', closeModal], ['Offboard Staff Member', 'btn-risk', async () => {
+          const systems = [...document.querySelectorAll('[data-sys]:checked')].map(i => i.dataset.sys).concat($('o-other').value.split(',').map(x => x.trim()).filter(Boolean));
+          await act(() => api('POST', `/api/staff/onboarding/people/${activeId}/offboard`, { confirm: $('o-confirm').value, lastDay: $('o-date').value, note: $('o-note').value, systems }), `${p.name} offboarded`);
+          closeModal();
+        }]]);
     }
     function changeRole() {
       const p = DETAIL.person, active = p.lifecycle === 'ACTIVE';
@@ -604,35 +672,47 @@
       closeModal();
     }
 
-    function reviewDocument(id) {
-      const d = DETAIL.documents.find(x => x.id === id);
-      if (!d) return;
-      const t = DETAIL.tasks.find(x => x.key === d.requirementKey) || { title: d.docType };
-      const fields = META.docFields[d.docType] || META.docFields.other;
-      const ex = d.extraction || {};
-      const url = `/api/staff/onboarding/documents/${d.id}/file`;
-      const preview = d.contentType === 'application/pdf' ? `<iframe src="${url}" title="${esc(t.title)}" class="w-full h-[460px] border border-line rounded-sm bg-white"></iframe>`
+    const RESULT_STYLE = { PASS: 'text-ok-600', FAIL: 'text-risk-600', WARN: 'text-warn-600', NOT_RUN: 'text-ink-400', NOT_APPLICABLE: 'text-ink-400' };
+    const RESULT_TEXT = { PASS: 'PASS', FAIL: 'FAIL', WARN: 'CHECK', NOT_RUN: 'NOT RUN', NOT_APPLICABLE: 'N/A' };
+    async function reviewDocument(id) {
+      let R;
+      try { R = await api('GET', `/api/staff/onboarding/documents/${id}/review`); } catch (e) { return S.toast(e.message, 'error'); }
+      const d = R.document, rv = R.review || {}, url = `/api/staff/onboarding/documents/${d.id}/file`;
+      const preview = d.contentType === 'application/pdf' ? `<iframe src="${url}" title="${esc(R.requirement)}" class="w-full h-[520px] border border-line rounded-sm bg-white"></iframe>`
         : d.contentType === 'image/heic' ? `<div class="text-[12px] text-ink-500 p-6 border border-line rounded-sm">HEIC photos can't be previewed here. <a class="font-semibold text-med-600" href="${url}" target="_blank" rel="noopener">Download it</a>.</div>`
-        : `<img src="${url}" alt="${esc(t.title)}" class="max-w-full max-h-[460px] border border-line rounded-sm">`;
-      const source = ex.status === 'extracted' ? `<div class="text-[11.5px] text-ink-600 mb-2">Althais read these from the document${ex.provider ? ' (' + esc(ex.provider) + ')' : ''}. Check each one.</div>`
-        : `<div class="text-[11.5px] text-ink-600 mb-2">${d.employeeConfirmed ? 'Typed in by ' + esc(DETAIL.person.name.split(' ')[0]) + ' from the document' : 'Not filled in by ' + esc(DETAIL.person.name.split(' ')[0]) + ' yet'}; Althais didn't read it automatically. Check each detail against the document.</div>`;
-      modal(`Review ${t.title} — ${DETAIL.person.name}`, `
-        <div class="grid md:grid-cols-[1fr_280px] gap-4">
-          <div>${preview}<div class="text-[11px] text-ink-400 mt-1">${esc(d.filename)} · uploaded ${esc(S.fmtDate(d.uploadedAt))}</div></div>
-          <div>${source}
-            ${fields.map(([k, l]) => {
-              const conf = ex.fields && ex.fields[k] && ex.fields[k].confidence;
-              return `<div class="mb-2"><label class="lbl" for="rf-${k}">${esc(l)}${conf ? ` <span class="normal-case tracking-normal font-normal text-ink-400">${Math.round(conf * 100)}% sure</span>` : ''}</label>
-                <input id="rf-${k}" data-field="${k}" class="fld ${k.endsWith('_date') ? 'num' : ''}" ${k.endsWith('_date') ? 'type="date"' : ''} value="${esc((d.fields || {})[k] || '')}"></div>`;
+        : `<img src="${url}" alt="${esc(R.requirement)}" class="max-w-full max-h-[520px] border border-line rounded-sm">`;
+      const ex = rv.fields || {};
+      const issues = (rv.managerSummary || []);
+      const sec = (t) => `<div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mt-4 mb-1.5">${t}</div>`;
+      const readOnly = d.status !== 'NEEDS_REVIEW' || d.superseded;
+      modal(`${R.employee} — ${R.requirement}`, `
+        <div class="grid md:grid-cols-[1fr_340px] gap-5">
+          <div>${preview}<div class="text-[11px] text-ink-400 mt-1">${esc(d.filename)} · uploaded ${esc(S.fmtDate(d.uploadedAt))}${rv.processor ? ' · reviewed by ' + esc(rv.processor) : ''}</div></div>
+          <div class="min-w-0">
+            <div class="inline-flex px-2 py-0.5 rounded-sm text-[11px] font-bold tracking-wide ${rv.decision === 'AUTO_APPROVED' ? 'bg-ok-100 text-ok-600' : rv.decision === 'MANAGER_REVIEW_REQUIRED' ? 'bg-warn-100 text-warn-600' : 'bg-risk-100 text-risk-600'}">
+              ${esc({ AUTO_APPROVED: 'AUTO-APPROVED', MANAGER_REVIEW_REQUIRED: 'MANAGER REVIEW REQUIRED', ACTION_REQUIRED_FROM_EMPLOYEE: 'SENT BACK TO EMPLOYEE' }[rv.decision] || 'NEEDS REVIEW')}</div>
+            <dl class="kv mt-3"><dt>Employee</dt><dd>${esc(R.employee)}</dd><dt>Requirement</dt><dd>${esc(R.requiredType)}</dd>
+              <dt>Detected As</dt><dd>${esc(rv.detectedLabel || '—')}${rv.typeConfidence ? ` <span class="text-ink-400 font-normal">(${Math.round(Number(rv.typeConfidence) * 100)}%)</span>` : ''}</dd></dl>
+            ${issues.length ? sec('Potential Issues') + `<ul class="space-y-1">${issues.map(i => `<li class="text-[12.5px] text-ink-800 flex gap-1.5"><span class="text-warn-600">•</span><span>${esc(i)}</span></li>`).join('')}</ul>` : ''}
+            ${sec('Extracted Data')}
+            ${R.fieldDefs.map(([k, l]) => {
+              const m = ex[k] || {}, conf = m.confidence != null ? Math.round(m.confidence * 100) : null;
+              return `<div class="mb-2"><label class="lbl" for="rf-${k}">${esc(l)}${conf != null ? ` <span class="normal-case tracking-normal font-normal ${conf < 90 ? 'text-warn-600' : 'text-ink-400'}">${conf}% sure</span>` : ''}</label>
+                <input id="rf-${k}" data-field="${k}" class="fld ${k.endsWith('_date') ? 'num' : ''}" ${k.endsWith('_date') ? 'type="date"' : ''} value="${esc((d.fields || {})[k] || '')}" ${readOnly ? 'disabled' : ''}>
+                ${m.raw && m.raw !== (d.fields || {})[k] ? `<div class="text-[11px] text-ink-400 mt-0.5">Printed as “${esc(m.raw)}”</div>` : ''}</div>`;
             }).join('')}
-            ${reasonBox()}
+            ${Object.keys(R.onFile).length ? sec('Existing Staff Data') + `<dl class="kv">${Object.entries(R.onFile).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(/^\d{4}-\d{2}-\d{2}$/.test(v) ? S.fmtDate(v) : v)}</dd>`).join('')}</dl>` : ''}
+            ${(rv.checks || []).length ? sec('Validation') + `<div class="text-[12px]">${rv.checks.map(c => `<div class="flex justify-between py-0.5 border-b border-lineSoft"><span class="text-ink-700">${esc(c.label)}</span><span class="font-semibold mono text-[11px] ${RESULT_STYLE[c.result] || ''}">${RESULT_TEXT[c.result] || c.result}</span></div>`).join('')}</div>` : ''}
+            ${rv.external && rv.external.status ? `<div class="text-[11px] text-ink-400 mt-1">External verification: ${esc(rv.external.status === 'NOT_RUN' ? 'not run — ' + (rv.external.details || '') : rv.external.status + (rv.external.source ? ' via ' + rv.external.source : ''))}</div>` : ''}
+            ${readOnly ? '' : `${sec('Manager Note')}<textarea id="m-note" rows="2" class="fld" placeholder="Optional — kept in the activity log."></textarea>${reasonBox()}`}
           </div>
         </div>`,
-        [['Reject', 'btn-risk', () => withReason('reject', r => act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'reject', reason: r }), 'Document rejected'))],
-         ['Request Correction', 'btn-line', () => withReason('request_correction', r => act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'request_correction', reason: r }), 'Correction requested'))],
-         ['Confirm', 'btn-ok', async () => {
+        readOnly ? [['Close', 'btn-line', closeModal]] : [
+         ['Reject', 'btn-risk', () => withReason('reject', r => act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'reject', reason: r, note: $('m-note').value }), 'Document rejected'))],
+         ['Request New Document', 'btn-line', () => withReason('request_correction', r => act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'request_correction', reason: r, note: $('m-note').value }), 'New document requested'))],
+         ['Approve', 'btn-ok', async () => {
            const f = {}; document.querySelectorAll('#modal [data-field]').forEach(i => { f[i.dataset.field] = i.value.trim(); });
-           try { await act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'approve', fields: f }), `${t.title} verified`); closeModal(); }
+           try { await act(() => api('POST', `/api/staff/onboarding/documents/${id}/review`, { action: 'approve', fields: f, note: $('m-note').value }), `${R.requirement} approved`); closeModal(); }
            catch (e) { (e.data && e.data.fields ? Object.keys(e.data.fields) : []).forEach(k => $('rf-' + k) && $('rf-' + k).classList.add('is-bad')); }
          }]], true);
     }
@@ -696,7 +776,11 @@
       META = m;
       const q = new URLSearchParams(location.search);
       if (q.get('invite') === '1') openAdd();       // Overview's "+ Add Staff" quick action
-      if (q.get('person')) openDrawer(q.get('person'));
+      if (q.get('person')) openDrawer(q.get('person')).then(() => {   // links from Needs Attention
+        if (q.get('doc')) reviewDocument(Number(q.get('doc')));
+        else if (q.get('info')) reviewInfo();
+        else if (q.get('activate')) reviewOnboarding();
+      });
     }).catch(e => { $('load-error').textContent = e.message; $('load-error').classList.remove('hidden'); $('add-btn').disabled = true; });
   </script>
 </body>

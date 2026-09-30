@@ -346,6 +346,15 @@
       }
     } else if (intent === "not_in_plan") {
       text = spoken || "That isn’t part of your plan.";
+    } else if (/^staff_/.test(intent) && (window.__ALTHAIS_USER__ || {}).can_view_staff === false) {
+      text = spoken = "Your role doesn’t include other staff members’ records. Click your name at the top to see your own profile.";
+    } else if (intent === "staff_onboarding_status" || intent === "staff_needs_attention" || intent === "staff_althais_training") {
+      statusEl.textContent = "Checking your team…";   /* answered on the server, with the manager's own permissions */
+      fetch("/api/staff/onboarding/althea", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intent: intent }) })
+        .then(function (r) { return r.json().then(function (j) { return r.ok ? j : { spoken: j.error || j.detail || "I couldn’t check that.", html: esc(j.error || j.detail || "I couldn’t check that.") }; }); })
+        .catch(function () { return { spoken: "I couldn’t reach your team’s records just now.", html: "I couldn’t reach your team’s records just now." }; })
+        .then(function (r) { responseEl.innerHTML = r.html; statusEl.textContent = IDLE; speak(r.spoken); maybeResume(); });
+      return;
     } else if (intent === "staff_credentials_expiring" || intent === "staff_training_overdue") {
       statusEl.textContent = "Checking your team…";
       staffAnswer(intent).then(function (r) { responseEl.innerHTML = r.html; statusEl.textContent = IDLE; speak(r.spoken); maybeResume(); });

@@ -37,7 +37,7 @@ from datetime import timezone, timedelta
 
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse, Response
-from sqlalchemy import String, Integer, DateTime, Text, LargeBinary, UniqueConstraint, select
+from sqlalchemy import String, Integer, DateTime, Text, LargeBinary, UniqueConstraint, select, text, func
 from sqlalchemy.orm import Mapped, mapped_column, Session
 
 from auth import (
@@ -45,7 +45,9 @@ from auth import (
     _doc_org_key, send_email, _email_html, RESEND_API_KEY, hash_password, verify_password, _set_session_cookie,
     ensure_product, ensure_area,
 )
+import asyncio
 import staff_extraction
+import staff_doc_review
 
 router = APIRouter()
 
@@ -131,6 +133,9 @@ class StaffDocument(Base):
     review_note: Mapped[str] = mapped_column(Text, default="")       # why it was rejected / what to correct
     superseded: Mapped[int] = mapped_column(Integer, default=0)      # a newer upload replaced it
     history: Mapped[str] = mapped_column(Text, default="[]")
+    sha256: Mapped[str] = mapped_column(String(64), default="", index=True)   # spots the same file on two staff records
+    decision: Mapped[str] = mapped_column(String(40), default="")    # the automated review's decision (staff_doc_review)
+    review_id: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
 
 
 class StaffFile(Base):
@@ -169,7 +174,55 @@ class StaffNotification(Base):
     __table_args__ = (UniqueConstraint("org_key", "person_id", "ref", "kind", "due", name="uq_staff_notification"),)
 
 
+class StaffFormFile(Base):
+    """A clinic's own onboarding form (PDF), one row per version."""
+    __tablename__ = "staff_form_files"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    org_key: Mapped[str] = mapped_column(String(255), index=True)
+    form_key: Mapped[str] = mapped_column(String(64), index=True)
+    version: Mapped[str] = mapped_column(String(16), default="1")
+    filename: Mapped[str] = mapped_column(String(255), default="")
+    size: Mapped[int] = mapped_column(Integer, default=0)
+    sha256: Mapped[str] = mapped_column(String(64), default="")
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    uploaded_by: Mapped[str] = mapped_column(String(255), default="")
+    uploaded_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now)
+
+
+class StaffDocumentReview(Base):
+    """One row per automated review of a document: what was detected and extracted, every check's result, the issues,
+    the decision and its reason codes. Machine-readable only — no model reasoning is stored."""
+    __tablename__ = "staff_document_reviews"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    org_key: Mapped[str] = mapped_column(String(255), index=True)
+    person_id: Mapped[str] = mapped_column(String(64), index=True)
+    document_id: Mapped[int] = mapped_column(Integer, index=True)
+    requirement_key: Mapped[str] = mapped_column(String(64), default="")
+    detected_type: Mapped[str] = mapped_column(String(40), default="")
+    type_confidence: Mapped[str] = mapped_column(String(10), default="")
+    extracted_fields: Mapped[str] = mapped_column(Text, default="{}")     # key -> value, confidence, page, location, raw
+    validation_results: Mapped[str] = mapped_column(Text, default="{}")   # check -> PASS / FAIL / WARN / NOT_RUN / NOT_APPLICABLE
+    external_verification: Mapped[str] = mapped_column(Text, default="{}")
+    issue_flags: Mapped[str] = mapped_column(Text, default="[]")
+    decision: Mapped[str] = mapped_column(String(40), index=True)
+    reason_codes: Mapped[str] = mapped_column(Text, default="[]")
+    employee_message: Mapped[str] = mapped_column(Text, default="")
+    manager_summary: Mapped[str] = mapped_column(Text, default="[]")
+    analysis_status: Mapped[str] = mapped_column(String(20), default="")  # analyzed | unavailable | failed
+    processor_version: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now, index=True)
+
+
 Base.metadata.create_all(engine)
+for _ddl in ("ALTER TABLE staff_documents ADD COLUMN sha256 VARCHAR(64) DEFAULT ''",
+             "ALTER TABLE staff_documents ADD COLUMN decision VARCHAR(40) DEFAULT ''",
+             "ALTER TABLE staff_documents ADD COLUMN review_id INTEGER"):
+    try:
+        with engine.connect() as _conn:
+            _conn.execute(text(_ddl))
+            _conn.commit()
+    except Exception:
+        pass   # column already there
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -273,9 +326,12 @@ DEFAULT_TRAININGS = [
      "description": "How patient health information is protected at {clinic}, and your part in it."},
     {"key": "security_training", "title": "Security Awareness Training", "category": "Clinic Policy", "version": "1", "validMonths": 12, "url": "",
      "description": "Passwords, phishing, and keeping devices and records safe."},
-    {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "1", "validMonths": 0, "url": "",
-     "description": "Finding your way around Althais for your role."},
+    {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "1.0", "validMonths": 0, "url": "",
+     "builtIn": True, "passScore": 80,
+     "description": "A short interactive course on using Althais safely in your role, with a quick knowledge check at the end (about 20 minutes)."},
 ]
+ALTHAIS_COURSE_VERSION = "1.0"
+DEFAULT_FORM_PREFILL = ["legal_first", "legal_last", "role", "start", "location", "address1", "city", "state", "zip", "phone", "email"]   # althais_training.COURSE_VERSION; bump when the course changes
 
 # Credential types (keep the keys in step with CREDENTIAL_TYPES in staff-store.js)
 CREDENTIAL_LABELS = {"medical_license": "Medical License", "nursing_license": "Nursing License", "bls": "BLS / CPR", "dea": "DEA Registration",
@@ -384,6 +440,50 @@ def normalize_person(p: dict) -> dict:
     return p
 
 
+# ──────────────────────────────────────────────────────────────────────────
+#  Staff profile: every known value once, with where it came from
+#
+#  person["profile"][key] = {value, source, verified, ref, at, by}
+#  Onboarding, forms and the portal read values from here, so nobody types the same thing twice. A value confirmed
+#  by the clinic or read from a verified document is "verified"; an unverified value never replaces a verified one
+#  (it waits in "proposed" until the clinic confirms it).
+# ──────────────────────────────────────────────────────────────────────────
+PROFILE_LABELS = {
+    "legal_first": "Legal First Name", "middle": "Middle Name", "legal_last": "Legal Last Name", "preferred": "Preferred Name",
+    "dob": "Date Of Birth", "email": "Email", "phone": "Phone", "address1": "Home Address", "address2": "Apartment, Suite, Etc.",
+    "city": "City", "state": "State", "zip": "ZIP Code", "role": "Role", "location": "Location", "start": "Start Date",
+    "employment": "Employment Type", "supervisor": "Supervisor", "npi": "NPI", "credentials": "Professional Credentials",
+    "specialty": "Specialty", "license_number": "License Number", "license_state": "License State", "license_expiration": "License Expiration",
+    "license_type": "License Type", "dea_number": "DEA Number", "dea_expiration": "DEA Expiration", "bls_expiration": "BLS Expiration",
+    "bls_issuer": "BLS Issuer", "acls_expiration": "ACLS Expiration", "id_expiration": "ID Expiration",
+}
+# verified document field -> profile key, per requirement
+DOC_PROFILE_FIELDS = {
+    "license": {"license_number": "license_number", "state": "license_state", "expiration_date": "license_expiration", "credential_type": "license_type"},
+    "bls": {"expiration_date": "bls_expiration", "issuer": "bls_issuer"},
+    "dea": {"dea_number": "dea_number", "expiration_date": "dea_expiration", "state": "dea_state"},
+    "gov_id": {"expiration_date": "id_expiration"},
+}
+
+
+def set_profile(p: dict, key: str, value, source: str, verified: bool, ref="", by: str = "") -> None:
+    value = "" if value is None else str(value).strip()
+    if not value:
+        return
+    prof = p.setdefault("profile", {})
+    cur = prof.get(key)
+    now = _now().isoformat()
+    if cur and cur.get("verified") and not verified:
+        if cur.get("value") != value:
+            cur["proposed"] = {"value": value, "source": source, "at": now, "by": by}
+        return
+    prof[key] = {"value": value, "source": source, "verified": bool(verified), "ref": str(ref or ""), "at": now, "by": by}
+
+
+def profile_value(p: dict, key: str) -> str:
+    return ((p.get("profile") or {}).get(key) or {}).get("value", "")
+
+
 def templates_for(doc: dict) -> list:
     """The clinic's templates; every role on Staff > Roles without one gets the default for its name."""
     have = {t.get("role") for t in doc["onboardingTemplates"]}
@@ -395,9 +495,36 @@ def forms_for(doc: dict) -> list:
     return doc["onboardingForms"] + [f for f in DEFAULT_FORMS if f["key"] not in have]
 
 
+def role_form_items(doc: dict, role: str, have: set) -> list:
+    """Clinic forms assigned to this role (Onboarding Templates > Forms), as requirement items."""
+    out = []
+    for f in forms_for(doc):
+        key = f.get("key")
+        if not key or role not in (f.get("roles") or []) or key in have or any(x == key for x in have):
+            continue
+        out.append({"key": key, "type": "form", "formKey": key, "owner": "employee", "title": f.get("title") or "Form",
+                    "required": f.get("required", True) is not False, "dueDays": f.get("dueDays", 0), "reminderDaysBefore": 2,
+                    "dependsOn": [], "description": f.get("description", "")})
+    return out
+
+
 def trainings_for(doc: dict) -> list:
     have = {t.get("key") for t in doc["onboardingTrainings"]}
-    return doc["onboardingTrainings"] + [t for t in DEFAULT_TRAININGS if t["key"] not in have]
+    out = doc["onboardingTrainings"] + [t for t in DEFAULT_TRAININGS if t["key"] not in have]
+    # the built-in course's version is Althais's, whatever a clinic saved
+    return [dict(t, version=ALTHAIS_COURSE_VERSION, builtIn=True, url="") if t.get("key") == "althais_training" else t for t in out]
+
+
+def training_status(r: dict) -> str:
+    """NOT_STARTED / IN_PROGRESS / COMPLETED / EXPIRED for a training record."""
+    if r.get("completed"):
+        try:
+            if r.get("expires") and dt.date.fromisoformat(r["expires"]) < _today():
+                return "EXPIRED"
+        except ValueError:
+            pass
+        return "COMPLETED"
+    return "IN_PROGRESS" if r.get("startedAt") or r.get("modulesDone") else "NOT_STARTED"
 
 
 def _find(items, key, field="key"):
@@ -582,6 +709,22 @@ def role_access(doc: dict, role_name: str) -> dict:
 
 def membership(db: Session, user_id: int, org_key: str):
     return db.scalar(select(OrgMembership).where(OrgMembership.user_id == user_id, OrgMembership.org_key == org_key))
+
+
+def can_view_staff(user: User, db: Session) -> bool:
+    """Everyone's staff records (Staff pages, /api/staff): clinic admins, and staff whose Staff > Roles role includes
+    Staff Records. Everyone else sees only their own record, in their staff profile (/portal)."""
+    if getattr(user, "portal_only", 0):
+        return False
+    if (user.role or "admin") == "admin":
+        return True
+    m = membership(db, user.id, (user.organization or "").strip())
+    return bool(m and m.kind == "staff" and m.status == "active" and "team" not in {a for a in (m.blocked or "").split(",") if a})
+
+
+def has_staff_profile(user: User, db: Session) -> bool:
+    m = membership(db, user.id, (user.organization or "").strip())
+    return bool(m and m.staff_person_id and m.status == "active")
 
 
 def ensure_membership(db: Session, user: User):
@@ -770,7 +913,8 @@ SECTION_FIELDS = {
                      ("license_expiration", "License Expiration", False), ("dea_number", "DEA Registration Number", False),
                      ("dea_expiration", "DEA Expiration", False)],
 }
-_DATE_FIELDS = {"dob", "license_expiration", "dea_expiration", "issue_date", "expiration_date"}
+_DATE_FIELDS = {"dob", "license_expiration", "dea_expiration", "issue_date", "expiration_date", "completion_date", "record_date",
+                "date_of_birth", "document_date"}
 
 
 def professional_fields(p: dict) -> list:
@@ -850,12 +994,21 @@ def _credential_for(doc: dict, p: dict, key: str):
 
 
 def record_credential(doc: dict, p: dict, t: dict, d: StaffDocument, fields: dict, by: str) -> dict:
+    """One current credential per requirement. A renewal (or a replacement) moves the previous version into its
+    history, so there's never a confusing second "active" copy and nothing is lost."""
     c = _credential_for(doc, p, t["key"])
     if not c:
         c = {"id": _uid("c"), "personId": p["id"], "fromRequirement": t["key"]}
         doc["credentials"].append(c)
-    c.update({"type": t.get("credentialType") or "other", "identifier": fields.get("identifier", ""),
-              "issuingAuthority": fields.get("issuing_authority", ""), "state": fields.get("state", ""),
+    elif c.get("status") == "verified" and c.get("sourceDocumentId") != d.id:
+        prev = {k: c.get(k) for k in ("identifier", "issuingAuthority", "state", "issueDate", "expires", "verifiedBy", "verifiedAt",
+                                     "sourceDocumentId", "verification")}
+        same = (c.get("identifier") or "") == (fields.get("license_number") or fields.get("credential_number") or fields.get("dea_number") or "")
+        prev.update(archivedAt=_now().isoformat(), reason="renewed" if same else "replaced")
+        c.setdefault("history", []).insert(0, prev)
+    c.update({"type": t.get("credentialType") or "other",
+              "identifier": fields.get("license_number") or fields.get("credential_number") or fields.get("dea_number") or fields.get("identifier", ""),
+              "issuingAuthority": fields.get("issuing_authority") or fields.get("issuer", ""), "state": fields.get("state", ""),
               "issueDate": fields.get("issue_date", ""), "expires": fields.get("expiration_date", ""),
               "status": "verified", "verifiedBy": by, "verifiedAt": _today().isoformat(), "sourceDocumentId": d.id})
     return c
@@ -919,12 +1072,17 @@ def _actor_name(user: User) -> str:
 # ──────────────────────────────────────────────────────────────────────────
 @router.get("/api/staff/onboarding/meta")
 def onboarding_meta(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    import staff_lifecycle
+    import credential_verification
     org_key, _, doc = manager_ctx(user, db)
     return {"catalog": {k: _item_from_catalog(k) for k in CATALOG}, "templates": templates_for(doc), "forms": forms_for(doc),
             "trainings": trainings_for(doc), "roles": [r["name"] for r in doc["roles"]], "lifecycle": LIFECYCLE_LABELS,
             "roleAccess": {r["name"]: role_access(doc, r["name"]) for r in doc["roles"]},
-            "clinic": _clinic_name(org_key), "docFields": {k: v for k, v in staff_extraction.DOC_FIELDS.items()},
-            "inviteDays": INVITE_TTL_DAYS, "generic": dict(default_template("Custom"), name="Standard")}
+            "clinic": _clinic_name(org_key), "docFields": {k: staff_extraction.fields_for(k) for k in staff_extraction.REQUIREMENT_TYPES},
+            "inviteDays": INVITE_TTL_DAYS, "generic": dict(default_template("Custom"), name="Standard"),
+            "reminderRules": staff_lifecycle.rules(doc), "profileLabels": PROFILE_LABELS, "defaultPrefill": DEFAULT_FORM_PREFILL,
+            "automation": {"connected": staff_extraction.available(), "processor": staff_extraction.CLAUDE_MODEL,
+                           "policy": automation_policy(doc), "externalSources": credential_verification.source_names()}}
 
 
 def _warn_days(db: Session, org_key: str) -> int:
@@ -947,8 +1105,10 @@ def attention_items(db: Session, org_key: str, doc: dict, invites: dict) -> list
         if not p or p.get("lifecycle") == "OFFBOARDED":
             continue
         t = _find(p["requirements"], d.requirement_key) or {"title": d.doc_type}
+        rv = _latest_review(db, d)
+        top = (_json.loads(rv.manager_summary or "[]") or [""])[0] if rv else ""
         items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 1, "action": "review_document", "ref": d.id,
-                      "text": f"{t['title']} awaiting review"})
+                      "text": f"{t['title']}: {top}" if top else f"{t['title']} awaiting review"})
     for p in doc["people"]:
         lc = p.get("lifecycle")
         if lc == "OFFBOARDED":
@@ -980,16 +1140,30 @@ def attention_items(db: Session, org_key: str, doc: dict, invites: dict) -> list
         label = CREDENTIAL_LABELS.get(c.get("type"), "Credential")
         if days < 0:
             items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 0, "action": "open", "ref": c["id"], "text": f"{label} expired"})
-        elif days <= warn:
-            items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 2, "action": "open", "ref": c["id"],
-                          "text": f"{label} expires {_fmt_date(c['expires'])}"})
+    for p in doc["people"]:
+        for t in (p.get("offboarding") or {}).get("tasks") or []:
+            if not t.get("done"):
+                items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 1, "action": "offboarding_task", "ref": t["key"],
+                              "text": f"Offboarding: {t['title']}"})
+        if p.get("lifecycle") in ("ONBOARDING", "PENDING_REVIEW", "INVITE_ACCEPTED"):
+            waiting = [t for t in p["requirements"] if t.get("owner") == "manager" and t.get("status") not in ("COMPLETE", "CLOSED")
+                       and t["key"] not in AUTO_AT_ACTIVATION and t["key"] != "location"]
+            mine = [t for t in p["requirements"] if t.get("required", True) and t.get("owner") != "manager"]
+            if waiting and all(t.get("status") == "COMPLETE" for t in mine):
+                for t in waiting:   # e.g. EHR Access: outside systems are set up by a person
+                    items.append({"personId": p["id"], "name": p.get("name", ""), "severity": 1, "action": "manager_task", "ref": t["key"],
+                                  "text": f"{t['title']} needed"})
+    for it in items:
+        it.setdefault("category", {"review_document": "Documents", "review_info": "Identity & Professional Information",
+                                   "review_onboarding": "Ready To Activate", "resend_invite": "Invitations", "offboarding_task": "Offboarding",
+                                   "manager_task": "Access Setup"}.get(it["action"], "Credentials" if str(it["ref"]).startswith("c_") else "Overdue"))
     return sorted(items, key=lambda i: i["severity"])
 
 
 @router.get("/api/staff/onboarding/overview")
 def onboarding_overview(user: User = Depends(require_user), db: Session = Depends(get_db)):
     org_key, row, doc = manager_ctx(user, db)
-    run_reminders(db, org_key, doc)
+    run_reminders(db, org_key, doc, row)
     invites = {p["id"]: _invite_json(latest_invite(db, org_key, p["id"])) for p in doc["people"]}
     attention = attention_items(db, org_key, doc, invites)
     warn = _warn_days(db, org_key)
@@ -1009,7 +1183,15 @@ def onboarding_overview(user: User = Depends(require_user), db: Session = Depend
                      "location": p.get("location", ""), "lifecycle": p["lifecycle"], "label": LIFECYCLE_LABELS[p["lifecycle"]],
                      "progress": progress(p), "nextAction": next_action(p, invites[p["id"]]), "invite": invites[p["id"]],
                      "hasAccount": bool(p.get("userId")), "start": p.get("start", "")})
-    return {"stats": {"total": sum(1 for p in doc["people"] if p["lifecycle"] != "OFFBOARDED"),
+    counts = {k: 0 for k in (staff_doc_review.AUTO_APPROVED, staff_doc_review.ACTION_REQUIRED, staff_doc_review.MANAGER_REVIEW)}
+    for dec, in db.execute(select(StaffDocumentReview.decision).where(StaffDocumentReview.org_key == org_key)):
+        if dec in counts:
+            counts[dec] += 1
+    automation = {"processed": sum(counts.values()), "autoApproved": counts[staff_doc_review.AUTO_APPROVED],
+                  "employeeCorrections": counts[staff_doc_review.ACTION_REQUIRED], "managerReviews": counts[staff_doc_review.MANAGER_REVIEW],
+                  "connected": staff_extraction.available(), "autoApprove": automation_policy(doc)["autoApprove"],
+                  "enabled": automation_policy(doc)["enabled"]}
+    return {"automation": automation, "stats": {"total": sum(1 for p in doc["people"] if p["lifecycle"] != "OFFBOARDED"),
                       "onboarding": sum(1 for p in doc["people"] if p["lifecycle"] in ONBOARDING_STATES),
                       "attention": len({(i["personId"], i["text"]) for i in attention}), "expiring": expiring, "warnDays": warn},
             "rows": rows, "attention": attention}
@@ -1091,12 +1273,17 @@ async def add_staff(request: Request, user: User = Depends(require_user), db: Se
          "pendingInfo": {}, "infoMeta": {}, "infoVerified": {}, "requirements": [], "audit": []}
     items = body.get("requirements")
     tpl = _find(templates_for(doc), role, "role") or default_template(role)
-    p["requirements"] = build_tasks(p, _clean_items(items, role) if isinstance(items, list) and items else tpl["items"])
+    chosen = _clean_items(items, role) if isinstance(items, list) and items else tpl["items"]
+    p["requirements"] = build_tasks(p, chosen + role_form_items(doc, role, {i["key"] for i in chosen}))
     if p["location"] and not any(l.get("name") == p["location"] for l in doc["clinic"].setdefault("locations", [])):
         doc["clinic"]["locations"].append({"name": p["location"], "address": ""})
     for t in p["requirements"]:
         if t.get("type") == "training":
             training_record(doc, p, t)
+    for k in ("email", "phone", "role", "location", "start", "employment", "supervisor"):
+        set_profile(p, k, p.get(k), "Set by your clinic", True, by=_actor_name(user))
+    set_profile(p, "legal_first", first, "Set by your clinic", False, by=_actor_name(user))
+    set_profile(p, "legal_last", last, "Set by your clinic", False, by=_actor_name(user))
     doc["people"].append(p)
     audit(db, org_key, user, "staff_added", p, "person", p["id"], f"Added as {role}")
     out = {"ok": True, "personId": p["id"]}
@@ -1164,10 +1351,11 @@ async def change_role(pid: str, request: Request, user: User = Depends(require_u
     p["role"] = role
     if body.get("applyTemplate", True) and p["lifecycle"] != "ACTIVE":
         tpl = _find(templates_for(doc), role, "role") or default_template(role)
-        p["requirements"] = build_tasks(p, tpl["items"])
+        p["requirements"] = build_tasks(p, tpl["items"] + role_form_items(doc, role, {i["key"] for i in tpl["items"]}))
     for inv in db.scalars(select(StaffInvitation).where(StaffInvitation.org_key == org_key, StaffInvitation.person_id == pid,
                                                          StaffInvitation.status == "pending")):
         inv.role_name = role
+    set_profile(p, "role", role, "Set by your clinic", True, by=_actor_name(user))
     audit(db, org_key, user, "role_changed", p, "person", pid, f"Role changed from {old} to {role}")
     if p["lifecycle"] == "ACTIVE":
         _apply_access(db, org_key, doc, p, user)
@@ -1230,6 +1418,8 @@ async def edit_person(pid: str, request: Request, user: User = Depends(require_u
                 _retire_temp_login(db, old)
             changed.append("email")
     if changed:
+        for k in ("location", "employment", "supervisor", "phone", "start", "email"):
+            set_profile(p, k, p.get(k), "Set by your clinic", True, by=_actor_name(user))
         audit(db, org_key, user, "staff_updated", p, "person", pid, "Updated " + ", ".join(changed))
     refresh(p)
     save_staff(db, org_key, row, doc)
@@ -1245,7 +1435,8 @@ def _doc_json(d: StaffDocument) -> dict:
             "status": d.status if not (d.status == "VERIFIED" and _expired(d)) else "EXPIRED",
             "expirationDate": d.expiration_date, "fields": _json.loads(d.fields or "{}"),
             "extraction": _json.loads(d.extraction or "{}"), "employeeConfirmed": bool(d.employee_confirmed),
-            "verifiedAt": _iso(d.verified_at), "verifiedBy": d.verified_by, "reviewNote": d.review_note, "superseded": bool(d.superseded)}
+            "verifiedAt": _iso(d.verified_at), "verifiedBy": d.verified_by, "reviewNote": d.review_note, "superseded": bool(d.superseded),
+            "decision": d.decision or "", "autoVerified": d.status == "VERIFIED" and d.verified_by == "Althais"}
 
 
 def _expired(d: StaffDocument) -> bool:
@@ -1270,7 +1461,8 @@ def person_detail(pid: str, user: User = Depends(require_user), db: Session = De
     inv = latest_invite(db, org_key, pid)
     m = db.scalar(select(OrgMembership).where(OrgMembership.org_key == org_key, OrgMembership.staff_person_id == pid))
     return {"person": {k: p.get(k) for k in ("id", "name", "firstName", "lastName", "email", "phone", "role", "employment", "location",
-                                            "start", "supervisor", "lifecycle", "notes", "info", "pendingInfo", "infoVerified", "infoMeta")},
+                                            "start", "supervisor", "lifecycle", "notes", "info", "pendingInfo", "infoVerified", "infoMeta",
+                                            "offboarding", "profile", "verifications")},
             "label": LIFECYCLE_LABELS[p["lifecycle"]], "progress": progress(p), "tasks": _tasks_json(p),
             "documents": [_doc_json(d) for d in docs], "invite": _invite_json(inv),
             "sections": {s: section_fields(p, s) for s in ("personal", "emergency", "professional")},
@@ -1281,9 +1473,66 @@ def person_detail(pid: str, user: User = Depends(require_user), db: Session = De
             "events": [{"at": _iso(e.created_at), "by": e.actor_name, "action": e.action, "detail": e.detail} for e in events]}
 
 
+def approve_document(db: Session, org_key: str, doc: dict, p: dict, d: StaffDocument, fields: dict, actor, auto: bool = False,
+                     note: str = "") -> None:
+    """Verify a document (a manager's approval, or Althais's automatic one) and carry it through: the staff record,
+    the credential or training record, the onboarding task, and reminders (which follow credential expirations)."""
+    name = "Althais" if actor is None else _actor_name(actor)
+    t = _find(p["requirements"], d.requirement_key)
+    title = t["title"] if t else d.doc_type
+    d.fields = _json.dumps(fields)
+    d.expiration_date = fields.get("expiration_date", "")
+    d.status, d.verified_at, d.verified_by, d.review_note = "VERIFIED", _now(), name, ""
+    hist = _json.loads(d.history or "[]")
+    hist.append({"status": "VERIFIED", "at": _now().isoformat(), "by": name, "auto": auto})
+    d.history = _json.dumps(hist)
+    for old in db.scalars(select(StaffDocument).where(StaffDocument.org_key == org_key, StaffDocument.person_id == d.person_id,
+                                                      StaffDocument.requirement_key == d.requirement_key, StaffDocument.id != d.id)):
+        old.superseded = 1   # a renewal replaces the earlier verified copy
+    how = "automatically verified by Althais" if auto else "verified"
+    extra = f" — {note}" if note else ""
+    if not t:
+        audit(db, org_key, actor, "document_auto_approved" if auto else "document_verified", p, "document", d.id, f"{title} {how}{extra}")
+        return
+    set_task(p, t["key"], "COMPLETE", name, note="")
+    source = f"{title} document"
+    for fk, pk in DOC_PROFILE_FIELDS.get(t.get("docType") or "", {}).items():
+        if fields.get(fk):
+            set_profile(p, pk, fields[fk], source, True, ref=d.id, by=name)
+            prof = p["info"]["professional"]
+            if pk in ("license_number", "license_state", "license_expiration", "dea_number", "dea_expiration") and not prof.get(pk):
+                prof[pk] = fields[fk]   # My Information shows what the verified document says
+    if t.get("type") == "training":
+        r = training_record(doc, p, t)
+        done = fields.get("completion_date") or _today().isoformat()
+        lib = _find(trainings_for(doc), t.get("trainingKey")) or {}
+        months = int(lib.get("validMonths") or 0)
+        r.update({"completed": done, "certificate": f"Certificate on file (document {d.id})", "version": str(lib.get("version") or "1"),
+                  "expires": fields.get("expiration_date") or ((dt.date.fromisoformat(done) + timedelta(days=round(months * 30.44))).isoformat()
+                                                                if months else "")})
+        audit(db, org_key, actor, "document_auto_approved" if auto else "training_completed", p, "training", r["id"], f"{title} certificate {how}{extra}")
+    elif t.get("credentialType"):
+        c = record_credential(doc, p, t, d, fields, name)
+        audit(db, org_key, actor, "document_auto_approved" if auto else "credential_verified", p, "credential", c["id"], f"{title} {how}{extra}")
+    else:
+        audit(db, org_key, actor, "document_auto_approved" if auto else "document_verified", p, "document", d.id, f"{title} {how}{extra}")
+
+
+def send_back_document(db: Session, org_key: str, p: dict, d: StaffDocument, reason: str, actor, action: str) -> None:
+    """The employee needs to upload a new one. They see the reason."""
+    t = _find(p["requirements"], d.requirement_key)
+    d.status, d.review_note = "REJECTED", reason
+    hist = _json.loads(d.history or "[]")
+    hist.append({"status": "REJECTED", "at": _now().isoformat(), "by": "Althais" if actor is None else _actor_name(actor), "action": action})
+    d.history = _json.dumps(hist)
+    if t:
+        set_task(p, t["key"], "WAITING_ON_EMPLOYEE", note=reason)
+
+
 @router.post("/api/staff/onboarding/documents/{doc_id}/review")
 async def review_document(doc_id: int, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    """approve (Confirm, optionally with edited details), reject, or request_correction — the latter two need a reason."""
+    """approve (optionally with corrected details and a note), reject, or request_correction (a new document) —
+    the last two need a reason, which the employee sees."""
     org_key, row, doc = manager_ctx(user, db)
     d = db.scalar(select(StaffDocument).where(StaffDocument.id == doc_id, StaffDocument.org_key == org_key))
     if not d:
@@ -1293,43 +1542,71 @@ async def review_document(doc_id: int, request: Request, user: User = Depends(re
         return _err("Staff member not found.", 404)
     body = await request.json()
     action, reason = body.get("action"), str(body.get("reason") or "").strip()[:1000]
+    note = str(body.get("note") or "").strip()[:1000]
     t = _find(p["requirements"], d.requirement_key)
     title = t["title"] if t else d.doc_type
-    hist = _json.loads(d.history or "[]")
     if action == "approve":
-        clean, errors = validate_fields([(k, l, False) for k, l in staff_extraction.fields_for(d.doc_type)],
+        field_defs = staff_extraction.fields_for(d.doc_type, (t or {}).get("credentialType", ""))
+        clean, errors = validate_fields([(k, l, False) for k, l in field_defs],
                                         body.get("fields") if isinstance(body.get("fields"), dict) else _json.loads(d.fields or "{}"), partial=True)
         if errors:
             return _err("Check the highlighted details.", fields=errors)
-        d.fields = _json.dumps(clean)
-        d.expiration_date = clean.get("expiration_date", "")
-        d.status, d.verified_at, d.verified_by, d.review_note = "VERIFIED", _now(), _actor_name(user), ""
-        hist.append({"status": "VERIFIED", "at": _now().isoformat(), "by": _actor_name(user)})
-        for old in db.scalars(select(StaffDocument).where(StaffDocument.org_key == org_key, StaffDocument.person_id == d.person_id,
-                                                          StaffDocument.requirement_key == d.requirement_key, StaffDocument.id != d.id)):
-            old.superseded = 1   # a renewal replaces the earlier verified copy
-        if t:
-            set_task(p, t["key"], "COMPLETE", _actor_name(user), note="")
-            if t.get("credentialType"):
-                c = record_credential(doc, p, t, d, clean, _actor_name(user))
-                audit(db, org_key, user, "credential_verified", p, "credential", c["id"], f"{title} verified")
-            else:
-                audit(db, org_key, user, "document_verified", p, "document", d.id, f"{title} verified")
+        approve_document(db, org_key, doc, p, d, clean, user, note=note)
     elif action in ("reject", "request_correction"):
         if not reason:
             return _err("Tell them what’s wrong so they can fix it.")
-        d.status, d.review_note = "REJECTED", reason
-        hist.append({"status": "REJECTED", "at": _now().isoformat(), "by": _actor_name(user), "action": action})
-        if t:
-            set_task(p, t["key"], "WAITING_ON_EMPLOYEE", note=reason)
-        verb = "rejected" if action == "reject" else "sent back for correction"
-        audit(db, org_key, user, "document_rejected", p, "document", d.id, f"{title} {verb}: {reason}")
+        send_back_document(db, org_key, p, d, reason, user, action)
+        verb = "rejected" if action == "reject" else "new document requested"
+        audit(db, org_key, user, "document_rejected", p, "document", d.id, f"{title} {verb}: {reason}" + (f" (note: {note})" if note else ""))
     else:
         return _err("Unknown review action.")
-    d.history = _json.dumps(hist)
     refresh(p)
     save_staff(db, org_key, row, doc)
     return {"ok": True}
+
+
+def _latest_review(db: Session, d: StaffDocument):
+    if d.review_id:
+        rv = db.get(StaffDocumentReview, d.review_id)
+        if rv:
+            return rv
+    return db.scalar(select(StaffDocumentReview).where(StaffDocumentReview.document_id == d.id).order_by(StaffDocumentReview.id.desc()).limit(1))
+
+
+def _review_json(rv) -> dict:
+    if not rv:
+        return None
+    checks = _json.loads(rv.validation_results or "{}")
+    return {"id": rv.id, "decision": rv.decision, "reasonCodes": _json.loads(rv.reason_codes or "[]"),
+            "detectedType": rv.detected_type, "detectedLabel": staff_extraction.DOC_TYPES.get(rv.detected_type, ""),
+            "typeConfidence": rv.type_confidence, "fields": _json.loads(rv.extracted_fields or "{}"),
+            "checks": [{"key": k, "label": staff_doc_review.CHECK_LABELS.get(k, k), "result": v} for k, v in checks.items()],
+            "issues": _json.loads(rv.issue_flags or "[]"), "external": _json.loads(rv.external_verification or "{}"),
+            "managerSummary": _json.loads(rv.manager_summary or "[]"), "analysisStatus": rv.analysis_status,
+            "processor": rv.processor_version, "at": _iso(rv.created_at)}
+
+
+@router.get("/api/staff/onboarding/documents/{doc_id}/review")
+def document_review_detail(doc_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Everything the manager needs to decide: the document, what Althais read, what's on file, and every check."""
+    org_key, row, doc = manager_ctx(user, db)
+    d = db.scalar(select(StaffDocument).where(StaffDocument.id == doc_id, StaffDocument.org_key == org_key))
+    if not d:
+        return _err("Document not found.", 404)
+    p = person_of(doc, d.person_id) or {}
+    t = _find(p.get("requirements", []), d.requirement_key) or {"title": d.doc_type}
+    cred = _credential_for(doc, p, d.requirement_key) if p else None
+    personal, prof = p.get("info", {}).get("personal", {}), p.get("info", {}).get("professional", {})
+    on_file = {"Name": " ".join(x for x in (personal.get("legal_first"), personal.get("middle"), personal.get("legal_last")) if x) or p.get("name", "")}
+    if cred and cred.get("status") == "verified":
+        on_file.update({"Number On File": cred.get("identifier", ""), "State On File": cred.get("state", ""), "Expires On File": cred.get("expires", "")})
+    if t.get("docType") == "license" and (prof.get("license_number") or prof.get("license_state")):
+        on_file.update({"License # (Employee Entered)": prof.get("license_number", ""), "License State (Employee Entered)": prof.get("license_state", ""),
+                        "License Expiration (Employee Entered)": prof.get("license_expiration", "")})
+    return {"document": _doc_json(d), "employee": p.get("name", ""), "personId": p.get("id", ""), "requirement": t.get("title", ""),
+            "requiredType": ", ".join(staff_extraction.DOC_TYPES.get(x, x) for x in sorted(staff_doc_review.accepted_types(t, p.get("role", "")))) if t.get("docType") != "other" else t.get("title", ""),
+            "fieldDefs": staff_extraction.fields_for(d.doc_type, t.get("credentialType", "")), "onFile": {k: v for k, v in on_file.items() if v},
+            "review": _review_json(_latest_review(db, d))}
 
 
 @router.post("/api/staff/onboarding/people/{pid}/info/review")
@@ -1347,6 +1624,8 @@ async def review_info(pid: str, request: Request, user: User = Depends(require_u
         p["info"]["professional"] = clean
         p["pendingInfo"].pop("professional", None)
         p["infoVerified"]["professional"] = {"at": _now().isoformat(), "by": _actor_name(user)}
+        for k, v in clean.items():
+            set_profile(p, k, v, "Confirmed by your clinic", True, by=_actor_name(user))
         set_task(p, "professional", "COMPLETE", _actor_name(user), note="")
         audit(db, org_key, user, "info_verified", p, "info", "professional", "Professional information confirmed")
     elif action in ("reject", "request_correction"):
@@ -1462,6 +1741,91 @@ def activate(pid: str, user: User = Depends(require_user), db: Session = Depends
     return {"ok": True, "access": access}
 
 
+OFFBOARD_DEFAULT_SYSTEMS = ["EHR", "Email", "Building Access"]
+
+
+@router.post("/api/staff/onboarding/people/{pid}/offboard")
+async def offboard(pid: str, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """End someone's time at the clinic. Nothing is deleted: access ends, permissions are revoked, open items close,
+    credentials are archived, and every record, document and audit event is kept. Outside systems can't be switched
+    off from here, so each becomes a task for the clinic."""
+    org_key, row, doc, p = _manager_person(user, db, pid)
+    body = await request.json()
+    if p.get("lifecycle") == "OFFBOARDED":
+        return _err("They’re already offboarded.")
+    if str(body.get("confirm") or "").strip().lower() != (p.get("name") or "").strip().lower():
+        return _err("Type their full name exactly to confirm.")
+    m = _staff_membership(db, org_key, p)
+    if m and m.user_id == user.id:
+        return _err("You can’t offboard yourself.")
+    last_day = str(body.get("lastDay") or "")[:10] or _today().isoformat()
+    try:
+        dt.date.fromisoformat(last_day)
+    except ValueError:
+        return _err("Use a real date for their last day.")
+    steps = []
+    # 1-2. access and permissions
+    if m:
+        m.status, m.app_access, m.role, m.blocked = "offboarded", 0, "viewer", ",".join(sorted(AREAS))
+        u = db.get(User, m.user_id)
+        if u and (u.organization or "").strip() == org_key:
+            other = _other_active(db, u.id, org_key)
+            if other:
+                apply_membership(u, other)   # their other clinics are untouched
+            else:
+                u.active, m.paused_login = 0, 1
+        steps.append({"key": "access", "title": f"Althais access to {_clinic_name(org_key)} ended", "done": True})
+        steps.append({"key": "permissions", "title": "Internal Althais permissions revoked", "done": True})
+    else:
+        steps.append({"key": "access", "title": "No Althais login to end (they never accepted an invitation)", "done": True})
+    # 3. invitations
+    if _revoke_pending(db, org_key, pid):
+        _retire_temp_login(db, p.get("email", ""))
+        steps.append({"key": "invites", "title": "Open invitation cancelled", "done": True})
+    # 4. open items
+    closed = 0
+    for t in p["requirements"]:
+        if t.get("status") != "COMPLETE":
+            t["status"], t["done"], t["closedAt"] = "CLOSED", False, _now().isoformat()
+            closed += 1
+    steps.append({"key": "tasks", "title": f"{closed} open onboarding item{'s' if closed != 1 else ''} closed", "done": True})
+    # 5. credentials
+    archived = 0
+    for c in doc["credentials"]:
+        if c.get("personId") == pid and c.get("status") != "archived":
+            c["statusBeforeArchive"], c["status"], c["archivedAt"] = c.get("status"), "archived", _now().isoformat()
+            archived += 1
+    steps.append({"key": "credentials", "title": f"{archived} credential{'s' if archived != 1 else ''} archived (history kept)", "done": True})
+    steps.append({"key": "records", "title": "Documents, training records and audit history kept", "done": True})
+    # 6. outside systems: a task each, never pretended
+    systems = [str(x).strip()[:80] for x in (body.get("systems") if isinstance(body.get("systems"), list) else []) if str(x).strip()][:12]
+    tasks = [{"key": _uid("off"), "title": f"Remove {x}" if x.lower().endswith("access") else f"Remove {x} access", "system": x, "done": False}
+             for x in systems]
+    p["previousLifecycle"] = p["lifecycle"]
+    p["lifecycle"] = "OFFBOARDED"
+    p["offboarding"] = {"date": last_day, "by": _actor_name(user), "at": _now().isoformat(), "note": str(body.get("note") or "").strip()[:500],
+                        "steps": steps, "tasks": tasks}
+    audit(db, org_key, user, "staff_offboarded", p, "person", pid,
+          f"Offboarded (last day {_fmt_date(last_day)})" + (f"; outside access to remove: {', '.join(systems)}" if systems else ""))
+    refresh(p)
+    save_staff(db, org_key, row, doc)
+    return {"ok": True, "offboarding": p["offboarding"]}
+
+
+@router.post("/api/staff/onboarding/people/{pid}/offboarding/tasks/{key}")
+async def offboarding_task(pid: str, key: str, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, row, doc, p = _manager_person(user, db, pid)
+    t = _find((p.get("offboarding") or {}).get("tasks") or [], key)
+    if not t:
+        return _err("Task not found.", 404)
+    body = await request.json()
+    t["done"] = bool(body.get("done", True))
+    t["doneAt"], t["doneBy"] = (_now().isoformat(), _actor_name(user)) if t["done"] else ("", "")
+    audit(db, org_key, user, "offboarding_task", p, "person", pid, f"{t['title']} {'done' if t['done'] else 'reopened'}")
+    save_staff(db, org_key, row, doc)
+    return {"ok": True}
+
+
 @router.post("/api/staff/onboarding/people/{pid}/status")
 async def change_status(pid: str, request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
     """suspend | offboard | reactivate. Suspending or offboarding takes away their access to this clinic right away."""
@@ -1471,6 +1835,8 @@ async def change_status(pid: str, request: Request, user: User = Depends(require
     m = _staff_membership(db, org_key, p)
     if m and m.user_id == user.id:
         return _err("You can’t change your own access here.")
+    if action == "offboard":
+        return _err("Use Offboard Staff Member, which runs the offboarding checklist.")
     if action in ("suspend", "offboard"):
         if action == "offboard":
             _revoke_pending(db, org_key, pid)
@@ -1491,6 +1857,12 @@ async def change_status(pid: str, request: Request, user: User = Depends(require
     elif action == "reactivate":
         if p["lifecycle"] not in ("SUSPENDED", "OFFBOARDED"):
             return _err("They’re not suspended or offboarded.")
+        for c in doc["credentials"]:
+            if c.get("personId") == pid and c.get("status") == "archived":
+                c["status"] = c.pop("statusBeforeArchive", "verified") or "verified"
+        for t in p["requirements"]:
+            if t.get("status") == "CLOSED":
+                t["status"] = "WAITING_ON_MANAGER" if t.get("owner") == "manager" else "NOT_STARTED"
         back = p.get("previousLifecycle") or ("ACTIVE" if p.get("activeSince") else "DRAFT")
         p["lifecycle"] = back if back in LIFECYCLE_LABELS else "DRAFT"
         if m:
@@ -1529,6 +1901,143 @@ def sync_roles(user: User = Depends(require_user), db: Session = Depends(get_db)
             n += 1
     save_staff(db, org_key, row, doc) if n else db.commit()
     return {"ok": True, "updated": n}
+
+
+@router.post("/api/staff/onboarding/automation")
+async def set_automation(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """The manager's on/off switch for automated document review (and, optionally, automatic approval)."""
+    org_key, row, doc = manager_ctx(user, db)
+    body = await request.json()
+    cur = dict(doc["clinic"].get("documentAutomation") or {})
+    changed = []
+    for k, label in (("enabled", "Automated review"), ("autoApprove", "Automatic approval")):
+        if isinstance(body.get(k), bool) and body[k] != automation_policy(doc)[k]:
+            cur[k] = body[k]
+            changed.append(f"{label} turned {'on' if body[k] else 'off'}")
+    if changed:
+        doc["clinic"]["documentAutomation"] = cur
+        db.add(StaffAuditEvent(org_key=org_key, actor_user_id=user.id, actor_name=_actor_name(user), action="automation_changed",
+                               object_type="settings", object_id="documentAutomation", detail="; ".join(changed)))
+        save_staff(db, org_key, row, doc)
+    return {"ok": True, "policy": automation_policy(doc)}
+
+
+def _form_entry(doc: dict, key: str) -> dict:
+    """The clinic's saved copy of a form (created from the built-in sample the first time it's changed)."""
+    f = _find(doc["onboardingForms"], key)
+    if not f:
+        base = _find(DEFAULT_FORMS, key)
+        if not base:
+            return None
+        f = dict(base)
+        doc["onboardingForms"].append(f)
+    return f
+
+
+@router.post("/api/staff/onboarding/forms/{key}/file")
+async def upload_form_file(key: str, file: UploadFile = File(...), user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Upload (or replace) a clinic form's PDF. Each upload is a new version; people who already signed keep theirs."""
+    org_key, row, doc = manager_ctx(user, db)
+    f = _form_entry(doc, key)
+    if not f:
+        return _err("Form not found.", 404)
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        return _err("That file is over 10 MB.")
+    if _sniff(data, file.filename or "") != "application/pdf":
+        return _err("Upload the form as a PDF.")
+    try:
+        n = int(f.get("version") or 1)
+    except (TypeError, ValueError):
+        n = 1
+    version = str(n + 1 if (f.get("fileId") or f.get("body")) else n)   # the first file for a new, empty form is version 1
+    ff = StaffFormFile(org_key=org_key, form_key=key, version=version, filename=(file.filename or "form.pdf")[:255], size=len(data),
+                       sha256=hashlib.sha256(data).hexdigest(), data=data, uploaded_by=_actor_name(user))
+    db.add(ff)
+    db.flush()
+    f.update(fileId=ff.id, fileName=ff.filename, version=version, isSample=False)
+    audit(db, org_key, user, "form_uploaded", None, "form", key, f"{f.get('title')} version {version} uploaded ({ff.filename})")
+    save_staff(db, org_key, row, doc)
+    return {"ok": True, "version": version, "fileId": ff.id}
+
+
+def _form_file_response(db: Session, org_key: str, f: dict):
+    ff = db.scalar(select(StaffFormFile).where(StaffFormFile.id == (f or {}).get("fileId"), StaffFormFile.org_key == org_key))
+    if not ff:
+        return _err("This form has no file.", 404)
+    safe = re.sub(r'[^A-Za-z0-9._ -]+', "_", ff.filename or "form.pdf")
+    return Response(content=ff.data, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{safe}"', "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.get("/api/staff/onboarding/forms/{key}/file")
+def manager_form_file(key: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, row, doc = manager_ctx(user, db)
+    return _form_file_response(db, org_key, _find(forms_for(doc), key))
+
+
+@router.post("/api/staff/onboarding/forms/{key}/assign")
+def assign_form(key: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Give a form to everyone currently on staff whose role it's assigned to (people who have it already are skipped)."""
+    org_key, row, doc = manager_ctx(user, db)
+    f = _find(forms_for(doc), key)
+    if not f:
+        return _err("Form not found.", 404)
+    n = 0
+    for p in doc["people"]:
+        if p.get("lifecycle") in ("OFFBOARDED", "SUSPENDED") or p.get("role") not in (f.get("roles") or []):
+            continue
+        have = {t["key"] for t in p["requirements"]} | {t.get("formKey") for t in p["requirements"]}
+        items = role_form_items(doc, p["role"], have)
+        items = [i for i in items if i["key"] == key]
+        if not items:
+            continue
+        if p.get("lifecycle") == "ACTIVE" and items[0].get("dueDays", 0) is not None:
+            items[0]["dueDays"] = max(int(items[0].get("dueDays") or 0), (_today() - _anchor(p)).days + 14)   # a fair deadline for people already working
+        p["requirements"] = build_tasks(p, p["requirements"] + items)
+        audit(db, org_key, user, "form_assigned", p, "form", key, f"{f.get('title')} assigned")
+        refresh(p)
+        n += 1
+    save_staff(db, org_key, row, doc) if n else None
+    return {"ok": True, "assigned": n}
+
+
+@router.get("/api/portal/forms/{key}/file")
+def portal_form_file(key: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    org_key, m, row, doc, p = portal_ctx(user, db)
+    t = next((t for t in p["requirements"] if t.get("type") == "form" and t.get("formKey") == key), None)
+    if not t:
+        return _err("That form isn't assigned to you.", 404)
+    return _form_file_response(db, org_key, _find(forms_for(doc), key))
+
+
+@router.post("/api/staff/onboarding/trainings/{key}/require-current")
+def require_current_training(key: str, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """A training changed materially: everyone who completed an earlier version takes the current one. Their earlier
+    completion moves to the record's history (never deleted)."""
+    org_key, row, doc = manager_ctx(user, db)
+    lib = _find(trainings_for(doc), key)
+    if not lib:
+        return _err("Training not found.", 404)
+    version, due = str(lib.get("version") or "1"), (_today() + timedelta(days=14)).isoformat()
+    n = 0
+    for r in doc["trainings"]:
+        if r.get("trainingKey") != key or not r.get("completed") or str(r.get("version") or "") == version:
+            continue
+        p = person_of(doc, r.get("personId"))
+        if not p or p.get("lifecycle") in ("SUSPENDED", "OFFBOARDED"):
+            continue
+        r.setdefault("history", []).insert(0, {k: r.get(k) for k in ("completed", "expires", "version", "score", "certificate", "startedAt")})
+        r.update(completed="", expires="", score=None, certificate="", startedAt="", modulesDone=[], due=due, assignedAt=_today().isoformat())
+        t = next((t for t in p["requirements"] if t.get("type") == "training" and t.get("trainingKey") == key), None)
+        if t:
+            set_task(p, t["key"], "NOT_STARTED")
+            t["dueDate"] = due
+        audit(db, org_key, user, "training_reassigned", p, "training", r["id"], f"{lib.get('title')} version {version} required")
+        refresh(p)
+        n += 1
+    save_staff(db, org_key, row, doc) if n else None
+    return {"ok": True, "reassigned": n, "version": version}
 
 
 @router.get("/api/staff/onboarding/audit")
@@ -1683,7 +2192,7 @@ def _group_of(t: dict) -> str:
 @router.get("/api/portal/me")
 def portal_me(user: User = Depends(require_user), db: Session = Depends(get_db)):
     org_key, m, row, doc, p = portal_ctx(user, db)
-    run_reminders(db, org_key, doc)
+    run_reminders(db, org_key, doc, row)
     refresh(p)
     mine = [t for t in p["requirements"] if t.get("owner") != "manager"]
     groups = []
@@ -1715,14 +2224,71 @@ def portal_me(user: User = Depends(require_user), db: Session = Depends(get_db))
         "documents": [_doc_json(d) for d in docs],
         "credentials": [dict(c, label=CREDENTIAL_LABELS.get(c.get("type"), "Credential")) for c in doc["credentials"] if c.get("personId") == p["id"]],
         "forms": {t["formKey"]: dict(forms.get(t["formKey"]) or {"title": t["title"], "body": "", "action": "acknowledge", "version": "1"},
-                                     body=_fill((forms.get(t["formKey"]) or {}).get("body", ""), p, org_key))
+                                     body=_fill((forms.get(t["formKey"]) or {}).get("body", ""), p, org_key),
+                                     prefillFields=[{"key": k, "label": PROFILE_LABELS.get(k, k), **{x: (p.get("profile") or {}).get(k, {}).get(x) for x in ("value", "source", "verified")}}
+                                                    for k in ((forms.get(t["formKey"]) or {}).get("prefill") or DEFAULT_FORM_PREFILL)])
                   for t in p["requirements"] if t.get("type") == "form" and t.get("formKey")},
         "trainings": {t["trainingKey"]: dict(libs.get(t["trainingKey"]) or {"title": t["title"], "description": "", "url": ""},
                                              description=_fill((libs.get(t["trainingKey"]) or {}).get("description", ""), p, org_key),
                                              record=training_record(doc, p, t, create=False))
                       for t in p["requirements"] if t.get("type") == "training" and t.get("trainingKey")},
-        "docFields": {t["docType"]: staff_extraction.fields_for(t["docType"]) for t in p["requirements"] if t.get("type") == "document"},
+        "docFields": {(t.get("docType") or "training_certificate"): staff_extraction.fields_for(t.get("docType") or "training_certificate", t.get("credentialType", ""))
+                      for t in p["requirements"] if t.get("type") in ("document", "training")},
+        **_portal_summary(db, org_key, doc, p),
+        "profile": p.get("profile") or {}, "profileLabels": PROFILE_LABELS, "verifications": p.get("verifications") or {},
+        "accessAreas": role_access(doc, p.get("role", ""))["areas"],
+        "phone": p.get("phone", ""),
+        "trainingRecords": [dict(r, status=training_status(r)) for r in doc["trainings"] if r.get("personId") == p["id"]],
     }
+
+
+def _portal_summary(db: Session, org_key: str, doc: dict, p: dict) -> dict:
+    """What the employee should do next, and where they stand — onboarding or long after it."""
+    import staff_lifecycle
+    today = _today()
+    renewals = staff_lifecycle.renewal_items(doc, p, today)
+    tasks = [dict(t, effectiveStatus=effective_status(t)) for t in p["requirements"] if t.get("owner") != "manager" and task_available(p, t)]
+    def task_action(t, why):
+        verb = {"document": "Upload", "form": "Complete", "training": "Complete", "info": "Fill in"}.get(t.get("type"), "Finish")
+        if t.get("effectiveStatus") == "WAITING_ON_EMPLOYEE":
+            verb = "Re-upload" if t.get("type") == "document" else "Fix"
+        section = "credentials" if t.get("credentialType") else {"document": "documents", "form": "forms", "training": "training", "info": "info"}.get(t.get("type"), "tasks")
+        return {"title": f"{verb} {t['title']}", "due": t.get("dueDate", ""), "why": why, "href": "#course" if t.get("trainingKey") == "althais_training" else f"#{section}", "key": t["key"]}
+    def ren_action(r):
+        return {"title": f"Upload your renewed {r['title']}", "due": r["expires"], "why": "Expired" if r["days"] < 0 else f"Expires in {r['days']} days",
+                "href": f"#{r['section']}", "key": r["requirementKey"]}
+    candidates = ([task_action(t, t.get("reviewNote") or "Needs a fix") for t in tasks if t["effectiveStatus"] == "WAITING_ON_EMPLOYEE"]
+                  + [ren_action(r) for r in renewals if r["days"] < 0]
+                  + [task_action(t, "Overdue") for t in tasks if t["effectiveStatus"] == "OVERDUE"]
+                  + [ren_action(r) for r in renewals if 0 <= r["days"] <= 30]
+                  + [task_action(t, "") for t in sorted((t for t in tasks if t["effectiveStatus"] in ("NOT_STARTED", "IN_PROGRESS")),
+                                                        key=lambda t: t.get("dueDate") or "9999")]
+                  + [ren_action(r) for r in renewals if r["days"] > 30])
+    creds = [c for c in doc["credentials"] if c.get("personId") == p["id"] and c.get("status") == "verified"]
+    active = [c for c in creds if not c.get("expires") or c["expires"] >= today.isoformat()]
+    trains = [t for t in p["requirements"] if t.get("type") == "training"]
+    train_open = [t for t in trains if t.get("status") != "COMPLETE"]
+    ndocs = db.scalar(select(func.count(StaffDocument.id)).where(StaffDocument.org_key == org_key, StaffDocument.person_id == p["id"],
+                                                                StaffDocument.superseded == 0, StaffDocument.status == "VERIFIED")) or 0
+    upcoming = next((r for r in renewals if r["days"] >= 0), None)
+    return {"renewals": renewals, "nextAction": candidates[0] if candidates else None,
+            "status": {"onboardingComplete": p.get("lifecycle") == "ACTIVE", "credentialsActive": len(active), "credentialsTotal": len(creds),
+                       "trainingOpen": len(train_open), "trainingTotal": len(trains), "documents": ndocs,
+                       "upcoming": {"title": upcoming["title"], "days": upcoming["days"], "expires": upcoming["expires"]} if upcoming else None}}
+
+
+@router.get("/api/portal/summary")
+def portal_summary(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """For the name menu in the top bar: how many of your own items are open, and the next one."""
+    if not has_staff_profile(user, db):
+        return {"hasProfile": False}
+    org_key, m, row, doc, p = portal_ctx(user, db)
+    mine = [t for t in p["requirements"] if t.get("owner") != "manager" and t.get("status") not in ("COMPLETE", "NEEDS_REVIEW", "CLOSED")]
+    st = [effective_status(t) for t in mine]
+    summary = _portal_summary(db, org_key, doc, p)
+    renew_now = [r for r in summary["renewals"] if r["days"] <= 30]
+    return {"hasProfile": True, "open": len(mine) + len(renew_now), "overdue": st.count("OVERDUE") + sum(1 for r in renew_now if r["days"] < 0),
+            "fix": st.count("WAITING_ON_EMPLOYEE"), "nextAction": summary["nextAction"], "lifecycle": p.get("lifecycle")}
 
 
 def _portal_task(p: dict, key: str, kind: str):
@@ -1772,6 +2338,19 @@ async def portal_info(section: str, request: Request, user: User = Depends(requi
             set_task(p, task_key, "NEEDS_REVIEW" if t.get("review") else "COMPLETE", note="")
         elif t and t.get("status") == "NOT_STARTED":
             set_task(p, task_key, "IN_PROGRESS")
+    for k, v in clean.items():
+        if k in PROFILE_LABELS:
+            set_profile(p, k, v, "Entered by you", False, by=_actor_name(user))
+    if section == "professional" and clean.get("npi"):
+        import credential_verification
+        personal = p["info"]["personal"]
+        names = {"first": [x for x in (personal.get("legal_first"), personal.get("preferred"), p.get("firstName")) if x],
+                 "last": [x for x in (personal.get("legal_last"), p.get("lastName")) if x]}
+        res = await asyncio.to_thread(credential_verification.verify_npi, clean["npi"], names)
+        p.setdefault("verifications", {})["npi"] = res
+        if res["status"] == "VERIFIED":
+            set_profile(p, "npi", clean["npi"], res["source"], True)
+        audit(db, org_key, None, "npi_checked", p, "verification", "npi", f"NPI checked against {res.get('source') or 'the NPI Registry'}: {res['status']}")
     p["infoMeta"][section] = {"updatedAt": _now().isoformat(), "updatedBy": _actor_name(user)}
     if changed:
         # names of the fields only: the values are personal information and stay out of the audit log
@@ -1795,13 +2374,108 @@ def _sniff(data: bytes, filename: str):
     return None
 
 
+def automation_policy(doc: dict) -> dict:
+    """The clinic's document-automation settings (Staff > Onboarding Templates > Document Automation), sanitized."""
+    raw = doc.get("clinic", {}).get("documentAutomation") or {}
+    pol = dict(staff_doc_review.DEFAULT_POLICY)
+    if isinstance(raw.get("enabled"), bool):
+        pol["enabled"] = raw["enabled"]
+    if isinstance(raw.get("autoApprove"), bool):
+        pol["autoApprove"] = raw["autoApprove"]
+    try:
+        pol["minConfidence"] = min(0.99, max(0.8, float(raw.get("minConfidence", pol["minConfidence"]))))
+    except (TypeError, ValueError):
+        pass
+    if raw.get("anomalyThreshold") in ("low", "medium", "high"):
+        pol["anomalyThreshold"] = raw["anomalyThreshold"]
+    if isinstance(raw.get("requireExternal"), list):
+        pol["requireExternal"] = [str(k)[:64] for k in raw["requireExternal"]][:20]
+    return pol
+
+
+def _review_context(db: Session, org_key: str, doc: dict, p: dict, t: dict, sha: str, doc_id: int) -> "staff_doc_review.ReviewContext":
+    info = p.get("info", {})
+    personal = info.get("personal", {})
+    firsts = [x for x in (personal.get("legal_first"), personal.get("preferred"), p.get("firstName")) if x]
+    lasts = [x for x in (personal.get("legal_last"), p.get("lastName")) if x]
+    if p.get("name"):
+        parts = p["name"].split()
+        firsts.append(parts[0])
+        lasts.append(parts[-1])
+    dup = db.scalar(select(StaffDocument.id).where(StaffDocument.org_key == org_key, StaffDocument.sha256 == sha,
+                                                   StaffDocument.person_id != p["id"]).limit(1))
+    rejected_same = db.scalar(select(StaffDocument.id).where(StaffDocument.org_key == org_key, StaffDocument.sha256 == sha,
+                                                             StaffDocument.person_id == p["id"], StaffDocument.requirement_key == t["key"],
+                                                             StaffDocument.status == "REJECTED", StaffDocument.id != doc_id).limit(1))
+    lib = _find(trainings_for(doc), t.get("trainingKey")) or {}
+    return staff_doc_review.ReviewContext(
+        task=t, role=p.get("role", ""), staff_names={"first": firsts, "last": lasts}, staff_dob=personal.get("dob", ""),
+        profile=info.get("professional", {}), existing_credential=_credential_for(doc, p, t["key"]),
+        duplicate_file_owner=bool(dup), same_file_as_rejected=bool(rejected_same),
+        training_valid_months=int(lib.get("validMonths") or 0), policy=automation_policy(doc),
+        npi=(info.get("professional") or {}).get("npi") or profile_value(p, "npi"))
+
+
+def _number_in_use(doc: dict, p: dict, fields: dict) -> bool:
+    num = re.sub(r"[^A-Z0-9]", "", (fields.get("license_number") or fields.get("credential_number") or fields.get("dea_number") or "").upper())
+    if not num:
+        return False
+    return any(c.get("personId") != p["id"] and re.sub(r"[^A-Z0-9]", "", (c.get("identifier") or "").upper()) == num
+               for c in doc["credentials"])
+
+
+def apply_review(db: Session, org_key: str, row, doc: dict, p: dict, d: StaffDocument, outcome, result, actor) -> None:
+    """Record the automated review and act on its decision."""
+    t = _find(p["requirements"], d.requirement_key)
+    title = t["title"] if t else d.doc_type
+    fields_json = {k: {"value": v, **outcome.field_meta.get(k, {})} for k, v in outcome.fields.items()}
+    rv = StaffDocumentReview(org_key=org_key, person_id=p["id"], document_id=d.id, requirement_key=d.requirement_key,
+                             detected_type=outcome.detected_type, type_confidence=f"{outcome.type_confidence:.2f}",
+                             extracted_fields=_json.dumps(fields_json), validation_results=_json.dumps(outcome.checks),
+                             external_verification=_json.dumps(outcome.external), issue_flags=_json.dumps(outcome.issues_json()),
+                             decision=outcome.decision, reason_codes=_json.dumps(outcome.reason_codes),
+                             employee_message=outcome.employee_message, manager_summary=_json.dumps(outcome.manager_summary),
+                             analysis_status=result.status, processor_version=outcome.processor[:120])
+    db.add(rv)
+    db.flush()
+    d.review_id, d.decision = rv.id, outcome.decision
+    d.extraction = _json.dumps({"status": "extracted" if result.status == "analyzed" and outcome.fields else result.status,
+                                "provider": result.processor, "note": result.note, "fields": fields_json, "at": _now().isoformat()})
+    d.fields = _json.dumps(outcome.fields)
+    d.expiration_date = outcome.fields.get("expiration_date", "") if staff_doc_review.parse_date(outcome.fields.get("expiration_date", "")) else ""
+    codes = ", ".join(outcome.reason_codes)
+    if outcome.decision == staff_doc_review.AUTO_APPROVED:
+        approve_document(db, org_key, doc, p, d, outcome.fields, None, auto=True)
+        c = _credential_for(doc, p, d.requirement_key)
+        if c and outcome.external and outcome.external.get("status") not in (None, "NOT_RUN"):
+            c["verification"] = outcome.external   # source, time, result and matched fields, as returned
+    elif outcome.decision == staff_doc_review.ACTION_REQUIRED:
+        send_back_document(db, org_key, p, d, outcome.employee_message, None, "automated")
+        audit(db, org_key, None, "document_needs_correction", p, "document", d.id, f"{title} sent back automatically ({codes})")
+    else:
+        d.status = "NEEDS_REVIEW"
+        hist = _json.loads(d.history or "[]")
+        hist.append({"status": "NEEDS_REVIEW", "at": _now().isoformat(), "by": "Althais"})
+        d.history = _json.dumps(hist)
+        if t:
+            set_task(p, t["key"], "NEEDS_REVIEW", note="")
+        audit(db, org_key, None, "document_escalated", p, "document", d.id, f"{title} sent for manager review ({codes})")
+    refresh(p)
+    save_staff(db, org_key, row, doc)
+
+
 @router.post("/api/portal/documents")
 async def portal_upload(request: Request, requirement: str = Form(...), file: UploadFile = File(...),
                         user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Upload -> file checks -> automated review (staff_doc_review) -> verified, sent back to the employee, or sent to the manager."""
     org_key, m, row, doc, p = portal_ctx(user, db)
-    t = _portal_task(p, requirement, "document")
-    if t.get("status") in ("COMPLETE",) and t.get("credentialType") is None:
-        return _err("This document is already verified.")
+    t = _find(p["requirements"], requirement)
+    if not t or t.get("owner") == "manager" or t.get("type") not in ("document", "training"):
+        return _err("That isn’t one of your onboarding items.", 404)
+    if not task_available(p, t):
+        return _err("Finish the items this one depends on first.")
+    if t.get("status") == "COMPLETE" and not t.get("credentialType"):
+        return _err("This one is already complete.")
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         return _err("That file is over 10 MB. Try a smaller scan or photo.")
@@ -1810,31 +2484,50 @@ async def portal_upload(request: Request, requirement: str = Form(...), file: Up
     ctype = _sniff(data, file.filename or "")   # by content, not the name or the browser's word for it
     if not ctype:
         return _err("Upload a PDF or a photo (JPG, PNG, WEBP or HEIC).")
+    sha = hashlib.sha256(data).hexdigest()
+    same = db.scalar(select(StaffDocument).where(StaffDocument.org_key == org_key, StaffDocument.person_id == p["id"],
+                                                 StaffDocument.requirement_key == t["key"], StaffDocument.sha256 == sha,
+                                                 StaffDocument.superseded == 0, StaffDocument.status.in_(("VERIFIED", "NEEDS_REVIEW", "PROCESSING"))))
+    if same:   # the identical file again: nothing new to check
+        msg = ("This exact file is already on file and verified." if same.status == "VERIFIED"
+               else "This exact file is already with your clinic for review.")
+        return {"ok": True, "document": _doc_json(same), "decision": "ALREADY_ON_FILE", "message": msg,
+                "fields": staff_extraction.fields_for(same.doc_type, t.get("credentialType", ""))}
     for old in db.scalars(select(StaffDocument).where(StaffDocument.org_key == org_key, StaffDocument.person_id == p["id"],
                                                       StaffDocument.requirement_key == t["key"], StaffDocument.superseded == 0)):
         if old.status != "VERIFIED":
             old.superseded = 1
-    d = StaffDocument(org_key=org_key, person_id=p["id"], requirement_key=t["key"], doc_type=t.get("docType") or "other",
-                      original_filename=(file.filename or "document")[:255], content_type=ctype, size=len(data),
-                      uploaded_by=user.id, uploaded_by_name=_actor_name(user), status="UPLOADED",
-                      history=_json.dumps([{"status": "UPLOADED", "at": _now().isoformat()}]))
+    doc_type = t.get("docType") or ("training_certificate" if t.get("type") == "training" else "other")
+    d = StaffDocument(org_key=org_key, person_id=p["id"], requirement_key=t["key"], doc_type=doc_type,
+                      original_filename=(file.filename or "document")[:255], content_type=ctype, size=len(data), sha256=sha,
+                      uploaded_by=user.id, uploaded_by_name=_actor_name(user), status="PROCESSING",
+                      history=_json.dumps([{"status": "UPLOADED", "at": _now().isoformat()}, {"status": "PROCESSING", "at": _now().isoformat()}]))
     db.add(d)
     db.flush()
     db.add(StaffFile(document_id=d.id, data=data))
-    hist = _json.loads(d.history)
-    hist.append({"status": "PROCESSING", "at": _now().isoformat()})
-    result = staff_extraction.extract(d.doc_type, d.original_filename, ctype, data)
-    d.extraction = _json.dumps({"status": result.status, "provider": result.provider, "note": result.note, "fields": result.fields,
-                                "at": _now().isoformat()})
-    d.fields = _json.dumps({k: v.get("value", "") for k, v in result.fields.items()})
-    d.status = "NEEDS_REVIEW"   # extracted or not, a person confirms it before it counts
-    hist.append({"status": "NEEDS_REVIEW", "at": _now().isoformat()})
-    d.history = _json.dumps(hist)
-    set_task(p, t["key"], "NEEDS_REVIEW", note="")
     audit(db, org_key, user, "document_uploaded", p, "document", d.id, f"Uploaded {t['title']}")
-    refresh(p)
-    save_staff(db, org_key, row, doc)
-    return {"ok": True, "document": _doc_json(d), "fields": staff_extraction.fields_for(d.doc_type)}
+    db.commit()   # saved (and shown as Processing) before the analysis runs
+
+    ctx = _review_context(db, org_key, doc, p, t, sha, d.id)
+    expected = sorted(staff_doc_review.accepted_types(t, p.get("role", "")))[0]
+    if ctx.policy.get("enabled", True):
+        result = await asyncio.to_thread(staff_extraction.analyze, expected, d.original_filename, ctype, data)
+    else:   # the clinic switched automated review off: nothing is sent to be read
+        result = staff_extraction.AnalysisResult(status="unavailable", note="AUTOMATED_REVIEW_OFF")
+    if result.status == "analyzed":
+        probe = staff_doc_review.review(ctx, ctype, data, result)
+        ctx.number_in_use_by_other = _number_in_use(doc, p, probe.fields)
+    outcome = staff_doc_review.review(ctx, ctype, data, result)
+
+    # the analysis took a while: act on the latest staff record so nobody's edits in the meantime are lost
+    row, doc = load_staff(db, org_key)
+    p = person_of(doc, p["id"])
+    d = db.get(StaffDocument, d.id)
+    if not p:
+        return _err("Your staff record wasn’t found. Contact your manager.", 404)
+    apply_review(db, org_key, row, doc, p, d, outcome, result, user)
+    return {"ok": True, "document": _doc_json(d), "decision": outcome.decision, "message": outcome.employee_message,
+            "fields": staff_extraction.fields_for(doc_type, t.get("credentialType", ""))}
 
 
 @router.post("/api/portal/documents/{doc_id}/confirm")
@@ -1847,7 +2540,9 @@ async def portal_confirm(doc_id: int, request: Request, user: User = Depends(req
     if d.status != "NEEDS_REVIEW":
         return _err("This document has already been reviewed.")
     body = await request.json()
-    fields = [(k, l, k == "expiration_date" and d.doc_type in ("license", "bls", "dea")) for k, l in staff_extraction.fields_for(d.doc_type)]
+    t = _find(p["requirements"], d.requirement_key) or {}
+    fields = [(k, l, k == "expiration_date" and d.doc_type in ("license", "bls", "dea"))
+              for k, l in staff_extraction.fields_for(d.doc_type, t.get("credentialType", ""))]
     clean, errors = validate_fields(fields, body.get("fields") if isinstance(body.get("fields"), dict) else {})
     if errors:
         return _err("Check the highlighted fields.", fields=errors)
@@ -1884,6 +2579,9 @@ async def portal_form(key: str, request: Request, user: User = Depends(require_u
             return _err("Check the box to confirm.")
         t.setdefault("openedAt", _now().isoformat())
         t["version"], t["signature"] = str(form.get("version") or "1"), signature
+        t["fileId"] = form.get("fileId")
+        t["prefilled"] = {k: {"value": v.get("value"), "source": v.get("source"), "verified": v.get("verified")}
+                          for k, v in (p.get("profile") or {}).items() if k in (form.get("prefill") or DEFAULT_FORM_PREFILL)}
         if signature:
             t["signedAt"] = _now().isoformat()
         set_task(p, key, "COMPLETE", note="")
@@ -1909,6 +2607,8 @@ async def portal_training(key: str, request: Request, user: User = Depends(requi
         if t.get("status") in ("NOT_STARTED", "WAITING_ON_EMPLOYEE"):
             set_task(p, key, "IN_PROGRESS")
     elif body.get("action") == "complete":
+        if t.get("trainingKey") == "althais_training":
+            return _err("Althais Training is completed by passing the course's knowledge check.")
         if not body.get("attest"):
             return _err("Confirm that you completed the training.")
         r.setdefault("startedAt", _today().isoformat())
@@ -1930,64 +2630,10 @@ async def portal_training(key: str, request: Request, user: User = Depends(requi
 # ──────────────────────────────────────────────────────────────────────────
 #  Reminders
 # ──────────────────────────────────────────────────────────────────────────
-def _notify_once(db: Session, org_key: str, p: dict, ref: str, kind: str, due: str, subject: str, body: str) -> bool:
-    exists = db.scalar(select(StaffNotification.id).where(StaffNotification.org_key == org_key, StaffNotification.person_id == p["id"],
-                                                          StaffNotification.ref == ref, StaffNotification.kind == kind,
-                                                          StaffNotification.due == due))
-    if exists or not p.get("email"):
-        return False
-    sent = send_email(p["email"], subject, _email_html(subject, body, f"{(os.environ.get('APP_URL') or 'https://app.althais.com').rstrip('/')}/portal",
-                                                       "Open Staff Portal", note="You're getting this because you're onboarding with your clinic on Althais."))
-    db.add(StaffNotification(org_key=org_key, person_id=p["id"], ref=ref, kind=kind, due=due, recipient=p["email"], sent=1 if sent else 0))
-    return True
-
-
-def run_reminders(db: Session, org_key: str, doc: dict) -> int:
-    """Send the reminders that are due today and haven't gone out yet. Safe to call as often as you like."""
-    n = 0
-    clinic = _html.escape(_clinic_name(org_key))
-    today = _today()
-    for p in doc["people"]:
-        lc = p.get("lifecycle")
-        if lc not in ("INVITE_ACCEPTED", "ONBOARDING", "PENDING_REVIEW", "ACTIVE") or not p.get("userId"):
-            continue
-        for t in p["requirements"]:
-            if t.get("owner") == "manager" or t.get("status") in ("COMPLETE", "NEEDS_REVIEW") or not t.get("dueDate"):
-                continue
-            try:
-                days = (dt.date.fromisoformat(t["dueDate"]) - today).days
-            except ValueError:
-                continue
-            before = t.get("reminderDaysBefore")
-            title, when = _html.escape(t["title"]), _fmt_date(t["dueDate"])
-            if days < 0:
-                kind, subject, body = "overdue", f"Overdue: {t['title']}", f"{title} for {clinic} was due {when}. Please finish it as soon as you can."
-            elif days == 0:
-                kind, subject, body = "due_today", f"Due today: {t['title']}", f"{title} for {clinic} is due today."
-            elif before is not None and 0 < days <= int(before):
-                kind, subject, body = "due_soon", f"Reminder: {t['title']} is due {when}", f"{title} for {clinic} is due {when}."
-            else:
-                continue
-            n += _notify_once(db, org_key, p, t["key"], kind, t["dueDate"], subject, body)
-    warn = _warn_days(db, org_key)
-    for c in doc["credentials"]:
-        p = person_of(doc, c.get("personId"))
-        if not p or p.get("lifecycle") != "ACTIVE" or not c.get("expires"):
-            continue
-        try:
-            days = (dt.date.fromisoformat(c["expires"]) - today).days
-        except ValueError:
-            continue
-        label = CREDENTIAL_LABELS.get(c.get("type"), "credential")
-        if days < 0:
-            n += _notify_once(db, org_key, p, c["id"], "credential_expired", c["expires"], f"Your {label} has expired",
-                              f"Your {label} on file with {clinic} expired {_fmt_date(c['expires'])}. Upload your renewed one in the Staff Portal.")
-        elif days <= warn:
-            n += _notify_once(db, org_key, p, c["id"], "credential_expiring", c["expires"], f"Your {label} expires {_fmt_date(c['expires'])}",
-                              f"Your {label} on file with {clinic} expires {_fmt_date(c['expires'])}. Start your renewal now.")
-    if n:
-        db.commit()
-    return n
+def run_reminders(db: Session, org_key: str, doc: dict, row=None) -> int:
+    """Reminders, renewals and training cycles live in staff_lifecycle.py."""
+    import staff_lifecycle
+    return staff_lifecycle.run(db, org_key, doc, row)
 
 
 def run_all_reminders() -> int:
@@ -1998,8 +2644,8 @@ def run_all_reminders() -> int:
         keys = [r for r in db.scalars(select(OrgSettings.org_key).where(OrgSettings.category == "staff")).all()]
         for key in keys:
             try:
-                _, doc = load_staff(db, key)
-                total += run_reminders(db, key, doc)
+                row, doc = load_staff(db, key)
+                total += run_reminders(db, key, doc, row)
             except Exception as e:
                 print(f"[REMINDERS] {key}: {e}")
                 db.rollback()

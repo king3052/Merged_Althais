@@ -1134,7 +1134,7 @@ AREAS = {
     "payments":           ("Payments", "insurance", ["/revenue/payments"]),
     "payer_intelligence": ("Payer Intelligence", "insurance", ["/revenue/payer-intelligence"]),
     "team":               ("Team", "staff", ["/staff/team"]),
-    "onboarding":         ("Onboarding", "staff", ["/staff/onboarding"]),
+    "onboarding":         ("Onboarding", "staff", ["/staff/onboarding", "/staff/needs-attention"]),
     "clinic_onboarding":  ("Clinic Onboarding", "staff", ["/staff/clinic-onboarding"]),
     "credentials":        ("Credentials", "staff", ["/staff/credentials"]),
     "compliance":         ("Compliance", "staff", ["/staff/compliance"]),
@@ -1221,13 +1221,16 @@ def ensure_product(user: User, db: Session, *needed: str) -> None:
         raise HTTPException(status_code=403, detail="Your Althais plan doesn't include this tool.")
 
 
-def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str, products=None, validate=None, areas=()):
+def _register_doc_routes(path: str, category: str, admin_only: bool, denied_message: str, products=None, validate=None, areas=(), viewer=None):
     """GET/PUT a versioned per-organization document. `products`: None = any plan; otherwise the tools (besides the
     full suite, which can always use it) that may, so () means full suite only."""
     def check(user, db):
         if products is not None:
             ensure_product(user, db, *products)
         ensure_area(user, *areas)   # switched off for this person only when every one of these is
+        if viewer is not None and not viewer(user, db):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail="Your role doesn’t include staff records.")
     @router.get(path)
     def get_doc(user: User = Depends(require_user), db: Session = Depends(get_db)):
         check(user, db)
@@ -1261,7 +1264,8 @@ def _register_doc_routes(path: str, category: str, admin_only: bool, denied_mess
 
 
 _register_doc_routes("/api/staff", "staff", admin_only=True, denied_message="Only admins can change staff records.", products=("staff",),
-                     areas=("team", "onboarding", "clinic_onboarding", "credentials", "compliance", "training", "roles"))
+                     areas=("team", "onboarding", "clinic_onboarding", "credentials", "compliance", "training", "roles"),
+                     viewer=lambda u, db: __import__("staff_onboarding").can_view_staff(u, db))   # everyone's records: admins and the Staff Records permission only
 _register_doc_routes("/api/tasks", "tasks", admin_only=False, denied_message="", products=())
 _register_doc_routes("/api/branding", "branding", admin_only=True, denied_message="Only admins can change the brand color.",
                      validate=lambda body, db: _check_brand_color(body, db))

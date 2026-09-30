@@ -72,10 +72,16 @@
     { course: "Althais / EHR Training", category: "Role-Specific" }
   ];
 
+  /* what each permission opens (enforced by the server: staff_onboarding.PERMISSION_AREAS -> auth.AREAS) */
   var PERMISSION_AREAS = [
-    { key: "patients", label: "Patient Records" }, { key: "notes", label: "Clinical Notes" }, { key: "coding", label: "Coding" },
-    { key: "claims", label: "Claims" }, { key: "revenue", label: "Revenue" }, { key: "staff", label: "Staff Records" },
-    { key: "compliance", label: "Compliance" }, { key: "settings", label: "Settings" }
+    { key: "patients", label: "Patient Records", opens: "Patients & Charts, Schedule" },
+    { key: "notes", label: "Clinical Notes", opens: "Write A Note (documentation and dictation)" },
+    { key: "coding", label: "Coding", opens: "Code A Note, Coding Review" },
+    { key: "claims", label: "Claims", opens: "Claims, Denials, Appeals" },
+    { key: "revenue", label: "Revenue", opens: "Payments, Payer Intelligence" },
+    { key: "staff", label: "Staff Records (Everyone’s)", opens: "Team, Onboarding, Credentials, Training and Roles for all staff. Without it, people see only their own profile." },
+    { key: "compliance", label: "Compliance", opens: "Staff Compliance" },
+    { key: "settings", label: "Settings", opens: "Clinic Settings. With Staff Records too, the role becomes a clinic admin." }
   ];
   var DEFAULT_ROLES = [
     /* keep in step with DEFAULT_ROLES in staff_onboarding.py */
@@ -209,6 +215,7 @@
 
   /* ---------- credentials and training ---------- */
   function credentialStatus(c) {
+    if (c.status === "archived") return "Archived";   /* kept after offboarding */
     if (c.status === "rejected") return "Rejected";
     var days = daysUntil(c.expires);
     if (days != null && days < 0) return "Expired";
@@ -226,7 +233,7 @@
   var PILL = {
     "Invited": "background:#eceef2;color:#4a505c", "In Progress": "background:var(--brand-100);color:var(--brand-text-strong)", "Needs Review": "background:#fff0d6;color:#b86a00",
     "Draft": "background:#eceef2;color:#4a505c", "Invite Sent": "background:#eceef2;color:#4a505c", "Onboarding": "background:var(--brand-100);color:var(--brand-text-strong)",
-    "Suspended": "background:#fff0d6;color:#b86a00", "Offboarded": "background:#eceef2;color:#4a505c", "Invite Expired": "background:#ffe1e1;color:#c83838",
+    "Suspended": "background:#fff0d6;color:#b86a00", "Offboarded": "background:#eceef2;color:#4a505c", "Archived": "background:#eceef2;color:#4a505c", "Invite Expired": "background:#ffe1e1;color:#c83838",
     "Active": "background:#d8f5e3;color:#0c8a4f", "Inactive": "background:#eceef2;color:#4a505c",
     "Verified": "background:#d8f5e3;color:#0c8a4f", "Pending Verification": "background:var(--brand-100);color:var(--brand-text-strong)", "Expiring Soon": "background:#fff0d6;color:#b86a00",
     "Expired": "background:#ffe1e1;color:#c83838", "Rejected": "background:#ffe1e1;color:#c83838",

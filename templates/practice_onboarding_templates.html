@@ -38,6 +38,8 @@
         <button class="ptab is-on" data-ptab="templates" type="button">Role Templates</button>
         <button class="ptab" data-ptab="forms" type="button">Forms &amp; Agreements</button>
         <button class="ptab" data-ptab="trainings" type="button">Training</button>
+        <button class="ptab" data-ptab="automation" type="button">Document Automation</button>
+        <button class="ptab" data-ptab="reminders" type="button">Reminders</button>
       </div>
     </div>
 
@@ -87,8 +89,17 @@
         </div>
         <div class="bg-panel border border-line rounded-sm p-4 min-w-0" id="training-edit"></div>
       </div>
+      <!-- Reminders -->
+      <div data-pane="reminders" class="hidden max-w-[760px]">
+        <div class="bg-panel border border-line rounded-sm p-5" id="rem-edit"></div>
+      </div>
+      <!-- Document automation -->
+      <div data-pane="automation" class="hidden max-w-[760px]">
+        <div class="bg-panel border border-line rounded-sm p-5" id="auto-edit"></div>
+      </div>
     </div>
   </div>
+
 
   <script src="/static/js/staff-store.js"></script>
   <script src="/static/js/onboarding-editor.js"></script>
@@ -155,22 +166,61 @@
       $('form-list').innerHTML = META.forms.map(f => `<button type="button" class="side-item ${f.key === formKey ? 'is-on' : ''}" data-form="${esc(f.key)}">${esc(f.title)}${f.isSample ? ' <span class="text-[10.5px] text-warn-600 font-normal">Sample</span>' : ''}</button>`).join('');
       const f = META.forms.find(x => x.key === formKey);
       if (!f) { $('form-edit').innerHTML = '<div class="text-[12px] text-ink-500">Pick a form.</div>'; return; }
+      const roles = f.roles || [], prefill = f.prefill || META.defaultPrefill || [];
+      const PREFILL_CHOICES = ['legal_first', 'legal_last', 'dob', 'email', 'phone', 'address1', 'city', 'state', 'zip', 'role', 'start', 'location', 'employment', 'supervisor', 'npi', 'license_number', 'license_state', 'license_expiration'];
       $('form-edit').innerHTML = `
-        ${f.isSample ? '<div class="mb-3 px-3 py-2 rounded-sm border border-line bg-shell text-[12px] text-warn-600">This is sample text from Althais. Replace it with your clinic’s own before asking staff to sign it.</div>' : ''}
+        ${f.isSample ? '<div class="mb-3 px-3 py-2 rounded-sm border border-line bg-shell text-[12px] text-warn-600">This is sample text from Althais. Replace it with your clinic’s own (or upload your form) before asking staff to sign it.</div>' : ''}
         <div class="grid grid-cols-[1fr_180px_110px] gap-3">
           <div><label class="lbl" for="f-title">Title</label><input id="f-title" class="fld" value="${esc(f.title)}"></div>
           <div><label class="lbl" for="f-action">Employee Action</label><select id="f-action" class="fld">${S.options([{ value: 'acknowledge', label: 'Read & Acknowledge' }, { value: 'sign', label: 'Sign (typed name)' }], f.action)}</select></div>
           <div><label class="lbl">Version</label><div class="text-[13px] font-semibold text-ink-900 mt-1.5 num">${esc(f.version || '1')}</div></div>
         </div>
-        <div class="mt-3"><label class="lbl" for="f-body">Text</label><textarea id="f-body" rows="14" class="fld" style="font-family:inherit;line-height:1.55">${esc(f.body || '')}</textarea>
-          <p class="text-[11px] text-ink-500 mt-1">Filled in for each person: {name} {role} {clinic} {location} {start_date} {today}. Saving changed text makes a new version; people who already signed keep the version they signed.</p></div>
-        <div class="mt-3 flex justify-end"><button id="f-save" data-admin-only type="button" class="btn btn-primary">Save Form</button></div>`;
+        <div class="mt-3 p-3 rounded-sm border border-line">
+          <div class="lbl">Form File (PDF)</div>
+          <div class="flex items-center gap-3 flex-wrap text-[12.5px]">
+            ${f.fileId ? `<a class="font-semibold text-med-600" href="/api/staff/onboarding/forms/${encodeURIComponent(f.key)}/file" target="_blank" rel="noopener">${esc(f.fileName || 'Current file')}</a>` : '<span class="text-ink-500">No file — staff read the text below.</span>'}
+            <label class="btn btn-line cursor-pointer">${f.fileId ? 'Replace PDF' : 'Upload PDF'}<input type="file" accept="application/pdf,.pdf" class="hidden" id="f-file"></label>
+          </div>
+          <p class="text-[11px] text-ink-500 mt-1">A new file is a new version. People who already completed it keep the version they signed.</p>
+        </div>
+        <div class="mt-3"><label class="lbl" for="f-body">${f.fileId ? 'Instructions (Optional)' : 'Text'}</label><textarea id="f-body" rows="${f.fileId ? 4 : 12}" class="fld" style="font-family:inherit;line-height:1.55">${esc(f.body || '')}</textarea>
+          <p class="text-[11px] text-ink-500 mt-1">Filled in for each person: {name} {role} {clinic} {location} {start_date} {today}. Changing the text makes a new version.</p></div>
+        <div class="grid sm:grid-cols-2 gap-4 mt-4">
+          <div><div class="lbl">Assign To Roles</div>
+            <div class="grid grid-cols-2 gap-x-3">${META.roles.map(r => `<label class="flex items-center gap-2 text-[12.5px] text-ink-800 py-0.5"><input type="checkbox" data-role-pick="${esc(r)}" ${roles.includes(r) ? 'checked' : ''}> ${esc(r)}</label>`).join('')}</div>
+            <p class="text-[11px] text-ink-500 mt-1">New staff in these roles get it automatically.</p></div>
+          <div>
+            <label class="flex items-center gap-2 text-[12.5px] text-ink-800"><input type="checkbox" id="f-required" ${f.required !== false ? 'checked' : ''}> Required</label>
+            <label class="lbl mt-3" for="f-due">Due (Days From Start Date)</label><input id="f-due" type="number" class="fld num" style="width:120px" value="${esc(f.dueDays ?? 0)}">
+            <div class="lbl mt-3">Prefill From The Staff Record</div>
+            <div class="grid grid-cols-2 gap-x-3">${PREFILL_CHOICES.map(k => `<label class="flex items-center gap-2 text-[12px] text-ink-800 py-0.5"><input type="checkbox" data-prefill="${k}" ${prefill.includes(k) ? 'checked' : ''}> ${esc((META.profileLabels || {})[k] || k)}</label>`).join('')}</div>
+          </div>
+        </div>
+        <div class="mt-4 flex justify-between gap-2 flex-wrap">
+          <button id="f-assign" data-admin-only type="button" class="btn btn-line">Assign To Current Staff In These Roles</button>
+          <button id="f-save" data-admin-only type="button" class="btn btn-primary">Save Form</button></div>`;
       $('f-save').onclick = async () => {
         const body = $('f-body').value, changed = body !== (f.body || '');
-        const rec = { key: f.key, title: $('f-title').value.trim() || f.title, action: $('f-action').value, body,
-                      version: changed ? String((parseInt(f.version, 10) || 1) + 1) : (f.version || '1'), isSample: changed ? false : !!f.isSample };
+        const rec = { ...f, key: f.key, title: $('f-title').value.trim() || f.title, action: $('f-action').value, body,
+                      version: changed ? String((parseInt(f.version, 10) || 1) + 1) : (f.version || '1'), isSample: changed ? false : !!f.isSample,
+                      roles: [...document.querySelectorAll('[data-role-pick]:checked')].map(i => i.dataset.rolePick),
+                      prefill: [...document.querySelectorAll('[data-prefill]:checked')].map(i => i.dataset.prefill),
+                      required: $('f-required').checked, dueDays: parseInt($('f-due').value, 10) || 0 };
         DOC = await S.save(d => { d.onboardingForms = (d.onboardingForms || []).filter(x => x.key !== f.key).concat([rec]); }, changed ? `Saved as version ${rec.version}` : 'Form saved').catch(() => DOC);
         await reload(); renderForms();
+      };
+      $('f-file').onchange = async (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const fd = new FormData(); fd.append('file', file);
+        const r = await fetch(`/api/staff/onboarding/forms/${encodeURIComponent(f.key)}/file`, { method: 'POST', body: fd, credentials: 'same-origin' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return S.toast(j.error || j.detail || 'Upload failed', 'error');
+        S.toast(`Uploaded as version ${j.version}`); DOC = await S.load(true); await reload(); renderForms();
+      };
+      $('f-assign').onclick = async () => {
+        const r = await fetch(`/api/staff/onboarding/forms/${encodeURIComponent(f.key)}/assign`, { method: 'POST', credentials: 'same-origin' });
+        const j = await r.json().catch(() => ({}));
+        S.toast(r.ok ? (j.assigned ? `Assigned to ${j.assigned} staff member${j.assigned === 1 ? '' : 's'}` : 'Everyone in these roles already has it — save the roles first if you just changed them') : (j.error || 'Could not assign'), r.ok ? undefined : 'error');
       };
     }
     $('form-list').addEventListener('click', e => { const b = e.target.closest('[data-form]'); if (b) { formKey = b.dataset.form; renderForms(); } });
@@ -187,6 +237,27 @@
       $('training-list').innerHTML = META.trainings.map(t => `<button type="button" class="side-item ${t.key === trainingKey ? 'is-on' : ''}" data-training="${esc(t.key)}">${esc(t.title)}</button>`).join('');
       const t = META.trainings.find(x => x.key === trainingKey);
       if (!t) { $('training-edit').innerHTML = '<div class="text-[12px] text-ink-500">Pick a training.</div>'; return; }
+      if (t.builtIn) {
+        $('training-edit').innerHTML = `
+          <div class="flex items-center gap-2"><h2 class="text-[14px] font-semibold text-ink-900">${esc(t.title)}</h2><span class="pill" style="background:var(--brand-100);color:var(--brand-text-strong)">Built In · v${esc(t.version)}</span></div>
+          <p class="text-[12px] text-ink-600 mt-1">${esc(t.description || '')} Content adapts to each person's role and the access it gives them. Modules: Welcome, Your Workspace,
+            Patient Information &amp; Privacy, Althea, Your Role, Using AI Safely, Knowledge Check, Complete.</p>
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <div><label class="lbl" for="t-pass">Passing Score (%)</label><input id="t-pass" type="number" min="50" max="100" class="fld num" value="${esc(t.passScore || 80)}"></div>
+            <div><label class="lbl" for="t-valid">Retake Every (Months)</label><input id="t-valid" type="number" min="0" class="fld num" value="${esc(t.validMonths || 0)}"><p class="text-[11px] text-ink-500 mt-1">0 = once</p></div>
+          </div>
+          <div class="mt-4 flex justify-between gap-2 flex-wrap">
+            <button id="t-require" data-admin-only type="button" class="btn btn-line">Require v${esc(t.version)} From Everyone</button>
+            <button id="t-save" data-admin-only type="button" class="btn btn-primary">Save</button></div>`;
+        $('t-save').onclick = async () => {
+          const rec = { key: t.key, title: t.title, category: t.category, description: t.description, version: t.version,
+                        passScore: Math.max(50, Math.min(100, parseInt($('t-pass').value, 10) || 80)), validMonths: Math.max(0, parseInt($('t-valid').value, 10) || 0) };
+          DOC = await S.save(d => { d.onboardingTrainings = (d.onboardingTrainings || []).filter(x => x.key !== t.key).concat([rec]); }, 'Saved').catch(() => DOC);
+          await reload(); renderTrainings();
+        };
+        $('t-require').onclick = () => requireCurrent(t);
+        return;
+      }
       $('training-edit').innerHTML = `
         <div class="grid grid-cols-2 gap-3">
           <div><label class="lbl" for="t-title">Title</label><input id="t-title" class="fld" value="${esc(t.title)}"></div>
@@ -197,7 +268,9 @@
           <div class="col-span-2"><label class="lbl" for="t-desc">Description</label><textarea id="t-desc" rows="4" class="fld">${esc(t.description || '')}</textarea></div>
         </div>
         <p class="text-[11px] text-ink-500 mt-2">Staff open the link, then confirm they completed it (and can note a certificate number). Completion is recorded as training documentation for your clinic.</p>
-        <div class="mt-3 flex justify-end"><button id="t-save" data-admin-only type="button" class="btn btn-primary">Save Training</button></div>`;
+        <div class="mt-3 flex justify-between gap-2 flex-wrap"><button id="t-require" data-admin-only type="button" class="btn btn-line">Require Current Version From Everyone</button>
+          <button id="t-save" data-admin-only type="button" class="btn btn-primary">Save Training</button></div>`;
+      $('t-require').onclick = () => requireCurrent(t);
       $('t-save').onclick = async () => {
         const url = $('t-url').value.trim();
         if (url && !/^https?:\/\//i.test(url)) return S.toast('The link should start with https://', 'error');
@@ -206,6 +279,12 @@
         DOC = await S.save(d => { d.onboardingTrainings = (d.onboardingTrainings || []).filter(x => x.key !== t.key).concat([rec]); }, 'Training saved').catch(() => DOC);
         await reload(); renderTrainings();
       };
+    }
+    async function requireCurrent(t) {
+      if (!confirm(`Ask everyone who completed an older version of ${t.title} to take version ${t.version}? Their earlier completion stays in their history.`)) return;
+      const r = await fetch(`/api/staff/onboarding/trainings/${encodeURIComponent(t.key)}/require-current`, { method: 'POST', credentials: 'same-origin' });
+      const j = await r.json().catch(() => ({}));
+      S.toast(r.ok ? (j.reassigned ? `Assigned to ${j.reassigned} staff member${j.reassigned === 1 ? '' : 's'}` : 'Everyone already has the current version') : (j.error || j.detail || 'Could not update'), r.ok ? undefined : 'error');
     }
     $('training-list').addEventListener('click', e => { const b = e.target.closest('[data-training]'); if (b) { trainingKey = b.dataset.training; renderTrainings(); } });
     $('training-add').addEventListener('click', async () => {
@@ -216,6 +295,72 @@
       S.toast('Add it to a role template to assign it');
     });
 
+    // ---------------------------------------------------------------- document automation
+    function renderAutomation() {
+      const A = META.automation || {}, pol = A.policy || {};
+      const docReqs = [['license', 'Professional License'], ['bls', 'BLS / CPR Certification'], ['dea', 'DEA Registration']];
+      $('auto-edit').innerHTML = `
+        <h2 class="text-[14px] font-semibold text-ink-900">Document Automation</h2>
+        <p class="text-[12px] text-ink-600 mt-1">When staff upload a document, Althais identifies it, reads it, checks the name, dates, required details and
+          credential information, compares it with what's on file, and looks for anything unusual. Documents that pass every check are verified automatically;
+          fixable problems go back to the employee with what to fix; anything uncertain comes to you.</p>
+        <div class="mt-3 px-3 py-2 rounded-sm border border-line ${A.connected ? 'bg-ok-100 text-ok-600' : 'bg-warn-100 text-warn-600'} text-[12px] font-semibold">
+          ${A.connected ? `Connected — documents are read by Claude (${esc(A.processor || '')}).` : 'Not connected — documents can’t be read automatically, so every one comes to you. Your Althais administrator connects it (ANTHROPIC_API_KEY).'}</div>
+        <label class="flex items-start gap-2 mt-4 text-[12.5px] text-ink-800"><input type="checkbox" id="au-on" class="mt-0.5" ${pol.enabled !== false ? 'checked' : ''}>
+          <span><b>Review uploaded documents automatically</b><span class="block text-[11.5px] text-ink-500">Off: documents aren't read or checked automatically; every one comes to you.</span></span></label>
+        <label class="flex items-start gap-2 mt-3 text-[12.5px] text-ink-800"><input type="checkbox" id="au-auto" class="mt-0.5" ${pol.autoApprove !== false ? 'checked' : ''}>
+          <span><b>Approve documents automatically when every check passes</b><span class="block text-[11.5px] text-ink-500">Off: checks still run, but you approve every document yourself.</span></span></label>
+        <div class="grid sm:grid-cols-2 gap-4 mt-4">
+          <div><label class="lbl" for="au-conf">Required Confidence</label>
+            <select id="au-conf" class="fld">${S.options([{ value: '0.85', label: '85% — fewer reviews' }, { value: '0.9', label: '90% — recommended' }, { value: '0.95', label: '95% — stricter' }], String(pol.minConfidence || 0.9))}</select>
+            <p class="text-[11px] text-ink-500 mt-1">Every key detail must be read at least this surely, or it comes to you.</p></div>
+          <div><label class="lbl" for="au-anom">Potential Issues Sent To You</label>
+            <select id="au-anom" class="fld">${S.options([{ value: 'low', label: 'Any, even minor' }, { value: 'medium', label: 'Moderate and serious — recommended' }, { value: 'high', label: 'Serious only' }], pol.anomalyThreshold || 'medium')}</select></div>
+        </div>
+        <div class="mt-4"><div class="lbl">Require External Verification For</div>
+          ${docReqs.map(([k, l]) => `<label class="flex items-center gap-2 text-[12.5px] text-ink-800 py-0.5"><input type="checkbox" data-ext="${k}" ${(pol.requireExternal || []).includes(k) ? 'checked' : ''}> ${esc(l)}</label>`).join('')}
+          <p class="text-[11px] text-ink-500 mt-1">Connected: ${esc((A.externalSources || []).join(', ') || 'none')}. It checks a person's NPI (and whether their license is listed there, as the provider reported it).
+            State licensing boards, the DEA and BLS card issuers have no public service to check against yet, so documents that require those checks come to you.</p></div>
+        <div class="mt-4 flex justify-end"><button id="au-save" data-admin-only type="button" class="btn btn-primary">Save Settings</button></div>`;
+      const sync = () => { $('au-auto').disabled = !$('au-on').checked; $('au-auto').closest('label').style.opacity = $('au-on').checked ? '' : '.5'; };
+      $('au-on').onchange = sync; sync();
+      $('au-save').onclick = async () => {
+        const rec = { enabled: $('au-on').checked, autoApprove: $('au-auto').checked, minConfidence: Number($('au-conf').value), anomalyThreshold: $('au-anom').value,
+                      requireExternal: [...document.querySelectorAll('[data-ext]:checked')].map(i => i.dataset.ext) };
+        DOC = await S.save(d => { d.clinic.documentAutomation = rec; }, 'Automation settings saved').catch(() => DOC);
+        await reload(); renderAutomation();
+      };
+    }
+
+    // ---------------------------------------------------------------- reminders
+    function renderReminders() {
+      const R = META.reminderRules || {};
+      const list = (a) => (a || []).join(', ');
+      $('rem-edit').innerHTML = `
+        <h2 class="text-[14px] font-semibold text-ink-900">Reminders</h2>
+        <p class="text-[12px] text-ink-600 mt-1">Althais emails staff automatically. Each reminder goes out once — if a day is missed, only the current one is sent, never a pile of old ones.</p>
+        <div class="grid sm:grid-cols-2 gap-4 mt-4">
+          <div><label class="lbl" for="r-task">Onboarding Items (Days Before Deadline)</label><input id="r-task" class="fld num" value="${esc(list(R.taskDays))}">
+            <p class="text-[11px] text-ink-500 mt-1">Plus "due today" and one "overdue" reminder.</p></div>
+          <div><label class="lbl" for="r-renew">Credential Renewals (Days Before Expiration)</label><input id="r-renew" class="fld num" value="${esc(list(R.renewalDays))}">
+            <p class="text-[11px] text-ink-500 mt-1">Plus one when it expires.</p></div>
+          <div><label class="lbl" for="r-train">Training Renewals (Days Before Expiration)</label><input id="r-train" class="fld num" value="${esc(list(R.trainingRenewalDays))}">
+            <p class="text-[11px] text-ink-500 mt-1">Expired training is assigned again automatically.</p></div>
+          <div><label class="lbl" for="r-fix">Correction Follow-Up (Days)</label><input id="r-fix" type="number" min="1" max="30" class="fld num" value="${esc(R.correctionFollowupDays || 3)}">
+            <p class="text-[11px] text-ink-500 mt-1">A second nudge when a sent-back item still isn't fixed.</p></div>
+        </div>
+        <label class="flex items-start gap-2 mt-4 text-[12.5px] text-ink-800"><input type="checkbox" id="r-digest" class="mt-0.5" ${R.weeklyDigest !== false ? 'checked' : ''}>
+          <span><b>Weekly summary of unfinished onboarding</b><span class="block text-[11.5px] text-ink-500">Only on a day no other reminder went out.</span></span></label>
+        <div class="mt-4 flex justify-end"><button id="r-save" data-admin-only type="button" class="btn btn-primary">Save Reminders</button></div>`;
+      const nums = (id) => $(id).value.split(/[\s,]+/).map(Number).filter(n => Number.isInteger(n) && n > 0 && n <= 365);
+      $('r-save').onclick = async () => {
+        const rec = { taskDays: nums('r-task'), renewalDays: nums('r-renew'), trainingRenewalDays: nums('r-train'),
+                      correctionFollowupDays: Math.max(1, Math.min(30, parseInt($('r-fix').value, 10) || 3)), weeklyDigest: $('r-digest').checked };
+        DOC = await S.save(d => { d.clinic.reminderRules = rec; }, 'Reminders saved').catch(() => DOC);
+        await reload(); renderReminders();
+      };
+    }
+
     async function reload() { META = await meta(); META.generic = META.generic || { items: [] }; renderRoles(); }
 
     Promise.all([S.load(), meta()]).then(([d, m]) => {
@@ -223,7 +368,9 @@
       S.readOnlyBanner('readonly-note');
       formKey = META.forms[0] && META.forms[0].key; trainingKey = META.trainings[0] && META.trainings[0].key;
       pickRole(new URLSearchParams(location.search).get('role') || META.roles[0]);
-      renderForms(); renderTrainings();
+      renderForms(); renderTrainings(); renderAutomation(); renderReminders();
+      const tabFromHash = document.querySelector(`[data-ptab="${location.hash.slice(1)}"]`);
+      if (tabFromHash) tabFromHash.click();
     }).catch(e => { $('load-error').textContent = e.message; $('load-error').classList.remove('hidden'); });
   </script>
 </body>

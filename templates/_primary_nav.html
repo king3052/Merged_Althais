@@ -32,9 +32,15 @@
         <span class="hidden lg:inline">Settings</span>
       </a>
       <div class="h-5 w-px bg-white/25"></div>
-      <div class="flex items-center gap-2">
-        <div id="nav-avatar" class="w-7 h-7 rounded-sm bg-white/15 text-white text-[11px] font-semibold flex items-center justify-center flex-shrink-0">--</div>
-        <span id="nav-user-name" class="text-[12.5px] text-white/85 hidden sm:block whitespace-nowrap"></span>
+      <div class="flex items-center gap-2 relative">
+        <!-- your name: your own staff profile and what you need to do (staff_onboarding /api/portal/summary) -->
+        <button type="button" id="nav-me" aria-haspopup="menu" aria-expanded="false" class="flex items-center gap-2 rounded-sm px-1 py-0.5 hover:bg-white/10" title="Your profile">
+          <span class="relative"><span id="nav-avatar" class="w-7 h-7 rounded-sm bg-white/15 text-white text-[11px] font-semibold flex items-center justify-center flex-shrink-0">--</span>
+            <span id="nav-me-badge" class="hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold leading-4 text-center"></span></span>
+          <span id="nav-user-name" class="text-[12.5px] text-white/85 hidden sm:block whitespace-nowrap"></span>
+          <svg class="h-3 w-3 text-white/70 hidden sm:block" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div id="nav-me-menu" role="menu" class="hidden absolute right-0 top-10 w-72 bg-white text-ink-800 border border-line rounded-sm shadow-xl z-50 py-1"></div>
         <form method="POST" action="/logout" style="margin:0">
           <button type="submit" title="Sign out" class="flex items-center justify-center w-7 h-7 rounded-sm hover:bg-white/10 text-white/70 hover:text-white">
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -80,7 +86,7 @@
       overview: ['/overview', '/overview/tasks', '/overview/inbox', '/overview/analytics', '/overview/activity'],
       emr: ['/emr/patients', '/emr/schedule', '/scribe', '/emr'],
       revenue: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence', '/revenue/coding', '/coding'],
-      staff: ['/staff/team', '/staff/onboarding', '/staff/clinic-onboarding', '/staff/credentials', '/staff/compliance', '/staff/training', '/staff/roles'],
+      staff: ['/staff/team', '/staff/needs-attention', '/staff/onboarding', '/staff/clinic-onboarding', '/staff/credentials', '/staff/compliance', '/staff/training', '/staff/roles'],
       scribe: ['/scribe'], coding: ['/coding'],
       insurance: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence'],
     };
@@ -89,7 +95,7 @@
     window.__ALTHAIS_WORKSPACE__ = active;
     window.__ALTHAIS_SUITE__ = suite;
     if (!suite) {
-      const mine = TOOLS.filter(t => products.includes(t.key));
+      const mine = TOOLS.filter(t => products.includes(t.key) && !(t.key === 'staff' && u.can_view_staff === false));
       document.getElementById('primary-tabs').innerHTML = mine.map(t => `<a class="primary-tab" data-workspace="${t.key}" href="${t.href}">${t.label}</a>`).join('');
       document.getElementById('nav-home').href = mine.length ? mine[0].href : '/no-access';
       if (mine.length === 1) { const n = document.getElementById('nav-tool-name'); n.textContent = mine[0].label; n.classList.remove('hidden'); }
@@ -111,6 +117,42 @@
       ca.style.display = '';
       if (path === '/manager') ca.classList.add('bg-white/[0.16]');
     }
+
+    // Staff records are for admins and roles with the Staff Records permission (the server enforces it too)
+    if (u.can_view_staff === false) {
+      document.querySelectorAll('.primary-tab[data-workspace="staff"]').forEach(t => t.remove());
+    }
+
+    // Your name opens your own staff profile and today's to-dos
+    (function () {
+      const btn = document.getElementById('nav-me'), menu = document.getElementById('nav-me-menu'), badge = document.getElementById('nav-me-badge');
+      if (!btn) return;
+      const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const item = (href, title, sub) => `<a role="menuitem" href="${href}" class="block px-3 py-2 hover:bg-shell"><div class="text-[13px] font-semibold text-ink-900">${title}</div>${sub ? `<div class="text-[11.5px] text-ink-500">${sub}</div>` : ''}</a>`;
+      let summary = null;
+      function fill() {
+        const s = summary || {};
+        menu.innerHTML = `<div class="px-3 py-2 border-b border-line"><div class="text-[13px] font-semibold text-ink-900">${esc(u.full_name || u.email)}</div><div class="text-[11.5px] text-ink-500">${esc(u.email)}</div></div>` +
+          (s.hasProfile ? item('/portal#profile', 'My Profile', 'Your information, credentials, training and documents') +
+            item('/portal', 'What To Do Today', s.open ? `${s.open} open item${s.open === 1 ? '' : 's'}${s.overdue ? ` · ${s.overdue} overdue` : ''}${s.fix ? ` · ${s.fix} to fix` : ''}` : 'You’re all caught up')
+            : `<div class="px-3 py-2 text-[11.5px] text-ink-500">You don’t have a staff profile at this clinic.</div>`) +
+          (u.blocked && u.blocked.includes('settings') ? '' : item('/settings', 'Settings', '')) +
+          `<form method="POST" action="/logout" class="border-t border-line mt-1"><button type="submit" role="menuitem" class="w-full text-left px-3 py-2 text-[13px] text-ink-700 hover:bg-shell">Sign Out</button></form>`;
+      }
+      fetch('/api/portal/summary', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => {
+        summary = j; fill();
+        if (j && j.hasProfile && j.open) {
+          badge.textContent = j.open > 9 ? '9+' : j.open;
+          badge.style.background = j.overdue || j.fix ? '#c83838' : '#fff'; badge.style.color = j.overdue || j.fix ? '#fff' : '#0f1116';
+          badge.classList.remove('hidden');
+          btn.title = `${j.open} open item${j.open === 1 ? '' : 's'} — open your profile`;
+        }
+      }).catch(fill);
+      fill();
+      btn.addEventListener('click', (e) => { e.stopPropagation(); const open = menu.classList.toggle('hidden') === false; btn.setAttribute('aria-expanded', open); });
+      document.addEventListener('click', (e) => { if (!menu.contains(e.target)) { menu.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); } });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') menu.classList.add('hidden'); });
+    })();
 
     const displayName = u.provider_name || u.full_name || (u.email ? u.email.split('@')[0] : 'there');
     const initialsSrc = u.provider_name || u.full_name || u.email || 'A';

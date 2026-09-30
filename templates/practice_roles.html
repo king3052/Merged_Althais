@@ -31,8 +31,10 @@
 
     <div class="p-5">
       <div id="readonly-note"></div>
-      <div class="mb-4 px-3 py-2.5 rounded-sm border border-line bg-panel text-[12px] text-ink-600">
-        Staff you activate through <a href="/staff/onboarding" class="font-semibold text-med-600">Onboarding</a> get exactly the Althais access their role has here, and it changes as soon as you change the role. A role with nothing checked gives the Staff Portal only. People added through Manager keep the login access level set there (Viewer, Provider, Biller or Admin).
+      <div class="mb-4 px-3 py-2.5 rounded-sm border border-line bg-panel text-[12px] text-ink-600 space-y-1">
+        <div><b class="text-ink-900">Each role decides what people in it can open in Althais.</b> Staff you activate through <a href="/staff/onboarding" class="font-semibold text-med-600">Onboarding</a> get exactly the access their role has here, and it changes as soon as you change the role.</div>
+        <div>Only roles with <b>Staff Records (Everyone’s)</b> — and clinic admins — can see other staff members. Everyone else sees only their own profile, by clicking their name in the top bar.</div>
+        <div>A role with nothing checked gives the Staff Portal only. People added through Manager keep the login access level set there (Viewer, Provider, Biller or Admin).</div>
       </div>
       <div class="bg-panel border border-line rounded-sm">
         <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
@@ -51,13 +53,24 @@
 
   <script src="/static/js/staff-store.js"></script>
   <script>
+    // what each permission opens, under the matrix
+    document.addEventListener('DOMContentLoaded', () => {
+      const box = document.createElement('div');
+      box.className = 'bg-panel border border-line rounded-sm mt-4';
+      box.innerHTML = '<div class="px-4 py-2.5 border-b border-line"><h3 class="text-[13px] font-semibold text-ink-900">What Each Permission Opens</h3></div>' +
+        window.StaffStore.PERMISSION_AREAS.map(a => `<div class="px-4 py-2 border-b border-lineSoft text-[12.5px] grid grid-cols-[220px_1fr] gap-3"><b class="text-ink-900">${window.StaffStore.esc(a.label)}</b><span class="text-ink-600">${window.StaffStore.esc(a.opens)}</span></div>`).join('') +
+        '<div class="px-4 py-2 text-[12px] text-ink-500">Everyone also has their own Staff Portal and profile, and Althea within their permissions.</div>';
+      document.querySelector('.bg-panel.border.border-line.rounded-sm table').closest('.bg-panel').after(box);
+    });
+  </script>
+  <script>
     const S = window.StaffStore;
     const $ = (id) => document.getElementById(id);
     const esc = S.esc;
     let DOC = null;
     const BUILT_IN = new Set(S.DEFAULT_ROLES.map(r => r.name));
 
-    $('roles-head').innerHTML = '<th class="td text-left" style="min-width:170px;">Role</th>' + S.PERMISSION_AREAS.map(a => `<th class="td text-center">${esc(a.label)}</th>`).join('') + '<th class="td text-right">Staff</th>';
+    $('roles-head').innerHTML = '<th class="td text-left" style="min-width:170px;">Role</th>' + S.PERMISSION_AREAS.map(a => `<th class="td text-center" title="${esc(a.opens)}">${esc(a.label)}</th>`).join('') + '<th class="td text-right">Staff</th>';
 
     function render() {
       const edit = S.canEdit();
