@@ -154,9 +154,13 @@
 
     /* ---------- cards ---------- */
     function head(c) {
-      return '<h3 class="text-[22px] leading-tight font-semibold text-ink-900">' + esc(c.title) + "</h3>" + (c.body ? '<p class="text-[15.5px] text-ink-700 mt-3 leading-relaxed">' + esc(c.body) + "</p>" : "") +
-        (c.bullets.length && c.kind !== "recap" ? '<ul class="mt-4 space-y-2">' + c.bullets.map(function (b) { return '<li class="flex gap-2.5 text-[15px] text-ink-700 leading-relaxed"><span class="text-med-600 font-bold">•</span><span>' + esc(b) + "</span></li>"; }).join("") + "</ul>" : "") +
-        (c.image && c.kind === "text" ? '<figure class="mt-5"><img src="' + esc(c.image) + '" alt="" class="rounded-sm border border-line max-h-[340px] w-auto">' + (c.imageCaption ? '<figcaption class="text-[12px] text-ink-500 mt-1.5">' + esc(c.imageCaption) + "</figcaption>" : "") + "</figure>" : "");
+      var text = '<h3 class="text-[22px] leading-tight font-semibold text-ink-900">' + esc(c.title) + "</h3>" + (c.body ? '<p class="text-[15.5px] text-ink-700 mt-3 leading-relaxed">' + esc(c.body) + "</p>" : "") +
+        (c.bullets.length && c.kind !== "recap" ? '<ul class="mt-4 space-y-2">' + c.bullets.map(function (b) { return '<li class="flex gap-2.5 text-[15px] text-ink-700 leading-relaxed"><span class="text-med-600 font-bold">•</span><span>' + esc(b) + "</span></li>"; }).join("") + "</ul>" : "");
+      if (!(c.image && c.kind === "text")) return text;      // interactive steps (screen tours) draw their own picture
+      // a picture sits beside the text, not under it, so it never leaves a band of empty space
+      return '<div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(220px,300px)] items-start"><div>' + text + "</div>" +
+        '<figure class="md:mt-1"><img src="' + esc(c.image) + '" alt="' + esc(c.imageCaption || c.title) + '" class="rounded-md border border-line w-full h-auto shadow-sm">' +
+        (c.imageCaption ? '<figcaption class="text-[12px] text-ink-500 mt-2 leading-snug">' + esc(c.imageCaption) + "</figcaption>" : "") + "</figure></div>";
     }
     function chapTime(t) { return Math.floor(t / 60) + ":" + ("0" + Math.floor(t % 60)).slice(-2); }
 

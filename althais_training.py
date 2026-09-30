@@ -443,9 +443,9 @@ def _lessons(role: str, areas: set, first_name: str) -> list:
         ]},
         {"key": "workflow", "title": "From Visit To Paid Claim", "minutes": 5, "cards": [
             _card("One visit, many hands", "Every visit follows the same path through Althais. Each step feeds the next, so a mistake early "
-                  "on (a mistyped member ID, a dropped allergy, a wrong code) travels all the way to the claim.",
-                  [f"Your part: {', '.join(yours).lower()}." if yours else
-                   "Your role isn't directly in this path, but it helps to know how the clinic's work fits together."]),
+                  "on (a mistyped member ID, a dropped allergy, a wrong code) travels all the way to the claim. "
+                  + ("Your part:" if yours else "Your role isn't directly in this path, but it helps to know how the clinic's work fits together."),
+                  yours),
             _card("Put the visit in order", "Tap the steps in the order they happen. Steps marked Your Part involve your role.",
                   kind="sequence", steps=steps),
             _card("Why the order matters", "Some steps can't happen until the one before is done, on purpose:",
@@ -571,7 +571,7 @@ TAKEAWAYS = {
     "Your work in Althais": "If you need more access, ask. Don't work around it.",
     "Practice in Althais": "Do it the way you would at work. Althais checks every step.",
 }
-IMAGES = {"One visit, many hands": ("submission.png", "The last step you'll see in the demo: the claim sent to the payer."),
+IMAGES = {"One visit, many hands": ("submission.png", "Where every visit ends up: the claim sent electronically to the payer, waiting for their reply."),
           "Your day in Althais": ("claim-tracking.png", "Claims Overview, with status, risk and AI confidence for every claim.")}
 
 
