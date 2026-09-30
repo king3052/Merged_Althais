@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais | Billing Activation</title>
+  <style>
+    .btn { font-size:12px; padding:6px 11px; border-radius:2px; font-weight:600; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+    .btn-primary { background:var(--brand); color:var(--brand-on); } .btn-primary:hover { background:var(--brand-700); } .btn-primary:disabled { opacity:.5; }
+    .btn-line { border:1px solid #e4e6eb; background:#fff; color:#2c313b; } .btn-line:hover { background:#f4f5f7; }
+    .btn-sm { font-size:11.5px; padding:4px 9px; }
+    .fld { width:100%; border-radius:2px; border:1px solid #e4e6eb; background:#fff; padding:7px 10px; font-size:13px; color:#0f1116; outline:none; }
+    .fld:focus { border-color:var(--brand); }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
+    .tab { font-size:13px; padding:9px 12px; color:#4b5563; border-bottom:2px solid transparent; white-space:nowrap; }
+    .tab.is-on { color:var(--brand-text-strong); border-color:var(--brand); font-weight:600; }
+    .st { font-size:11px; font-weight:700; padding:2px 8px; border-radius:2px; white-space:nowrap; display:inline-block; }
+    .st-ok { background:#e3f5ec; color:#0c8a4f; } .st-wait { background:var(--brand-100); color:var(--brand-text-strong); }
+    .st-todo { background:#fff4e0; color:#b86a00; } .st-bad { background:#fdecec; color:#c83838; } .st-muted { background:#f1f2f5; color:#4b5563; }
+    .tbl { width:100%; border-collapse:collapse; } .tbl th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; padding:8px 12px; background:#f8f9fb; border-bottom:1px solid #e4e6eb; white-space:nowrap; }
+    .tbl td { padding:10px 12px; border-bottom:1px solid #eceef2; vertical-align:top; font-size:12.5px; } .tbl tr:last-child td { border-bottom:0; }
+    .step { display:flex; gap:12px; padding:14px 16px; border-bottom:1px solid #eceef2; } .step:last-child { border-bottom:0; }
+    .dot { width:24px; height:24px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:#e4e6eb; color:#4b5563; }
+    .dot.ok { background:#0c8a4f; color:#fff; }
+    .modal-bg { position:fixed; inset:0; background:rgba(15,17,22,.45); z-index:300; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; font-size:12.5px; } .kv dt { color:#6b7280; } .kv dd { color:#0f1116; }
+    @media (max-width: 900px) { .tbl thead { display:none; } .tbl tr { display:grid; gap:4px; padding:10px 12px; border-bottom:1px solid #eceef2; } .tbl td { padding:0; border:0; } }
+    html[data-theme-resolved="dark"] .btn-line, html[data-theme-resolved="dark"] .fld { background:#1a1d24; border-color:#2c313b; color:#d6dae5; }
+    html[data-theme-resolved="dark"] .tbl th { background:#14181f; border-color:#2c313b; } html[data-theme-resolved="dark"] .tbl td, html[data-theme-resolved="dark"] .step { border-color:#2c313b; }
+    html[data-theme-resolved="dark"] .tab { color:#b8bdcd; }
+  </style>
+</head>
+<body class="bg-shell">
+  {% include "_nav.html" %}
+  <div class="max-w-[1560px] mx-auto">
+    <div class="px-6 py-5 bg-panel border-b border-line flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-[18px] font-semibold text-ink-900">Billing Activation <span id="env" class="align-middle"></span></h1>
+        <p class="text-[12px] text-ink-500 mt-0.5" id="sub">Get your clinic ready to send claims. Everything else in Althais works while this is in progress.</p>
+      </div>
+      <div class="flex gap-2" id="head-actions"></div>
+    </div>
+    <div class="p-5 pb-24" id="root"><div class="text-[13px] text-ink-500">Loading…</div></div>
+  </div>
+  <div id="modal"></div>
+
+  <script src="/static/js/staff-store.js"></script>
+  <script>
+  {% raw %}
+    const S = window.StaffStore, $ = (id) => document.getElementById(id), esc = S.esc;
+    let D = null, TAB = (location.hash || '#checklist').slice(1);
+    async function api(method, url, body, form) {
+      const r = await fetch(url, { method, credentials: 'same-origin', headers: body && !form ? { 'Content-Type': 'application/json' } : {}, body: form || (body ? JSON.stringify(body) : undefined) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || j.detail || 'Something went wrong.');
+      return j;
+    }
+    const fmt = (d) => d ? S.fmtDate(String(d).slice(0, 10)) : '-';
+    const tone = (s) => ['APPROVED', 'VERIFIED', 'NOT_REQUIRED', 'ACTIVE'].includes(s) ? 'st-ok' : ['SUBMITTED', 'IN_REVIEW'].includes(s) ? 'st-wait'
+      : ['DENIED', 'EXPIRED', 'NEEDS_REVIEW', 'PAYER_REQUEST', 'REVOKED'].includes(s) ? 'st-bad' : ['NOT_CONNECTED', 'MANUAL', 'NOT_STARTED', 'NONE', 'NO_LOGIN'].includes(s) ? 'st-muted' : 'st-todo';
+    const pill = (s, label) => `<span class="st ${tone(s)}">${esc(label || s)}</span>`;
+    const card = (title, body, extra) => `<div class="bg-panel border border-line rounded-sm mb-4"><div class="px-4 py-2.5 border-b border-line flex items-center justify-between gap-2"><h3 class="text-[13px] font-semibold text-ink-900">${title}</h3>${extra || ''}</div>${body}</div>`;
+    const empty = (t) => `<div class="px-4 py-6 text-[12.5px] text-ink-500">${t}</div>`;
+
+    // ── shared pieces ──
+    function statusStrip() {
+      const ch = D.clearinghouse, routes = D.routes || [], ready = routes.filter(r => r.ready).length;
+      const box = (t, v, sub, cls) => `<div class="bg-panel border border-line rounded-sm p-4"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${t}</div><div class="text-[17px] font-semibold mt-1 ${cls || 'text-ink-900'}">${v}</div><div class="text-[11.5px] text-ink-500 mt-0.5">${sub}</div></div>`;
+      return `<div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+        ${box('Ready To Send Claims', routes.length ? `${ready} of ${routes.length}` : '-', 'payer and provider combinations', ready ? 'text-ok-600' : 'text-warn-600')}
+        ${box('Clearinghouse', ch.capabilities.claim_submit ? 'Connected' : 'Not connected', esc(ch.label), ch.capabilities.claim_submit ? 'text-ok-600' : 'text-warn-600')}
+        ${box('Your Open Tasks', (D.myTasks.length + D.mySignatures.length) || '0', 'things only you can do')}
+        ${box('Requirements Registry', 'v' + esc(D.registry.version), D.registry.review.reviewedBy ? 'Reviewed by ' + esc(D.registry.review.reviewedBy) : 'Sources listed; not yet reviewed by Althais. Confirm details with each payer.')}
+      </div>`;
+    }
+    function myWork() {
+      const t = D.myTasks, s = D.mySignatures;
+      if (!t.length && !s.length) return '';
+      return card('Waiting On You', s.map(x => `<div class="step"><span class="dot">✎</span><div class="flex-1"><div class="text-[13px] font-semibold text-ink-900">Signature requested</div><div class="text-[12.5px] text-ink-600 mt-0.5">${esc(x.statement.slice(0, 180))}…</div></div><button class="btn btn-primary" data-sign="${x.id}">Review And Sign</button></div>`).join('') +
+        t.filter(x => x.kind !== 'signature').map(taskRow).join(''), `<span class="count-pill">${t.length + s.length}</span>`);
+    }
+    function taskRow(x) {
+      return `<div class="step"><span class="dot">${x.blocking ? '!' : '•'}</span><div class="flex-1 min-w-0"><div class="text-[13px] font-semibold text-ink-900">${esc(x.title)}</div>
+        ${x.detail ? `<div class="text-[12.5px] text-ink-600 mt-0.5">${esc(x.detail)}</div>` : ''}<div class="text-[11.5px] ${x.overdue ? 'text-risk-600' : 'text-ink-400'} mt-1">Due ${fmt(x.due)}${x.overdue ? ' · overdue' : ''}${D.view === 'owner' ? ' · ' + esc(assigneeLabel(x.assignee)) : ''}</div></div>
+        <div class="flex gap-1.5 flex-wrap justify-end">${x.itemId && D.view === 'owner' ? `<button class="btn btn-line btn-sm" data-open-item="${x.itemId}">Open</button>` : ''}${x.kind !== 'signature' ? `<button class="btn btn-line btn-sm" data-task-done="${x.id}">Mark Done</button>` : ''}</div></div>`;
+    }
+    const assigneeLabel = (a) => a === 'owner' ? 'Owners and admins' : a.startsWith('person:') ? ((D.profile && D.profile.providers.find(p => p.personId === a.slice(7)) || {}).name || 'Staff member') : 'Assigned';
+
+    // ── owner / admin ──
+    const TABS = [['checklist', 'Setup Checklist'], ['routes', 'Payers & Providers'], ['items', 'Applications'], ['billers', 'Billers'], ['tasks', 'Tasks'], ['documents', 'Documents'], ['claims', 'Held & Sent Claims'], ['activity', 'Activity']];
+    function ownerView() {
+      const nTasks = D.tasks.length + D.signatures.length;
+      return `${statusStrip()}${myWork()}
+        <div class="bg-panel border border-line rounded-sm"><div class="flex gap-1 overflow-x-auto border-b border-line px-2">${TABS.map(([k, l]) => `<button class="tab${TAB === k ? ' is-on' : ''}" data-tab="${k}">${l}${k === 'tasks' && nTasks ? ` <span class="count-pill">${nTasks}</span>` : ''}${k === 'claims' && D.held.length ? ` <span class="count-pill">${D.held.length}</span>` : ''}</button>`).join('')}</div>
+        <div class="p-4">${({ checklist, routes: routesTab, items: itemsTab, billers: billersTab, tasks: tasksTab, documents: docsTab, claims: claimsTab, activity: activityTab })[TAB] ? ({ checklist, routes: routesTab, items: itemsTab, billers: billersTab, tasks: tasksTab, documents: docsTab, claims: claimsTab, activity: activityTab })[TAB]() : ''}</div></div>`;
+    }
+    function checklist() {
+      const P = D.profile, it = (req) => D.items.filter(i => i.requirement === req);
+      const allOk = (req) => it(req).length && it(req).every(i => i.ready);
+      const confirmedAll = ['legal_name', 'npi', 'tin', 'address'].every(k => P.confirmed[k]);
+      const steps = [
+        ['Confirm your clinic\'s billing details', confirmedAll && allOk('entity_npi'), 'profile'],
+        ['Add the providers who see patients', P.providers.length > 0 && P.providers.every(p => p.confirmed), 'providers'],
+        ['List the payers you bill, and whether you already bill each one', P.payers.length > 0 && P.payers.every(p => p.alreadyBills !== null && p.alreadyBills !== undefined), 'payers'],
+        ['Authorize Althais to prepare applications and send claims', allOk('clinic_authorization'), 'auth'],
+        ['Connect your clearinghouse', allOk('clearinghouse_account'), 'ch'],
+        ['Finish each payer\'s applications', D.items.filter(i => i.blocksClaims && i.payerKey).every(i => i.ready) && D.items.some(i => i.payerKey), 'apps'],
+        ['Give your billers claim submission access', D.billers.length ? D.billers.every(b => b.access === 'ACTIVE') : false, 'billers'],
+      ];
+      return `<p class="text-[13px] text-ink-600 mb-3">Your whole workspace is open${D.purchasingOwner ? ' to ' + esc(D.purchasingOwner) + ' and your team' : ''}. Only sending claims waits for these steps. Drafts can be created any time and are kept safely until you're ready.</p>
+        <div class="border border-line rounded-sm">${steps.map(([t, ok, k], i) => `<div class="step"><span class="dot${ok ? ' ok' : ''}">${ok ? '✓' : i + 1}</span><div class="flex-1 min-w-0"><div class="text-[13.5px] font-semibold text-ink-900">${t}</div>${stepBody(k)}</div></div>`).join('')}</div>`;
+    }
+    function srcTag(k, ck) {
+      const s = D.profile.sources[k], c = D.profile.confirmed[ck || k];
+      const from = s && s !== 'Entered in Billing Activation' ? 'from ' + s : '';
+      const bits = [from, c ? 'confirmed' : ''].filter(Boolean).join(' · ');
+      return bits ? `<span class="normal-case tracking-normal font-normal text-[11px] text-ink-400 ml-1">${esc(bits)}</span>` : '';
+    }
+    function stepBody(k) {
+      const P = D.profile;
+      if (k === 'profile') return `<form id="f-profile" class="grid sm:grid-cols-2 gap-3 mt-3 max-w-[820px]">
+          <div><label class="lbl" for="p-name">Legal business name ${srcTag('legalName', 'legal_name')}</label><input id="p-name" class="fld" value="${esc(P.legalName)}"></div>
+          <div><label class="lbl" for="p-npi">Organization NPI (Type 2) ${srcTag('npi')}</label><input id="p-npi" class="fld font-mono" inputmode="numeric" value="${esc(P.npi)}"></div>
+          <div><label class="lbl" for="p-tin">Tax ID (EIN) ${srcTag('tin')}</label><input id="p-tin" class="fld font-mono" placeholder="${P.hasTin ? esc(P.tinMasked) + ' (leave blank to keep)' : '9 digits'}" autocomplete="off"></div>
+          <div><label class="lbl" for="p-tax">Taxonomy code</label><input id="p-tax" class="fld font-mono" placeholder="e.g. 207Q00000X" value="${esc(P.taxonomy)}"></div>
+          <div class="sm:col-span-2"><label class="lbl" for="p-a1">Billing address ${srcTag('address')}</label><input id="p-a1" class="fld" value="${esc(P.address.line1 || '')}"></div>
+          <div><label class="lbl" for="p-city">City</label><input id="p-city" class="fld" value="${esc(P.address.city || '')}"></div>
+          <div class="grid grid-cols-2 gap-3"><div><label class="lbl" for="p-state">State</label><input id="p-state" class="fld" maxlength="2" value="${esc(P.address.state || '')}"></div><div><label class="lbl" for="p-zip">ZIP</label><input id="p-zip" class="fld" value="${esc(P.address.zip || '')}"></div></div>
+          <div><label class="lbl" for="p-cname">Billing contact</label><input id="p-cname" class="fld" value="${esc(P.contact.name || '')}"></div>
+          <div><label class="lbl" for="p-cemail">Contact email</label><input id="p-cemail" class="fld" value="${esc(P.contact.email || '')}"></div>
+          <div class="sm:col-span-2 flex gap-2 flex-wrap items-center"><button class="btn btn-primary" type="submit">Save Details</button>
+            <button class="btn btn-line" type="button" data-confirm-profile>These Are Correct</button><span class="text-[11.5px] text-ink-500">Prefilled details count only after you confirm them. Althais checks the NPI with the NPI Registry.</span></div></form>`;
+      if (k === 'providers') return `<div class="mt-3 space-y-2 max-w-[980px]">${P.providers.map((p, i) => `<div class="grid sm:grid-cols-6 gap-2 items-end border border-line rounded-sm p-3" data-prov="${esc(p.id)}">
+            <div class="sm:col-span-2"><label class="lbl">Name</label><input class="fld" data-k="name" value="${esc(p.name)}"></div>
+            <div><label class="lbl">NPI (Type 1)</label><input class="fld font-mono" data-k="npi" value="${esc(p.npi || '')}"></div>
+            <div><label class="lbl">Taxonomy</label><input class="fld font-mono" data-k="taxonomy" value="${esc(p.taxonomy || '')}"></div>
+            <div><label class="lbl">License # / State</label><div class="flex gap-1"><input class="fld font-mono" data-k="licenseNumber" value="${esc(p.licenseNumber || '')}"><input class="fld" style="width:52px" maxlength="2" data-k="licenseState" value="${esc(p.licenseState || '')}"></div></div>
+            <div><label class="lbl">License expires</label><input class="fld" type="date" data-k="licenseExpires" value="${esc(p.licenseExpires || '')}"></div>
+            <div class="sm:col-span-6 text-[11.5px] text-ink-500">${esc(p.source || 'Entered here')}${p.confirmed ? ' · confirmed by ' + esc(p.confirmed.by) : ' · not confirmed yet'} · <button class="text-risk-600 font-semibold" type="button" data-prov-del="${i}">Remove</button></div></div>`).join('') || '<div class="text-[12.5px] text-ink-500">No providers yet.</div>'}
+          <div class="flex gap-2 flex-wrap items-center"><select id="prov-add" class="fld" style="max-width:280px"><option value="">Add a provider from your staff…</option>${D.staffPhysicians.filter(s => !P.providers.some(p => p.personId === s.personId)).map(s => `<option value="${esc(s.personId)}">${esc(s.name)}</option>`).join('')}<option value="__new">Someone not in Staff</option></select>
+          <button class="btn btn-primary" data-save-providers>Save Providers</button><button class="btn btn-line" data-confirm-providers>These Are Correct</button></div></div>`;
+      if (k === 'payers') return `<div class="mt-3 max-w-[980px]"><table class="tbl border border-line"><thead><tr><th>Payer</th><th>Type</th><th>Do you already bill them?</th><th>Network</th><th></th></tr></thead><tbody>${P.payers.map((p, i) => `<tr data-payer="${i}">
+            <td><input class="fld" data-k="name" value="${esc(p.name)}">${p.reported && (p.reported.status || p.reported.providerId) ? `<div class="text-[11px] text-ink-400 mt-1">Clinic Onboarding says: ${esc(p.reported.status || '')}${p.reported.providerId ? ', ID on file' : ''}. Althais needs proof before it counts.</div>` : ''}</td>
+            <td><select class="fld" data-k="type">${Object.entries(D.payerTypes).map(([k, l]) => `<option value="${k}"${p.type === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></td>
+            <td><select class="fld" data-k="alreadyBills"><option value=""${p.alreadyBills == null ? ' selected' : ''}>Choose…</option><option value="yes"${p.alreadyBills === true ? ' selected' : ''}>Yes, we already bill them</option><option value="no"${p.alreadyBills === false ? ' selected' : ''}>No, we need to enroll</option></select></td>
+            <td><select class="fld" data-k="network"><option value="">Not decided</option><option value="in"${p.network === 'in' ? ' selected' : ''}>In-network</option><option value="out"${p.network === 'out' ? ' selected' : ''}>Out-of-network</option></select></td>
+            <td><button class="text-risk-600 font-semibold text-[12px]" data-payer-del="${i}">Remove</button></td></tr>`).join('') || `<tr><td colspan="5" class="text-ink-500">No payers yet.</td></tr>`}</tbody></table>
+          <div class="flex gap-2 mt-2 flex-wrap"><input id="payer-new" class="fld" style="max-width:260px" placeholder="Add a payer, e.g. Aetna"><button class="btn btn-line" data-add-payer>Add</button><button class="btn btn-primary" data-save-payers>Save Payers</button></div></div>`;
+      if (k === 'auth') { const i = D.items.find(x => x.requirement === 'clinic_authorization'); return i ? `<div class="mt-1 text-[12.5px] text-ink-600">${pill(i.status, i.statusLabel)} ${i.ready ? 'Signed by ' + esc(i.evidence.verifiedBy) : 'A clinic owner signs this in Althais. See "Waiting On You" above.'}</div>` : ''; }
+      if (k === 'ch') return `<div class="mt-1 text-[12.5px] text-ink-600">${esc(D.clearinghouse.label)}. ${D.clearinghouse.capabilities.claim_submit ? '' : 'Althais needs partner access to send claims. Until then, you can finish everything else, and claims are held safely instead of being sent.'}</div>`;
+      if (k === 'apps') { const n = D.items.filter(i => i.payerKey), ok = n.filter(i => i.ready).length; return `<div class="mt-1 text-[12.5px] text-ink-600">${ok} of ${n.length} payer items done. <button class="font-semibold text-med-600" data-tab="items">See applications ›</button></div>`; }
+      if (k === 'billers') return `<div class="mt-1 text-[12.5px] text-ink-600">${D.billers.length ? D.billers.map(b => esc(b.name) + ': ' + (b.access === 'ACTIVE' ? 'can send claims' : 'not yet')).join(' · ') : 'No billers yet. Add someone with the Biller role in Staff Onboarding.'} <button class="font-semibold text-med-600" data-tab="billers">Manage ›</button></div>`;
+      return '';
+    }
+    function routesTab() {
+      if (!D.routes.length) return empty('Add payers and providers in the Setup Checklist first.');
+      return `<table class="tbl"><thead><tr><th>Payer</th><th>Provider</th><th>Claims (837P)</th><th>What's left</th></tr></thead><tbody>${D.routes.map(r => `<tr>
+        <td class="font-semibold">${esc(r.payer)}</td><td>${esc(r.provider || '-')}</td><td>${r.ready ? pill('APPROVED', 'Ready') : pill('NOT_STARTED', 'Not ready')}</td>
+        <td>${r.ready ? '<span class="text-ok-600">Claims can be sent.</span>' : '<ul class="space-y-1">' + r.blockers.map(b => `<li><b class="text-ink-900">${esc(b.title)}</b>: ${esc(b.reason)}${b.next ? ` <span class="text-med-700">· ${esc(b.next)}</span>` : ''}</li>`).join('') + '</ul>'}</td></tr>`).join('')}</tbody></table>`;
+    }
+    function itemsTab() {
+      const rows = D.items.filter(i => i.requirement !== 'x');
+      return `<p class="text-[12.5px] text-ink-600 mb-3">Each requirement is tracked on its own: enrollment, credentialing, contracting, electronic claims and connection move on different timelines. Nothing counts as ready without evidence and an effective date that has arrived.</p>
+        <div class="overflow-x-auto"><table class="tbl"><thead><tr><th>Requirement</th><th>Status</th><th>Next action</th><th>Responsible</th><th>Submitted</th><th>Effective</th><th>Evidence</th><th>Last update</th><th></th></tr></thead><tbody>${rows.map(i => `<tr id="item-${i.id}">
+          <td><div class="font-semibold text-ink-900">${esc(i.title)}</div><div class="text-[11.5px] text-ink-500">${[i.payer, i.provider, i.transaction].filter(Boolean).map(esc).join(' · ') || 'Clinic'}${i.supported ? '' : ' · you submit this one'}</div>
+            ${i.source && i.source.title ? `<div class="text-[11px] text-ink-400 mt-0.5">Source: ${i.source.url ? `<a class="underline" href="${esc(i.source.url)}" target="_blank" rel="noopener">${esc(i.source.title)}</a>` : esc(i.source.title)}</div>` : ''}</td>
+          <td>${pill(i.status, i.statusLabel)}${!i.ready && i.why && i.why !== i.statusLabel ? `<div class="text-[11px] text-ink-500 mt-1">${esc(i.why)}</div>` : ''}${i.environment === 'sandbox' ? '<div class="text-[11px] text-ink-400">test mode</div>' : ''}</td>
+          <td class="text-ink-700">${esc(i.next || '-')}</td><td>${esc(i.responsible)}</td>
+          <td>${i.submittedAt ? fmt(i.submittedAt) + (i.daysPending != null ? `<div class="text-[11px] text-ink-500">${i.daysPending} days pending</div>` : '') : '-'}${i.reference ? `<div class="text-[11px] text-ink-500 font-mono">${esc(i.reference)}</div>` : ''}</td>
+          <td>${i.effectiveDate ? fmt(i.effectiveDate) : '-'}${i.expiresAt ? `<div class="text-[11px] text-ink-500">until ${fmt(i.expiresAt)}</div>` : ''}</td>
+          <td>${i.evidence.documentId ? `<a class="text-med-600 font-semibold" href="/api/billing/documents/${i.evidence.documentId}/file" target="_blank" rel="noopener">Document</a>` : i.evidence.source ? esc(i.evidence.source === 'nppes' ? 'NPI Registry' : i.evidence.source) : '-'}${i.evidence.verifiedBy ? `<div class="text-[11px] text-ink-500">${esc(i.evidence.verifiedBy)}${i.evidence.verifiedAt ? ', ' + fmt(i.evidence.verifiedAt) : ''}</div>` : ''}</td>
+          <td>${i.lastUpdate ? fmt(i.lastUpdate) + `<div class="text-[11px] text-ink-500">${esc(i.lastUpdateSource)}</div>` : '-'}</td>
+          <td><div class="flex flex-col gap-1 items-end">${['READY_TO_SUBMIT', 'MANUAL', 'SIGNATURE_NEEDED', 'NEEDS_REVIEW', 'INFO_NEEDED'].includes(i.status) && i.track !== 'identity' && i.track !== 'authorization' && i.track !== 'connectivity' ? `<a class="btn btn-line btn-sm" href="/api/billing/items/${i.id}/packet" target="_blank" rel="noopener">Packet</a>` : ''}
+            ${['READY_TO_SUBMIT', 'MANUAL'].includes(i.status) ? `<button class="btn btn-line btn-sm" data-submitted="${i.id}">Record Submission</button>` : ''}
+            ${!i.ready && i.track !== 'authorization' ? `<button class="btn btn-line btn-sm" data-confirm-item="${i.id}">Confirm With Evidence</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div>`;
+    }
+    function billersTab() {
+      const pol = D.profile.policy || {}, auto = pol.autoActivateBillers || {}, rel = pol.autoReleaseHeld || {};
+      return `<div class="grid gap-3 md:grid-cols-2 mb-4">
+        <label class="flex items-start gap-3 border border-line rounded-sm p-3"><input type="checkbox" class="mt-1" data-policy="autoActivateBillers"${auto.enabled ? ' checked' : ''}><span><b class="text-[13px] text-ink-900">Turn on access automatically when a biller finishes their checklist</b><span class="block text-[12px] text-ink-600">Only for active staff with the Biller role who finished training, the practice claim and the acknowledgment. Off unless you turn it on.${auto.enabled ? ' Turned on by ' + esc(auto.approvedBy) + ' on ' + fmt(auto.approvedAt) + '.' : ''}</span></span></label>
+        <label class="flex items-start gap-3 border border-line rounded-sm p-3"><input type="checkbox" class="mt-1" data-policy="autoReleaseHeld"${rel.enabled ? ' checked' : ''}><span><b class="text-[13px] text-ink-900">Send held claims automatically once everything is ready</b><span class="block text-[12px] text-ink-600">Each claim is checked again right before it goes. Off means the biller gets a task to send it.${rel.enabled ? ' Turned on by ' + esc(rel.approvedBy) + '.' : ''}</span></span></label></div>
+        ${D.billers.length ? `<table class="tbl"><thead><tr><th>Biller</th><th>Checklist</th><th>Claim submission</th><th></th></tr></thead><tbody>${D.billers.map(b => `<tr>
+          <td class="font-semibold">${esc(b.name)}<div class="text-[11.5px] text-ink-500 font-normal">${esc(b.lifecycle)}</div></td>
+          <td>${b.checklist.steps.map(s => `<div class="text-[12px]">${s.done ? '<span class="text-ok-600">✓</span>' : '<span class="text-ink-400">○</span>'} ${esc(s.title)}</div>`).join('')}</td>
+          <td>${pill(b.access, { ACTIVE: 'Can send claims', PENDING: 'Not yet', REVOKED: 'Turned off', NO_LOGIN: 'Hasn\'t signed in' }[b.access] || b.access)}${b.grantedBy ? `<div class="text-[11px] text-ink-500 mt-1">${esc(b.grantedVia === 'rule' ? 'By rule' : 'By ' + b.grantedBy)}, ${fmt(b.grantedAt)}</div>` : ''}</td>
+          <td class="text-right">${b.access === 'ACTIVE' ? `<button class="btn btn-line btn-sm" data-biller="${esc(b.personId)}" data-act="revoke">Turn Off</button>` : b.access !== 'NO_LOGIN' ? `<button class="btn btn-primary btn-sm" data-biller="${esc(b.personId)}" data-act="approve"${b.checklist.readyForAccess ? '' : ' disabled title="Their checklist isn\'t finished"'}>Approve Access</button>` : ''}</td></tr>`).join('')}</tbody></table>`
+          : empty('No one has the Biller role yet. Billers get their own checklist automatically when you add them in Staff Onboarding.')}
+        <div class="mt-4 text-[12.5px] text-ink-600">Do you send claims yourself? ${D.me && D.me.access === 'ACTIVE' ? '<b class="text-ok-600">Your login can send claims.</b>' : '<button class="btn btn-line btn-sm" data-self-access>Allow My Login To Send Claims</button>'}</div>`;
+    }
+    function tasksTab() {
+      return (D.signatures.length ? card('Signatures Requested', D.signatures.map(x => `<div class="step"><span class="dot">✎</span><div class="flex-1 text-[12.5px] text-ink-700">${esc(x.statement.slice(0, 160))}… <div class="text-[11.5px] text-ink-500 mt-1">For: ${esc(assigneeLabel(x.signer))} · requested ${fmt(x.requested)}</div></div></div>`).join('')) : '') +
+        (D.tasks.length ? card('Open Tasks', D.tasks.map(taskRow).join('')) : empty('No open tasks.'));
+    }
+    function docsTab() {
+      return `<form id="f-doc" class="flex gap-2 flex-wrap items-end mb-4"><div><label class="lbl" for="doc-type">Document</label><select id="doc-type" class="fld">${Object.entries(D.docTypes).map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
+        <div><label class="lbl" for="doc-item">For</label><select id="doc-item" class="fld" style="max-width:320px"><option value="">General</option>${D.items.filter(i => !i.ready).map(i => `<option value="${i.id}">${esc(i.title)}${i.payer ? ' · ' + esc(i.payer) : ''}${i.provider ? ' · ' + esc(i.provider) : ''}</option>`).join('')}</select></div>
+        <div><label class="lbl" for="doc-file">File (PDF or photo)</label><input id="doc-file" type="file" accept="application/pdf,image/*" class="fld"></div><button class="btn btn-primary" type="submit">Upload And Check</button></form>
+        <p class="text-[12px] text-ink-500 mb-3">Althais reads the document, checks dates and whether it matches your billing profile, and sends anything uncertain to you. Reading a document never approves anything by itself.</p>
+        ${D.documents.length ? `<table class="tbl"><thead><tr><th>Document</th><th>What Althais found</th><th>Status</th><th></th></tr></thead><tbody>${D.documents.map(d => `<tr>
+          <td class="font-semibold">${esc(d.typeLabel)}<div class="text-[11.5px] text-ink-500 font-normal">${esc(d.filename)} · ${fmt(d.uploaded)}</div></td>
+          <td>${Object.entries(d.fields).map(([k, v]) => `<div class="text-[12px]"><span class="text-ink-500">${esc(k.replace(/_/g, ' '))}:</span> ${esc(v)}</div>`).join('') || '<span class="text-ink-400">-</span>'}${d.issues.map(x => `<div class="text-[12px] text-risk-600">${esc(x)}</div>`).join('')}</td>
+          <td>${pill(d.status === 'checked' || d.status === 'reviewed' ? 'VERIFIED' : 'NEEDS_REVIEW', { checked: 'Checked', reviewed: 'Reviewed', needs_review: 'Needs review', checking: 'Checking' }[d.status])}</td>
+          <td class="text-right"><a class="btn btn-line btn-sm" href="/api/billing/documents/${d.id}/file" target="_blank" rel="noopener">View</a>${d.status === 'needs_review' ? ` <button class="btn btn-line btn-sm" data-doc-reviewed="${d.id}">I Checked It</button>` : ''}</td></tr>`).join('')}</tbody></table>` : empty('No documents yet.')}`;
+    }
+    function claimsTab() {
+      return card('Held Claims', D.held.length ? D.held.map(h => `<div class="step"><span class="dot">⏸</span><div class="flex-1"><div class="text-[13px] font-semibold text-ink-900">${esc(h.claimId)} · ${esc(h.patient)} · ${esc(h.payer)}</div>
+          <div class="text-[11.5px] text-ink-500">Held since ${fmt(h.since)}. Saved as-is; nothing was sent.</div><ul class="mt-1 space-y-0.5">${h.blockers.map(b => `<li class="text-[12.5px]"><b>${esc(b.title)}</b>: ${esc(b.reason)}</li>`).join('')}</ul></div></div>`).join('') : empty('No held claims.')) +
+        card('Recently Sent', (D.sent || []).length ? `<table class="tbl"><thead><tr><th>Claim</th><th>Delivered</th><th>Clearinghouse</th><th>Payer</th><th>Payment</th></tr></thead><tbody>${D.sent.map(h => `<tr><td class="font-semibold">${esc(h.claimId)}${h.environment === 'sandbox' ? ' <span class="st st-muted">Test</span>' : ''}<div class="text-[11px] font-mono text-ink-500">${esc(h.reference)}</div></td>
+          <td>${fmt(h.sentAt)}</td><td>${pill(h.ack === 'ACCEPTED' ? 'APPROVED' : h.ack === 'REJECTED' ? 'DENIED' : 'SUBMITTED', h.ack || 'Pending')}</td><td>${pill(h.payerStatus === 'ACCEPTED' ? 'APPROVED' : h.payerStatus === 'REJECTED' ? 'DENIED' : 'SUBMITTED', h.payerStatus || 'Pending')}</td><td>${h.payment ? pill(h.payment === 'PAID' ? 'APPROVED' : 'DENIED', h.payment) : '-'}</td></tr>`).join('')}</tbody></table>` : empty('Nothing sent yet.'));
+    }
+    function activityTab() {
+      const m = D.metrics, v = (x, u) => x == null ? '-' : x + ' ' + u;
+      return `<div class="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-2">${[['Staff ready', v(m.staffReadinessDays, 'days avg'), 'biller added to access approved'], ['Applications prepared', v(m.applicationPrepDays, 'days avg'), 'started to submitted'], ['Payer approval', v(m.externalApprovalDays, 'days avg'), 'submitted to approved'], ['First accepted claim', v(m.daysToFirstAcceptedClaim, 'days'), 'from the start of setup']].map(([t, x, s]) => `<div class="border border-line rounded-sm p-3"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">${t}</div><div class="text-[16px] font-semibold text-ink-900 mt-1">${x}</div><div class="text-[11px] text-ink-500">${s}</div></div>`).join('')}</div>
+        <p class="text-[11.5px] text-ink-500 mb-4">${esc(m.note)}</p>
+        ${card('History', D.activity.length ? `<table class="tbl"><tbody>${D.activity.map(e => `<tr><td class="whitespace-nowrap">${fmt(e.at)}</td><td>${esc(e.kind.replace(/_/g, ' '))}${e.to ? ': ' + esc(e.from || '-') + ' → ' + esc(e.to) : ''}${e.environment === 'sandbox' ? ' <span class="st st-muted">Test</span>' : ''}</td><td class="text-ink-500">${esc(e.source)}</td><td class="text-ink-600">${esc(e.note)}</td></tr>`).join('')}</tbody></table>` : empty('Nothing yet.'))}`;
+    }
+
+    // ── biller ──
+    function billerView() {
+      const me = D.me || { checklist: { steps: [] }, access: 'PENDING' };
+      return `${myWork()}${card('Your Billing Checklist', `<div>${me.checklist.steps.map((s, i) => `<div class="step"><span class="dot${s.done ? ' ok' : ''}">${s.done ? '✓' : i + 1}</span><div class="flex-1"><div class="text-[13.5px] font-semibold text-ink-900">${esc(s.title)}</div></div>${s.done ? '' : `<a class="btn btn-primary btn-sm" href="${esc(s.link)}">Start</a>`}</div>`).join('')}
+          <div class="step"><span class="dot${me.access === 'ACTIVE' ? ' ok' : ''}">${me.access === 'ACTIVE' ? '✓' : me.checklist.steps.length + 1}</span><div class="flex-1"><div class="text-[13.5px] font-semibold text-ink-900">Claim submission access</div><div class="text-[12.5px] text-ink-600">${me.access === 'ACTIVE' ? 'You can send claims once the clinic\'s payer setup is ready.' : me.checklist.readyForAccess ? 'Your checklist is done. A clinic owner approves your access.' : 'A clinic owner approves this after your checklist is done.'}</div></div></div></div>`)}
+        ${card('Clinic Payer Setup', D.routes.length ? `<table class="tbl"><tbody>${D.routes.map(r => `<tr><td class="font-semibold">${esc(r.payer)}</td><td>${esc(r.provider || '')}</td><td>${r.ready ? pill('APPROVED', 'Ready') : pill('NOT_STARTED', 'Not ready yet')}</td><td class="text-ink-600">${r.ready ? '' : esc((r.blockers[0] || {}).title || '')}</td></tr>`).join('')}</tbody></table>` : empty('Your clinic hasn\'t added payers yet.'))}
+        ${card('Your Held Claims', (D.held || []).length ? D.held.map(h => `<div class="step"><span class="dot">⏸</span><div class="flex-1"><div class="text-[13px] font-semibold">${esc(h.claimId)} · ${esc(h.patient)}</div><ul>${h.blockers.map(b => `<li class="text-[12.5px]"><b>${esc(b.title)}</b>: ${esc(b.reason)}</li>`).join('')}</ul></div></div>`).join('') : empty('None. Drafts you create are kept until they can be sent.'))}`;
+    }
+    // ── provider ──
+    function providerView() {
+      return `${myWork() || card('Your Billing Requests', empty('Nothing needs you right now.'))}
+        ${card('Your Enrollment Status', (D.items || []).length ? `<table class="tbl"><tbody>${D.items.map(i => `<tr><td class="font-semibold">${esc(i.title)}<div class="text-[11.5px] text-ink-500 font-normal">${esc(i.payer || '')}</div></td><td>${pill(i.status, i.statusLabel)}</td><td class="text-ink-600">${esc(i.next || '')}</td></tr>`).join('')}</tbody></table>` : empty('Nothing yet.'))}`;
+    }
+
+    function render() {
+      $('env').innerHTML = D.environment === 'sandbox' ? '<span class="st st-muted" title="Test mode: nothing reaches a payer">Test Mode</span>' : '';
+      $('head-actions').innerHTML = D.view === 'owner' ? '<button class="btn btn-line" data-refresh>Check Again</button>' : '';
+      if (D.view === 'owner') $('root').innerHTML = ownerView();
+      else if (D.view === 'biller') $('root').innerHTML = statusStrip() + billerView();
+      else if (D.view === 'provider') $('root').innerHTML = providerView();
+      else $('root').innerHTML = card('Billing Activation', empty('Your clinic\'s owners set up billing here. Nothing here needs you.'));
+    }
+    async function load() {
+      try { D = await api('GET', '/api/billing/overview'); render(); }
+      catch (e) { $('root').innerHTML = `<div class="text-[13px] text-risk-600">${esc(e.message)}</div>`; }
+    }
+    function modal(html) { $('modal').innerHTML = `<div class="modal-bg" data-modal-bg><div class="bg-panel rounded-md shadow-xl w-full max-w-[520px] p-5" role="dialog" aria-modal="true">${html}</div></div>`; }
+    function closeModal() { $('modal').innerHTML = ''; }
+    async function act(fn, msg) { try { await fn(); if (msg) S.toast(msg); closeModal(); await load(); } catch (e) { S.toast(e.message, 'error'); } }
+
+    // ── events ──
+    document.addEventListener('click', (e) => {
+      const t = (sel) => e.target.closest(sel);
+      let b;
+      if (t('[data-modal-bg]') === e.target || t('[data-close]')) return closeModal();
+      if ((b = t('[data-tab]'))) { TAB = b.dataset.tab; history.replaceState(null, '', '#' + TAB); return render(); }
+      if (t('[data-refresh]')) return act(() => api('POST', '/api/billing/sync'), 'Checking again');
+      if (t('[data-confirm-profile]')) return act(() => api('POST', '/api/billing/profile/confirm', { fields: ['legal_name', 'npi', 'tin', 'address', 'taxonomy'] }), 'Confirmed');
+      if (t('[data-confirm-providers]')) return act(() => api('POST', '/api/billing/profile/confirm', { providers: D.profile.providers.map(p => p.id) }), 'Providers confirmed');
+      if (t('[data-save-providers]')) return act(() => api('PUT', '/api/billing/providers', { providers: collectProviders() }), 'Providers saved');
+      if ((b = t('[data-prov-del]'))) { D.profile.providers.splice(Number(b.dataset.provDel), 1); return render(); }
+      if (t('[data-save-payers]')) return act(() => api('PUT', '/api/billing/payers', { payers: collectPayers() }), 'Payers saved');
+      if (t('[data-add-payer]')) { const n = $('payer-new').value.trim(); if (!n) return; D.profile.payers = collectPayers(); D.profile.payers.push({ name: n, type: '', alreadyBills: null }); return render(); }
+      if ((b = t('[data-payer-del]'))) { D.profile.payers = collectPayers(); D.profile.payers.splice(Number(b.dataset.payerDel), 1); return render(); }
+      if ((b = t('[data-task-done]'))) return act(() => api('POST', `/api/billing/tasks/${b.dataset.taskDone}/done`, {}), 'Done');
+      if ((b = t('[data-doc-reviewed]'))) return act(() => api('POST', `/api/billing/documents/${b.dataset.docReviewed}/reviewed`), 'Marked as checked');
+      if ((b = t('[data-biller]'))) return act(() => api('POST', `/api/billing/billers/${encodeURIComponent(b.dataset.biller)}/access`, { action: b.dataset.act }), b.dataset.act === 'approve' ? 'Access approved' : 'Access turned off');
+      if (t('[data-self-access]')) return act(() => api('POST', '/api/billing/me/access'), 'Your login can send claims');
+      if ((b = t('[data-open-item]'))) { TAB = 'items'; render(); const r = document.getElementById('item-' + b.dataset.openItem); if (r) r.scrollIntoView({ block: 'center' }); return; }
+      if ((b = t('[data-sign]'))) {
+        const s = D.mySignatures.find(x => String(x.id) === b.dataset.sign);
+        return modal(`<h3 class="text-[16px] font-semibold text-ink-900">Review And Sign</h3><div class="mt-3 p-3 rounded-sm bg-shell border border-line text-[13px] leading-relaxed">${esc(s.statement)}</div>
+          <label class="flex gap-2 items-start mt-3 text-[13px]"><input type="checkbox" id="sg-agree" class="mt-1"> I have read this and agree. I'm signing for myself.</label>
+          <label class="lbl mt-3" for="sg-name">Type your full name</label><input id="sg-name" class="fld" autocomplete="name">
+          <div class="mt-4 flex justify-end gap-2"><button class="btn btn-line" data-close>Cancel</button><button class="btn btn-primary" data-do-sign="${s.id}">Sign</button></div>`);
+      }
+      if ((b = t('[data-do-sign]'))) return act(() => api('POST', `/api/billing/signatures/${b.dataset.doSign}/sign`, { agree: $('sg-agree').checked, typedName: $('sg-name').value }), 'Signed');
+      if ((b = t('[data-submitted]'))) return modal(`<h3 class="text-[16px] font-semibold">Record The Submission</h3><p class="text-[12.5px] text-ink-600 mt-1">After you submit it to the payer, record what they gave you. Althais tracks it from here and reminds you if it takes long.</p>
+          <label class="lbl mt-3" for="sb-ref">Reference or confirmation number</label><input id="sb-ref" class="fld font-mono"><label class="lbl mt-3" for="sb-on">Submitted on</label><input id="sb-on" type="date" class="fld" value="${S.todayIso()}">
+          <div class="mt-4 flex justify-end gap-2"><button class="btn btn-line" data-close>Cancel</button><button class="btn btn-primary" data-do-submitted="${b.dataset.submitted}">Save</button></div>`);
+      if ((b = t('[data-do-submitted]'))) return act(() => api('POST', `/api/billing/items/${b.dataset.doSubmitted}/submitted`, { reference: $('sb-ref').value, submittedOn: $('sb-on').value }), 'Recorded');
+      if ((b = t('[data-confirm-item]'))) {
+        const i = D.items.find(x => String(x.id) === b.dataset.confirmItem);
+        return modal(`<h3 class="text-[16px] font-semibold">Confirm: ${esc(i.title)}</h3><p class="text-[12.5px] text-ink-600 mt-1">Only confirm what you have proof of. It counts only once its effective date arrives.</p>
+          <label class="lbl mt-3" for="cf-st">Outcome</label><select id="cf-st" class="fld"><option value="APPROVED">Approved</option>${i.track === 'identity' ? '<option value="VERIFIED">Verified</option>' : ''}<option value="NOT_REQUIRED">Not required for us</option><option value="DENIED">Denied</option></select>
+          <div class="grid grid-cols-2 gap-3 mt-3"><div><label class="lbl" for="cf-eff">Effective date</label><input id="cf-eff" type="date" class="fld"></div><div><label class="lbl" for="cf-exp">Expires (if any)</label><input id="cf-exp" type="date" class="fld"></div></div>
+          <label class="lbl mt-3" for="cf-ref">Payer reference or ID</label><input id="cf-ref" class="fld font-mono">
+          <label class="lbl mt-3" for="cf-doc">Evidence document</label><select id="cf-doc" class="fld"><option value="">None, I'll describe it below</option>${D.documents.map(d => `<option value="${d.id}">${esc(d.typeLabel)} · ${esc(d.filename)}</option>`).join('')}</select>
+          <label class="lbl mt-3" for="cf-note">Or describe the evidence</label><textarea id="cf-note" class="fld" rows="2" placeholder="e.g. Confirmed by phone with the payer's enrollment team, call reference 12345"></textarea>
+          <div class="mt-4 flex justify-end gap-2"><button class="btn btn-line" data-close>Cancel</button><button class="btn btn-primary" data-do-confirm="${i.id}">Confirm</button></div>`);
+      }
+      if ((b = t('[data-do-confirm]'))) return act(() => api('POST', `/api/billing/items/${b.dataset.doConfirm}/confirm`, { status: $('cf-st').value, effectiveDate: $('cf-eff').value, expiresAt: $('cf-exp').value, reference: $('cf-ref').value, documentId: $('cf-doc').value || null, note: $('cf-note').value }), 'Confirmed');
+    });
+    document.addEventListener('change', (e) => {
+      if (e.target.dataset.policy) act(() => api('PUT', '/api/billing/policy', { [e.target.dataset.policy]: e.target.checked }), 'Saved');
+      if (e.target.id === 'prov-add' && e.target.value) {
+        const v = e.target.value, s = D.staffPhysicians.find(x => x.personId === v);
+        D.profile.providers = collectProviders();
+        D.profile.providers.push({ id: '', personId: v === '__new' ? '' : v, name: s ? s.name : '', npi: '', source: s ? 'Staff record' : 'Entered here' });
+        render();
+      }
+    });
+    document.addEventListener('submit', (e) => {
+      if (e.target.id === 'f-profile') {
+        e.preventDefault();
+        const body = { legalName: $('p-name').value, npi: $('p-npi').value, taxonomy: $('p-tax').value,
+                       address: { line1: $('p-a1').value, city: $('p-city').value, state: $('p-state').value, zip: $('p-zip').value }, contact: { name: $('p-cname').value, email: $('p-cemail').value } };
+        if ($('p-tin').value.trim()) body.tin = $('p-tin').value;
+        act(() => api('PUT', '/api/billing/profile', body), 'Saved');
+      }
+      if (e.target.id === 'f-doc') {
+        e.preventDefault();
+        const f = $('doc-file').files[0]; if (!f) return S.toast('Choose a file first', 'error');
+        const fd = new FormData(); fd.append('doc_type', $('doc-type').value); fd.append('item_id', $('doc-item').value); fd.append('file', f);
+        S.toast('Uploading and checking…');
+        act(() => api('POST', '/api/billing/documents', null, fd), 'Checked');
+      }
+    });
+    function collectProviders() {
+      return [...document.querySelectorAll('[data-prov]')].map((row, i) => {
+        const o = { id: row.dataset.prov, personId: (D.profile.providers[i] || {}).personId || '' };
+        row.querySelectorAll('[data-k]').forEach(x => { o[x.dataset.k] = x.value; });
+        return o;
+      });
+    }
+    function collectPayers() {
+      return [...document.querySelectorAll('[data-payer]')].map(row => {
+        const o = {}; row.querySelectorAll('[data-k]').forEach(x => { o[x.dataset.k] = x.value; });
+        o.alreadyBills = o.alreadyBills === 'yes' ? true : o.alreadyBills === 'no' ? false : null;
+        return o;
+      });
+    }
+    load();
+  {% endraw %}
+  </script>
+</body>
+</html>

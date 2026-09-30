@@ -317,6 +317,10 @@ DEFAULT_FORMS = [
              "responsibility to follow it.\n\n" + _SAMPLE},
     {"key": "policies", "title": "Clinic Policies", "action": "acknowledge", "version": "1", "isSample": True,
      "body": "I have read {clinic}'s clinic policies and agree to follow them in my work as {role}.\n\n" + _SAMPLE},
+    {"key": "billing_ack", "title": "Claim Submission Responsibilities", "action": "acknowledge", "version": "1", "isSample": True,
+     "body": "When I send claims for {clinic}, I will only send claims for services that were provided and documented, with codes the "
+             "documentation supports. I will check each claim before sending it, never send a claim I know is wrong, and tell my manager "
+             "about any error I find in a claim that was already sent. I understand that everything I send is recorded under my name.\n\n" + _SAMPLE},
     {"key": "security_policy", "title": "Security Policy", "action": "acknowledge", "version": "1", "isSample": True,
      "body": "I will keep my Althais password to myself, lock my screen when I step away, and report anything that looks like a "
              "security problem to my manager right away.\n\n" + _SAMPLE},
@@ -326,6 +330,8 @@ DEFAULT_TRAININGS = [
      "description": "How patient health information is protected at {clinic}, and your part in it."},
     {"key": "security_training", "title": "Security Awareness Training", "category": "Clinic Policy", "version": "1", "validMonths": 12, "url": "",
      "description": "Passwords, phishing, and keeping devices and records safe."},
+    {"key": "billing_practice_claim", "title": "Practice Claim", "category": "Role-Specific", "version": "1", "validMonths": 0, "url": "",
+     "builtIn": True, "description": "Build and check one claim using made-up patient data. Only for billers."},
     {"key": "althais_training", "title": "Althais Training", "category": "Role-Specific", "version": "2.1", "validMonths": 0, "url": "",
      "builtIn": True, "passScore": 80,
      "description": "Learn Althais on the real software: shared basics, then your role's path, hands-on practice in a copy of Althais with made-up patients, and real-life situations that show you've got it. Althea can explain any step (about 50 minutes)."},
@@ -342,7 +348,7 @@ PERMISSION_AREAS = {
     "patients":   ["patients", "schedule"],
     "notes":      ["scribe"],
     "coding":     ["code_a_note", "coding_review"],
-    "claims":     ["claims", "denials", "appeals"],
+    "claims":     ["claims", "denials", "appeals", "billing_activation"],
     "revenue":    ["payments", "payer_intelligence"],
     "staff":      ["team", "onboarding", "clinic_onboarding", "credentials", "training", "roles"],
     "compliance": ["compliance"],
@@ -495,9 +501,17 @@ def forms_for(doc: dict) -> list:
     return doc["onboardingForms"] + [f for f in DEFAULT_FORMS if f["key"] not in have]
 
 
+# Other modules add role-specific items here: fn(doc, role, have_keys) -> [items]. Billing adds the biller's items.
+EXTRA_ROLE_ITEMS: list = []
+
+
 def role_form_items(doc: dict, role: str, have: set) -> list:
-    """Clinic forms assigned to this role (Onboarding Templates > Forms), as requirement items."""
+    """Clinic forms assigned to this role (Onboarding Templates > Forms), plus role items other modules add, as requirement items."""
     out = []
+    for fn in EXTRA_ROLE_ITEMS:
+        extra = [dict(i) for i in fn(doc, role, set(have)) if i["key"] not in have]
+        out += extra
+        have = set(have) | {i["key"] for i in extra}
     for f in forms_for(doc):
         key = f.get("key")
         if not key or role not in (f.get("roles") or []) or key in have or any(x == key for x in have):

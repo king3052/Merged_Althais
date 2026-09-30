@@ -1129,6 +1129,7 @@ AREAS = {
     "code_a_note":        ("Code A Note", "coding", ["/coding"]),
     "coding_review":      ("Coding Review", "suite", ["/revenue/coding"]),
     "claims":             ("Claims", "insurance", ["/revenue/claims"]),
+    "billing_activation": ("Billing Activation", "insurance", ["/revenue/billing-activation"]),
     "denials":            ("Denials", "insurance", ["/revenue/denials"]),
     "appeals":            ("Appeals", "insurance", ["/revenue/appeals"]),
     "payments":           ("Payments", "insurance", ["/revenue/payments"]),

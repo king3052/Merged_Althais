@@ -28,6 +28,9 @@ DOC_TYPES = {
     "training_certificate": "Training Certificate", "dea": "DEA Registration", "immunization_record": "Immunization Record",
     "government_id": "Identification", "background_check": "Background Check", "clinic_agreement": "Clinic Agreement",
     "employment_form": "Employment Form", "other": "Other", "unreadable": "Unreadable",
+    # billing activation documents (billing_activation.py); bank letters are never field-extracted
+    "w9": "W-9", "irs_tin_letter": "IRS Tax ID Letter", "payer_approval": "Payer Approval Letter", "malpractice_coi": "Malpractice Certificate",
+    "business_license": "Business License", "clia_certificate": "CLIA Certificate",
 }
 
 _LICENSE = [("holder_name", "Name"), ("license_number", "License Number"), ("state", "State"), ("credential_type", "Credential Type"),
@@ -48,8 +51,16 @@ FIELD_SCHEMAS = {
     "background_check": [("holder_name", "Name"), ("provider", "Screening Provider"), ("completion_date", "Completion Date"),
                          ("result", "Result")],
     "other": [("holder_name", "Name"), ("document_date", "Document Date"), ("expiration_date", "Expiration Date")],
+    "w9": [("legal_name", "Legal Name"), ("business_name", "Business Name"), ("tax_classification", "Tax Classification"), ("tin", "Taxpayer ID"),
+           ("address", "Address"), ("signature_date", "Signature Date")],
+    "irs_tin_letter": [("legal_name", "Legal Name"), ("tin", "Taxpayer ID"), ("letter_type", "Letter Type"), ("document_date", "Letter Date")],
+    "payer_approval": [("payer_name", "Payer"), ("enrollee_name", "Provider Or Group"), ("npi", "NPI"), ("reference_number", "Payer Provider ID / Reference"),
+                       ("effective_date", "Effective Date"), ("expiration_date", "Expiration Or Revalidation Date"), ("document_date", "Letter Date")],
+    "malpractice_coi": [("holder_name", "Insured"), ("carrier", "Carrier"), ("effective_date", "Effective Date"), ("expiration_date", "Expiration Date")],
+    "business_license": [("holder_name", "Business Name"), ("license_number", "License Number"), ("state", "State"), ("expiration_date", "Expiration Date")],
+    "clia_certificate": [("holder_name", "Laboratory Name"), ("clia_number", "CLIA Number"), ("expiration_date", "Expiration Date")],
 }
-DATE_FIELDS = {"issue_date", "expiration_date", "completion_date", "record_date", "date_of_birth", "document_date"}
+DATE_FIELDS = {"issue_date", "expiration_date", "completion_date", "record_date", "date_of_birth", "document_date", "effective_date", "signature_date"}
 
 # the document type an onboarding requirement asks for (requirement docType -> analyzer document type)
 REQUIREMENT_TYPES = {"license": "medical_license", "bls": "bls", "dea": "dea", "immunizations": "immunization_record",

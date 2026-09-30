@@ -66,6 +66,8 @@ import althais_training
 app.include_router(althais_training.router)
 import staff_assistant
 app.include_router(staff_assistant.router)
+import billing_activation
+app.include_router(billing_activation.router)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
@@ -115,6 +117,30 @@ async def _staff_reminders_job():
             except Exception as e:
                 print(f"[REMINDERS] {e}")
             await asyncio.sleep(6 * 3600)
+    asyncio.get_event_loop().create_task(loop())
+
+
+@app.on_event("startup")
+async def _billing_jobs():
+    """Billing activation's persistent jobs (billing_jobs table): due work every minute, reminders and a full re-check daily.
+    Jobs survive restarts; a job interrupted mid-run is picked up again once its lease expires."""
+    import asyncio, os
+    if os.environ.get("BILLING_JOBS_DISABLED"):
+        return
+
+    async def loop():
+        last_daily = None
+        while True:
+            try:
+                today = billing_activation._today()
+                if last_daily != today:
+                    with billing_activation.SessionLocal() as db:
+                        billing_activation.daily(db)
+                    last_daily = today
+                await asyncio.to_thread(billing_activation.run_due)
+            except Exception as e:
+                print(f"[BILLING JOBS] {type(e).__name__}")      # no details: they could include clinic data
+            await asyncio.sleep(60)
     asyncio.get_event_loop().create_task(loop())
 
 
@@ -553,6 +579,7 @@ _WORKSPACE_PAGES = {
     "/emr/schedule": "schedule.html",
     # Revenue
     "/revenue/claims": "revenue_claims.html",
+    "/revenue/billing-activation": "revenue_billing_activation.html",
     "/revenue/coding": "revenue_coding.html",
     "/revenue/denials": "revenue_denials.html",
     "/revenue/appeals": "revenue_appeals.html",

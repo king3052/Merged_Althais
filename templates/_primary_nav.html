@@ -85,10 +85,10 @@
     const PAGES_OF = {
       overview: ['/overview', '/overview/tasks', '/overview/inbox', '/overview/analytics', '/overview/activity'],
       emr: ['/emr/patients', '/emr/schedule', '/scribe', '/emr'],
-      revenue: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence', '/revenue/coding', '/coding'],
+      revenue: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence', '/revenue/billing-activation', '/revenue/coding', '/coding'],
       staff: ['/staff/team', '/staff/todo', '/staff/onboarding', '/staff/clinic-onboarding', '/staff/credentials', '/staff/compliance', '/staff/training', '/staff/roles'],
       scribe: ['/scribe'], coding: ['/coding'],
-      insurance: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence'],
+      insurance: ['/revenue/claims', '/revenue/denials', '/revenue/appeals', '/revenue/payments', '/revenue/payer-intelligence', '/revenue/billing-activation'],
     };
     const firstOpen = (ws) => (PAGES_OF[ws] || []).find(pg => !isBlocked(pg));
     const active = workspaceFor(path);
