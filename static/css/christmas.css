@@ -1,0 +1,194 @@
+/* Seasonal themes for the workspace pages (EMR, Overview, Revenue, Staff).
+   Loaded last, after brand-theme.css (templates/_head.html, templates/dashboard.html). To turn them off,
+   remove those <link> tags and the season.js <script> tags. While on, they override Settings > Appearance.
+
+   Christmas (default): red top bar and buttons, pine-green highlights, cream surfaces.
+   Winter Wonderland (<html data-season="winter">, the snowman button, static/js/season.js): icy blue top bar and
+   buttons, frost-blue highlights, snow-white surfaces, falling snow.
+
+   Every color below comes from the --s-* tokens, so a season is just a set of token values. Brand shades come
+   from AlthaisBrand.palette() in static/js/brand.js ("#b3202a" and "#2f74c0"), keeping its contrast guarantees;
+   highlight text is at least 4.5:1 on its tint. */
+
+/* ── Christmas tokens ── */
+:root {
+  /* brand: top bar, buttons, links */
+  --s-brand: #b3202a; --s-brand-rgb: 179 32 42;
+  --s-brand-700: #951b23; --s-brand-700-rgb: 149 27 35;
+  --s-brand-500: #d62632; --s-brand-500-rgb: 214 38 50;
+  --s-brand-text: #b3202a; --s-brand-text-strong: #aa1e28;
+  --s-header: var(--s-brand);
+  /* highlights: selected rows, active tabs, labels, soft badges */
+  --s-accent: #1f6b3a; --s-accent-strong: #17532d;
+  --s-tint: #e2f0e5; --s-tint-rgb: 226 240 229;
+  --s-tint-soft: #f1f8f2; --s-tint-soft-rgb: 241 248 242;
+  --s-tint-line: #c6e2cd; --s-tint-hover: #eef6ef; --s-table-head: #edf5ee;
+  --s-ok: #1f6b3a; --s-ok-tint: #dcefdf;
+  /* surfaces */
+  --s-shell: #f6efe0; --s-panel: #fffaf0; --s-soft: #efe5d0; --s-line: #e6d9bf; --s-hover: #fbf3e3; --s-scroll: #dccdb0;
+  /* dark mode */
+  --s-dark-header: #173d28;
+  --s-dark-link: #da959a; --s-dark-link-soft: #e5b3b7;
+  --s-dk: #963d43; --s-dk-rgb: 150 61 67; --s-dk-700: #84363b; --s-dk-700-rgb: 132 54 59;
+  --s-dark-tint: #173024; --s-dark-border: #2f5a40;
+  --s-dark-accent: #7fcf9a; --s-dark-accent-line: #3f9a60; --s-dark-label: #6fb487;
+  /* candy-cane stripe under the top bar */
+  --s-stripe: repeating-linear-gradient(-45deg, #b3202a 0 8px, #fffaf0 8px 16px, #1f6b3a 16px 24px, #fffaf0 24px 32px);
+}
+
+/* ── Winter Wonderland tokens ── */
+html[data-season="winter"] {
+  --s-brand: #2f74c0; --s-brand-rgb: 47 116 192;
+  --s-brand-700: #2863a3; --s-brand-700-rgb: 40 99 163;
+  --s-brand-500: #4689d2; --s-brand-500-rgb: 70 137 210;
+  --s-brand-text: #2f74c0; --s-brand-text-strong: #245993;
+  --s-header: linear-gradient(90deg, #245993 0%, #2f74c0 100%);
+  --s-accent: #1d5a94; --s-accent-strong: #174a7c;
+  --s-tint: #e6eff9; --s-tint-rgb: 230 239 249;
+  --s-tint-soft: #f3f8fd; --s-tint-soft-rgb: 243 248 253;
+  --s-tint-line: #cee0f3; --s-tint-hover: #eef5fc; --s-table-head: #edf4fb;
+  --s-ok: #0c8a4f; --s-ok-tint: #d8f5e3;
+  --s-shell: #eef4fa; --s-panel: #ffffff; --s-soft: #e8f0f8; --s-line: #d5e2ee; --s-hover: #f2f7fc; --s-scroll: #c5d6e6;
+  --s-dark-header: #16324f;
+  --s-dark-link: #8cc4f0; --s-dark-link-soft: #b3d8f5;
+  --s-dk: #4c75a3; --s-dk-rgb: 76 117 163; --s-dk-700: #446992; --s-dk-700-rgb: 68 105 146;
+  --s-dark-tint: #13263a; --s-dark-border: #2c4a68;
+  --s-dark-accent: #8cc4f0; --s-dark-accent-line: #4c8fcb; --s-dark-label: #7fb4e0;
+  --s-stripe: repeating-linear-gradient(-45deg, #ffffff 0 8px, #a9d2f3 8px 16px);
+}
+
+/* ── Brand variables from the tokens. !important beats the inline values brand.js writes on <html>. ── */
+html {
+  --brand: var(--s-brand) !important; --brand-rgb: var(--s-brand-rgb) !important;
+  --brand-700: var(--s-brand-700) !important; --brand-700-rgb: var(--s-brand-700-rgb) !important;
+  --brand-500: var(--s-brand-500) !important; --brand-500-rgb: var(--s-brand-500-rgb) !important;
+  /* the brand tints (selected rows, pills, soft badges) use the highlight color; Tailwind's med-50/100 read these too */
+  --brand-200: var(--s-tint-line) !important;
+  --brand-100: var(--s-tint) !important; --brand-100-rgb: var(--s-tint-rgb) !important;
+  --brand-50: var(--s-tint-soft) !important; --brand-50-rgb: var(--s-tint-soft-rgb) !important;
+  --brand-text: var(--s-brand-text) !important; --brand-text-strong: var(--s-brand-text-strong) !important;
+  --brand-on: #ffffff !important; --brand-on-rgb: 255 255 255 !important;
+  --brand-glass: rgba(255, 255, 255, .08) !important; --brand-glass-hover: rgba(255, 255, 255, .16) !important;
+  --brand-ring: none !important; --brand-bar-line: 0 solid transparent !important;
+  --brand-mark: var(--s-accent) !important;   /* active tab underline */
+  --brand-dark-header: var(--s-dark-header) !important;
+  --brand-dark-on: #ffffff !important; --brand-dark-on-rgb: 255 255 255 !important;
+  --brand-dark-glass: rgba(255, 255, 255, .10) !important; --brand-dark-glass-hover: rgba(255, 255, 255, .18) !important;
+  --brand-dark-link: var(--s-dark-link) !important; --brand-dark-link-soft: var(--s-dark-link-soft) !important;
+  --brand-dark-tint: var(--s-dark-tint) !important; --brand-dark-border: var(--s-dark-border) !important;
+  --brand-dk: var(--s-dk) !important; --brand-dk-rgb: var(--s-dk-rgb) !important;
+  --brand-dk-700: var(--s-dk-700) !important; --brand-dk-700-rgb: var(--s-dk-700-rgb) !important;
+  --brand-dk-on: #ffffff !important; --brand-dk-on-rgb: 255 255 255 !important;
+}
+
+/* ── Top bar: seasonal fill in light mode, and a stripe under it in both modes (the header is sticky, so it
+   anchors the stripe) ── */
+html:not([data-theme-resolved="dark"]) header.bg-med-600 { background: var(--s-header); }
+header.bg-med-600::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 4px; pointer-events: none;
+  background: var(--s-stripe);
+}
+
+/* ── Light mode surfaces and lines. The html:not(...) prefix outranks Tailwind's runtime utilities. ── */
+html:not([data-theme-resolved="dark"]) body,
+html:not([data-theme-resolved="dark"]) .bg-shell { background-color: var(--s-shell); }
+html:not([data-theme-resolved="dark"]) .bg-panel,
+html:not([data-theme-resolved="dark"]) .bg-white { background-color: var(--s-panel); }
+html:not([data-theme-resolved="dark"]) .bg-lineSoft,
+html:not([data-theme-resolved="dark"]) .bg-neutral-100 { background-color: var(--s-soft); }
+html:not([data-theme-resolved="dark"]) .bg-line { background-color: var(--s-line); }
+html:not([data-theme-resolved="dark"]) .hover\:bg-shell:hover { background-color: var(--s-hover); }
+html:not([data-theme-resolved="dark"]) .border-line,
+html:not([data-theme-resolved="dark"]) [class*="border-line"] { border-color: var(--s-line); }
+html:not([data-theme-resolved="dark"]) .border-lineSoft,
+html:not([data-theme-resolved="dark"]) .divide-lineSoft > :not([hidden]) ~ :not([hidden]) { border-color: var(--s-soft); }
+html:not([data-theme-resolved="dark"]) tbody tr { border-bottom-color: var(--s-soft); }
+html:not([data-theme-resolved="dark"]) .kpi { border-right-color: var(--s-line); }
+html:not([data-theme-resolved="dark"]) .count-pill { background: var(--s-soft); }
+html:not([data-theme-resolved="dark"]) .thin-scroll::-webkit-scrollbar-thumb { background: var(--s-scroll); }
+
+/* ── Highlights: the brand color stays on the top bar and main buttons; selections, tabs and labels use the accent ── */
+html:not([data-theme-resolved="dark"]) .side-row.active,
+html:not([data-theme-resolved="dark"]) .pr-tab.active { color: var(--s-accent-strong); border-color: var(--s-accent); border-left-color: var(--s-accent); }
+html:not([data-theme-resolved="dark"]) .side-row:hover,
+html:not([data-theme-resolved="dark"]) .row-hover:hover { background: var(--s-tint-hover); }
+html:not([data-theme-resolved="dark"]) .count-pill.med { color: var(--s-accent-strong); }
+html:not([data-theme-resolved="dark"]) .bg-med-50 .text-med-600, html:not([data-theme-resolved="dark"]) .bg-med-100 .text-med-600,
+html:not([data-theme-resolved="dark"]) .bg-med-50.text-med-600, html:not([data-theme-resolved="dark"]) .bg-med-100.text-med-600,
+html:not([data-theme-resolved="dark"]) .bg-med-50.text-med-700, html:not([data-theme-resolved="dark"]) .bg-med-100.text-med-700 { color: var(--s-accent-strong) !important; }
+html:not([data-theme-resolved="dark"]) .border-med-200 { border-color: var(--s-tint-line); }
+/* section labels, panel titles and table headers */
+html:not([data-theme-resolved="dark"]) .side-section,
+html:not([data-theme-resolved="dark"]) .panel-title,
+html:not([data-theme-resolved="dark"]) .table-head { color: var(--s-accent); }
+html:not([data-theme-resolved="dark"]) .table-head { background: var(--s-table-head); border-color: var(--s-tint-line); }
+/* the second nav row: accent-colored active tab with a soft tint */
+html:not([data-theme-resolved="dark"]) .nav-tab.active { color: var(--s-accent); background: var(--s-tint-hover); }
+html:not([data-theme-resolved="dark"]) .text-ok-600 { color: var(--s-ok); }
+html:not([data-theme-resolved="dark"]) .bg-ok-600 { background-color: var(--s-ok); }
+html:not([data-theme-resolved="dark"]) .bg-ok-100 { background-color: var(--s-ok-tint); }
+
+/* dark mode: "html[...] body" outranks the EMR's own body[data-theme-resolved="dark"] rules (dashboard.html) */
+html[data-theme-resolved="dark"] body .side-row.active, html[data-theme-resolved="dark"] body .side-row.active > span,
+html[data-theme-resolved="dark"] body .pr-tab.active { background: var(--s-dark-tint) !important; color: var(--s-dark-accent) !important; border-color: var(--s-dark-accent-line) !important; border-left-color: var(--s-dark-accent-line) !important; }
+html[data-theme-resolved="dark"] body .count-pill.med { color: var(--s-dark-accent); }
+html[data-theme-resolved="dark"] body .side-section,
+html[data-theme-resolved="dark"] body .panel-title { color: var(--s-dark-label) !important; }
+html[data-theme-resolved="dark"] .nav-tab.active { color: var(--s-dark-accent); }
+html[data-theme-resolved="dark"] .nav-tab.active::after { background: var(--s-dark-accent-line); }
+
+/* ── Extra Christmas (not in winter): holly by the logo, string lights, gold and candy-cane tab marks, starry cream ── */
+html:not([data-season="winter"]):not([data-theme-resolved="dark"]) header.bg-med-600 { background: linear-gradient(180deg, #bf2530 0%, #a51d27 100%); }
+/* holly sprig after the ALTHAIS wordmark */
+html:not([data-season="winter"]) #nav-home::after {
+  content: ''; width: 22px; height: 22px; flex-shrink: 0; margin-left: 2px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 13C9 9 5 9 2 10c1 1 1 2.5 0 3.5 2 0 3 1 3.5 2.5C7 14 9 14 12 13z' fill='%234caf6a'/%3E%3Cpath d='M12 13c3-4 7-4 10-3-1 1-1 2.5 0 3.5-2 0-3 1-3.5 2.5C17 14 15 14 12 13z' fill='%233a9a58'/%3E%3Cg stroke='%23fffaf0' stroke-width='.7'%3E%3Ccircle cx='10.2' cy='13.8' r='2.1' fill='%23e8333d'/%3E%3Ccircle cx='13.8' cy='13.8' r='2.1' fill='%23e8333d'/%3E%3Ccircle cx='12' cy='11.2' r='2.1' fill='%23d62632'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+}
+/* active top tab: a gold underline instead of white */
+html:not([data-season="winter"]):not([data-theme-resolved="dark"]) .primary-tab.active,
+html:not([data-season="winter"])[data-theme-resolved="dark"] .primary-tab.active { border-bottom-color: #f2c14e !important; }
+/* active sub-tab: a candy-cane underline */
+html:not([data-season="winter"]) .nav-tab.active::after {
+  height: 3px; bottom: -2px; border-radius: 2px;
+  background: repeating-linear-gradient(-45deg, #b3202a 0 4px, #fffaf0 4px 8px);
+}
+/* candy-cane scrollbars */
+html:not([data-season="winter"]):not([data-theme-resolved="dark"]) .thin-scroll::-webkit-scrollbar-thumb {
+  background: repeating-linear-gradient(-45deg, #d9646b 0 5px, #fffaf0 5px 10px);
+}
+/* faint stars and sparkles on the cream page background */
+html:not([data-season="winter"]):not([data-theme-resolved="dark"]) body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cpath d='M10 0l2.4 7.6L20 10l-7.6 2.4L10 20l-2.4-7.6L0 10l7.6-2.4z' fill='%23b3202a' fill-opacity='.07' transform='translate(18 22) scale(.7)'/%3E%3Cpath d='M10 0l2.4 7.6L20 10l-7.6 2.4L10 20l-2.4-7.6L0 10l7.6-2.4z' fill='%23c9a227' fill-opacity='.16' transform='translate(104 58) scale(.55)'/%3E%3Cpath d='M10 0l2.4 7.6L20 10l-7.6 2.4L10 20l-2.4-7.6L0 10l7.6-2.4z' fill='%231f6b3a' fill-opacity='.08' transform='translate(56 118) scale(.8)'/%3E%3Ccircle cx='140' cy='130' r='1.6' fill='%23c9a227' fill-opacity='.25'/%3E%3Ccircle cx='70' cy='40' r='1.3' fill='%23b3202a' fill-opacity='.15'/%3E%3C/svg%3E");
+}
+
+/* string lights hanging from the stripe (season.js adds the bulbs; they twinkle unless motion is reduced) */
+.season-lights { position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; pointer-events: none; }   /* hangs from the stripe, clear of the tab labels below */
+.season-lights i {
+  position: absolute; top: 1px; width: 5px; height: 7px; margin-left: -2.5px;
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+  background: var(--c); box-shadow: 0 0 6px 1px var(--c);
+  animation: season-twinkle 2.6s ease-in-out infinite;
+}
+.season-lights i:nth-child(even) { top: 2.5px; }   /* uneven heights, like a draped strand */
+.season-lights i::before {   /* the bulb's socket */
+  content: ''; position: absolute; top: -1.5px; left: 1px; width: 3px; height: 2px; border-radius: 1px; background: #2f3a33;
+}
+@keyframes season-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .5; box-shadow: 0 0 2px 0 var(--c); } }
+@media (prefers-reduced-motion: reduce) { .season-lights i { animation: none; } }
+
+/* ── Season toggle button (templates/_primary_nav.html): shows the season you'd switch to ── */
+.season-btn .season-to-xmas { display: none; }
+html[data-season="winter"] .season-btn .season-to-winter { display: none; }
+html[data-season="winter"] .season-btn .season-to-xmas { display: block; }
+
+/* ── Falling snow over the top bar (Winter Wonderland only; season.js adds the flakes, never with reduced motion) ── */
+.season-snow { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.season-snow span {
+  position: absolute; top: -10px; color: #fff; opacity: .85; line-height: 1;
+  animation: season-fall linear infinite;
+}
+@keyframes season-fall {
+  from { transform: translate3d(0, 0, 0) rotate(0deg); }
+  to { transform: translate3d(var(--drift, 12px), 64px, 0) rotate(180deg); }
+}
+@media (prefers-reduced-motion: reduce) { .season-snow { display: none; } }
