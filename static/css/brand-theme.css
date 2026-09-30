@@ -43,3 +43,11 @@ html[data-theme-resolved="dark"] {
   --brand-mark: var(--brand-dk) !important;
 }
 
+
+/* Menus that open out of the top bar are solid panels, not the bar's translucent "glass" (which the rules above give to
+   anything marked bg-white inside the header). The id keeps these rules more specific than the glass ones. */
+html header.bg-med-600 #nav-me-menu, html header.bg-med-600 #nav-me-menu [class*="bg-white"] { background-color: #fff !important; }
+html header.bg-med-600 #nav-me-menu { color: #1a1d24 !important; box-shadow: 0 12px 32px rgba(15, 17, 22, .18); }
+html[data-theme-resolved="dark"] header.bg-med-600 #nav-me-menu,
+html[data-theme-resolved="dark"] header.bg-med-600 #nav-me-menu [class*="bg-white"] { background-color: #1a1d24 !important; border-color: #2c313b !important; }
+html[data-theme-resolved="dark"] header.bg-med-600 #nav-me-menu { color: #d6dae5 !important; box-shadow: 0 12px 32px rgba(0, 0, 0, .5); }
