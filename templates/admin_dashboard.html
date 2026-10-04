@@ -221,7 +221,10 @@
           <div><label class="lbl" for="clinic-name">Clinic name</label><input id="clinic-name" class="flt w-full" style="font-size:13px;padding:8px 10px" maxlength="120" required placeholder="e.g. MCH Hospital Site 2"></div>
           <div><div class="lbl">Tools</div><div class="flex flex-wrap gap-3 text-[12.5px]" id="clinic-tools"></div>
             <label class="flex items-center gap-2 text-[12.5px] mt-2"><input type="checkbox" id="clinic-althea" checked> Althea assistant</label></div>
-          <p class="text-[12px] text-ink-500">The clinic shows in the list right away. Anyone who signs up or is invited with this exact clinic name joins it.</p>
+          <div><label class="lbl" for="clinic-start">Start date</label><input id="clinic-start" type="date" class="flt" style="font-size:13px;padding:7px 10px"></div>
+          <div><div class="lbl">Members (optional)</div><div id="clinic-rows" class="space-y-2"></div><button type="button" class="btn-line mt-2" id="clinic-add-row">+ Add Person</button></div>
+          <p class="text-[12px] text-ink-500">Each member gets a sign-in email with a temporary password. Anyone who signs up or is invited with this exact clinic name also joins it.</p>
+          <div id="clinic-results" class="space-y-1"></div>
           <div id="clinic-msg" class="text-[12.5px]" style="color:#c83838"></div>
         </div>
         <div class="px-5 py-3 border-t border-line flex justify-end gap-2"><button type="button" class="btn-line" data-clinic-close>Cancel</button><button type="submit" class="btn-save" id="clinic-save">Add Clinic</button></div>
@@ -359,11 +362,17 @@
     </div>
     <div class="p-4">
       <div id="emp-plan" class="flex gap-1 flex-wrap mb-3"></div>
+      <div class="flex items-center gap-2 flex-wrap mb-4 text-[12px]"><span class="text-ink-500">Clinic start date</span>
+        <input type="date" id="emp-start" class="flt" aria-label="Clinic start date"><button type="button" id="emp-start-save" class="btn-line">Save Date</button></div>
+      <div class="flex items-center justify-between mb-1.5"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Add Members</div></div>
+      <div class="bg-panel border border-line rounded-sm p-3 mb-4"><div id="emp-add-rows" class="space-y-2"></div>
+        <div class="flex gap-2 mt-2"><button type="button" class="btn-line" id="emp-add-row">+ Another Person</button><button type="button" class="btn-save ml-auto" id="emp-add-save">Add To Clinic</button></div>
+        <div id="emp-add-msg" class="mt-2 space-y-1"></div></div>
       <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Managers</div>
       <div id="emp-managers" class="bg-panel border border-line rounded-sm mb-4"></div>
       <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Employees Under Them</div>
       <div id="emp-list" class="bg-panel border border-line rounded-sm"></div>
-      <p class="text-[11.5px] text-ink-500 mt-3">The clinic’s managers (its Admins) set these in Manager. This view is read-only.</p>
+      <p class="text-[11.5px] text-ink-500 mt-3">Click a name to see their sign-ins, codes and claims. The clinic’s managers set tools and access in Manager.</p>
     </div>
   </aside>
 
@@ -537,8 +546,8 @@
       return `<tr class="row-hover">
         <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(o.name))}</div><div class="min-w-0">
           <button type="button" data-emp="${esc(o.org_key)}" class="font-semibold text-ink-900 hover:text-med-600 text-left" title="See this clinic’s employees">${esc(o.name)}</button>
-          <div class="text-[11px] text-ink-500">${o.users.length ? `${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}`
-            : `No one has joined yet${o.createdInAdmin ? ` · <button type="button" data-clinic-del="${esc(o.org_key)}" class="font-semibold hover:text-risk-600">Remove</button>` : ''}`}</div></div></div></td>
+          <div class="text-[11px] text-ink-500">${o.users.length ? `${o.users.length} ${o.users.length === 1 ? 'person' : 'people'}${o.startDate ? ' · started ' + fmtDate(o.startDate + 'T12:00:00') : ''} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}`
+            : `No one has joined yet${o.startDate ? ' · started ' + fmtDate(o.startDate + 'T12:00:00') : ''}${o.createdInAdmin ? ` · <button type="button" data-clinic-del="${esc(o.org_key)}" class="font-semibold hover:text-risk-600">Remove</button>` : ''}`}</div></div></div></td>
         ${cells}
         <td class="td text-right" style="border-left:1px solid #eceef2">
           <input type="number" min="0" step="1" class="flt" style="width:88px;text-align:right" value="${o.mrr || ''}" placeholder="0" data-mrr="${esc(o.org_key)}" aria-label="${esc(o.name)}: monthly contract value" />
@@ -618,8 +627,10 @@
         return `<div class="list-row" style="align-items:flex-start"><div class="initials">${esc(initials(m.full_name || m.email))}</div>
           <div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><button type="button" data-user="${m.id}" class="text-[12.5px] font-semibold text-ink-900 hover:text-med-600 hover:underline text-left">${esc(m.full_name || m.email)}</button>${status}</div>
             <div class="text-[11px] text-ink-500">${esc(m.email)} · ${ROLE_NAME[m.role] || m.role}${m.provider_name ? ' · ' + esc(m.provider_name) : ''} · last sign-in ${fmtRelative(m.last_login)}</div>
+            <div class="text-[11px] text-ink-700 mt-0.5"><b>${m.claims_submitted || 0}</b> claim${m.claims_submitted === 1 ? '' : 's'} sent · ${m.login_count || 0} sign-ins</div>
             <div class="flex gap-1 flex-wrap mt-1">${tools}</div>${off}${viewAs}</div></div>`;
       };
+      $('emp-start').value = d.startDate || ''; EMP_KEY = key; $('emp-add-rows').innerHTML = memberRow(); $('emp-add-msg').innerHTML = '';
       const managers = d.members.filter(m => m.role === 'admin'), others = d.members.filter(m => m.role !== 'admin');
       $('emp-sub').textContent = `${d.members.length} ${d.members.length === 1 ? 'person' : 'people'} · ${managers.length} ${managers.length === 1 ? 'manager' : 'managers'}`;
       $('emp-managers').innerHTML = managers.length ? managers.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No Manager Yet.</div>';
@@ -899,14 +910,52 @@
       location.href = '/admin/login';
     });
 
+    // ── members and start date ──
+    let EMP_KEY = null;
+    const ROLE_OPTS = [['provider', 'Provider'], ['biller', 'Biller'], ['admin', 'Manager'], ['viewer', 'Viewer']];
+    function memberRow() {
+      return `<div class="grid grid-cols-[1fr_1.3fr_auto] gap-2" data-mrow><input class="flt" placeholder="Full name" data-k="name" aria-label="Full name">
+        <input class="flt" type="email" placeholder="Work email" data-k="email" aria-label="Work email"><select class="flt" data-k="role" aria-label="Role">${ROLE_OPTS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>`;
+    }
+    const readRows = (box) => [...box.querySelectorAll('[data-mrow]')].map(r => Object.fromEntries([...r.querySelectorAll('[data-k]')].map(x => [x.dataset.k, x.value.trim()]))).filter(m => m.name || m.email);
+    function resultsHtml(results) {
+      return results.map(r => r.ok
+        ? `<div class="text-[12px]" style="color:#0c8a4f">✓ ${esc(r.name)} added as ${esc((ROLE_OPTS.find(x => x[0] === r.role) || [0, r.role])[1])}.${r.tempPassword ? ` Email isn't set up, so give them this temporary password: <code style="font-family:monospace;background:#f1f2f5;padding:1px 5px;color:#0f1116">${esc(r.tempPassword)}</code>` : ' Sign-in email sent.'}</div>`
+        : `<div class="text-[12px]" style="color:#c83838">✗ ${esc(r.name)}: ${esc(r.error)}</div>`).join('');
+    }
+    async function addMembers(key, members) {
+      const r = await fetch('/api/admin/clinics/' + encodeURIComponent(key) + '/members', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+      const j = await r.json().catch(() => ({}));
+      return j.results || [{ ok: false, name: 'Members', error: j.error || 'Could not add them.' }];
+    }
+    $('emp-add-row').addEventListener('click', () => $('emp-add-rows').insertAdjacentHTML('beforeend', memberRow()));
+    $('emp-add-save').addEventListener('click', async () => {
+      const members = readRows($('emp-add-rows'));
+      if (!members.length) { $('emp-add-msg').innerHTML = '<div class="text-[12px]" style="color:#c83838">Add a name and email first.</div>'; return; }
+      $('emp-add-save').disabled = true;
+      const results = await addMembers(EMP_KEY, members);
+      $('emp-add-save').disabled = false;
+      const msg = resultsHtml(results);
+      if (results.some(r => r.ok)) { await load(); await openClinic(EMP_KEY); }
+      $('emp-add-msg').innerHTML = msg;
+    });
+    $('emp-start-save').addEventListener('click', async () => {
+      const r = await fetch('/api/admin/clinics/' + encodeURIComponent(EMP_KEY) + '/start-date', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: $('emp-start').value }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return toast(j.error || 'Could not save the date.', 'error');
+      toast('Start date saved'); load();
+    });
+
     // ── add a clinic ──
     function clinicModal(on) {
       $('clinic-modal').classList.toggle('hidden', !on); $('clinic-modal').classList.toggle('flex', on);
-      if (on) { $('clinic-form').reset(); $('clinic-msg').textContent = '';
+      if (on) { $('clinic-form').reset(); $('clinic-msg').textContent = ''; $('clinic-name').disabled = false; $('clinic-save').classList.remove('hidden');
         $('clinic-tools').innerHTML = PLAN_KEYS.map(k => `<label class="flex items-center gap-1.5"><input type="checkbox" value="${k}"${k === 'suite' ? ' checked' : ''}> ${esc(PLANS[k].name)}</label>`).join('');
+        $('clinic-start').value = new Date().toISOString().slice(0, 10); $('clinic-rows').innerHTML = memberRow(); $('clinic-results').innerHTML = '';
         $('clinic-name').focus(); }
     }
     $('clinic-add').addEventListener('click', () => clinicModal(true));
+    $('clinic-add-row').addEventListener('click', () => $('clinic-rows').insertAdjacentHTML('beforeend', memberRow()));
     $('clinic-modal').addEventListener('click', e => { if (e.target === $('clinic-modal') || e.target.closest('[data-clinic-close]')) clinicModal(false); });
     $('clinic-form').addEventListener('submit', async e => {
       e.preventDefault();
@@ -918,7 +967,16 @@
         const j = await r.json().catch(() => ({}));
         if (r.status === 401) { location.href = '/admin/login'; return; }
         if (!r.ok) { $('clinic-msg').textContent = j.error || 'Could not add the clinic.'; return; }
-        clinicModal(false); toast('Added ' + j.org_key); await load();
+        const key = j.org_key;
+        if ($('clinic-start').value) await fetch('/api/admin/clinics/' + encodeURIComponent(key) + '/start-date', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: $('clinic-start').value }) });
+        const members = readRows($('clinic-rows'));
+        await load();
+        if (!members.length) { clinicModal(false); toast('Added ' + key); return; }
+        const results = await addMembers(key, members);
+        await load();
+        if (results.every(x => x.ok && !x.tempPassword)) { clinicModal(false); toast(`Added ${key} and ${results.length} member${results.length === 1 ? '' : 's'}`); return; }
+        $('clinic-results').innerHTML = `<div class="text-[12.5px] font-semibold text-ink-900">${esc(key)} added.</div>` + resultsHtml(results);
+        $('clinic-name').disabled = true; $('clinic-save').classList.add('hidden');
       } finally { $('clinic-save').disabled = false; }
     });
     $('org-rows').addEventListener('click', async e => {

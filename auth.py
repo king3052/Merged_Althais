@@ -1815,9 +1815,10 @@ def admin_org_members(org_key: str, db: Session = Depends(get_db), _: bool = Dep
             "members": [{"id": u.id, "email": u.email, "full_name": u.full_name or "", "role": u.role or "admin",
                          "provider_name": u.provider_name or "", "active": bool(getattr(u, "active", 1)),
                          "tools": sorted(member_tools(u)), "blocked": sorted(member_blocked(u)),
-                         "login_count": u.login_count or 0,
+                         "login_count": u.login_count or 0, "claims_submitted": u.claims_submitted or 0,
                          "last_login": u.last_login.isoformat() if u.last_login else None,
-                         "created_at": u.created_at.isoformat() if u.created_at else None} for u in members]}
+                         "created_at": u.created_at.isoformat() if u.created_at else None} for u in members],
+            "startDate": _clinic_start(db, org_key, members)}
 
 
 @router.get("/api/admin/orgs")
@@ -1840,7 +1841,7 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
                 mrr = 0
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
                     "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "custom": bool(row),
-                    "mrr": mrr})
+                    "mrr": mrr, "startDate": _clinic_start(db, o["org_key"])})
     # clinics added in this console that nobody has joined yet
     for row in db.scalars(select(OrgSettings).where(OrgSettings.category == ENTITLEMENTS_CATEGORY)):
         data = _json.loads(row.data or "{}")
@@ -1852,8 +1853,98 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
         out.append({"org_key": row.org_key, "name": row.org_key, "users": [], "products": products,
                     "althea": data["althea"] if isinstance(data.get("althea"), bool) else "suite" in products,
                     "manager": data.get("manager") is not False, "custom": True, "mrr": mrr, "createdInAdmin": True,
-                    "createdAt": data.get("createdAt", "")})
+                    "createdAt": data.get("createdAt", ""), "startDate": _clinic_start(db, row.org_key, [])})
     return sorted(out, key=lambda o: o["name"].lower())
+
+
+CLINIC_INFO_CATEGORY = "clinic_info"   # admin-entered facts about a clinic (its start date), kept apart from its plan
+
+
+def _clinic_start(db: Session, org_key: str, members=None) -> str:
+    """The start date an admin set, else when the clinic's first account was created (or when it was added here)."""
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == org_key, OrgSettings.category == CLINIC_INFO_CATEGORY))
+    if row and _json.loads(row.data or "{}").get("startDate"):
+        return _json.loads(row.data)["startDate"]
+    members = members if members is not None else [u for u in db.scalars(select(User)) if _doc_org_key(u) == org_key]
+    dates = [u.created_at for u in members if u.created_at]
+    if dates:
+        return min(dates).date().isoformat()
+    ent = db.scalar(select(OrgSettings).where(OrgSettings.org_key == org_key, OrgSettings.category == ENTITLEMENTS_CATEGORY))
+    created = _json.loads(ent.data or "{}").get("createdAt", "") if ent else ""
+    return created[:10]
+
+
+def _clinic_exists(db: Session, org_key: str) -> bool:
+    return any(_doc_org_key(u) == org_key for u in db.scalars(select(User))) or bool(
+        db.scalar(select(OrgSettings).where(OrgSettings.org_key == org_key, OrgSettings.category == ENTITLEMENTS_CATEGORY)))
+
+
+@router.put("/api/admin/clinics/{org_key}/start-date")
+async def admin_clinic_start(org_key: str, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """The clinic's start date, as shown in the console. It doesn't change anyone's account dates."""
+    if not _clinic_exists(db, org_key):
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    raw = str((await request.json()).get("date") or "")[:10]
+    try:
+        d = dt.date.fromisoformat(raw)
+    except ValueError:
+        return JSONResponse({"error": "Choose a date."}, status_code=400)
+    if d > dt.datetime.now(timezone.utc).date() + dt.timedelta(days=366):
+        return JSONResponse({"error": "That's more than a year away."}, status_code=400)
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == org_key, OrgSettings.category == CLINIC_INFO_CATEGORY))
+    data = _json.loads(row.data or "{}") if row else {}
+    data["startDate"] = d.isoformat()
+    if row:
+        row.data = _json.dumps(data)
+    else:
+        db.add(OrgSettings(org_key=org_key, category=CLINIC_INFO_CATEGORY, data=_json.dumps(data)))
+    db.commit()
+    log_admin_action(db, "clinic_start_date", target=org_key, detail=f"{org_key}: start date set to {d.isoformat()}")
+    return {"ok": True, "startDate": d.isoformat()}
+
+
+@router.post("/api/admin/clinics/{org_key}/members")
+async def admin_add_members(org_key: str, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Add people to a clinic. Each gets an account in it with the chosen role and an email with a temporary password."""
+    import html as _h
+    import re as _re
+    if not _clinic_exists(db, org_key):
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    people = (await request.json()).get("members")
+    if not isinstance(people, list) or not people:
+        return JSONResponse({"error": "Add at least one person."}, status_code=400)
+    results = []
+    for m in people[:50]:
+        name = str(m.get("name") or "").strip()[:120]
+        email = str(m.get("email") or "").strip().lower()[:255]
+        role = m.get("role") if m.get("role") in ROLE_LEVELS else "provider"
+        who = name or email or "A row"
+        if not name or not _re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            results.append({"ok": False, "name": who, "error": "Needs a name and a valid email."})
+            continue
+        if db.scalar(select(User).where(User.email == email)):
+            results.append({"ok": False, "name": who, "error": "Someone already has an Althais account with that email."})
+            continue
+        temp = secrets.token_urlsafe(9)
+        u = User(email=email, password_hash=hash_password(temp), full_name=name, organization=org_key, role=role,
+                 provider_name=(str(m.get("providerName") or "").strip()[:120] or (name if role == "provider" else "")),
+                 email_verified=0, active=1, onboarding_complete=1)
+        db.add(u)
+        db.commit()
+        emailed = send_email(email, f"You've been added to {org_key} on Althais", _email_html(
+            f"Welcome to {_h.escape(org_key)} on Althais",
+            f"Hi {_h.escape(name)}, you've been added to <strong>{_h.escape(org_key)}</strong> on Althais as a "
+            f"<strong>{ROLE_LABELS.get(role, role)}</strong>.<br><br>Your temporary password is: "
+            f"<strong style='font-family:monospace'>{temp}</strong><br><br>Sign in and change it right away.",
+            f"{APP_URL}/login", "Sign in to Althais"))
+        r = {"ok": True, "name": name, "email": email, "role": role, "id": u.id, "emailed": emailed}
+        if not emailed:
+            r["tempPassword"] = temp     # email isn't configured: shown once so the admin can pass it on
+        results.append(r)
+    added = [r["email"] for r in results if r["ok"]]
+    if added:
+        log_admin_action(db, "clinic_members_added", target=org_key, detail=f"Added {len(added)} to {org_key}: {', '.join(added)}")
+    return {"ok": bool(added), "results": results}
 
 
 def _clinic_names(db: Session) -> set:
