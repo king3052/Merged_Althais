@@ -2006,20 +2006,96 @@ async def admin_add_clinic(request: Request, db: Session = Depends(get_db), _: b
     return {"ok": True, "org_key": name}
 
 
+def _org_key_tables(db: Session) -> list:
+    """Every table that stores a clinic by its key (the admin log keeps its history as written)."""
+    from sqlalchemy import inspect as _inspect
+    insp = _inspect(engine)
+    return [t for t in insp.get_table_names() if t != "admin_audit_log" and any(c["name"] == "org_key" for c in insp.get_columns(t))]
+
+
 @router.delete("/api/admin/clinics/{org_key}")
-def admin_remove_clinic(org_key: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
-    """Only for a clinic added here that nobody has joined yet (e.g. a typo). Clinics with people are never deleted from here."""
-    if any(_doc_org_key(u) == org_key for u in db.scalars(select(User))):
-        return JSONResponse({"error": "People belong to this clinic, so it can't be removed here."}, status_code=400)
-    rows = [r for r in db.scalars(select(OrgSettings).where(OrgSettings.org_key == org_key))]
-    ent = next((r for r in rows if r.category == ENTITLEMENTS_CATEGORY), None)
-    if not ent or not _json.loads(ent.data or "{}").get("createdInAdmin"):
+async def admin_remove_clinic(org_key: str, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Permanently delete a clinic: its accounts, their activity, its staff, billing and settings. Type its name to confirm."""
+    from staff_onboarding import OrgMembership
+    if org_key.startswith("user:") or not _clinic_exists(db, org_key):
         return JSONResponse({"error": "Not found."}, status_code=404)
-    for r in rows:
-        db.delete(r)
-    db.commit()
-    log_admin_action(db, "clinic_removed", target=org_key, detail=f"Removed {org_key} (no one had joined it)")
-    return {"ok": True}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    if str((body or {}).get("confirm") or "").strip() != org_key:
+        return JSONResponse({"error": "Type the clinic's name exactly to confirm."}, status_code=400)
+    members = [u for u in db.scalars(select(User)) if _doc_org_key(u) == org_key]
+    # staff who joined only through this clinic (no organization of their own, no other clinic) go with it too
+    for m in db.scalars(select(OrgMembership).where(OrgMembership.org_key == org_key)):
+        u = db.get(User, m.user_id)
+        if u and u not in members and not (u.organization or "").strip() and not db.scalar(
+                select(OrgMembership.id).where(OrgMembership.user_id == u.id, OrgMembership.org_key != org_key)):
+            members.append(u)
+    try:
+        ids = [u.id for u in members]
+        if ids:
+            for model in (UserActivity, PasswordResetToken, EmailVerificationToken, OrgMembership):
+                db.query(model).filter(model.user_id.in_(ids)).delete(synchronize_session=False)
+        db.execute(text("DELETE FROM staff_files WHERE document_id IN (SELECT id FROM staff_documents WHERE org_key = :k)"), {"k": org_key})
+        for table in _org_key_tables(db):
+            db.execute(text(f'DELETE FROM "{table}" WHERE org_key = :k'), {"k": org_key})
+        for u in members:
+            db.delete(u)
+        db.commit()
+    except Exception:
+        db.rollback()
+        return JSONResponse({"error": "Could not delete the clinic. Nothing was changed."}, status_code=500)
+    log_admin_action(db, "clinic_deleted", target=org_key,
+                     detail=f"Deleted {org_key} and {len(members)} account{'' if len(members) == 1 else 's'}: " + (", ".join(u.email for u in members) or "none"))
+    return {"ok": True, "deletedAccounts": len(members)}
+
+
+@router.put("/api/admin/users/{user_id}/email")
+async def admin_change_email(user_id: int, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Change someone's login email. Their clinic's staff record follows, old reset links stop working, and both addresses are told."""
+    import html as _h
+    import re as _re
+    import staff_onboarding as _so
+    user = db.get(User, user_id)
+    if not user:
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    email = str((await request.json()).get("email") or "").strip().lower()[:255]
+    if not _re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return JSONResponse({"error": "Enter a valid email address."}, status_code=400)
+    old = user.email
+    if email == old:
+        return {"ok": True, "email": email}
+    if db.scalar(select(User).where(User.email == email, User.id != user.id)):
+        return JSONResponse({"error": "Someone already has an Althais account with that email."}, status_code=409)
+    orgs = {r.org_key for r in db.scalars(select(_so.OrgMembership).where(_so.OrgMembership.user_id == user.id))}
+    if (user.organization or "").strip():
+        orgs.add(user.organization.strip())
+    try:
+        if not (user.organization or "").strip():   # a solo account's settings are keyed by its email
+            for table in _org_key_tables(db):
+                db.execute(text(f'UPDATE "{table}" SET org_key = :new WHERE org_key = :old'), {"new": f"user:{email}", "old": f"user:{old}"})
+        user.email, user.email_verified = email, 0
+        db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user.id).delete(synchronize_session=False)
+        db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == user.id).delete(synchronize_session=False)
+        db.commit()
+        for key in orgs:
+            row, doc = _so.load_staff(db, key)
+            hit = [p for p in doc.get("people", []) if p.get("userId") == user.id]
+            for p in hit:
+                p["email"] = email
+            if hit and row:
+                _so.save_staff(db, key, row, doc)
+    except Exception:
+        db.rollback()
+        return JSONResponse({"error": "Could not change the email. Nothing was changed."}, status_code=500)
+    body = (f"The email you sign in to Althais with was changed from <strong>{_h.escape(old)}</strong> to "
+            f"<strong>{_h.escape(email)}</strong> by the Althais team. Your password is the same.<br><br>"
+            "If you didn't expect this, reply to this email.")
+    send_email(email, "Your Althais sign-in email changed", _email_html("Your sign-in email changed", body, f"{APP_URL}/login", "Sign in to Althais"))
+    send_email(old, "Your Althais sign-in email changed", _email_html("Your sign-in email changed", body, f"{APP_URL}/login", "Sign in to Althais"))
+    log_admin_action(db, "account_email_changed", target=email, detail=f"Changed {old} to {email} ({user.organization or 'no organization'})")
+    return {"ok": True, "email": email}
 
 
 @router.put("/api/admin/orgs/mrr")
