@@ -7,6 +7,7 @@
     /* Built from the same parts as every Althais workspace page (see _nav.html and practice_team.html) */
     .flt { font-size:12px; border:1px solid #e4e6eb; border-radius:2px; padding:6px 8px; background:#fff; color:#2c313b; outline:none; }
     .flt:focus { border-color:var(--brand); }
+    .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; font-weight:600; margin-bottom:5px; }
     .btn-line { font-size:12px; padding:6px 10px; border-radius:2px; border:1px solid #e4e6eb; background:#fff; color:#2c313b; font-weight:600; white-space:nowrap; cursor:pointer; }
     .btn-line:hover { background:#f4f5f7; }
     .btn-save { font-size:12px; padding:5px 12px; border-radius:2px; font-weight:600; border:1px solid transparent; cursor:pointer; background:var(--brand); color:var(--brand-on); }
@@ -188,6 +189,7 @@
             <option value="all">All Plans</option><option value="suite">Full Suite</option><option value="tools">Single Tools</option><option value="none">No Access</option>
           </select>
           <button type="button" id="save-all" class="btn-save ml-auto order-last" disabled>Save All</button>
+          <button type="button" id="clinic-add" class="btn-save order-last">+ Add Clinic</button>
           <button type="button" id="demo-btn" class="btn-line order-last" title="Fictional clinics and clinicians (.example emails) for demos">Demo Clinics…</button>
           <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea and Manager work with any plan.</span>
         </div>
@@ -210,6 +212,21 @@
         </div>
       </div>
     </section>
+
+    <div id="clinic-modal" class="hidden fixed inset-0 z-[90] items-center justify-center px-4" style="background:rgba(15,17,22,.45)">
+      <form id="clinic-form" class="w-full max-w-[520px] bg-panel rounded-md shadow-xl border border-line" role="dialog" aria-modal="true" aria-labelledby="clinic-title">
+        <div class="px-5 py-3.5 border-b border-line flex items-center justify-between"><h3 id="clinic-title" class="text-[15px] font-semibold text-ink-900">Add A Clinic</h3>
+          <button type="button" data-clinic-close class="text-ink-400 hover:text-ink-900" aria-label="Close">✕</button></div>
+        <div class="p-5 space-y-3">
+          <div><label class="lbl" for="clinic-name">Clinic name</label><input id="clinic-name" class="flt w-full" style="font-size:13px;padding:8px 10px" maxlength="120" required placeholder="e.g. MCH Hospital Site 2"></div>
+          <div><div class="lbl">Tools</div><div class="flex flex-wrap gap-3 text-[12.5px]" id="clinic-tools"></div>
+            <label class="flex items-center gap-2 text-[12.5px] mt-2"><input type="checkbox" id="clinic-althea" checked> Althea assistant</label></div>
+          <p class="text-[12px] text-ink-500">The clinic shows in the list right away. Anyone who signs up or is invited with this exact clinic name joins it.</p>
+          <div id="clinic-msg" class="text-[12.5px]" style="color:#c83838"></div>
+        </div>
+        <div class="px-5 py-3 border-t border-line flex justify-end gap-2"><button type="button" class="btn-line" data-clinic-close>Cancel</button><button type="submit" class="btn-save" id="clinic-save">Add Clinic</button></div>
+      </form>
+    </div>
 
     <!-- Accounts -->
     <section data-section="accounts" class="hidden">
@@ -414,7 +431,7 @@
     const inactive = u => !u.last_login || (Date.now() - new Date(u.last_login)) / 864e5 > Number(ASET.inactive_after_days);
     const isTest = email => /\.(test|local|example)$/i.test(email || '');
     const shownUsers = () => ASET.hide_test_accounts ? USERS.filter(u => !isTest(u.email)) : USERS;
-    const shownOrgs = () => ASET.hide_test_accounts ? ORGS.filter(o => !o.users.every(isTest)) : ORGS;
+    const shownOrgs = () => ASET.hide_test_accounts ? ORGS.filter(o => !o.users.length || !o.users.every(isTest)) : ORGS;
     const empty = (cols, text) => `<tr><td colspan="${cols}" class="px-4 py-10 text-center text-[12px] text-ink-500">${text}</td></tr>`;
 
     // ---- sub-menu tabs, kept in the address so a refresh stays put ----
@@ -520,7 +537,8 @@
       return `<tr class="row-hover">
         <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(o.name))}</div><div class="min-w-0">
           <button type="button" data-emp="${esc(o.org_key)}" class="font-semibold text-ink-900 hover:text-med-600 text-left" title="See this clinic’s employees">${esc(o.name)}</button>
-          <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}</div></div></div></td>
+          <div class="text-[11px] text-ink-500">${o.users.length ? `${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}`
+            : `No one has joined yet${o.createdInAdmin ? ` · <button type="button" data-clinic-del="${esc(o.org_key)}" class="font-semibold hover:text-risk-600">Remove</button>` : ''}`}</div></div></div></td>
         ${cells}
         <td class="td text-right" style="border-left:1px solid #eceef2">
           <input type="number" min="0" step="1" class="flt" style="width:88px;text-align:right" value="${o.mrr || ''}" placeholder="0" data-mrr="${esc(o.org_key)}" aria-label="${esc(o.name)}: monthly contract value" />
@@ -879,6 +897,38 @@
     $('logout').addEventListener('click', async () => {
       await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin' });
       location.href = '/admin/login';
+    });
+
+    // ── add a clinic ──
+    function clinicModal(on) {
+      $('clinic-modal').classList.toggle('hidden', !on); $('clinic-modal').classList.toggle('flex', on);
+      if (on) { $('clinic-form').reset(); $('clinic-msg').textContent = '';
+        $('clinic-tools').innerHTML = PLAN_KEYS.map(k => `<label class="flex items-center gap-1.5"><input type="checkbox" value="${k}"${k === 'suite' ? ' checked' : ''}> ${esc(PLANS[k].name)}</label>`).join('');
+        $('clinic-name').focus(); }
+    }
+    $('clinic-add').addEventListener('click', () => clinicModal(true));
+    $('clinic-modal').addEventListener('click', e => { if (e.target === $('clinic-modal') || e.target.closest('[data-clinic-close]')) clinicModal(false); });
+    $('clinic-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('clinic-save').disabled = true;
+      try {
+        const products = [...$('clinic-tools').querySelectorAll('input:checked')].map(x => x.value);
+        const r = await fetch('/api/admin/clinics', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: $('clinic-name').value, products, althea: $('clinic-althea').checked }) });
+        const j = await r.json().catch(() => ({}));
+        if (r.status === 401) { location.href = '/admin/login'; return; }
+        if (!r.ok) { $('clinic-msg').textContent = j.error || 'Could not add the clinic.'; return; }
+        clinicModal(false); toast('Added ' + j.org_key); await load();
+      } finally { $('clinic-save').disabled = false; }
+    });
+    $('org-rows').addEventListener('click', async e => {
+      const b = e.target.closest('[data-clinic-del]'); if (!b) return;
+      e.stopPropagation();
+      if (!confirm(`Remove ${b.dataset.clinicDel}? No one has joined it yet.`)) return;
+      const r = await fetch('/api/admin/clinics/' + encodeURIComponent(b.dataset.clinicDel), { method: 'DELETE', credentials: 'same-origin' });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return toast(j.error || 'Could not remove it.', 'error');
+      toast('Removed'); load();
     });
 
     // ── demo clinics (demo_data.py): fictional, .example emails, removable in one click ──

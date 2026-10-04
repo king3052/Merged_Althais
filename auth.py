@@ -1841,7 +1841,65 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
                     "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "custom": bool(row),
                     "mrr": mrr})
+    # clinics added in this console that nobody has joined yet
+    for row in db.scalars(select(OrgSettings).where(OrgSettings.category == ENTITLEMENTS_CATEGORY)):
+        data = _json.loads(row.data or "{}")
+        if row.org_key in orgs or not data.get("createdInAdmin"):
+            continue
+        billing_row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == row.org_key, OrgSettings.category == BILLING_INFO_CATEGORY))
+        mrr = float(_json.loads(billing_row.data or "{}").get("mrr") or 0) if billing_row else 0
+        products = sorted(p for p in data.get("products") or [] if p in PRODUCTS)
+        out.append({"org_key": row.org_key, "name": row.org_key, "users": [], "products": products,
+                    "althea": data["althea"] if isinstance(data.get("althea"), bool) else "suite" in products,
+                    "manager": data.get("manager") is not False, "custom": True, "mrr": mrr, "createdInAdmin": True,
+                    "createdAt": data.get("createdAt", "")})
     return sorted(out, key=lambda o: o["name"].lower())
+
+
+def _clinic_names(db: Session) -> set:
+    names = {(u.organization or "").strip().lower() for u in db.scalars(select(User)) if (u.organization or "").strip()}
+    names |= {r.org_key.strip().lower() for r in db.scalars(select(OrgSettings).where(OrgSettings.category == ENTITLEMENTS_CATEGORY))}
+    return names
+
+
+@router.post("/api/admin/clinics")
+async def admin_add_clinic(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Add a clinic by name with the tools it bought. It shows in Organizations & Access right away; its people join it later."""
+    import re as _re
+    body = await request.json()
+    name = _re.sub(r"\s+", " ", str(body.get("name") or "")).strip()
+    products = body.get("products") if isinstance(body.get("products"), list) else []
+    althea = body.get("althea") if isinstance(body.get("althea"), bool) else None
+    if len(name) < 2 or len(name) > 120:
+        return JSONResponse({"error": "Enter the clinic's name (2 to 120 characters)."}, status_code=400)
+    if name.lower() in _clinic_names(db):
+        return JSONResponse({"error": "A clinic with that name is already in Althais."}, status_code=409)
+    if not products or any(p not in PRODUCTS for p in products):
+        return JSONResponse({"error": "Choose at least one tool."}, status_code=400)
+    chosen = ["suite"] if "suite" in products else sorted(set(products))
+    data = {"rev": 0, "products": chosen, "manager": True, "createdInAdmin": True, "createdAt": dt.datetime.now(timezone.utc).isoformat()}
+    if althea is not None:
+        data["althea"] = althea
+    db.add(OrgSettings(org_key=name, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(data)))
+    db.commit()
+    log_admin_action(db, "clinic_added", target=name, detail=f"Added {name}: " + ("the full suite" if "suite" in chosen else ", ".join(chosen)))
+    return {"ok": True, "org_key": name}
+
+
+@router.delete("/api/admin/clinics/{org_key}")
+def admin_remove_clinic(org_key: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Only for a clinic added here that nobody has joined yet (e.g. a typo). Clinics with people are never deleted from here."""
+    if any(_doc_org_key(u) == org_key for u in db.scalars(select(User))):
+        return JSONResponse({"error": "People belong to this clinic, so it can't be removed here."}, status_code=400)
+    rows = [r for r in db.scalars(select(OrgSettings).where(OrgSettings.org_key == org_key))]
+    ent = next((r for r in rows if r.category == ENTITLEMENTS_CATEGORY), None)
+    if not ent or not _json.loads(ent.data or "{}").get("createdInAdmin"):
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    for r in rows:
+        db.delete(r)
+    db.commit()
+    log_admin_action(db, "clinic_removed", target=org_key, detail=f"Removed {org_key} (no one had joined it)")
+    return {"ok": True}
 
 
 @router.put("/api/admin/orgs/mrr")
@@ -1895,6 +1953,9 @@ async def admin_set_org_products(request: Request, db: Session = Depends(get_db)
         for k in ("althea", "manager"):
             if k not in data and isinstance(prev.get(k), bool):
                 data[k] = prev[k]   # not sent: keep what it was
+        for k in ("createdInAdmin", "createdAt", "demo"):
+            if k in prev:
+                data[k] = prev[k]   # how the clinic was created, so it still lists before anyone joins
         row.data = _json.dumps(data)
     else:
         db.add(OrgSettings(org_key=key, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(data)))
