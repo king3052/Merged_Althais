@@ -190,7 +190,6 @@
           </select>
           <button type="button" id="save-all" class="btn-save ml-auto order-last" disabled>Save All</button>
           <button type="button" id="clinic-add" class="btn-save order-last">+ Add Clinic</button>
-          <button type="button" id="demo-btn" class="btn-line order-last" title="Fictional clinics and clinicians (.example emails) for demos">Demo Clinics…</button>
           <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea and Manager work with any plan.</span>
         </div>
         <div class="bg-panel border border-line rounded-sm">
@@ -365,7 +364,7 @@
       <div class="flex items-center gap-2 flex-wrap mb-2 text-[12px]"><span class="text-ink-500 w-[104px]">Organization name</span>
         <input type="text" id="emp-name" class="flt flex-1 min-w-[180px]" maxlength="120" aria-label="Organization name"><button type="button" id="emp-name-save" class="btn-line">Save Name</button></div>
       <div class="flex items-center gap-2 flex-wrap mb-4 text-[12px]"><span class="text-ink-500 w-[104px]">Clinic start date</span>
-        <input type="date" id="emp-start" class="flt" aria-label="Clinic start date"><button type="button" id="emp-start-save" class="btn-line">Save Date</button></div>
+        <span id="emp-start" class="text-ink-900 font-medium"></span></div>
       <div class="flex items-center justify-between mb-1.5"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Add Members</div></div>
       <div class="bg-panel border border-line rounded-sm p-3 mb-4"><div id="emp-add-rows" class="space-y-2"></div>
         <div class="flex gap-2 mt-2"><button type="button" class="btn-line" id="emp-add-row">+ Another Person</button><button type="button" class="btn-save ml-auto" id="emp-add-save">Add To Clinic</button></div>
@@ -635,7 +634,7 @@
             <div class="flex gap-1 flex-wrap mt-1">${tools}</div>${off}<div class="flex gap-3">${viewAs}<button type="button" data-email-edit="${m.id}" data-email="${esc(m.email)}" class="text-[11px] font-semibold text-ink-500 hover:text-med-600 mt-1.5">Change Email</button></div>
             <div data-email-form="${m.id}" class="hidden mt-1.5"><div class="flex gap-2"><input type="email" class="flt flex-1 min-w-0" value="${esc(m.email)}" aria-label="New email for ${esc(m.full_name || m.email)}"><button type="button" data-email-save="${m.id}" class="btn-save">Save</button><button type="button" data-email-cancel="${m.id}" class="btn-line">Cancel</button></div></div></div></div>`;
       };
-      $('emp-start').value = d.startDate || ''; $('emp-name').value = o.name; EMP_KEY = key; $('emp-add-rows').innerHTML = memberRow(); $('emp-add-msg').innerHTML = '';
+      $('emp-start').textContent = d.startDate ? fmtDate(d.startDate + 'T12:00:00') : 'Not set'; $('emp-name').value = o.name; EMP_KEY = key; $('emp-add-rows').innerHTML = memberRow(); $('emp-add-msg').innerHTML = '';
       const managers = d.members.filter(m => m.role === 'admin'), others = d.members.filter(m => m.role !== 'admin');
       $('emp-sub').textContent = `${d.members.length} ${d.members.length === 1 ? 'person' : 'people'} · ${managers.length} ${managers.length === 1 ? 'manager' : 'managers'}`;
       $('emp-managers').innerHTML = managers.length ? managers.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No Manager Yet.</div>';
@@ -974,12 +973,6 @@
     });
     $('emp-panel').addEventListener('keydown', e => { const f = e.target.closest('[data-email-form]'); if (f && e.key === 'Enter') saveEmail(f.dataset.emailForm); });
     $('emp-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('emp-name-save').click(); });
-    $('emp-start-save').addEventListener('click', async () => {
-      const r = await fetch('/api/admin/clinics/' + encodeURIComponent(EMP_KEY) + '/start-date', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: $('emp-start').value }) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) return toast(j.error || 'Could not save the date.', 'error');
-      toast('Start date saved'); load();
-    });
 
     // ── add a clinic ──
     function clinicModal(on) {
@@ -1027,27 +1020,6 @@
       if (!r.ok) return toast(j.error || 'Could not delete it.', 'error');
       toast(`Deleted ${key}` + (j.deletedAccounts ? ` and ${j.deletedAccounts} account${j.deletedAccounts === 1 ? '' : 's'}` : '')); load();
     });
-
-    // ── demo clinics (demo_data.py): fictional, .example emails, removable in one click ──
-    async function demoStatus() {
-      try { const r = await fetch('/api/admin/demo-data', { credentials: 'same-origin' }); if (!r.ok) return null; const j = await r.json();
-            $('demo-btn').textContent = j.loaded ? `Remove Demo Clinics (${j.loaded})` : 'Load Demo Clinics'; return j; } catch (e) { return null; }
-    }
-    $('demo-btn').addEventListener('click', async () => {
-      const st = await demoStatus(); if (!st) return;
-      const action = st.loaded ? 'remove' : 'load';
-      if (!confirm(action === 'load'
-        ? `Load ${st.total} fictional clinicians across ${st.sites.length} demo clinic sites (${st.sites.join(', ')}), with activity history since July? Their emails end in .example, so nothing can reach a real inbox, and nobody can sign in as them.`
-        : `Remove all ${st.loaded} demo clinicians, their activity and the demo clinic sites?`)) return;
-      $('demo-btn').disabled = true;
-      const r = await fetch('/api/admin/demo-data', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
-      const j = await r.json().catch(() => ({}));
-      $('demo-btn').disabled = false;
-      if (!r.ok) return toast(j.error || 'Something went wrong.', 'error');
-      toast(action === 'load' ? `Loaded ${j.added} demo clinicians` : `Removed ${j.removed} demo clinicians`);
-      await load(); demoStatus();
-    });
-    demoStatus();
 
     show(location.hash.slice(1));
     load();
