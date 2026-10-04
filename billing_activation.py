@@ -2034,6 +2034,9 @@ async def claims_transmit(request: Request, c: Ctx = Depends(ctx)):
         oc.status = "Submitted (Test)" if res.get("test") else "Submitted"
         c.user.claims_submitted = (c.user.claims_submitted or 0) + 1
     audit(c, c.org, c.user, "claim_" + res["status"], f"Claim {claim['claimId']}")
+    if res["status"] in ("sent", "held"):
+        from auth import record_activity
+        record_activity(c.db, c.user, "claim_sent" if res["status"] == "sent" else "claim_held")
     c.db.commit()
     return res
 

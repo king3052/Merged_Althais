@@ -1063,6 +1063,8 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
     # column that existed but nothing ever wrote to (always showed 0).
     if just_submitted:
         user.claims_submitted = (user.claims_submitted or 0) + 1
+        from auth import record_activity
+        record_activity(db, user, "claim_sent")
     db.commit()
     return {"ok": True}
 
@@ -1244,6 +1246,10 @@ Clinical note:
         response_body = {"codes": codes}
         if time_coding_note:
             response_body["time_coding_note"] = time_coding_note
+        if codes:
+            from auth import record_activity
+            record_activity(db, user, "codes", len(codes))
+            db.commit()
         return JSONResponse(response_body)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)

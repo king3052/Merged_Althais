@@ -324,6 +324,15 @@
 
   <!-- =================== A CLINIC'S EMPLOYEES =================== -->
   <div id="emp-backdrop" class="fixed inset-0 z-40 hidden" style="background:rgba(15,17,22,.45)"></div>
+  <div id="usr-backdrop" class="fixed inset-0 z-[60] hidden" style="background:rgba(15,17,22,.45)"></div>
+  <aside id="usr-panel" class="fixed top-0 right-0 z-[61] h-screen w-[640px] max-w-[96vw] bg-panel border-l border-line shadow-xl overflow-y-auto thin-scroll hidden" aria-label="Person's activity">
+    <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
+      <div class="flex items-center gap-2.5 min-w-0"><div id="usr-initials" class="initials">-</div>
+        <div class="min-w-0"><div id="usr-title" class="text-[13.5px] font-semibold text-ink-900 truncate">-</div><div id="usr-sub" class="text-[11px] text-ink-500 truncate"></div></div></div>
+      <button id="usr-close" type="button" class="text-ink-400 hover:text-ink-700" aria-label="Close"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="p-4" id="usr-body"></div>
+  </aside>
   <aside id="emp-panel" class="fixed top-0 right-0 z-50 h-screen w-[560px] max-w-[96vw] bg-panel border-l border-line shadow-xl overflow-y-auto thin-scroll hidden" aria-label="Clinic employees">
     <div class="sticky top-0 bg-panel border-b border-line px-4 py-3 flex items-center justify-between z-10">
       <div class="flex items-center gap-2.5"><div id="emp-initials" class="initials">-</div>
@@ -588,7 +597,7 @@
         const off = m.blocked.length ? `<div class="text-[11px] mt-1" style="color:#b86a00">Turned off: ${m.blocked.map(a => esc(d.areas[a] || a)).join(', ')}</div>` : '';
         const viewAs = m.active ? `<button type="button" data-view-as="${m.id}" data-view-as-email="${esc(m.email)}" class="text-[11px] font-semibold text-med-600 hover:text-med-700 mt-1.5" title="See exactly what ${esc(m.email)} sees, for ${IMPERSONATION_MINUTES} minutes">View As →</button>` : '';
         return `<div class="list-row" style="align-items:flex-start"><div class="initials">${esc(initials(m.full_name || m.email))}</div>
-          <div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><span class="text-[12.5px] font-semibold text-ink-900">${esc(m.full_name || m.email)}</span>${status}</div>
+          <div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><button type="button" data-user="${m.id}" class="text-[12.5px] font-semibold text-ink-900 hover:text-med-600 hover:underline text-left">${esc(m.full_name || m.email)}</button>${status}</div>
             <div class="text-[11px] text-ink-500">${esc(m.email)} · ${ROLE_NAME[m.role] || m.role}${m.provider_name ? ' · ' + esc(m.provider_name) : ''} · last sign-in ${fmtRelative(m.last_login)}</div>
             <div class="flex gap-1 flex-wrap mt-1">${tools}</div>${off}${viewAs}</div></div>`;
       };
@@ -598,6 +607,52 @@
       $('emp-list').innerHTML = others.length ? others.map(row).join('') : '<div class="px-4 py-4 text-[12px] text-ink-500">No Employees Under Them Yet.</div>';
     }
     function closeClinic() { $('emp-panel').classList.add('hidden'); $('emp-backdrop').classList.add('hidden'); }
+
+    // ── one person's activity ──
+    const KIND = { login: ['Signed in', '#6b7280'], codes: ['Generated codes', 'var(--brand)'], claim_sent: ['Sent a claim', '#0c8a4f'], claim_held: ['Claim held, not sent', '#b86a00'] };
+    const shortDate = (iso) => new Date(iso + (iso.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    function bars(weeks, key, color, unit) {
+      const W = 600, H = 130, pad = 22, max = Math.max(1, ...weeks.map(w => w[key])), bw = (W - pad) / weeks.length;
+      const ticks = [0, Math.ceil(max / 2), max];
+      return `<svg viewBox="0 0 ${W} ${H + 18}" class="w-full" role="img" aria-label="${unit} per week">
+        ${ticks.map(t => { const y = H - (t / max) * (H - 8); return `<line x1="${pad}" x2="${W}" y1="${y}" y2="${y}" stroke="#eceef2"/><text x="${pad - 4}" y="${y + 3}" text-anchor="end" font-size="9" fill="#9aa0ab">${t}</text>`; }).join('')}
+        ${weeks.map((w, i) => { const h = (w[key] / max) * (H - 8); return `<rect x="${pad + i * bw + 2}" y="${H - h}" width="${Math.max(2, bw - 4)}" height="${h}" rx="2" fill="${color}"><title>Week of ${shortDate(w.start)}: ${w[key]} ${unit}</title></rect>`; }).join('')}
+        ${weeks.map((w, i) => (i % Math.ceil(weeks.length / 6) === 0) ? `<text x="${pad + i * bw + bw / 2}" y="${H + 13}" text-anchor="middle" font-size="9" fill="#9aa0ab">${shortDate(w.start)}</text>` : '').join('')}
+      </svg>`;
+    }
+    function hoursChart(hours) {
+      const max = Math.max(1, ...hours), lbl = (h) => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
+      return `<div class="flex items-end gap-[3px] h-16">${hours.map((n, h) => `<div class="flex-1 rounded-sm" style="height:${Math.max(2, 64 * n / max)}px;background:${n ? 'var(--brand)' : '#e4e6eb'};opacity:${n ? .35 + .65 * n / max : 1}" title="${lbl(h)}: ${n}"></div>`).join('')}</div>
+        <div class="flex justify-between text-[9.5px] text-ink-400 mt-1"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>`;
+    }
+    async function openUser(id) {
+      $('usr-panel').classList.remove('hidden'); $('usr-backdrop').classList.remove('hidden');
+      $('usr-body').innerHTML = '<div class="text-[12px] text-ink-500">Loading…</div>';
+      const res = await fetch(`/api/admin/users/${id}/activity`, { credentials: 'same-origin' });
+      if (res.status === 401) { location.href = '/admin/login'; return; }
+      const d = await res.json(), u = d.user, t = d.totals;
+      $('usr-title').textContent = u.providerName || u.name || u.email; $('usr-initials').textContent = initials(u.name || u.email);
+      $('usr-sub').textContent = `${u.email} · ${u.organization || 'No organization'} · ${u.role === 'admin' ? 'Manager' : (ROLE_NAME[u.role] || u.role)}`;
+      const kpi = (label, value, sub) => `<div class="border border-line rounded-sm p-3"><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">${label}</div><div class="text-[18px] font-semibold text-ink-900 num mt-0.5">${value}</div><div class="text-[10.5px] text-ink-400">${sub}</div></div>`;
+      const sect = (title, body, note) => `<div class="mt-5"><div class="flex items-baseline justify-between"><h4 class="text-[12.5px] font-semibold text-ink-900">${title}</h4>${note ? `<span class="text-[10.5px] text-ink-400">${note}</span>` : ''}</div><div class="mt-2">${body}</div></div>`;
+      const has = !!d.recordedSince;
+      $('usr-body').innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          ${kpi('Sign-Ins', u.loginCount, 'all time')}${kpi('Codes Sent', t.codes, `${t.codeRuns} coding runs`)}${kpi('Claims Sent', Math.max(t.claims, u.claimsSubmitted), t.held ? t.held + ' held' : 'all time')}${kpi('Last Active', u.lastLogin ? fmtRelative(u.lastLogin) : 'Never', `joined ${fmtDate(u.joined)}`)}
+        </div>
+        ${has ? '' : '<div class="mt-4 p-3 rounded-sm border border-line text-[12px] text-ink-600">No activity recorded yet. Althais records sign-ins, coding and claims from now on, so charts fill in as they use it.</div>'}
+        ${sect('Codes Sent Per Week', bars(d.weeks, 'codes', 'var(--brand)', 'codes'), has ? 'since ' + shortDate(d.recordedSince) : '')}
+        ${sect('Sign-Ins Per Week', bars(d.weeks, 'logins', '#6b7280', 'sign-ins'))}
+        ${sect('Claims Sent Per Week', bars(d.weeks, 'claims', '#0c8a4f', 'claims'))}
+        ${sect('When They Work', hoursChart(d.hours), `${t.activeDays} active days`)}
+        ${sect('Recent Activity', d.recent.length ? `<div class="border border-line rounded-sm">${d.recent.map(r => `<div class="list-row" style="padding:8px 12px"><span style="width:8px;height:8px;border-radius:50%;background:${(KIND[r.kind] || ['', '#9aa0ab'])[1]};flex-shrink:0;margin-top:5px"></span>
+            <div class="flex-1 text-[12px] text-ink-800">${esc((KIND[r.kind] || [r.kind])[0])}${r.kind === 'codes' ? ` <span class="text-ink-500">(${r.count} code${r.count === 1 ? '' : 's'})</span>` : ''}</div>
+            <div class="text-[11px] text-ink-500 whitespace-nowrap">${new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div></div>`).join('')}</div>` : '<div class="text-[12px] text-ink-500">Nothing yet.</div>')}`;
+    }
+    function closeUser() { $('usr-panel').classList.add('hidden'); $('usr-backdrop').classList.add('hidden'); }
+    $('usr-close').addEventListener('click', closeUser); $('usr-backdrop').addEventListener('click', closeUser);
+    document.addEventListener('click', e => { const b = e.target.closest('[data-user]'); if (b) openUser(b.dataset.user); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('usr-panel').classList.contains('hidden')) closeUser(); });
     $('emp-close').addEventListener('click', closeClinic); $('emp-backdrop').addEventListener('click', closeClinic);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeClinic(); });
     document.addEventListener('click', e => { const b = e.target.closest('[data-emp]'); if (b) openClinic(b.dataset.emp); });
@@ -625,7 +680,7 @@
       $('rows').innerHTML = list.length ? list.map(u => `
         <tr class="row-hover">
           <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(u.full_name || u.email))}</div><div class="min-w-0">
-            <div class="font-semibold text-ink-900">${esc(u.full_name || '-')}</div>
+            <button type="button" data-user="${u.id}" class="font-semibold text-ink-900 hover:text-med-600 hover:underline text-left">${esc(u.full_name || u.email)}</button>
             <div class="text-[11px] text-ink-500 mono">${esc(u.email)}</div></div></div></td>
           <td class="td text-ink-700">${orgs[u.email] ? `<button type="button" data-emp="${esc(orgs[u.email].org_key)}" class="hover:text-med-600 text-left">${esc(u.organization || '-')}</button>` : esc(u.organization || '-')}</td>
           <td class="td">${u.role === 'admin' ? pill('Manager', 'brand') : esc(ROLE_NAME[u.role] || u.role || '-')}${u.active === false ? ' ' + pill('Paused', 'muted') : ''}</td>

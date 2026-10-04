@@ -189,6 +189,27 @@ class OrgClaim(Base):
     )
 
 
+class UserActivity(Base):
+    """What each login actually did, with a time: sign-ins, codes generated, claims sent or held.
+    Powers the per-person charts in the admin console. Counts only, never patient or claim details."""
+    __tablename__ = "user_activity"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    org_key: Mapped[str] = mapped_column(String(255), default="", index=True)
+    kind: Mapped[str] = mapped_column(String(24))            # login | codes | claim_sent | claim_held
+    count: Mapped[int] = mapped_column(Integer, default=1)    # e.g. how many codes were generated
+    at: Mapped[dt.datetime] = mapped_column(DateTime, default=lambda: dt.datetime.now(timezone.utc), index=True)
+    seeded: Mapped[int] = mapped_column(Integer, default=0)   # 1 = demo history added by hand, not real use
+
+
+def record_activity(db, user, kind: str, count: int = 1) -> None:
+    """Never lets a logging problem break the action being logged."""
+    try:
+        db.add(UserActivity(user_id=user.id, org_key=(user.organization or "").strip(), kind=kind, count=max(1, int(count or 1))))
+    except Exception:
+        pass
+
+
 class OrgSettings(Base):
     """
     Generic per-organization settings storage, one row per (org, category).
@@ -601,6 +622,7 @@ def login(
     # Track login stats
     user.login_count = (user.login_count or 0) + 1
     user.last_login = dt.datetime.now(timezone.utc)
+    record_activity(db, user, "login")
     db.commit()
 
     # invited staff whose clinic only gives them the Staff Portal land there; everyone else in the app
@@ -1542,6 +1564,49 @@ def admin_users(request: Request, db: Session = Depends(get_db), _: bool = Depen
     } for u in users]
 
 
+@router.get("/api/admin/users/{user_id}/activity")
+def admin_user_activity(user_id: int, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """One person's history for the admin console: weekly sign-ins, codes and claims, the hours they work, and recent activity."""
+    u = db.get(User, user_id)
+    if not u:
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    rows = db.scalars(select(UserActivity).where(UserActivity.user_id == u.id).order_by(UserActivity.at)).all()
+    today = dt.datetime.now(timezone.utc).date()
+    joined = u.created_at.date() if u.created_at else today
+    start = max(joined, today - dt.timedelta(weeks=26))
+    start -= dt.timedelta(days=start.weekday())                    # weeks start on Monday
+    weeks = []
+    w = start
+    while w <= today:
+        weeks.append({"start": w.isoformat(), "logins": 0, "codes": 0, "claims": 0, "held": 0})
+        w += dt.timedelta(days=7)
+    hours, weekdays = [0] * 24, [0] * 7
+    totals = {"logins": 0, "codes": 0, "codeRuns": 0, "claims": 0, "held": 0}
+    days = set()
+    for r in rows:
+        d = r.at.date()
+        days.add(d)
+        hours[r.at.hour] += 1
+        weekdays[d.weekday()] += 1
+        key = {"login": "logins", "codes": "codes", "claim_sent": "claims", "claim_held": "held"}.get(r.kind)
+        if not key:
+            continue
+        n = r.count if r.kind == "codes" else 1
+        totals[key] += n
+        if r.kind == "codes":
+            totals["codeRuns"] += 1
+        i = (d - start).days // 7
+        if 0 <= i < len(weeks):
+            weeks[i][key] += n
+    recent = [{"at": r.at.isoformat(), "kind": r.kind, "count": r.count} for r in sorted(rows, key=lambda r: r.at, reverse=True)[:30]]
+    return {"user": {"id": u.id, "name": u.full_name or "", "email": u.email, "organization": u.organization or "", "role": u.role or "admin",
+                     "providerName": u.provider_name or "", "active": bool(getattr(u, "active", 1)),
+                     "joined": u.created_at.isoformat() if u.created_at else None, "lastLogin": u.last_login.isoformat() if u.last_login else None,
+                     "loginCount": u.login_count or 0, "claimsSubmitted": u.claims_submitted or 0},
+            "totals": dict(totals, activeDays=len(days)), "weeks": weeks, "hours": hours, "weekdays": weekdays, "recent": recent,
+            "recordedSince": rows[0].at.date().isoformat() if rows else None}
+
+
 @router.delete("/api/admin/users/{user_id}")
 def admin_delete_user(user_id: int, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     user = db.get(User, user_id)
@@ -1549,6 +1614,8 @@ def admin_delete_user(user_id: int, request: Request, db: Session = Depends(get_
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="User not found")
     deleted_email, deleted_org = user.email, (user.organization or "no organization")
+    for row in db.scalars(select(UserActivity).where(UserActivity.user_id == user.id)):
+        db.delete(row)       # their activity history goes with the account
     db.delete(user)
     db.commit()
     log_admin_action(db, "account_deleted", target=deleted_email, detail=f"Deleted account {deleted_email} ({deleted_org})")
