@@ -722,7 +722,7 @@
           <td class="td td-num text-right">${u.login_count}</td>
           <td class="td td-num text-right">${u.claims_submitted}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}${inactive(u) ? ' ' + pill('Inactive', 'muted') : ''}</td>
-          <td class="td text-ink-500 whitespace-nowrap">${fmtDate(u.created_at)}</td>
+          <td class="td text-ink-500 whitespace-nowrap">${fmtDate(u.joined || u.created_at)}</td>
           <td class="td text-right whitespace-nowrap">
             <button type="button" data-toggle-active="${u.id}" data-currently-active="${u.active !== false}" class="text-[11px] font-semibold text-ink-500 hover:text-med-600 mr-3">${u.active === false ? 'Reactivate' : 'Pause'}</button>
             <button type="button" data-del="${u.id}" class="text-[11px] font-semibold text-ink-400 hover:text-risk-600">Delete</button>

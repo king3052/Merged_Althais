@@ -1550,6 +1550,11 @@ def admin_end_impersonation(request: Request, db: Session = Depends(get_db)):
 def admin_users(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     """Return all users with stats for the admin dashboard."""
     users = db.scalars(select(User).order_by(User.created_at.desc())).all()
+    starts = {}
+    for u in users:
+        k = _doc_org_key(u)
+        if not k.startswith("user:") and k not in starts:
+            starts[k] = _clinic_start(db, k, [m for m in users if _doc_org_key(m) == k])
     return [{
         "id": u.id,
         "email": u.email,
@@ -1561,7 +1566,15 @@ def admin_users(request: Request, db: Session = Depends(get_db), _: bool = Depen
         "claims_submitted": u.claims_submitted or 0,
         "last_login": u.last_login.isoformat() if u.last_login else None,
         "created_at": u.created_at.isoformat() if u.created_at else None,
+        "joined": _joined(u, starts.get(_doc_org_key(u))),
     } for u in users]
+
+
+def _joined(u: User, clinic_start: str | None = None):
+    """What the console shows as Joined: the clinic's start date for anyone in a clinic, else when the account was made."""
+    if clinic_start:
+        return clinic_start + "T12:00:00"
+    return u.created_at.isoformat() if u.created_at else None
 
 
 @router.get("/api/admin/users/{user_id}/activity")
@@ -1601,7 +1614,7 @@ def admin_user_activity(user_id: int, db: Session = Depends(get_db), _: bool = D
     recent = [{"at": r.at.isoformat(), "kind": r.kind, "count": r.count} for r in sorted(rows, key=lambda r: r.at, reverse=True)[:30]]
     return {"user": {"id": u.id, "name": u.full_name or "", "email": u.email, "organization": u.organization or "", "role": u.role or "admin",
                      "providerName": u.provider_name or "", "active": bool(getattr(u, "active", 1)),
-                     "joined": u.created_at.isoformat() if u.created_at else None, "lastLogin": u.last_login.isoformat() if u.last_login else None,
+                     "joined": _joined(u, None if _doc_org_key(u).startswith("user:") else _clinic_start(db, _doc_org_key(u))), "lastLogin": u.last_login.isoformat() if u.last_login else None,
                      "loginCount": u.login_count or 0, "claimsSubmitted": u.claims_submitted or 0},
             "totals": dict(totals, activeDays=len(days)), "weeks": weeks, "hours": hours, "weekdays": weekdays, "recent": recent,
             "recordedSince": rows[0].at.date().isoformat() if rows else None}
