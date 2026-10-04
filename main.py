@@ -68,6 +68,8 @@ import staff_assistant
 app.include_router(staff_assistant.router)
 import billing_activation
 app.include_router(billing_activation.router)
+import demo_data
+app.include_router(demo_data.router)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────

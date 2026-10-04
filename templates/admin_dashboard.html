@@ -188,6 +188,7 @@
             <option value="all">All Plans</option><option value="suite">Full Suite</option><option value="tools">Single Tools</option><option value="none">No Access</option>
           </select>
           <button type="button" id="save-all" class="btn-save ml-auto order-last" disabled>Save All</button>
+          <button type="button" id="demo-btn" class="btn-line order-last" title="Fictional clinics and clinicians (.example emails) for demos">Demo Clinics…</button>
           <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea and Manager work with any plan.</span>
         </div>
         <div class="bg-panel border border-line rounded-sm">
@@ -879,6 +880,27 @@
       await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin' });
       location.href = '/admin/login';
     });
+
+    // ── demo clinics (demo_data.py): fictional, .example emails, removable in one click ──
+    async function demoStatus() {
+      try { const r = await fetch('/api/admin/demo-data', { credentials: 'same-origin' }); if (!r.ok) return null; const j = await r.json();
+            $('demo-btn').textContent = j.loaded ? `Remove Demo Clinics (${j.loaded})` : 'Load Demo Clinics'; return j; } catch (e) { return null; }
+    }
+    $('demo-btn').addEventListener('click', async () => {
+      const st = await demoStatus(); if (!st) return;
+      const action = st.loaded ? 'remove' : 'load';
+      if (!confirm(action === 'load'
+        ? `Load ${st.total} fictional clinicians across ${st.sites.length} demo clinic sites (${st.sites.join(', ')}), with activity history since July? Their emails end in .example, so nothing can reach a real inbox, and nobody can sign in as them.`
+        : `Remove all ${st.loaded} demo clinicians, their activity and the demo clinic sites?`)) return;
+      $('demo-btn').disabled = true;
+      const r = await fetch('/api/admin/demo-data', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+      const j = await r.json().catch(() => ({}));
+      $('demo-btn').disabled = false;
+      if (!r.ok) return toast(j.error || 'Something went wrong.', 'error');
+      toast(action === 'load' ? `Loaded ${j.added} demo clinicians` : `Removed ${j.removed} demo clinicians`);
+      await load(); demoStatus();
+    });
+    demoStatus();
 
     show(location.hash.slice(1));
     load();
