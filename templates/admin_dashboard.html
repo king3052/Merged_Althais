@@ -152,7 +152,6 @@
           <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Accounts</div><div id="stat-users" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-users-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
           <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Organizations</div><div id="stat-orgs" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-orgs-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
           <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Total Logins</div><div id="stat-logins" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-logins-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
-          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Claims Submitted</div><div id="stat-claims" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div class="text-[10.5px] text-ink-400 mt-0.5">across every clinic</div></div>
           <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">MRR</div><div id="stat-mrr" class="text-[20px] font-semibold text-ink-900 num mt-0.5">-</div><div id="stat-mrr-d" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
         </div>
       </div>
@@ -244,7 +243,7 @@
           <div class="overflow-x-auto thin-scroll">
             <table class="w-full">
               <thead><tr class="table-head">
-                <th class="td text-left">Account</th><th class="td text-left">Organization</th><th class="td text-left">Role</th><th class="td text-left">Plan</th><th class="td text-right">Logins</th><th class="td text-right">Claims</th><th class="td text-left">Last Login</th><th class="td text-left">Joined</th><th class="td"></th>
+                <th class="td text-left">Account</th><th class="td text-left">Organization</th><th class="td text-left">Role</th><th class="td text-left">Plan</th><th class="td text-right">Logins</th><th class="td text-left">Last Login</th><th class="td text-left">Joined</th><th class="td"></th>
               </tr></thead>
               <tbody id="rows"></tbody>
             </table>
@@ -373,7 +372,7 @@
       <div id="emp-managers" class="bg-panel border border-line rounded-sm mb-4"></div>
       <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1.5">Employees Under Them</div>
       <div id="emp-list" class="bg-panel border border-line rounded-sm"></div>
-      <p class="text-[11.5px] text-ink-500 mt-3">Click a name to see their sign-ins, codes and claims. The clinic’s managers set tools and access in Manager.</p>
+      <p class="text-[11.5px] text-ink-500 mt-3">Click a name to see their sign-ins and codes. The clinic’s managers set tools and access in Manager.</p>
     </div>
   </aside>
 
@@ -469,7 +468,6 @@
       $('stat-logins').textContent = shownUsers().reduce((s, u) => s + (u.login_count || 0), 0).toLocaleString();
       const activeWeek = shownUsers().filter(u => u.last_login && new Date(u.last_login) > week).length;
       $('stat-logins-d').textContent = `${activeWeek} ${activeWeek === 1 ? 'person' : 'people'} active this week`;
-      $('stat-claims').textContent = shownUsers().reduce((s, u) => s + (u.claims_submitted || 0), 0).toLocaleString();
       const totalMrr = shownOrgs().reduce((s, o) => s + (o.mrr || 0), 0);
       const orgsWithMrr = shownOrgs().filter(o => o.mrr > 0).length;
       $('stat-mrr').textContent = '$' + totalMrr.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -630,7 +628,7 @@
         return `<div class="list-row" style="align-items:flex-start"><div class="initials">${esc(initials(m.full_name || m.email))}</div>
           <div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><button type="button" data-user="${m.id}" class="text-[12.5px] font-semibold text-ink-900 hover:text-med-600 hover:underline text-left">${esc(m.full_name || m.email)}</button>${status}</div>
             <div class="text-[11px] text-ink-500">${esc(m.email)} · ${ROLE_NAME[m.role] || m.role}${m.provider_name ? ' · ' + esc(m.provider_name) : ''} · last sign-in ${fmtRelative(m.last_login)}</div>
-            <div class="text-[11px] text-ink-700 mt-0.5"><b>${m.claims_submitted || 0}</b> claim${m.claims_submitted === 1 ? '' : 's'} sent · ${m.login_count || 0} sign-ins</div>
+            <div class="text-[11px] text-ink-700 mt-0.5"><b>${m.login_count || 0}</b> sign-ins</div>
             <div class="flex gap-1 flex-wrap mt-1">${tools}</div>${off}<div class="flex gap-3">${viewAs}<button type="button" data-email-edit="${m.id}" data-email="${esc(m.email)}" class="text-[11px] font-semibold text-ink-500 hover:text-med-600 mt-1.5">Change Email</button></div>
             <div data-email-form="${m.id}" class="hidden mt-1.5"><div class="flex gap-2"><input type="email" class="flt flex-1 min-w-0" value="${esc(m.email)}" aria-label="New email for ${esc(m.full_name || m.email)}"><button type="button" data-email-save="${m.id}" class="btn-save">Save</button><button type="button" data-email-cancel="${m.id}" class="btn-line">Cancel</button></div></div></div></div>`;
       };
@@ -669,16 +667,16 @@
       $('usr-sub').textContent = `${u.email} · ${u.organization || 'No organization'} · ${u.role === 'admin' ? 'Manager' : (ROLE_NAME[u.role] || u.role)}`;
       const kpi = (label, value, sub) => `<div class="border border-line rounded-sm p-3"><div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">${label}</div><div class="text-[18px] font-semibold text-ink-900 num mt-0.5">${value}</div><div class="text-[10.5px] text-ink-400">${sub}</div></div>`;
       const sect = (title, body, note) => `<div class="mt-5"><div class="flex items-baseline justify-between"><h4 class="text-[12.5px] font-semibold text-ink-900">${title}</h4>${note ? `<span class="text-[10.5px] text-ink-400">${note}</span>` : ''}</div><div class="mt-2">${body}</div></div>`;
-      const has = !!d.recordedSince;
+      const has = !!d.recordedSince, recent = d.recent.filter(r => !r.kind.startsWith('claim'));
       $('usr-body').innerHTML = `
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          ${kpi('Sign-Ins', u.loginCount, 'all time')}${kpi('Codes Sent', t.codes, `${t.codeRuns} coding runs`)}${kpi('Claims Sent', Math.max(t.claims, u.claimsSubmitted), t.held ? t.held + ' held' : 'all time')}${kpi('Last Active', u.lastLogin ? fmtRelative(u.lastLogin) : 'Never', `joined ${fmtDate(u.joined)}`)}
+        <div class="grid grid-cols-3 gap-2">
+          ${kpi('Sign-Ins', u.loginCount, 'all time')}${kpi('Codes Sent', t.codes, `${t.codeRuns} coding runs`)}${kpi('Last Active', u.lastLogin ? fmtRelative(u.lastLogin) : 'Never', `joined ${fmtDate(u.joined)}`)}
         </div>
-        ${has ? '' : '<div class="mt-4 p-3 rounded-sm border border-line text-[12px] text-ink-600">No activity recorded yet. Althais records sign-ins, coding and claims from now on, so charts fill in as they use it.</div>'}
+        ${has ? '' : '<div class="mt-4 p-3 rounded-sm border border-line text-[12px] text-ink-600">No activity recorded yet. Althais records sign-ins and coding from now on, so charts fill in as they use it.</div>'}
         ${sect('Codes Sent Per Week', bars(d.weeks, 'codes', 'var(--brand)', 'codes'), has ? 'since ' + shortDate(d.recordedSince) : '')}
         ${sect('Sign-Ins Per Week', bars(d.weeks, 'logins', '#6b7280', 'sign-ins'))}
         ${sect('When They Work', hoursChart(d.hours), `${t.activeDays} active days`)}
-        ${sect('Recent Activity', d.recent.length ? `<div class="border border-line rounded-sm">${d.recent.map(r => `<div class="list-row" style="padding:8px 12px"><span style="width:8px;height:8px;border-radius:50%;background:${(KIND[r.kind] || ['', '#9aa0ab'])[1]};flex-shrink:0;margin-top:5px"></span>
+        ${sect('Recent Activity', recent.length ? `<div class="border border-line rounded-sm">${recent.map(r => `<div class="list-row" style="padding:8px 12px"><span style="width:8px;height:8px;border-radius:50%;background:${(KIND[r.kind] || ['', '#9aa0ab'])[1]};flex-shrink:0;margin-top:5px"></span>
             <div class="flex-1 text-[12px] text-ink-800">${esc((KIND[r.kind] || [r.kind])[0])}${r.kind === 'codes' ? ` <span class="text-ink-500">(${r.count} code${r.count === 1 ? '' : 's'})</span>` : ''}</div>
             <div class="text-[11px] text-ink-500 whitespace-nowrap">${new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div></div>`).join('')}</div>` : '<div class="text-[12px] text-ink-500">Nothing yet.</div>')}`;
     }
@@ -719,14 +717,13 @@
           <td class="td">${u.role === 'admin' ? pill('Manager', 'brand') : esc(ROLE_NAME[u.role] || u.role || '-')}${u.active === false ? ' ' + pill('Paused', 'muted') : ''}</td>
           <td class="td"><div class="flex gap-1 flex-wrap">${orgs[u.email] ? planLabel(orgs[u.email].products, orgs[u.email].althea) : '-'}</div></td>
           <td class="td td-num text-right">${u.login_count}</td>
-          <td class="td td-num text-right">${u.claims_submitted}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtRelative(u.last_login)}${inactive(u) ? ' ' + pill('Inactive', 'muted') : ''}</td>
           <td class="td text-ink-500 whitespace-nowrap">${fmtDate(u.joined || u.created_at)}</td>
           <td class="td text-right whitespace-nowrap">
             <button type="button" data-toggle-active="${u.id}" data-currently-active="${u.active !== false}" class="text-[11px] font-semibold text-ink-500 hover:text-med-600 mr-3">${u.active === false ? 'Reactivate' : 'Pause'}</button>
             <button type="button" data-del="${u.id}" class="text-[11px] font-semibold text-ink-400 hover:text-risk-600">Delete</button>
           </td>
-        </tr>`).join('') : empty(9, 'No accounts match.');
+        </tr>`).join('') : empty(8, 'No accounts match.');
     }
     $('rows').addEventListener('click', async e => {
       const toggleBtn = e.target.closest('[data-toggle-active]');
