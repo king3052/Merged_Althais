@@ -677,7 +677,6 @@
         ${has ? '' : '<div class="mt-4 p-3 rounded-sm border border-line text-[12px] text-ink-600">No activity recorded yet. Althais records sign-ins, coding and claims from now on, so charts fill in as they use it.</div>'}
         ${sect('Codes Sent Per Week', bars(d.weeks, 'codes', 'var(--brand)', 'codes'), has ? 'since ' + shortDate(d.recordedSince) : '')}
         ${sect('Sign-Ins Per Week', bars(d.weeks, 'logins', '#6b7280', 'sign-ins'))}
-        ${sect('Claims Sent Per Week', bars(d.weeks, 'claims', '#0c8a4f', 'claims'))}
         ${sect('When They Work', hoursChart(d.hours), `${t.activeDays} active days`)}
         ${sect('Recent Activity', d.recent.length ? `<div class="border border-line rounded-sm">${d.recent.map(r => `<div class="list-row" style="padding:8px 12px"><span style="width:8px;height:8px;border-radius:50%;background:${(KIND[r.kind] || ['', '#9aa0ab'])[1]};flex-shrink:0;margin-top:5px"></span>
             <div class="flex-1 text-[12px] text-ink-800">${esc((KIND[r.kind] || [r.kind])[0])}${r.kind === 'codes' ? ` <span class="text-ink-500">(${r.count} code${r.count === 1 ? '' : 's'})</span>` : ''}</div>
