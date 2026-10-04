@@ -128,7 +128,7 @@
       <a class="nav-tab" data-tab="orgs" href="#orgs">Organizations &amp; Access<span class="n" id="n-orgs"></span></a>
       <a class="nav-tab" data-tab="accounts" href="#accounts">Accounts<span class="n" id="n-accounts"></span></a>
       <a class="nav-tab" data-tab="plans" href="#plans">Plans &amp; Tools</a>
-      <a class="nav-tab" data-tab="activity" href="#activity">Activity</a>
+      <!-- Activity tab hidden for now; its section and code stay so it can come back by restoring this link and HIDDEN_TABS -->
     </div>
   </nav>
 
@@ -446,8 +446,9 @@
     const empty = (cols, text) => `<tr><td colspan="${cols}" class="px-4 py-10 text-center text-[12px] text-ink-500">${text}</td></tr>`;
 
     // ---- sub-menu tabs, kept in the address so a refresh stays put ----
+    const HIDDEN_TABS = ['activity'];
     function show(tab) {
-      if (!PAGES[tab]) tab = 'overview';
+      if (!PAGES[tab] || HIDDEN_TABS.includes(tab)) tab = 'overview';
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
       document.querySelectorAll('[data-section]').forEach(s => s.classList.toggle('hidden', s.dataset.section !== tab));
       $('page-title').textContent = PAGES[tab][0]; $('page-sub').textContent = PAGES[tab][1];
