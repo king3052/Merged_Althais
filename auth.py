@@ -1903,6 +1903,35 @@ async def admin_clinic_start(org_key: str, request: Request, db: Session = Depen
     return {"ok": True, "startDate": d.isoformat()}
 
 
+@router.put("/api/admin/clinics/{org_key}/name")
+async def admin_rename_clinic(org_key: str, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Rename a clinic. Its name is also its key, so every table that stores it is updated in one transaction."""
+    import re as _re
+    from sqlalchemy import inspect as _inspect
+    if org_key.startswith("user:") or not _clinic_exists(db, org_key):
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    name = _re.sub(r"\s+", " ", str((await request.json()).get("name") or "")).strip()
+    if len(name) < 2 or len(name) > 120 or name.startswith("user:"):
+        return JSONResponse({"error": "Enter the clinic's name (2 to 120 characters)."}, status_code=400)
+    if name == org_key:
+        return {"ok": True, "org_key": name}
+    if name.lower() != org_key.lower() and name.lower() in _clinic_names(db):
+        return JSONResponse({"error": "A clinic with that name is already in Althais."}, status_code=409)
+    try:
+        for table in _inspect(engine).get_table_names():
+            if table != "admin_audit_log" and any(c["name"] == "org_key" for c in _inspect(engine).get_columns(table)):
+                db.execute(text(f'UPDATE "{table}" SET org_key = :new WHERE org_key = :old'), {"new": name, "old": org_key})
+        for u in db.scalars(select(User)):
+            if (u.organization or "").strip() == org_key:
+                u.organization = name
+        db.commit()
+    except Exception:
+        db.rollback()
+        return JSONResponse({"error": "Could not rename the clinic. Nothing was changed."}, status_code=500)
+    log_admin_action(db, "clinic_renamed", target=name, detail=f"Renamed {org_key} to {name}")
+    return {"ok": True, "org_key": name}
+
+
 @router.post("/api/admin/clinics/{org_key}/members")
 async def admin_add_members(org_key: str, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     """Add people to a clinic. Each gets an account in it with the chosen role and an email with a temporary password."""
