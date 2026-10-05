@@ -195,7 +195,7 @@
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
             <h3 class="text-[13px] font-semibold text-ink-900">Organizations</h3>
             <div class="flex items-center gap-2">
-              <a href="/api/admin/export/orgs.csv" class="btn-line" download>Export CSV</a>
+              <a href="/admin/report/organizations?print=1" target="_blank" rel="noopener" class="btn-line">Export PDF</a>
               <span id="org-count" class="text-[11px] text-ink-500">Loading…</span>
             </div>
           </div>
@@ -213,7 +213,7 @@
 
     <div id="clinic-modal" class="hidden fixed inset-0 z-[90] items-center justify-center px-4" style="background:rgba(15,17,22,.45)">
       <form id="clinic-form" class="w-full max-w-[520px] bg-panel rounded-md shadow-xl border border-line" role="dialog" aria-modal="true" aria-labelledby="clinic-title">
-        <div class="px-5 py-3.5 border-b border-line flex items-center justify-between"><h3 id="clinic-title" class="text-[15px] font-semibold text-ink-900">Add A Clinic</h3>
+        <div class="px-5 py-3.5 border-b border-line flex items-center justify-between"><h3 id="clinic-title" class="text-[15px] font-semibold text-ink-900">Invite A Clinic</h3>
           <button type="button" data-clinic-close class="text-ink-400 hover:text-ink-900" aria-label="Close">✕</button></div>
         <div class="p-5 space-y-3">
           <div><label class="lbl" for="clinic-name">Clinic name</label><input id="clinic-name" class="flt w-full" style="font-size:13px;padding:8px 10px" maxlength="120" required placeholder="e.g. MCH Hospital Site 2"></div>
@@ -225,7 +225,7 @@
           <div id="clinic-results" class="space-y-1"></div>
           <div id="clinic-msg" class="text-[12.5px]" style="color:#c83838"></div>
         </div>
-        <div class="px-5 py-3 border-t border-line flex justify-end gap-2"><button type="button" class="btn-line" data-clinic-close>Cancel</button><button type="submit" class="btn-save" id="clinic-save">Add Clinic</button></div>
+        <div class="px-5 py-3 border-t border-line flex justify-end gap-2"><button type="button" class="btn-line" data-clinic-close>Cancel</button><button type="submit" class="btn-save" id="clinic-save">Invite Clinic</button></div>
       </form>
     </div>
 
@@ -236,7 +236,7 @@
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
             <h3 class="text-[13px] font-semibold text-ink-900">All Accounts</h3>
             <div class="flex items-center gap-2">
-              <a href="/api/admin/export/accounts.csv" class="btn-line" download>Export CSV</a>
+              <a href="/admin/report/accounts?print=1" target="_blank" rel="noopener" class="btn-line">Export PDF</a>
               <span id="acct-count" class="text-[11px] text-ink-500">Loading…</span>
             </div>
           </div>
@@ -995,11 +995,11 @@
         if ($('clinic-start').value) await fetch('/api/admin/clinics/' + encodeURIComponent(key) + '/start-date', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: $('clinic-start').value }) });
         const members = readRows($('clinic-rows'));
         await load();
-        if (!members.length) { clinicModal(false); toast('Added ' + key); return; }
+        if (!members.length) { clinicModal(false); toast('Invited ' + key); return; }
         const results = await addMembers(key, members);
         await load();
-        if (results.every(x => x.ok && !x.tempPassword)) { clinicModal(false); toast(`Added ${key} and ${results.length} member${results.length === 1 ? '' : 's'}`); return; }
-        $('clinic-results').innerHTML = `<div class="text-[12.5px] font-semibold text-ink-900">${esc(key)} added.</div>` + resultsHtml(results);
+        if (results.every(x => x.ok && !x.tempPassword)) { clinicModal(false); toast(`Invited ${key} and ${results.length} member${results.length === 1 ? '' : 's'}`); return; }
+        $('clinic-results').innerHTML = `<div class="text-[12.5px] font-semibold text-ink-900">${esc(key)} invited.</div>` + resultsHtml(results);
         $('clinic-name').disabled = true; $('clinic-save').classList.add('hidden');
       } finally { $('clinic-save').disabled = false; }
     });

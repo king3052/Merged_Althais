@@ -276,6 +276,51 @@ async def admin_page(request: Request):
     return templates.TemplateResponse(request, "admin_dashboard.html", {})
 
 
+@app.get("/admin/report/{kind}")
+async def admin_report(kind: str, request: Request):
+    """A printable Althais report of Organizations or Accounts; the page opens the browser's Save as PDF."""
+    import auth as _a
+    import datetime as _dt
+    if not current_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+    if kind not in ("organizations", "accounts"):
+        return RedirectResponse(url="/admin", status_code=302)
+    plan_names = {"suite": "Full Suite", "scribe": "Scribe", "coding": "Coding", "insurance": "Insurance", "staff": "Team"}
+    test = lambda e: (e or "").lower().endswith((".test", ".local", ".example"))
+    with SessionLocal() as db:
+        hide = _a.admin_settings(db).get("hide_test_accounts")
+        orgs = _a.admin_orgs(request, db, True)
+        users = _a.admin_users(request, db, True)
+    if hide:
+        orgs = [o for o in orgs if not o["users"] or not all(test(e) for e in o["users"])]
+        users = [u for u in users if not test(u["email"])]
+    plan_of = lambda products: "Full Suite" if "suite" in products else (", ".join(plan_names.get(p, p) for p in products) or "No access")
+    org_plan = {o["org_key"]: plan_of(o["products"]) for o in orgs}
+    for o in orgs:
+        o["plan"] = plan_of(o["products"])
+    for u in users:
+        key = (u["organization"] or "").strip() or f"user:{u['email']}"
+        u["plan"] = org_plan.get(key, "")
+        u["role_label"] = "Manager" if (u["role"] or "admin") == "admin" else _a.ROLE_LABELS.get(u["role"], u["role"])
+    def nice(v):
+        try:
+            return _dt.date.fromisoformat(str(v)[:10]).strftime("%b %-d, %Y")
+        except ValueError:
+            return ""
+    for o in orgs:
+        o["started"] = nice(o.get("startDate") or "")
+    for u in users:
+        u["last_nice"] = nice(u["last_login"]) if u["last_login"] else "Never"
+        u["joined_nice"] = nice(u.get("joined") or u["created_at"] or "")
+    now = _dt.datetime.now()
+    return templates.TemplateResponse(request, "admin_report.html", {
+        "kind": kind, "orgs": orgs, "users": users, "generated": now.strftime("%B %-d, %Y at %-I:%M %p"), "stamp": now.strftime("%Y-%m-%d"),
+        "total_mrr": sum(o.get("mrr") or 0 for o in orgs), "people": sum(len(o["users"]) for o in orgs),
+        "active": sum(1 for u in users if u["active"]), "logins": sum(u["login_count"] for u in users),
+        "suite_count": sum(1 for o in orgs if "suite" in o["products"]), "althea_count": sum(1 for o in orgs if o.get("althea")),
+    })
+
+
 @app.post("/logout")
 async def logout():
     """Clear the session cookie and serve the signed-out page."""

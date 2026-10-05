@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Althais {{ 'Organizations' if kind == 'organizations' else 'Accounts' }} Report {{ stamp }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/static/favicon/althais-tab-32.png">
+  <style>
+    :root { --brand:#0d5bd7; --brand-soft:#eaf1fd; --ink:#15181e; --ink-2:#3b414d; --ink-3:#6b7280; --line:#e4e6eb; --bg:#eef0f3; }
+    * { box-sizing:border-box; }
+    html, body { margin:0; background:var(--bg); color:var(--ink); font-family:'Inter', system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+    .bar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px; background:#fff; border-bottom:1px solid var(--line); font-size:13px; }
+    .bar a { color:var(--ink-3); text-decoration:none; font-weight:500; }
+    .bar a:hover { color:var(--ink); }
+    .btn { font:inherit; font-size:13px; font-weight:600; border-radius:3px; padding:8px 14px; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink-2); text-decoration:none; display:inline-block; }
+    .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+    .sheet { width:min(1100px, calc(100% - 32px)); margin:24px auto 48px; background:#fff; box-shadow:0 1px 3px rgba(16,24,40,.08), 0 8px 24px rgba(16,24,40,.06); }
+    .head { background:var(--brand); color:#fff; padding:28px 36px 24px; display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; }
+    .mark { display:flex; align-items:center; gap:12px; }
+    .mark svg { width:26px; height:26px; }
+    .word { font-size:18px; font-weight:600; letter-spacing:.24em; }
+    .head h1 { margin:18px 0 0; font-size:26px; font-weight:600; letter-spacing:-.01em; }
+    .head .sub { margin-top:4px; font-size:13px; opacity:.82; }
+    .head .meta { text-align:right; font-size:12px; line-height:1.6; opacity:.9; }
+    .kpis { display:grid; grid-template-columns:repeat(4, 1fr); border-bottom:1px solid var(--line); }
+    .kpi { padding:18px 24px; border-right:1px solid var(--line); }
+    .kpi:last-child { border-right:0; }
+    .kpi .l { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); font-weight:600; }
+    .kpi .v { font-size:24px; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }
+    .kpi .s { font-size:11px; color:var(--ink-3); margin-top:2px; }
+    .body { padding:24px 36px 32px; }
+    h2 { font-size:13px; font-weight:600; margin:0 0 10px; color:var(--ink); }
+    table { width:100%; border-collapse:collapse; font-size:11.5px; }
+    thead th { text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); font-weight:600; padding:8px 10px; border-bottom:1.5px solid var(--ink); }
+    tbody td { padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+    tbody tr:nth-child(even) td { background:#fafbfc; }
+    td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .name { font-weight:600; color:var(--ink); }
+    .muted { color:var(--ink-3); }
+    .small { font-size:10.5px; }
+    .chip { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; background:var(--brand-soft); color:var(--brand); white-space:nowrap; }
+    .chip.off { background:#f1f2f4; color:var(--ink-3); }
+    .chip.warn { background:#fff4e0; color:#a35c00; }
+    .foot { display:flex; justify-content:space-between; padding:14px 36px; border-top:1px solid var(--line); font-size:10.5px; color:var(--ink-3); }
+    .empty { padding:40px; text-align:center; color:var(--ink-3); font-size:13px; }
+    @media (max-width:720px) { .kpis { grid-template-columns:repeat(2, 1fr); } .head, .body, .foot { padding-left:16px; padding-right:16px; } .scroll { overflow-x:auto; } table { min-width:640px; } }
+    @page { size:letter landscape; margin:0.4in; }
+    @media print {
+      html, body { background:#fff; }
+      .bar { display:none; }
+      .sheet { width:auto; margin:0; box-shadow:none; }
+      .head, .chip, tbody tr:nth-child(even) td { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      thead { display:table-header-group; }
+      tr { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a href="/admin#{{ 'orgs' if kind == 'organizations' else 'accounts' }}">← Back to Admin Console</a>
+    <div style="display:flex;gap:8px">
+      <a class="btn" href="/api/admin/export/{{ 'orgs' if kind == 'organizations' else 'accounts' }}.csv" download>Download CSV</a>
+      <button class="btn primary" type="button" onclick="window.print()">Save as PDF</button>
+    </div>
+  </div>
+
+  <div class="sheet">
+    <div class="head">
+      <div>
+        <div class="mark">
+          <svg viewBox="120 85.5 1114 1114" aria-hidden="true"><path fill="#fff" d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg>
+          <span class="word">ALTHAIS</span>
+        </div>
+        <h1>{{ 'Organizations & Access' if kind == 'organizations' else 'Accounts' }}</h1>
+        <div class="sub">{{ 'Every clinic on Althais, its plan and its people.' if kind == 'organizations' else 'Everyone with an Althais sign-in.' }}</div>
+      </div>
+      <div class="meta">Generated {{ generated }}<br>Admin Console report · Confidential</div>
+    </div>
+
+    {% if kind == 'organizations' %}
+    <div class="kpis">
+      <div class="kpi"><div class="l">Clinics</div><div class="v">{{ orgs|length }}</div><div class="s">{{ suite_count }} on the Full Suite</div></div>
+      <div class="kpi"><div class="l">People</div><div class="v">{{ people }}</div><div class="s">across every clinic</div></div>
+      <div class="kpi"><div class="l">With Althea</div><div class="v">{{ althea_count }}</div><div class="s">of {{ orgs|length }} clinics</div></div>
+      <div class="kpi"><div class="l">MRR</div><div class="v">${{ '{:,.0f}'.format(total_mrr) }}</div><div class="s">signed contract value / month</div></div>
+    </div>
+    <div class="body">
+      <h2>Clinics</h2>
+      {% if orgs %}
+      <div class="scroll"><table>
+        <thead><tr><th>Clinic</th><th>Started</th><th class="num">People</th><th>Plan</th><th>Althea</th><th>Manager</th><th class="num">MRR</th></tr></thead>
+        <tbody>
+        {% for o in orgs %}
+          <tr>
+            <td><div class="name">{{ o.name }}</div><div class="muted small">{{ o.users[:3]|join(', ') }}{% if o.users|length > 3 %} +{{ o.users|length - 3 }} more{% endif %}{% if not o.users %}No one has joined yet{% endif %}</div></td>
+            <td class="muted" style="white-space:nowrap">{{ o.started }}</td>
+            <td class="num">{{ o.users|length }}</td>
+            <td>{% if o.plan == 'No access' %}<span class="chip warn">No access</span>{% else %}<span class="chip">{{ o.plan }}</span>{% endif %}</td>
+            <td>{% if o.althea %}<span class="chip">On</span>{% else %}<span class="chip off">Off</span>{% endif %}</td>
+            <td>{% if o.manager %}<span class="chip">On</span>{% else %}<span class="chip off">Off</span>{% endif %}</td>
+            <td class="num">{% if o.mrr %}${{ '{:,.0f}'.format(o.mrr) }}{% else %}<span class="muted">-</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}<div class="empty">No clinics yet.</div>{% endif %}
+    </div>
+    {% else %}
+    <div class="kpis">
+      <div class="kpi"><div class="l">Accounts</div><div class="v">{{ users|length }}</div><div class="s">{{ active }} active</div></div>
+      <div class="kpi"><div class="l">Clinics</div><div class="v">{{ orgs|length }}</div><div class="s">with at least one account</div></div>
+      <div class="kpi"><div class="l">Total Sign-Ins</div><div class="v">{{ '{:,}'.format(logins) }}</div><div class="s">all time</div></div>
+      <div class="kpi"><div class="l">Paused</div><div class="v">{{ users|length - active }}</div><div class="s">can't sign in</div></div>
+    </div>
+    <div class="body">
+      <h2>Accounts</h2>
+      {% if users %}
+      <div class="scroll"><table>
+        <thead><tr><th>Name</th><th>Organization</th><th>Role</th><th>Plan</th><th class="num">Sign-Ins</th><th>Last Sign-In</th><th>Joined</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for u in users %}
+          <tr>
+            <td><div class="name">{{ u.full_name or u.email }}</div><div class="muted small">{{ u.email }}</div></td>
+            <td>{{ u.organization or '' }}</td>
+            <td>{{ u.role_label }}</td>
+            <td class="muted">{{ u.plan }}</td>
+            <td class="num">{{ u.login_count }}</td>
+            <td class="muted" style="white-space:nowrap">{{ u.last_nice }}</td>
+            <td class="muted" style="white-space:nowrap">{{ u.joined_nice }}</td>
+            <td>{% if u.active %}<span class="chip">Active</span>{% else %}<span class="chip off">Paused</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}<div class="empty">No accounts yet.</div>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="foot"><span>Althais · app.althais.com</span><span>{{ stamp }}</span></div>
+  </div>
+  <script>
+    // open the Save as PDF dialog once fonts are in, so the PDF uses the Althais typeface
+    if (new URLSearchParams(location.search).get('print') === '1') (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => setTimeout(() => window.print(), 250));
+  </script>
+</body>
+</html>
