@@ -32,10 +32,26 @@
       {% endfor %}
     </nav>
     <div class="nav-end">
-      <a href="/demo" class="btn btn-dark">Book A Demo
+      <a href="/demo" class="btn btn-dark nav-cta">Book A Demo
         <svg class="arr" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
       </a>
+      <button type="button" class="nav-burger" aria-label="Open menu" aria-expanded="false" aria-controls="nav-sheet">
+        <span></span><span></span><span></span>
+      </button>
     </div>
+  </div>
+  {# phones: everything in the header lives behind the ☰ button #}
+  <div class="nav-sheet" id="nav-sheet" hidden>
+    {% for label, items in NAV_MENUS %}
+    {% if items is string %}<a class="nav-sheet-link" href="{{ items }}">{{ label }}</a>{% else %}
+    <details class="nav-sheet-group">
+      <summary>{{ label }}<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+      {% for href, name, sub in items %}<a href="{{ href }}"><b>{{ name }}</b><span>{{ sub }}</span></a>{% endfor %}
+    </details>{% endif %}
+    {% endfor %}
+    <a href="/demo" class="btn btn-dark btn-lg nav-sheet-cta">Book A Demo
+      <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
   </div>
 </header>
 <script>
@@ -51,5 +67,16 @@
     });
     document.addEventListener('click', function (e) { dds.forEach(function (dd) { if (!dd.contains(e.target)) set(dd, false); }); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') dds.forEach(function (dd) { set(dd, false); }); });
+    // phones: the ☰ button opens the menu sheet
+    var header = document.currentScript.previousElementSibling, burger = header.querySelector('.nav-burger'), sheet = header.querySelector('.nav-sheet');
+    function sheetOpen(open) {
+      sheet.hidden = !open; header.classList.toggle('sheet-open', open);
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false'); burger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      document.documentElement.style.overflow = open ? 'hidden' : '';
+    }
+    burger.addEventListener('click', function () { sheetOpen(sheet.hidden); });
+    sheet.addEventListener('click', function (e) { if (e.target.closest('a')) sheetOpen(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sheet.hidden) sheetOpen(false); });
+    window.addEventListener('resize', function () { if (window.innerWidth > 860 && !sheet.hidden) sheetOpen(false); });
   })();
 </script>
