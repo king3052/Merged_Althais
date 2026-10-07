@@ -1,0 +1,87 @@
+<!-- Site footer, shared by the landing page and every marketing page (base.html). Self-contained: its own fonts, styles and newsletter script. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  .sf { --sf-bg:#f8f8f8; --sf-ink:#171717; --sf-ink-2:#3d3d3d; --sf-muted:#6f6f6f; --sf-faint:#9a9a9a; --sf-line:#e4e4e4; --sf-card:#fff; --sf-accent:oklch(0.56 0.19 258); --sf-red:#b4432f;
+        position:relative; z-index:20; background:var(--sf-bg); color:var(--sf-ink); border-top:1px solid var(--sf-line); font-family:"Geist", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing:antialiased; }
+  .sf *, .sf *::before, .sf *::after { box-sizing:border-box; }
+  .sf a { text-decoration:none; }
+  .sf-in { padding-inline:40px; }
+  .sf-grid { display:grid; grid-template-columns:minmax(240px, 1.15fr) 3fr; gap:56px; padding-top:64px; padding-bottom:48px; }
+  .sf-logo { display:inline-flex; align-items:center; gap:12px; color:var(--sf-ink); font-size:15px; font-weight:600; letter-spacing:.3em; text-transform:uppercase; }
+  .sf-tag { margin:20px 0 0; font-family:"Cormorant Garamond", Georgia, serif; font-size:26px; font-weight:400; line-height:1.15; color:var(--sf-ink); }
+  .sf-tag em { color:var(--sf-muted); }
+  .sf-badge { margin-top:20px; display:inline-flex; align-items:center; gap:7px; font-family:"Geist Mono", ui-monospace, Menlo, monospace; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--sf-ink-2); border:1px solid var(--sf-line); border-radius:999px; padding:6px 12px; background:var(--sf-card); }
+  .sf-badge:hover { border-color:var(--sf-ink-2); }
+  .sf-news { margin-top:28px; max-width:340px; }
+  .sf-news label { display:block; font-size:13px; font-weight:600; color:var(--sf-ink); margin-bottom:8px; }
+  .sf-news-row { display:flex; gap:6px; }
+  .sf-news input { flex:1; min-width:0; font:inherit; font-size:14px; padding:10px 12px; border:1px solid var(--sf-line); border-radius:10px; background:var(--sf-card); color:var(--sf-ink); outline:none; }
+  .sf-news input:focus { border-color:var(--sf-accent); }
+  .sf-news button { font:inherit; font-size:14px; font-weight:600; padding:10px 16px; border-radius:10px; border:0; background:#111; color:#fff; cursor:pointer; white-space:nowrap; }
+  .sf-news button:disabled { opacity:.6; cursor:default; }
+  .sf-news-msg { margin:8px 0 0; font-size:12.5px; color:var(--sf-muted); min-height:1em; }
+  .sf-news-msg.err { color:var(--sf-red); }
+  .sf-cols { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:32px; justify-self:end; width:min(100%, 980px); }
+  .sf-cols h4 { margin:0 0 16px; font-family:"Geist Mono", ui-monospace, Menlo, monospace; font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--sf-faint); }
+  .sf-cols a { display:block; font-size:14px; color:var(--sf-ink-2); padding:5px 0; }
+  .sf-cols a:hover { color:var(--sf-ink); text-decoration:underline; text-underline-offset:3px; }
+  .sf-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; padding-top:22px; padding-bottom:28px; border-top:1px solid var(--sf-line); font-size:13px; color:var(--sf-muted); }
+  .sf-legal { display:flex; gap:20px; }
+  .sf-legal a { color:var(--sf-muted); }
+  .sf-legal a:hover { color:var(--sf-ink); }
+  @media (max-width:1080px) { .sf-grid { grid-template-columns:1fr; gap:44px; } .sf-cols { justify-self:stretch; width:auto; } }
+  @media (max-width:760px) { .sf-cols { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:32px 20px; } .sf-grid { padding-top:48px; } .sf-in { padding-inline:20px; } }
+</style>
+<footer class="sf" id="althais-footer">
+  <div class="sf-in sf-grid">
+    <div>
+      <a href="/" class="sf-logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8"/></svg>Althais</a>
+      <p class="sf-tag">Less time on paperwork.<br><em>More time with patients.</em></p>
+      <a href="/hipaa-compliance" class="sf-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>HIPAA Compliant</a>
+      <form class="sf-news" id="sf-news" novalidate>
+        <label for="sf-news-in">Join Our Newsletter</label>
+        <div class="sf-news-row"><input id="sf-news-in" type="email" name="email" placeholder="you@practice.com" autocomplete="email" required><button type="submit">Subscribe</button></div>
+        <p class="sf-news-msg" id="sf-news-msg" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+    <nav class="sf-cols" aria-label="Footer">
+      <div><h4>Platform</h4>
+        <a href="/platform/ai-scribe">AI Scribe</a><a href="/platform/medical-coding">Medical Coding</a><a href="/platform/claims-insurance">Claims &amp; Insurance</a><a href="/platform/althea">Althea Assistant</a><a href="/platform/team-onboarding">Team &amp; Onboarding</a></div>
+      <div><h4>For Your Practice</h4>
+        <a href="/how-it-works">How It Works</a><a href="/hipaa-compliance">HIPAA Compliance</a><a href="/security">Security</a><a href="/pricing">Pricing</a><a href="/compare">Compare Althais</a></div>
+      <div><h4>Solutions</h4>
+        <a href="/solutions/private-practices">Private Practices</a><a href="/solutions/hospital-systems">Hospital Systems</a><a href="/solutions/revenue-cycle-teams">Revenue Cycle Teams</a><a href="/solutions">All Solutions</a></div>
+      <div><h4>Resources</h4>
+        <a href="/resources">Resources</a><a href="/case-studies">Case Studies</a><a href="/walkthrough">Walkthrough</a><a href="/roi-calculator">ROI Calculator</a><a href="/faq">FAQs</a></div>
+      <div><h4>Company</h4>
+        <a href="/about">Our Story</a><a href="/demo">Book A Demo</a><a href="/pilot">Join The Pilot</a><a href="/contact">Contact Us</a><a href="/careers">Careers</a><a href="https://www.linkedin.com" target="_blank" rel="noopener">LinkedIn ↗</a></div>
+    </nav>
+  </div>
+  <div class="sf-in sf-bottom">
+    <span>© 2026 Althais Health, Inc.</span>
+    <span class="sf-legal"><a href="/legal/privacy">Privacy</a><a href="/legal/terms">Terms</a><a href="/security">Security</a></span>
+  </div>
+</footer>
+<script>
+  // newsletter: posts to /api/newsletter-signup
+  (function () {
+    var form = document.getElementById("sf-news");
+    if (!form) return;
+    var input = document.getElementById("sf-news-in"), msg = document.getElementById("sf-news-msg"), btn = form.querySelector("button");
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var email = input.value.trim();
+      msg.className = "sf-news-msg";
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "Enter a valid email address."; msg.classList.add("err"); input.focus(); return; }
+      btn.disabled = true; msg.textContent = "";
+      try {
+        var res = await fetch("/api/newsletter-signup", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ email: email }).toString() });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok || !data.ok) throw new Error(data.error || "Something went wrong. Try again.");
+        msg.textContent = "You're subscribed. Thanks!"; form.reset();
+      } catch (err) {
+        msg.textContent = err.message || "Something went wrong. Try again."; msg.classList.add("err");
+      } finally { btn.disabled = false; }
+    });
+  })();
+</script>

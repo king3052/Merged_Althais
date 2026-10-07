@@ -95,13 +95,17 @@ h1.display { font-family: var(--serif); font-weight: 400; font-size: clamp(52px,
 
 /* ---------- marquee ---------- */
 .band { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 44px 0; }
-.band-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 26px; }
+.band-top { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; text-align: center; margin-bottom: 26px; }
 .badge { display: inline-flex; align-items: center; gap: 8px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; font-family: var(--mono); font-size: 11.5px; background: #fff; }
 .marq { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
 .marq-track { display: flex; gap: 56px; width: max-content; animation: slide 46s linear infinite; }
 .marq-track span { font-family: var(--serif); font-size: 24px; color: var(--ink-2); white-space: nowrap; }
 @keyframes slide { to { transform: translateX(-50%); } }
 .marq:hover .marq-track { animation-play-state: paused; }
+.marq-logos .marq-track { gap: 0; align-items: center; animation-duration: 36s; }
+.marq-logos img { height: var(--h, 50px); width: auto; flex: none; margin-right: 72px; display: block; }
+@media (max-width: 640px) { .marq-logos img { height: calc(var(--h, 50px) * .72); margin-right: 44px; } .marq-logos .marq-track { animation-duration: 26s; } }
+@media (prefers-reduced-motion: reduce) { .marq-logos .marq-track { animation: none; } }
 
 /* ---------- sections ---------- */
 section.block { padding: 120px 0 0; }
@@ -271,13 +275,7 @@ section.block { padding: 120px 0 0; }
 .cta h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(46px, 6vw, 80px); line-height: 1.03; letter-spacing: -.015em; max-width: 780px; margin: 26px auto 0; }
 .cta p { margin: 28px auto 0; max-width: 560px; font-size: 18px; line-height: 1.7; color: #a8a8a8; }
 .cta .btn-pill { margin-top: 40px; }
-.foot { margin-top: 80px; border-top: 1px solid var(--line); }
-.foot-in { height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-.foot-in .logo { color: var(--ink); }
-/* footer sits in the bottom-left corner of the window, not inside the centred content column */
-.foot .foot-in { max-width: none; margin-inline: 0; padding-inline: 28px; }
-@media (max-width: 640px) { .foot .foot-in { padding-inline: 20px; } }
-.foot-in .l { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+.sf { margin-top: 80px; }
 
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {

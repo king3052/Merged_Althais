@@ -70,6 +70,9 @@ import billing_activation
 app.include_router(billing_activation.router)
 import demo_data
 app.include_router(demo_data.router)
+import site_pages
+site_pages._templates = templates
+app.include_router(site_pages.router)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
@@ -198,13 +201,6 @@ async def about_althais_page(request: Request, user=Depends(current_user)):
     return templates.TemplateResponse(request, "about-althais.html", _marketing_ctx(user, "about-althais"))
 
 
-@app.get("/walkthrough")
-async def blank_placeholder_page(request: Request):
-    # Placeholder for the About Althais hero's "See The Full Walkthrough"
-    # button - blank white page until real content exists.
-    return templates.TemplateResponse(request, "blank_page.html", {})
-
-
 @app.get("/learn-more")
 async def learn_more_page(request: Request, user=Depends(current_user)):
     return templates.TemplateResponse(request, "learn_more.html", _marketing_ctx(user, "learn-more"))
@@ -222,17 +218,12 @@ async def terms_page(request: Request, user=Depends(current_user)):
 
 @app.get("/legal/hipaa")
 async def hipaa_redirect(request: Request):
-    return RedirectResponse(url="/legal/privacy#hipaa", status_code=302)
-
-
-@app.get("/security")
-async def security_redirect(request: Request):
-    return RedirectResponse(url="/legal/privacy", status_code=302)
+    return RedirectResponse(url="/hipaa-compliance", status_code=302)
 
 
 @app.get("/company/careers")
 async def careers_redirect(request: Request):
-    return RedirectResponse(url="/contact", status_code=302)
+    return RedirectResponse(url="/careers", status_code=302)
 
 
 # ── Password reset pages ──────────────────────────────────────────────────
@@ -456,8 +447,7 @@ async def root(request: Request, user=Depends(current_user)):
     # Logged-in users go straight to their plan's home (the Overview for the full suite), others see the landing page
     if user:
         return RedirectResponse(url=_home_for_user(user), status_code=302)
-    with open("templates/landing.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    return templates.TemplateResponse(request, "landing.html", {})
 
 
 @app.get("/login")

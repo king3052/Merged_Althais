@@ -122,57 +122,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Footer -->
-  <footer id="site-footer">
-    <div class="footer-inner">
-      <div class="grid gap-10" style="grid-template-columns: 1.4fr repeat(4, 1fr);">
-        <div>
-          <a href="/" class="flex items-center" style="gap:10px;margin-bottom:16px">
-            <svg width="20" height="20" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-              <path d="M5,74 L40,16 L75,74" stroke="#ffffff" stroke-width="8" fill="none"/>
-              <line x1="21" y1="49" x2="59" y2="49" stroke="#ffffff" stroke-width="8"/>
-            </svg>
-            <span style="font-size:13px;font-weight:600;letter-spacing:0.3em;color:#fff;text-transform:uppercase">ALTHAIS</span>
-          </a>
-          <p style="font-size:13px;line-height:1.7;max-width:260px;color:rgba(255,255,255,0.5)">AI revenue cycle automation for modern healthcare, from clinical note to paid claim.</p>
-          <a href="https://www.linkedin.com" target="_blank" rel="noopener" aria-label="Althais on LinkedIn" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.08);margin-top:20px;transition:background 0.2s ease" onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(255,255,255,0.75)"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>
-          </a>
-        </div>
-        <div>
-          <h4>Product</h4>
-          <a href="/how-it-works" class="footer-link">How It Works</a>
-          <a href="/pricing" class="footer-link">Pricing</a>
-          <a href="/demo" class="footer-link">Live Demo</a>
-        </div>
-        <div>
-          <h4>Solutions</h4>
-          <a href="/solutions#hospital-systems" class="footer-link">Hospital Systems</a>
-          <a href="/solutions#private-practices" class="footer-link">Private Practices</a>
-          <a href="/solutions#revenue-cycle-teams" class="footer-link">Revenue Cycle Teams</a>
-          <a href="/solutions" class="footer-link">All Solutions</a>
-        </div>
-        <div>
-          <h4>Company</h4>
-          <a href="/about" class="footer-link">About Us</a>
-          <a href="/company/careers" class="footer-link">Careers</a>
-          <a href="/legal/privacy" class="footer-link">Privacy</a>
-          <a href="/legal/terms" class="footer-link">Terms</a>
-          <a href="/contact" class="footer-link">Contact</a>
-        </div>
-        <div>
-          <h4>Trust</h4>
-          <a href="/security" class="footer-link">Security</a>
-          <a href="/security#hipaa" class="footer-link">HIPAA</a>
-          <a href="#" data-open-demo-modal class="footer-link">Schedule Demo</a>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>© 2026 Althais Health, Inc. All rights reserved.</p>
-        <p style="color:rgba(255,255,255,0.35)">Built for HIPAA-eligible healthcare data workflows.</p>
-      </div>
-    </div>
-  </footer>
+  {% include "_site_footer.html" %}
 
   <!-- Book Demo modal (shared across every page: "Schedule a Demo" / "Contact Sales" / "Enterprise Quote") -->
   <div id="book-demo-modal" style="position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:rgba(6,10,18,0.72);backdrop-filter:blur(8px);padding:24px">

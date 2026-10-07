@@ -81,17 +81,32 @@
   </div>
 </section>
 
-<!-- BUILT FOR -->
+<!-- TRUSTED BY -->
 <div class="band">
   <div class="wrap">
     <div class="band-top">
-      <span class="eyebrow">Built for practices like</span>
-      <span class="badge"><i class="dot"></i> Provider-reviewed</span>
+      <span class="eyebrow">Trusted by</span>
     </div>
-    <div class="marq" aria-hidden="true">
+    <!-- logos of the organizations Althais is integrated with (static/logos), scrolling. The set is repeated four times so the
+         loop is seamless on wide screens (the track slides by half); add a new logo to every copy. --h evens out visual weight -->
+    <div class="marq marq-logos">
       <div class="marq-track">
-        <span>Independent practices</span><span>Urgent care</span><span>Primary care</span><span>Direct primary care</span><span>Specialty groups</span><span>Rural clinics</span><span>Physician groups</span><span>Emergency departments</span>
-        <span>Independent practices</span><span>Urgent care</span><span>Primary care</span><span>Direct primary care</span><span>Specialty groups</span><span>Rural clinics</span><span>Physician groups</span><span>Emergency departments</span>
+        <img src="/static/logos/tarin-health.png" alt="Tarin Health" style="--h:60px">
+        <img src="/static/logos/hamilton-healthbox.png" alt="Hamilton HealthBox" style="--h:50px">
+        <img src="/static/logos/excel-er.png" alt="Excel ER, Odessa Emergency Room" style="--h:40px">
+        <img src="/static/logos/ward-memorial.png" alt="Ward Memorial Hospital" style="--h:42px">
+        <img src="/static/logos/tarin-health.png" alt="" data-name="Tarin Health" style="--h:60px" aria-hidden="true">
+        <img src="/static/logos/hamilton-healthbox.png" alt="" data-name="Hamilton HealthBox" style="--h:50px" aria-hidden="true">
+        <img src="/static/logos/excel-er.png" alt="" data-name="Excel ER, Odessa Emergency Room" style="--h:40px" aria-hidden="true">
+        <img src="/static/logos/ward-memorial.png" alt="" data-name="Ward Memorial Hospital" style="--h:42px" aria-hidden="true">
+        <img src="/static/logos/tarin-health.png" alt="" data-name="Tarin Health" style="--h:60px" aria-hidden="true">
+        <img src="/static/logos/hamilton-healthbox.png" alt="" data-name="Hamilton HealthBox" style="--h:50px" aria-hidden="true">
+        <img src="/static/logos/excel-er.png" alt="" data-name="Excel ER, Odessa Emergency Room" style="--h:40px" aria-hidden="true">
+        <img src="/static/logos/ward-memorial.png" alt="" data-name="Ward Memorial Hospital" style="--h:42px" aria-hidden="true">
+        <img src="/static/logos/tarin-health.png" alt="" data-name="Tarin Health" style="--h:60px" aria-hidden="true">
+        <img src="/static/logos/hamilton-healthbox.png" alt="" data-name="Hamilton HealthBox" style="--h:50px" aria-hidden="true">
+        <img src="/static/logos/excel-er.png" alt="" data-name="Excel ER, Odessa Emergency Room" style="--h:40px" aria-hidden="true">
+        <img src="/static/logos/ward-memorial.png" alt="" data-name="Ward Memorial Hospital" style="--h:42px" aria-hidden="true">
       </div>
     </div>
   </div>
@@ -352,11 +367,7 @@
 
 </main>
 
-<footer class="foot">
-  <div class="wrap foot-in">
-    <div class="l"><a href="#top" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a><span>© 2026 Althais Health, Inc.</span></div>
-  </div>
-</footer>
+{% include "_site_footer.html" %}
 
 <button type="button" class="ask" id="ask" aria-haspopup="dialog" aria-expanded="false" aria-controls="ap" aria-label="Chat with Althea, our AI assistant">
   <span class="ask-av"><svg viewBox="161 142 1032 1001" fill="#3163ed" aria-hidden="true"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg></span>
