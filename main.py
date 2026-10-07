@@ -50,6 +50,10 @@ from auth import (
 # Jinja2Templates already puts `request` in every template's context, so
 # `{% if impersonation_info(request) %}` just works anywhere.
 templates.env.globals["impersonation_info"] = impersonation_info
+# Cache-busting tag for marketing CSS/JS links: changes on every deploy (server start), so browsers and
+# Cloudflare fetch fresh files instead of serving a copy cached for hours.
+import time as _time
+templates.env.globals["asset_v"] = str(int(_time.time()))
 from sqlalchemy.orm import Session
 from sqlalchemy import select as sa_select
 import datetime as dt
