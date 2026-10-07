@@ -515,7 +515,7 @@ def _email_html(title: str, body: str, cta_url: str, cta_text: str,
   <p style="font-size:12px;color:#9ca3af;margin:8px 0 0">{note}</p>
 </td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #f0f0f0">
-  <p style="font-size:11px;color:#d1d5db;margin:0">© 2026 Althais Health, Inc. · If you didn't request this, ignore this email.</p>
+  <p style="font-size:11px;color:#d1d5db;margin:0">© 2026 Althais Inc. · If you didn't request this, ignore this email.</p>
 </td></tr>
 </table></td></tr></table>
 </body></html>"""
