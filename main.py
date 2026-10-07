@@ -74,9 +74,13 @@ import billing_activation
 app.include_router(billing_activation.router)
 import demo_data
 app.include_router(demo_data.router)
-import site_pages
-site_pages._templates = templates
-app.include_router(site_pages.router)
+import platform_pages
+platform_pages._templates = templates
+app.include_router(platform_pages.router)
+import practice_pages
+app.include_router(practice_pages.router)
+import more_pages
+app.include_router(more_pages.router)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
@@ -162,42 +166,6 @@ def _marketing_ctx(user, active_page: str) -> dict:
 async def product_page():
     # Product's content moved into How It Works - redirect old links/bookmarks.
     return RedirectResponse(url="/how-it-works", status_code=302)
-
-
-@app.get("/solutions")
-async def solutions_page(request: Request, user=Depends(current_user)):
-    ctx = _marketing_ctx(user, "solutions")
-    ctx["segments"] = SOLUTION_SEGMENTS
-    return templates.TemplateResponse(request, "solutions.html", ctx)
-
-
-@app.get("/how-it-works")
-async def how_it_works_page(request: Request, user=Depends(current_user)):
-    return templates.TemplateResponse(request, "how_it_works.html", _marketing_ctx(user, "how-it-works"))
-
-
-@app.get("/pricing")
-async def pricing_page(request: Request, user=Depends(current_user)):
-    return templates.TemplateResponse(request, "pricing.html", _marketing_ctx(user, "pricing"))
-
-
-@app.get("/resources")
-async def resources_page(request: Request, user=Depends(current_user)):
-    ctx = _marketing_ctx(user, "resources")
-    ctx["categories"] = RESOURCE_CATEGORIES
-    ctx["articles"] = [a for a in RESOURCE_ARTICLES if not a.get("featured")]
-    ctx["featured"] = next(a for a in RESOURCE_ARTICLES if a.get("featured"))
-    return templates.TemplateResponse(request, "resources.html", ctx)
-
-
-@app.get("/about")
-async def about_page(request: Request, user=Depends(current_user)):
-    return templates.TemplateResponse(request, "about.html", _marketing_ctx(user, "about"))
-
-
-@app.get("/contact")
-async def contact_page(request: Request, user=Depends(current_user)):
-    return templates.TemplateResponse(request, "contact.html", _marketing_ctx(user, "contact"))
 
 
 @app.get("/about-althais")

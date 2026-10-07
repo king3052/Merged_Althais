@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+{# Platform and For Your Practice pages (platform_pages.py, practice_pages.py), built from the landing page's own parts: althais-landing.css, the same nav, cards and dark CTA. #}
+{% macro mock(c) -%}
+<div class="card card-pad{% if c.soft %} soft{% endif %}">
+  <div class="eyebrow">{{ c.eyebrow }}</div>
+  {% if c.type == 'note' %}
+    <div class="tarea">{{ c.text }}<span class="caret"></span></div>
+  {% elif c.type == 'rows' %}
+    <div class="rows">{% for k, v, cls in c.rows %}<div class="row"><span>{{ k }}</span><span class="r {{ cls }}">{{ v }}</span></div>{% endfor %}</div>
+  {% elif c.type == 'codes' %}
+    {% for t, code, desc, pct in c.codes %}<div class="code-line"><span class="t">{{ t }}</span><div><b>{{ code }}</b><span>{{ desc }}</span></div><span class="pct">{{ pct }}</span></div>{% endfor %}
+  {% elif c.type == 'chips' %}
+    <div class="chips">{% for x in c.chips or [] %}<span class="chip">{{ x }}</span>{% endfor %}{% for t, cls in c.tags or [] %}<span class="tag {{ cls }}">{{ t }}</span>{% endfor %}</div>
+  {% elif c.type == 'claims' %}
+    <div class="rows claims">{% for id, sub, st, cls in c.claims %}<div class="row"><div><span class="id">{{ id }}</span><small>{{ sub }}</small></div><span class="tag {{ cls }}">{{ st }}</span></div>{% endfor %}</div>
+  {% elif c.type == 'people' %}
+    <div class="rows">{% for ini, name, role, st, cls in c.people %}<div class="row"><div class="pf-who"><span class="avatar">{{ ini }}</span><div><b>{{ name }}</b><small>{{ role }}</small></div></div><span class="tag {{ cls }}">{{ st }}</span></div>{% endfor %}</div>
+  {% elif c.type == 'checklist' %}
+    <div class="rows">{% for t, done in c['items'] %}<div class="row"><span class="pf-check{% if done %} on{% endif %}"><i aria-hidden="true">{% if done %}✓{% endif %}</i>{{ t }}</span><span class="r {{ 'g' if done else '' }}">{{ 'done' if done else 'next' }}</span></div>{% endfor %}</div>
+  {% elif c.type == 'list' %}
+    <ul class="pf-list{% if c.good %} good{% endif %}">{% for x in c.list %}<li>{{ x }}</li>{% endfor %}</ul>
+  {% elif c.type == 'shot' %}
+    <div class="pf-shot"><div class="pf-chrome"><i></i><i></i><i></i><span>app.althais.com</span></div><img src="{{ c.src }}" alt="{{ c.alt }}" loading="lazy" /></div>
+  {% elif c.type == 'chat' %}
+    <div class="pf-chat">{% for who, t in c.chat %}<div class="pf-msg {{ who }}">{{ t | safe }}</div>{% endfor %}</div>
+  {% endif %}
+</div>
+{%- endmacro %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ page.nav }} | Althais</title>
+  <meta name="description" content="{{ page.meta }}" />
+  <meta property="og:title" content="{{ page.nav }} | Althais" />
+  <meta property="og:description" content="{{ page.meta }}" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon/althais-tab.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/althais-tab-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <script src="/static/js/theme.js?v={{ asset_v }}"></script>
+  <link rel="stylesheet" href="/static/althais-landing.css?v={{ asset_v }}" />
+  <link rel="stylesheet" href="/static/althais-dark.css?v={{ asset_v }}" />
+  <script>document.documentElement.classList.add("js");</script>
+  <style>
+    .pf-sub { border-bottom: 1px solid var(--line); background: color-mix(in oklab, var(--bg) 70%, transparent); }
+    .pf-sub .wrap { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 10px; }
+    .pf-sub .wrap::-webkit-scrollbar { display: none; }
+    .pf-sub a { flex: none; font-size: 13.5px; padding: 7px 14px; border-radius: 999px; color: var(--muted); border: 1px solid transparent; }
+    .pf-sub a:hover { color: var(--ink); }
+    .pf-sub a.on { color: var(--ink); background: var(--card); border-color: var(--line); }
+    .pf-hero .eyebrow { display: inline-flex; align-items: center; gap: 8px; }
+    .pf-hero h1.display { margin-top: 22px; }
+    .pf-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 72px; align-items: center; }
+    .pf-row + .pf-row { margin-top: 120px; }
+    .pf-row.flip > .pf-copy { order: 2; }
+    .pf-copy h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 4.6vw, 60px); line-height: 1.02; letter-spacing: -.015em; margin-top: 18px; }
+    .pf-copy p { margin-top: 22px; font-size: 18px; line-height: 1.65; color: var(--muted); max-width: 520px; }
+    .pf-grid { margin-top: 56px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+    .pf-grid > div { padding: 28px 26px 30px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .pf-grid .n { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; color: var(--accent); }
+    .pf-grid h3 { margin-top: 14px; font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.1; }
+    .pf-grid p { margin-top: 8px; font-size: 15px; line-height: 1.6; color: var(--muted); }
+    .pf-faq { margin-top: 48px; border-top: 1px solid var(--line); }
+    .pf-faq details { border-bottom: 1px solid var(--line); }
+    .pf-faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0; font-family: var(--serif); font-size: 26px; line-height: 1.2; }
+    .pf-faq summary::-webkit-details-marker { display: none; }
+    .pf-faq summary i { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-style: normal; font-family: var(--sans); font-size: 16px; color: var(--muted); transition: transform .2s ease; }
+    .pf-faq details[open] summary i { transform: rotate(45deg); }
+    .pf-faq details p { padding: 0 0 26px; max-width: 760px; font-size: 17px; line-height: 1.65; color: var(--muted); }
+    .pf-next { margin-top: 64px; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 28px 30px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
+    .pf-next b { display: block; font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; margin-top: 8px; }
+    .pf-next:hover { border-color: #cfcfcf; }
+    .pf-who { display: flex; align-items: center; gap: 12px; }
+    .pf-who .avatar { width: 36px; height: 36px; font-size: 14px; }
+    .pf-who b { display: block; font-weight: 500; font-size: 15px; }
+    .pf-check { display: inline-flex; align-items: center; gap: 10px; }
+    .pf-check i { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-style: normal; font-size: 11px; color: #fff; flex: none; }
+    .pf-check.on i { background: var(--accent); border-color: var(--accent); }
+    .pf-chat { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .pf-msg { max-width: 88%; padding: 11px 15px; border-radius: 16px; font-size: 15px; line-height: 1.55; }
+    .pf-msg.u { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 4px; }
+    .pf-msg.a { align-self: flex-start; background: #f3f5f9; border-bottom-left-radius: 4px; }
+    .pf-msg mark { background: var(--accent-soft); color: var(--accent); padding: 0 5px; border-radius: 3px; }
+    .pf-list { list-style: none; padding: 0; margin: 12px 0 0; }
+    .pf-list li { position: relative; padding: 12px 0 12px 22px; font-size: 15px; line-height: 1.55; }
+    .pf-list li + li { border-top: 1px solid #efefef; }
+    .pf-list li::before { content: ""; position: absolute; left: 2px; top: 20px; width: 7px; height: 7px; border-radius: 50%; background: #cfcfcf; }
+    .pf-list.good li::before { background: var(--accent); }
+    .pf-shot { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+    .pf-chrome { display: flex; align-items: center; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line); background: #fafafa; }
+    .pf-chrome i { width: 9px; height: 9px; border-radius: 50%; background: #e2e2e2; }
+    .pf-chrome span { margin-left: 10px; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+    .pf-shot img { display: block; width: 100%; height: 300px; object-fit: cover; object-position: left top; }
+    .pf-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+    .pf-tier { padding: 30px 28px; }
+    .pf-tier.featured { border-color: var(--ink); box-shadow: 0 24px 60px rgba(30, 24, 16, .12); }
+    .pf-tier-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 22px; }
+    .pf-tier h3 { margin-top: 18px; font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 1; }
+    .pf-tier p { margin-top: 12px; font-size: 15px; line-height: 1.6; color: var(--muted); min-height: 72px; }
+    .pf-tier .btn { margin-top: 20px; width: 100%; justify-content: center; }
+    .pf-plus { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .pf-tier ul { list-style: none; padding: 0; margin: 0; }
+    .pf-tier li { display: flex; gap: 10px; padding: 8px 0; font-size: 15px; line-height: 1.5; }
+    .pf-tier li i { font-style: normal; color: var(--accent); flex: none; }
+    .pf-table { margin-top: 48px; overflow-x: auto; }
+    .pf-table table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    .pf-table th, .pf-table td { text-align: left; padding: 18px 24px; font-size: 15px; line-height: 1.5; border-bottom: 1px solid #efefef; vertical-align: top; }
+    .pf-table thead th { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .pf-table thead th.us { color: var(--accent); }
+    .pf-table tbody th { font-family: var(--serif); font-weight: 500; font-size: 20px; width: 28%; }
+    .pf-table td.us { color: var(--ink); }
+    .pf-table td:not(.us) { color: var(--muted); }
+    .pf-table tbody tr:last-child th, .pf-table tbody tr:last-child td { border-bottom: 0; }
+    .pf-cards { margin-top: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .pf-linkcard { padding: 28px; display: flex; flex-direction: column; transition: transform .15s ease, border-color .15s ease; }
+    a.pf-linkcard:hover { transform: translateY(-2px); border-color: #cfcfcf; }
+    .pf-linkcard h3 { margin-top: 16px; font-family: var(--serif); font-weight: 500; font-size: 28px; line-height: 1.1; }
+    .pf-linkcard p { margin-top: 10px; font-size: 15px; line-height: 1.6; color: var(--muted); }
+    .pf-go { margin-top: auto; padding-top: 20px; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--accent); }
+    .pf-meta { margin-top: auto; padding-top: 16px; font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+    .pf-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pf-cases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .pf-case { padding: 32px; display: flex; flex-direction: column; }
+    .pf-case blockquote { margin: 16px 0 0; font-family: var(--serif); font-size: 26px; line-height: 1.25; }
+    .pf-case-by { margin-top: 14px; font-size: 14px; color: var(--muted); }
+    .pf-case .rows { margin-top: 18px; }
+    .pf-was { color: var(--faint); }
+    .pf-case .r .g { color: var(--accent); }
+    .pf-calc { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; align-items: start; }
+    .pf-field { margin-top: 20px; }
+    .pf-field label { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; margin-bottom: 8px; }
+    .pf-field output { font-family: var(--mono); font-size: 14px; color: var(--accent); }
+    .pf-field input[type=range] { width: 100%; accent-color: var(--ink); }
+    .pf-big { margin-top: 14px; font-family: var(--serif); font-size: clamp(48px, 6vw, 72px); line-height: 1; font-variant-numeric: tabular-nums; }
+    .pf-people { margin-top: 48px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .pf-person { padding: 28px; display: flex; gap: 18px; align-items: flex-start; }
+    .pf-person .avatar { width: 64px; height: 64px; font-size: 24px; }
+    .pf-person b { display: block; font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.1; }
+    .pf-person .eyebrow { display: block; margin-top: 8px; }
+    .pf-person p { margin-top: 12px; font-size: 15px; line-height: 1.6; color: var(--muted); }
+    .pf-story { max-width: 760px; }
+    .pf-story p { margin-top: 22px; font-family: var(--serif); font-size: clamp(24px, 2.6vw, 32px); line-height: 1.35; }
+    .pf-faq-group { padding: 32px 0 6px; }
+    .pf-links { margin-top: 36px; display: flex; gap: 10px; flex-wrap: wrap; }
+    @media (max-width: 960px) {
+      .pf-tiers { grid-template-columns: 1fr; }
+      .pf-cards { grid-template-columns: 1fr 1fr; }
+      .pf-cases, .pf-calc, .pf-people { grid-template-columns: 1fr; }
+      .pf-tier p { min-height: 0; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .pf-row { grid-template-columns: 1fr; gap: 36px; }
+      .pf-row.flip > .pf-copy { order: 0; }
+      .pf-row + .pf-row { margin-top: 84px; }
+      .pf-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .pf-grid, .pf-cards { grid-template-columns: 1fr; }
+      .pf-case blockquote { font-size: 22px; }
+      .pf-faq summary { font-size: 22px; }
+      .pf-next b { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a href="/" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/demo" class="btn btn-dark">Book A Demo
+        <svg class="arr" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+<nav class="pf-sub" aria-label="{{ section }}">
+  <div class="wrap">{% for name, href in nav_items %}<a href="{{ href }}"{% if href == here %} class="on" aria-current="page"{% endif %}>{{ name }}</a>{% endfor %}</div>
+</nav>
+
+<main>
+
+<section class="hero pf-hero">
+  <div class="wrap hero-grid">
+    <div class="rv">
+      <span class="eyebrow"><i class="dot"></i> {{ section }} · {{ page.eyebrow }}</span>
+      <h1 class="display">{{ page.title }}<br /><span class="em">{{ page.em }}</span></h1>
+      <p class="lede">{{ page.lede }}</p>
+      <div class="hero-cta">
+        <a href="/pilot" class="btn btn-dark btn-lg">Join the Pilot
+          <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+        <a href="/demo" class="btn btn-ghost btn-lg">Book A Demo</a>
+      </div>
+    </div>
+    {% if page.hero %}<div class="stack rv">{% for c in page.hero %}{{ mock(c) }}{% endfor %}</div>{% endif %}
+  </div>
+</section>
+
+{% if page.rows %}
+<section class="block">
+  <div class="wrap">
+    {% if page.rows_head %}<div class="sec-head rv" style="margin-bottom:72px"><div class="eyebrow">{{ page.rows_head[0] }}</div><h2>{{ page.rows_head[1] }}<br /><span class="em">{{ page.rows_head[2] }}</span></h2></div>{% endif %}
+    {% for r in page.rows %}
+    <div class="pf-row{% if loop.index is even %} flip{% endif %}">
+      <div class="pf-copy rv">
+        <span class="eyebrow">{{ '%02d' % loop.index }} · {{ r.eyebrow }}</span>
+        <h2>{{ r.title }}<br /><span class="em">{{ r.em }}</span></h2>
+        <p>{{ r.text }}</p>
+      </div>
+      <div class="stack rv">{% for c in r.cards %}{{ mock(c) }}{% endfor %}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+
+{% if page.quote %}
+<section class="quote">
+  <div class="wrap">
+    <hr />
+    <div class="mark">&ldquo;</div>
+    <blockquote>{{ page.quote.text }}</blockquote>
+    <div class="by"><span class="avatar">{{ page.quote.initials }}</span><div><b>{{ page.quote.role }}</b><span>{{ page.quote.org }}</span></div></div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.links_grid %}
+<section class="block">
+  <div class="wrap">
+    {% if page.links_head %}<div class="sec-head rv"><div class="eyebrow">{{ page.links_head[0] }}</div><h2>{{ page.links_head[1] }}<br /><span class="em">{{ page.links_head[2] }}</span></h2></div>{% endif %}
+    <div class="pf-cards rv">
+      {% for c in page.links_grid %}
+      <a class="card pf-linkcard" href="{{ c.href }}">
+        <span class="eyebrow">{{ c.eyebrow }}</span>
+        <h3>{{ c.title }}</h3>
+        <p>{{ c.text }}</p>
+        <span class="pf-go">{{ c.go or 'Learn more' }} <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.cases %}
+<section class="block">
+  <div class="wrap">
+    <div class="pf-cases">
+      {% for c in page.cases %}
+      <article class="card pf-case rv">
+        <span class="eyebrow">{{ c.label }}</span>
+        <blockquote>&ldquo;{{ c.quote }}&rdquo;</blockquote>
+        <div class="pf-case-by">{{ c.role }}, {{ c.org }}</div>
+        {% if c.stats %}<div class="rows">{% for m, b, a in c.stats %}<div class="row"><span>{{ m }}</span><span class="r"><span class="pf-was">{{ b }}</span> &rarr; <span class="g">{{ a }}</span></span></div>{% endfor %}</div>{% endif %}
+        <a class="pf-go" href="{{ c.href }}">Althais for {{ c.label }} <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.articles %}
+<section class="block">
+  <div class="wrap">
+    <div class="pf-filter rv" role="tablist" aria-label="Filter resources">
+      <button class="chip-btn on" data-cat="all" type="button">All</button>
+      {% for key, label in page.categories %}<button class="chip-btn" data-cat="{{ key }}" type="button">{{ label }}</button>{% endfor %}
+    </div>
+    <div class="pf-cards pf-articles">
+      {% for a in page.articles %}
+      <article class="card pf-linkcard rv" data-cat="{{ a.category }}">
+        <span class="eyebrow">{{ a.category_label }}</span>
+        <h3>{{ a.title }}</h3>
+        <p>{{ a.excerpt }}</p>
+        <span class="pf-meta">{{ a.meta }}</span>
+      </article>
+      {% endfor %}
+    </div>
+    <p class="foot-note rv">Want one of these sent over? <a href="/contact" style="text-decoration:underline">Ask us</a> and we'll email it to you.</p>
+  </div>
+</section>
+{% endif %}
+
+{% if page.calculator %}
+<section class="block">
+  <div class="wrap pf-calc">
+    <div class="card card-pad rv" id="roi-form">
+      <div class="eyebrow">Your practice</div>
+      <div class="pf-field"><label for="r-claims">Claims per month <output id="o-claims"></output></label><input type="range" id="r-claims" min="50" max="20000" step="50" value="1200"></div>
+      <div class="pf-field"><label for="r-value">Average claim value <output id="o-value"></output></label><input type="range" id="r-value" min="40" max="1500" step="10" value="180"></div>
+      <div class="pf-field"><label for="r-denial">Current denial rate <output id="o-denial"></output></label><input type="range" id="r-denial" min="1" max="30" step="0.5" value="10"></div>
+      <div class="pf-field"><label for="r-lost">Denials never recovered <output id="o-lost"></output></label><input type="range" id="r-lost" min="0" max="100" step="5" value="50"></div>
+      <div class="pf-field"><label for="r-hours">Billing hours per week <output id="o-hours"></output></label><input type="range" id="r-hours" min="0" max="200" step="1" value="20"></div>
+      <div class="pf-field"><label for="r-rate">Hourly cost of billing staff <output id="o-rate"></output></label><input type="range" id="r-rate" min="15" max="120" step="1" value="35"></div>
+      <div class="pf-field"><label for="r-cut">If you cut both by <output id="o-cut"></output></label><input type="range" id="r-cut" min="0" max="80" step="5" value="30"></div>
+    </div>
+    <div class="card card-pad rv" aria-live="polite">
+      <div class="eyebrow">Denials and billing time cost you</div>
+      <div class="pf-big" id="res-cost">$0</div><div class="pf-meta">per year, today</div>
+      <div class="rows">
+        <div class="row"><span>Revenue lost to unrecovered denials</span><span class="r" id="res-denied">$0</span></div>
+        <div class="row"><span>Billing staff time</span><span class="r" id="res-time">$0</span></div>
+        <div class="row"><span>You'd keep each year at <span id="res-cut-pct">30%</span> less</span><span class="r g" id="res-keep">$0</span></div>
+        <div class="row"><span>Hours back each week</span><span class="r g" id="res-hours">0</span></div>
+      </div>
+      <p class="foot-note">An estimate from the numbers you enter, not a quote or a promise. Book a demo and we'll look at your real claims.</p>
+      <a href="/demo" class="btn btn-dark btn-lg" style="margin-top:18px;width:100%;justify-content:center">Book A Demo</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.people %}
+<section class="block">
+  <div class="wrap">
+    {% if page.people_head %}<div class="sec-head rv"><div class="eyebrow">{{ page.people_head[0] }}</div><h2>{{ page.people_head[1] }}<br /><span class="em">{{ page.people_head[2] }}</span></h2></div>{% endif %}
+    <div class="pf-people">
+      {% for ini, name, role, line in page.people %}
+      <div class="card pf-person rv"><span class="avatar">{{ ini }}</span><div><b>{{ name }}</b><span class="eyebrow">{{ role }}</span>{% if line %}<p>{{ line }}</p>{% endif %}</div></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.story %}
+<section class="block">
+  <div class="wrap pf-story rv">
+    <div class="eyebrow">{{ page.story[0] }}</div>
+    {% for para in page.story[1:] %}<p>{{ para }}</p>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if page.tiers %}
+<section class="block">
+  <div class="wrap">
+    <div class="pf-tiers">
+      {% for t in page.tiers %}
+      <div class="card pf-tier rv{% if t.featured %} featured{% endif %}">
+        <div class="pf-tier-top"><span class="eyebrow">{{ t.for }}</span>{% if t.featured %}<span class="tag">Most Popular</span>{% endif %}</div>
+        <h3>{{ t.name }}</h3>
+        <p>{{ t.text }}</p>
+        <a href="{{ t.href }}" class="btn {{ 'btn-dark' if t.featured else 'btn-ghost' }} btn-lg">{{ t.button }}</a>
+        <hr class="hr" />
+        {% if t.plus %}<div class="pf-plus">{{ t.plus }}</div>{% endif %}
+        <ul>{% for f in t.features %}<li><i aria-hidden="true">✓</i>{{ f }}</li>{% endfor %}</ul>
+      </div>
+      {% endfor %}
+    </div>
+    {% if page.tiers_note %}<p class="foot-note rv">{{ page.tiers_note | safe }}</p>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if page.table %}
+<section class="block">
+  <div class="wrap">
+    {% if page.table_head %}<div class="sec-head rv"><div class="eyebrow">{{ page.table_head[0] }}</div><h2>{{ page.table_head[1] }}<br /><span class="em">{{ page.table_head[2] }}</span></h2></div>{% endif %}
+    <div class="card pf-table rv">
+      <table>
+        <thead><tr><th></th>{% for c in page.table.cols %}<th{% if loop.first %} class="us"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for label, us, them in page.table.rows %}<tr><th scope="row">{{ label }}</th><td class="us">{{ us }}</td><td>{{ them }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.grid %}
+<section class="block">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="eyebrow">{{ page.grid_label or 'Everything in ' ~ page.nav }}</div>
+      <h2>Built for the work,<br /><span class="em">not around it.</span></h2>
+    </div>
+    <div class="pf-grid rv">
+      {% for t, d in page.grid %}<div><span class="n">{{ '%02d' % loop.index }}</span><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}
+    </div>
+    {% if page.links %}<div class="pf-links rv">{% for t, h in page.links %}<a href="{{ h }}" class="btn btn-ghost btn-lg">{{ t }}</a>{% endfor %}</div>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="block">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="eyebrow">Questions</div>
+      <h2>Asked and answered.</h2>
+    </div>
+    <div class="pf-faq rv">
+      {% for group, items in (page.faq_groups or [('', page.faq)]) %}{% if group %}<div class="pf-faq-group eyebrow">{{ group }}</div>{% endif %}{% for q, a in items %}<details><summary>{{ q }}<i aria-hidden="true">+</i></summary><p>{{ a }}</p></details>{% endfor %}{% endfor %}
+    </div>
+    <a class="pf-next rv" href="{{ next_href }}">
+      <div><span class="eyebrow">Next · {{ section }}</span><b>{{ next_name }}</b></div>
+      <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <div class="eyebrow">See it on your visits</div>
+    <h2>{{ page.title }} <span style="font-style:italic;color:var(--accent-dark)">{{ page.em }}</span></h2>
+    <p>Book a demo and we'll walk through {{ page.nav if section == 'Platform' else 'Althais' }} with your specialty, your payers and your workflow.</p>
+    <a href="/demo" class="btn btn-pill">Book A Demo
+      <svg class="arr" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+  </div>
+</section>
+
+</main>
+
+{% include "_site_footer.html" %}
+
+{% if page.articles %}
+<script>
+  document.querySelectorAll('.pf-filter .chip-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.pf-filter .chip-btn').forEach(function (x) { x.classList.toggle('on', x === b); });
+      document.querySelectorAll('.pf-articles [data-cat]').forEach(function (a) { a.style.display = (b.dataset.cat === 'all' || a.dataset.cat === b.dataset.cat) ? '' : 'none'; });
+    });
+  });
+</script>
+{% endif %}
+{% if page.calculator %}
+<script>
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var money = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
+    var fmt = { claims: function (v) { return Number(v).toLocaleString('en-US'); }, value: money, denial: function (v) { return v + '%'; }, lost: function (v) { return v + '%'; },
+                hours: function (v) { return v + ' hrs'; }, rate: function (v) { return money(v) + '/hr'; }, cut: function (v) { return v + '%'; } };
+    function update() {
+      var v = {}; for (var k in fmt) { v[k] = Number($('r-' + k).value); $('o-' + k).textContent = fmt[k]($('r-' + k).value); }
+      var denied = v.claims * 12 * v.value * (v.denial / 100) * (v.lost / 100), time = v.hours * 52 * v.rate;
+      $('res-cost').textContent = money(denied + time); $('res-denied').textContent = money(denied); $('res-time').textContent = money(time);
+      $('res-cut-pct').textContent = v.cut + '%'; $('res-keep').textContent = money((denied + time) * v.cut / 100);
+      $('res-hours').textContent = (Math.round(v.hours * v.cut / 10) / 10).toLocaleString('en-US');
+    }
+    document.querySelectorAll('#roi-form input').forEach(function (i) { i.addEventListener('input', update); });
+    update();
+  })();
+</script>
+{% endif %}
+<script>
+  // reveal on scroll, the same as the landing page
+  (function () {
+    var els = document.querySelectorAll(".rv");
+    if (!("IntersectionObserver" in window)) { els.forEach(function (e) { e.classList.add("in"); }); return; }
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }); }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
+</body>
+</html>
