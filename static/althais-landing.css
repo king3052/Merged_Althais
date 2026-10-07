@@ -105,6 +105,9 @@ h1.display { font-family: var(--serif); font-weight: 400; font-size: clamp(52px,
 .marq-logos .marq-track { gap: 0; align-items: center; animation-duration: 36s; }
 .marq-logos img { height: var(--h, 50px); width: auto; flex: none; margin-right: 72px; display: block; }
 @media (max-width: 640px) { .marq-logos img { height: calc(var(--h, 50px) * .72); margin-right: 44px; } .marq-logos .marq-track { animation-duration: 26s; } }
+.marq-logos.rev .marq-track { animation-direction: reverse; }
+.band-2 { margin-top: 120px; }
+@media (max-width: 960px) { .band-2 { margin-top: 84px; } }
 @media (prefers-reduced-motion: reduce) { .marq-logos .marq-track { animation: none; } }
 
 /* ---------- sections ---------- */
