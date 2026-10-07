@@ -353,6 +353,124 @@
   </div>
 </section>
 
+<!-- GETTING STARTED: three setup steps, tabs advance on their own (althais-landing.js) -->
+<section class="block" id="setup">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="eyebrow">Getting started</div>
+      <h2>Set up Althais<br /><span class="em">in three steps.</span></h2>
+      <p>We handle the setup. You make it your own.</p>
+    </div>
+
+    <div class="su rv" data-setup>
+      <div class="su-tabs" role="tablist" aria-label="Setup steps">
+        <button class="su-tab on" role="tab" aria-selected="true" data-su="0"><span class="su-n">1</span>Connect<i class="su-bar"><b></b></i></button>
+        <button class="su-tab" role="tab" aria-selected="false" data-su="1"><span class="su-n">2</span>Personalize<i class="su-bar"><b></b></i></button>
+        <button class="su-tab" role="tab" aria-selected="false" data-su="2"><span class="su-n">3</span>Go live<i class="su-bar"><b></b></i></button>
+      </div>
+
+      <div class="su-panel card">
+        <div class="su-slide on" data-su="0" role="tabpanel">
+          <div class="su-copy">
+            <span class="su-count">01 / 03</span>
+            <h3>Keep your EHR,<br />or replace it.</h3>
+            <p>Buy only the tools you need and Althais sits on top of the EHR and clearinghouse you already use. Or choose the Full Suite and run your whole practice on Althais, EMR included.</p>
+            <ul class="su-paths">
+              <li><b>Add to your EHR</b><span>Pick any of Scribe, Coding, Claims &amp; Insurance or Team. Pay for what you use.</span></li>
+              <li><b>Full Suite</b><span>Patients, charts, schedule and every tool in one place. Replaces your EMR.</span></li>
+            </ul>
+          </div>
+          <div class="su-stage">
+            <div class="su-win" data-mode="addon">
+              <div class="su-win-head"><span class="su-brand"><svg width="20" height="20" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8"/></svg>Althais</span>
+                <span class="su-switch" role="group" aria-label="How you use Althais">
+                  <button type="button" class="on" data-mode-btn="addon" aria-pressed="true">Add to your EHR</button>
+                  <button type="button" data-mode-btn="suite" aria-pressed="false">Full Suite</button>
+                </span>
+              </div>
+
+              <div class="su-modes">
+              <div class="su-mode on" data-mode-panel="addon">
+                <div class="su-link">
+                  <div class="su-node"><span class="su-ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg></span><b>Your EHR</b><small>Stays as it is</small></div>
+                  <div class="su-wire"><i></i><span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></div>
+                  <div class="su-node"><span class="su-ico on"><svg width="26" height="26" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="7" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="7"/></svg></span><b>Althais</b><small>Only what you buy</small></div>
+                </div>
+                <div class="su-pick">
+                  <span class="su-pick-l">Choose your tools</span>
+                  <div class="su-tools">
+                    <span class="su-tool on">✓ Scribe</span><span class="su-tool on">✓ Coding</span><span class="su-tool on">✓ Claims &amp; Insurance</span><span class="su-tool">+ Team</span>
+                  </div>
+                </div>
+                <div class="su-sync"><div class="su-sync-top"><span>Getting everything in sync</span><span class="su-pct" data-pct>0%</span></div><div class="su-meter"><b data-meter></b></div>
+                  <div class="su-sync-items"><span class="ok">✓ Patient records</span><span class="ok">✓ Payer list</span><span class="wait">Provider NPIs</span></div></div>
+              </div>
+
+              <div class="su-mode" data-mode-panel="suite" aria-hidden="true">
+                <div class="su-suite">
+                  <div class="su-old"><span class="su-ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg></span><div><b>Your current EMR</b><small>Patients and history move over</small></div><span class="tag n">Replaced</span></div>
+                  <div class="su-down" aria-hidden="true">↓</div>
+                  <div class="su-new"><span class="su-ico on"><svg width="26" height="26" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="7" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="7"/></svg></span><div><b>Althais Full Suite</b><small>Everything in one place</small></div><span class="tag">All tools</span></div>
+                </div>
+                <div class="su-grid">
+                  <span>EMR &amp; charts</span><span>Schedule</span><span>Scribe</span><span>Coding</span><span>Claims &amp; Insurance</span><span>Team</span><span>Analytics</span><span>Althea</span>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="su-slide" data-su="1" role="tabpanel" aria-hidden="true">
+          <div class="su-copy">
+            <span class="su-count">02 / 03</span>
+            <h3>Make it<br />your own.</h3>
+            <p>Add your providers and staff, set each role's access, and tune coding to your specialty mix. Turn on the tools you want, and leave the rest off.</p>
+          </div>
+          <div class="su-stage">
+            <div class="su-win">
+              <div class="su-win-head"><span class="su-brand"><svg width="20" height="20" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8"/></svg>Althais</span><span class="su-status"><i class="dot"></i>Your clinic settings</span></div>
+              <div class="rows su-rows">
+                <div class="row"><span>Specialty</span><span class="r">Family medicine</span></div>
+                <div class="row"><span>Locations</span><span class="r">2 clinics</span></div>
+                <div class="row"><span>Providers</span><span class="r">4 added</span></div>
+                <div class="row"><span>Staff</span><span class="r">6 invited</span></div>
+                <div class="row"><span>Roles</span><span class="r">Provider · Biller · Front desk</span></div>
+                <div class="row"><span>Coding</span><span class="r">Tuned to your specialty mix</span></div>
+                <div class="row"><span>Tools</span><span class="su-toggles"><span class="tag">Scribe</span><span class="tag">Coding</span><span class="tag">Claims</span><span class="tag n">Team</span></span></div>
+                <div class="row"><span>Althea assistant</span><span class="r g">On</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="su-slide" data-su="2" role="tabpanel" aria-hidden="true">
+          <div class="su-copy">
+            <span class="su-count">03 / 03</span>
+            <h3>Go live,<br />starting with a pilot.</h3>
+            <p>Start with a provider pilot on your own documentation. When your team is confident, roll Althais out to everyone. Most practices are live within 30 to 60 days.</p>
+          </div>
+          <div class="su-stage">
+            <div class="su-win">
+              <div class="su-win-head"><span class="su-brand"><svg width="20" height="20" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8"/></svg>Althais</span><span class="su-status"><i class="dot live"></i>Live</span></div>
+              <div class="rows su-rows">
+                <div class="row"><span>EHR &amp; clearinghouse connected</span><span class="r g">complete</span></div>
+                <div class="row"><span>Payer enrollments</span><span class="r g">complete</span></div>
+                <div class="row"><span>Provider pilot</span><span class="r g">complete</span></div>
+                <div class="row"><span>Team trained</span><span class="r g">complete</span></div>
+                <div class="row"><span>First claims reviewed</span><span class="r g">complete</span></div>
+                <div class="row"><span>Rollout to all providers</span><span class="r a">in progress</span></div>
+                <div class="row"><span>Ongoing support</span><span class="r">included</span></div>
+              </div>
+              <p class="su-foot">Example timeline. Your rollout is planned with you.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FINAL CTA -->
 <section class="cta">
   <div class="wrap">

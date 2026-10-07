@@ -435,3 +435,54 @@
   }
 })();
 
+// getting started: three setup steps that advance on their own; click a tab to jump, hover pauses
+(function () {
+  var root = document.querySelector("[data-setup]");
+  if (!root) return;
+  var tabs = Array.prototype.slice.call(root.querySelectorAll(".su-tab")), slides = Array.prototype.slice.call(root.querySelectorAll(".su-slide"));
+  var MS = 7000, cur = 0, timer = null, started = 0, left = MS, inView = false, hover = false;
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var pct = root.querySelector("[data-pct]"), meter = root.querySelector("[data-meter]"), sync = null;
+  root.style.setProperty("--su-ms", MS + "ms");
+  function runSync() {
+    clearInterval(sync); var v = 0; pct.textContent = "0%"; meter.style.width = "0%";
+    sync = setInterval(function () { v = Math.min(100, v + Math.ceil(Math.random() * 6)); pct.textContent = v + "%"; meter.style.width = v + "%"; if (v >= 100) clearInterval(sync); }, 160);
+  }
+  function show(i) {
+    cur = i;
+    tabs.forEach(function (t, k) {
+      t.classList.toggle("on", k === i); t.classList.toggle("done", k < i); t.setAttribute("aria-selected", k === i ? "true" : "false");
+      var b = t.querySelector(".su-bar b"); b.style.animation = "none"; void b.offsetWidth; b.style.animation = "";
+    });
+    slides.forEach(function (s, k) { s.classList.toggle("on", k === i); s.setAttribute("aria-hidden", k === i ? "false" : "true"); });
+    clearTimeout(flip);
+    if (i === 0 && win) { if (!picked) { mode("addon"); if (!reduce) flip = setTimeout(function () { if (cur === 0 && !hover) mode("suite"); }, MS / 2); } else if (win.getAttribute("data-mode") === "addon") runSync(); }
+    left = MS; schedule();
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (reduce || !inView || hover) return;
+    started = Date.now();
+    timer = setTimeout(function () { show((cur + 1) % tabs.length); }, left);
+  }
+  function pause() { if (timer) { clearTimeout(timer); timer = null; left = Math.max(0, left - (Date.now() - started)); } root.classList.add("paused"); }
+  function resume() { root.classList.remove("paused"); schedule(); }
+  tabs.forEach(function (t, k) { t.addEventListener("click", function () { show(k); }); });
+  // step 1: "Add to your EHR" or "Full Suite"; flips once on its own halfway through the step until someone picks one
+  var win = root.querySelector("[data-mode]"), picked = false, flip = null;
+  function mode(m) {
+    win.setAttribute("data-mode", m);
+    win.querySelectorAll("[data-mode-btn]").forEach(function (b) { var on = b.getAttribute("data-mode-btn") === m; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+    win.querySelectorAll("[data-mode-panel]").forEach(function (p) { var on = p.getAttribute("data-mode-panel") === m; p.classList.toggle("on", on); p.setAttribute("aria-hidden", on ? "false" : "true"); });
+    if (m === "addon") runSync();
+  }
+  if (win) win.querySelectorAll("[data-mode-btn]").forEach(function (b) {
+    b.addEventListener("click", function (e) { e.stopPropagation(); picked = true; clearTimeout(flip); mode(b.getAttribute("data-mode-btn")); });
+  });
+  root.addEventListener("mouseenter", function () { hover = true; pause(); });
+  root.addEventListener("mouseleave", function () { hover = false; resume(); });
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (es) { inView = es[0].isIntersecting; if (inView) { root.classList.remove("paused"); if (!sync) show(0); else schedule(); } else pause(); }, { threshold: 0.35 }).observe(root);
+  } else { inView = true; runSync(); schedule(); }
+})();
+
