@@ -49,35 +49,26 @@
     });
   }
 
-  /* ---------- how it works: one step at a time; advances on its own every few seconds, click a step to jump ---------- */
+  /* ---------- how it works: sticky step tracker ---------- */
   var cards = $$(".step-card");
   var copies = $$(".step-copy");
   var tl = $$(".timeline li");
-  var stepsEl = $(".steps"), stAuto = null, stCur = 0, stTimer = null, stHover = false, stSeen = false, stMs = 7000;
-  if (stepsEl) {
-    stAuto = document.createElement("div"); stAuto.className = "steps-auto"; stAuto.innerHTML = "<b></b>";
-    var tlEl = $(".timeline"); if (tlEl) tlEl.parentNode.insertBefore(stAuto, tlEl.nextSibling);
-    stepsEl.style.setProperty("--st-ms", stMs + "ms");
-  }
   function setStep(i) {
-    stCur = (i + cards.length) % cards.length;
-    copies.forEach(function (c) { c.classList.toggle("on", +c.getAttribute("data-step") === stCur); });
-    cards.forEach(function (c) { c.classList.toggle("on", +c.getAttribute("data-step") === stCur); });
-    tl.forEach(function (li, idx) { li.classList.toggle("done", idx < stCur); li.classList.toggle("on", idx === stCur); });
-    if (stAuto) { stAuto.classList.remove("run"); void stAuto.offsetWidth; if (!reduce && !stHover && stSeen) stAuto.classList.add("run"); }
-    clearTimeout(stTimer);
-    if (!reduce && !stHover && stSeen) stTimer = setTimeout(function () { setStep(stCur + 1); }, stMs);
+    copies.forEach(function (c) { c.classList.toggle("on", +c.getAttribute("data-step") === i); });
+    tl.forEach(function (li, idx) { li.classList.toggle("done", idx < i); li.classList.toggle("on", idx === i); });
   }
-  if (cards.length) {
-    setStep(0);
-    tl.forEach(function (li, idx) { li.addEventListener("click", function () { setStep(idx); }); });
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(function (es) {
-        if (es[0].isIntersecting) { if (!stSeen) { stSeen = true; setStep(stCur); } }
-        else { stSeen = false; clearTimeout(stTimer); if (stAuto) stAuto.classList.remove("run"); }
-      }, { threshold: 0.35 }).observe(stepsEl);
-    }
+  if ("IntersectionObserver" in window && cards.length) {
+    var stepObs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) setStep(+e.target.getAttribute("data-step")); });
+    }, { rootMargin: "-42% 0px -42% 0px", threshold: 0 });
+    cards.forEach(function (c) { stepObs.observe(c); });
   }
+  tl.forEach(function (li, idx) {
+    li.style.cursor = "pointer";
+    li.addEventListener("click", function () {
+      var c = cards[idx]; if (c) c.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+    });
+  });
 
   /* ---------- typewriter (step one) ---------- */
   var tw = $("#tw"), twOut = $("#tw-out");
@@ -520,20 +511,5 @@
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function (es) { inView = es[0].isIntersecting; if (inView) { root.classList.remove("paused"); if (!sync) show(0); else schedule(); } else pause(); }, { threshold: 0.35 }).observe(root);
   } else { inView = true; runSync(); schedule(); }
-})();
-
-// collapsible landing sections: the button opens/closes its .fold; content inside is revealed when opened
-(function () {
-  document.querySelectorAll(".fold-btn").forEach(function (btn) {
-    var fold = document.getElementById(btn.getAttribute("aria-controls")); if (!fold) return;
-    btn.addEventListener("click", function () {
-      var open = btn.getAttribute("aria-expanded") !== "true";
-      btn.setAttribute("aria-expanded", open ? "true" : "false");
-      btn.querySelector("span").textContent = btn.getAttribute(open ? "data-open" : "data-closed");
-      fold.classList.toggle("open", open);
-      if (open) fold.querySelectorAll(".rv").forEach(function (el) { el.classList.add("in"); });
-      if (!open) { var top = btn.getBoundingClientRect().top; if (top < 0) btn.scrollIntoView({ block: "center" }); }
-    });
-  });
 })();
 
