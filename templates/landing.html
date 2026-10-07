@@ -304,18 +304,52 @@
   </div>
 </section>
 
-<!-- QUOTE -->
-<section class="quote">
+<!-- TESTIMONIALS: what pilot clinicians and leaders said (their words only), a featured quote that rotates plus all three as cards -->
+<section class="block tm" id="voices" data-tm-root>
   <div class="wrap">
-    <hr />
-    <div class="mark">&ldquo;</div>
-    <blockquote id="q-text" class="qfade">The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you've already moved on.</blockquote>
-    <div class="by qfade" id="q-by"><span class="avatar" id="q-av">JT</span><div><b id="q-name">Dr. James Tarin</b><span id="q-role">Tarin Health DPC · Pecos, TX</span></div></div>
-    <div class="qdots" role="tablist" aria-label="Testimonials">
-      <button class="qdot on" data-q="0" aria-label="Show testimonial 1"></button>
-      <button class="qdot" data-q="1" aria-label="Show testimonial 2"></button>
-      <button class="qdot" data-q="2" aria-label="Show testimonial 3"></button>
+    <div class="sec-head rv">
+      <div class="eyebrow">From our pilots</div>
+      <h2>In their words.</h2>
+      <p>Clinicians and revenue cycle leaders at practices using Althais, on what it catches and who it’s for.</p>
     </div>
+
+    <figure class="tm-feature rv">
+      <svg class="tm-mark" width="40" height="32" viewBox="0 0 40 32" aria-hidden="true"><path fill="currentColor" d="M0 32V19.2C0 8.6 5.4 2.2 16.2 0l1.6 4.2C12 6 9.2 9.4 8.8 14.4H16V32H0Zm22 0V19.2C22 8.6 27.4 2.2 38.2 0l1.6 4.2C34 6 31.2 9.4 30.8 14.4H38V32H22Z"/></svg>
+      <blockquote class="tm-fade" id="tm-text">The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you’ve already moved on.</blockquote>
+      <figcaption class="tm-fade" id="tm-cap">
+        <span class="avatar tm-av" id="tm-av">JT</span>
+        <div class="tm-who"><b id="tm-name">Dr. James Tarin</b><span id="tm-role">Tarin Health DPC · Pecos, TX</span></div>
+        <span class="tm-sep" aria-hidden="true"></span>
+        <span class="tm-org" id="tm-org"><img class="tm-logo" src="/static/logos/tarin-health.png" alt="Tarin Health" loading="lazy"></span>
+      </figcaption>
+      <div class="tm-nav">
+        <button type="button" class="tm-arrow" data-tm-step="-1" aria-label="Previous quote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg></button>
+        <div class="tm-progress" aria-hidden="true"><i class="on"><b></b></i><i class=""><b></b></i><i class=""><b></b></i></div>
+        <button type="button" class="tm-arrow" data-tm-step="1" aria-label="Next quote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+      </div>
+    </figure>
+
+    <div class="tm-cards rv">
+      <article class="card tm-card on" data-tm="0" tabindex="0" role="button" aria-label="Show Dr. James Tarin's quote">
+        <span class="tag">Caught a bundling error</span>
+        <p>“The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you’ve already moved on.”</p>
+        <div class="tm-by"><span class="avatar">JT</span><div><b>Dr. James Tarin</b><span>Tarin Health DPC · Pecos, TX</span></div></div>
+        <a class="tm-try" href="/platform/medical-coding#demo">Try the Coding Check <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </article>
+      <article class="card tm-card" data-tm="1" tabindex="0" role="button" aria-label="Show Bryan Cox's quote">
+        <span class="tag">Real-time NCCI checks</span>
+        <p>“NCCI real-time checking is something I’ve been asking vendors to build for years. Most practices don’t find out about bundling conflicts until after the rejection.”</p>
+        <div class="tm-by"><span class="avatar">BC</span><div><b>Bryan Cox</b><span>Director, Revenue Cycle · MCH Odessa, TX</span></div></div>
+        <a class="tm-try" href="/platform/claims-insurance#demo">Try the Claim Check <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </article>
+      <article class="card tm-card" data-tm="2" tabindex="0" role="button" aria-label="Show Dr. Ashish Gupta, MD MBA's quote">
+        <span class="tag">Built for lean clinics</span>
+        <p>“Small clinics running lean can’t afford a billing department. Althais is built for exactly that setting, and the Althea voice layer is something I haven’t seen anywhere else.”</p>
+        <div class="tm-by"><span class="avatar">AG</span><div><b>Dr. Ashish Gupta, MD MBA</b><span>Deputy CMO · Hamilton Health Box</span></div></div>
+        <a class="tm-try" href="/platform/althea#demo">Try Althea <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </article>
+    </div>
+    <template id="tm-orgs"><div data-org="0"><img class="tm-logo" src="/static/logos/tarin-health.png" alt="Tarin Health" loading="lazy"></div><div data-org="1"><span class="tm-logo tm-org-text">MCH</span></div><div data-org="2"><img class="tm-logo" src="/static/logos/hamilton-healthbox.png" alt="Hamilton HealthBox" loading="lazy"></div></template>
   </div>
 </section>
 

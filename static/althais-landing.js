@@ -171,24 +171,51 @@
     });
   });
 
-  /* ---------- testimonials ---------- */
-  var Q = [
-    ["The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you’ve already moved on.", "Dr. James Tarin", "Tarin Health DPC · Pecos, TX", "JT"],
-    ["NCCI real-time checking is something I’ve been asking vendors to build for years. Most practices don’t find out about bundling conflicts until after the rejection.", "Bryan Cox", "Director, Revenue Cycle · MCH Odessa, TX", "BC"],
-    ["Small clinics running lean can’t afford a billing department. Althais is built for exactly that setting, and the Althea voice layer is something I haven’t seen anywhere else.", "Dr. Ashish Gupta, MD MBA", "Deputy CMO · Hamilton Health Box", "AG"]
-  ];
-  var qt = $("#q-text"), qby = $("#q-by"), qav = $("#q-av"), qn = $("#q-name"), qr = $("#q-role");
-  $$(".qdot").forEach(function (d) {
-    d.addEventListener("click", function () {
-      var i = +d.getAttribute("data-q");
-      $$(".qdot").forEach(function (x) { x.classList.toggle("on", x === d); });
-      qt.style.opacity = 0; qby.style.opacity = 0;
+  /* ---------- testimonials: featured quote rotates through the cards; arrows, card clicks, hover pauses ---------- */
+  var tmRoot = $("[data-tm-root]");
+  if (tmRoot) {
+    var tmCards = $$(".tm-card", tmRoot), tmBars = $$(".tm-progress i", tmRoot), tmOrgs = $("#tm-orgs");
+    var tmMs = 8000, tmCur = 0, tmTimer = null, tmHover = false, tmSeen = false;
+    tmRoot.style.setProperty("--tm-ms", tmMs + "ms");
+    function tmData(k) {
+      var c = tmCards[k];
+      return { text: c.querySelector("p").textContent.replace(/^“|”$/g, ""), name: c.querySelector(".tm-by div b").textContent,
+               role: c.querySelector(".tm-by div span").textContent, av: c.querySelector(".avatar").textContent,
+               org: tmOrgs ? tmOrgs.content.querySelector('[data-org="' + k + '"]').innerHTML : "" };
+    }
+    function tmShow(k, instant) {
+      tmCur = (k + tmCards.length) % tmCards.length; var d = tmData(tmCur);
+      var fades = $$(".tm-fade", tmRoot);
+      fades.forEach(function (f) { f.classList.add("out"); });
       setTimeout(function () {
-        qt.textContent = Q[i][0]; qn.textContent = Q[i][1]; qr.textContent = Q[i][2]; qav.textContent = Q[i][3];
-        qt.style.opacity = 1; qby.style.opacity = 1;
-      }, reduce ? 0 : 220);
+        $("#tm-text").textContent = d.text; $("#tm-name").textContent = d.name; $("#tm-role").textContent = d.role;
+        $("#tm-av").textContent = d.av; $("#tm-org").innerHTML = d.org;
+        fades.forEach(function (f) { f.classList.remove("out"); });
+      }, instant || reduce ? 0 : 280);
+      tmCards.forEach(function (c, i) { c.classList.toggle("on", i === tmCur); });
+      tmBars.forEach(function (b, i) { b.classList.toggle("done", i < tmCur); b.classList.remove("on"); });
+      if (tmBars[tmCur]) { void tmBars[tmCur].offsetWidth; tmBars[tmCur].classList.add("on"); }
+      tmSchedule();
+    }
+    function tmSchedule() {
+      clearTimeout(tmTimer);
+      if (reduce || tmHover || !tmSeen) return;
+      tmTimer = setTimeout(function () { tmShow(tmCur + 1); }, tmMs);
+    }
+    $$("[data-tm-step]", tmRoot).forEach(function (b) { b.addEventListener("click", function () { tmShow(tmCur + (+b.getAttribute("data-tm-step"))); }); });
+    tmCards.forEach(function (c, i) {
+      c.addEventListener("click", function (e) { if (e.target.closest("a")) return; tmShow(i); });
+      c.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tmShow(i); } });
     });
-  });
+    var tmFeature = $(".tm-feature", tmRoot);
+    [tmFeature].concat(tmCards).forEach(function (el) {
+      el.addEventListener("mouseenter", function () { tmHover = true; clearTimeout(tmTimer); tmRoot.classList.add("paused"); });
+      el.addEventListener("mouseleave", function () { tmHover = false; tmRoot.classList.remove("paused"); tmShow(tmCur, true); });
+    });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (es) { var vis = es[0].isIntersecting; if (vis && !tmSeen) { tmSeen = true; tmShow(0, true); } else if (!vis) { clearTimeout(tmTimer); } else { tmSchedule(); } }, { threshold: 0.3 }).observe(tmRoot);
+    } else { tmSeen = true; tmSchedule(); }
+  }
 
   /* ---------- savings comparison bars ---------- */
   var cmp = $("#cmp");
