@@ -1,0 +1,55 @@
+{# Site header shared by the landing page and every footer page (platform_page.html): logo at the far left, Book A Demo at
+   the far right, Platform / How It Works / Resources menus in the middle. Styles live in static/althais-landing.css (.nav*). #}
+{% set NAV_MENUS = [
+  ("Platform", [("/platform/ai-scribe", "AI Scribe", "Record the visit, get the note"),
+                ("/platform/medical-coding", "Medical Coding", "Codes with confidence and reasons"),
+                ("/platform/claims-insurance", "Claims & Insurance", "Check, send and track claims"),
+                ("/platform/althea", "Althea Assistant", "Ask about the visit on screen"),
+                ("/platform/team-onboarding", "Team & Onboarding", "Invite, train and set access")]),
+  ("How It Works", [("/how-it-works", "How It Works", "From the visit to the payment"),
+                    ("/compare", "Compare Althais", "Next to the usual patchwork of tools"),
+                    ("/security", "Security", "Encryption, access and audit logs"),
+                    ("/pricing", "Pricing", "Tiers priced around claim volume"),
+                    ("/hipaa-compliance", "HIPAA Compliance", "How patient data is protected")]),
+  ("Resources", [("/resources", "Resources", "Guides, coding updates and insights"),
+                 ("/case-studies", "Case Studies", "Practices using Althais"),
+                 ("/walkthrough", "Walkthrough", "One visit, start to finish"),
+                 ("/roi-calculator", "ROI Calculator", "What denials cost you"),
+                 ("/faq", "FAQs", "Questions, answered")]),
+] %}
+<header class="nav" id="top">
+  <div class="nav-in nav-wide">
+    <a href="{{ logo_href | default('/') }}" class="logo" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+    <nav class="nav-mid" aria-label="Primary">
+      {% for label, items in NAV_MENUS %}
+      {% if items is string %}<a class="nav-item" href="{{ items }}">{{ label }}</a>{% else %}
+      <div class="nav-dd">
+        <button type="button" class="nav-item" aria-haspopup="true" aria-expanded="false">{{ label }} <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+        <div class="nav-menu" role="menu">
+          {% for href, name, sub in items %}<a role="menuitem" href="{{ href }}"><b>{{ name }}</b><span>{{ sub }}</span></a>{% endfor %}
+        </div>
+      </div>{% endif %}
+      {% endfor %}
+    </nav>
+    <div class="nav-end">
+      <a href="/demo" class="btn btn-dark">Book A Demo
+        <svg class="arr" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+<script>
+  // Header menus: open on hover (CSS) and on click/tap or keyboard; only one open at a time; close on outside click or Escape
+  (function () {
+    var dds = [].slice.call(document.currentScript.previousElementSibling.querySelectorAll('.nav-dd'));
+    function set(dd, open) { dd.classList.toggle('open', open); dd.querySelector('button').setAttribute('aria-expanded', open ? 'true' : 'false'); }
+    dds.forEach(function (dd) {
+      dd.querySelector('button').addEventListener('click', function (e) {
+        e.stopPropagation(); var open = !dd.classList.contains('open');
+        dds.forEach(function (o) { set(o, false); }); set(dd, open);
+      });
+    });
+    document.addEventListener('click', function (e) { dds.forEach(function (dd) { if (!dd.contains(e.target)) set(dd, false); }); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') dds.forEach(function (dd) { set(dd, false); }); });
+  })();
+</script>
