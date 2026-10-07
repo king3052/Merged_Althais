@@ -81,6 +81,8 @@ import practice_pages
 app.include_router(practice_pages.router)
 import more_pages
 app.include_router(more_pages.router)
+import demo_api
+app.include_router(demo_api.router)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────

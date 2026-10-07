@@ -1,0 +1,76 @@
+{% from "demos/_app.html" import window, side %}
+<section class="ad-sec" id="demo">
+  <div class="wrap">
+    <div class="ad-head">
+      <div><span class="ad-live"><i></i>Interactive demo</span><h2>Ask Althea.<br /><span class="em">About this visit.</span></h2></div>
+      <p>Althea is open next to a sample chart. Pick a question or type one. She answers about what's on the screen: the note, the codes and the claim.</p>
+    </div>
+    <div class="ad" id="ld">
+      {{ window('/emr/visit/DEMO-0412') }}
+      <div class="ad-body">
+        {{ side('emr') }}
+        <div class="ad-main">
+          <div class="ld-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:14px">
+            <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+              <div class="card"><div class="card-h">Demo Patient A · 58 <span class="pill g">Note signed</span></div>
+                <div class="card-b"><table><tbody>
+                  <tr><td class="muted">Visit</td><td>Emergency · 47 min</td></tr>
+                  <tr><td class="muted">Chief complaint</td><td>Chest pain and shortness of breath</td></tr>
+                  <tr><td class="muted">Assessment</td><td>Chest pain, rule out ACS. Dyspnea.</td></tr>
+                  <tr><td class="muted">Plan</td><td>Serial troponins, repeat EKG, cardiology consult</td></tr>
+                </tbody></table></div></div>
+              <div class="card"><div class="card-h">Codes &amp; claim <span class="pill">Ready for review</span></div>
+                <div class="card-b"><table><tbody>
+                  <tr><td class="mono">99285</td><td>ED visit, high complexity</td><td class="mono" style="color:var(--b)">95%</td></tr>
+                  <tr><td class="mono">93010</td><td>EKG interpretation</td><td class="mono" style="color:var(--b)">82%</td></tr>
+                  <tr><td class="mono">R07.9</td><td>Chest pain, unspecified</td><td class="mono" style="color:var(--b)">90%</td></tr>
+                  <tr><td class="mono">R06.02</td><td>Shortness of breath</td><td class="mono" style="color:var(--b)">86%</td></tr>
+                </tbody></table></div></div>
+            </div>
+            <div class="card" style="display:flex;flex-direction:column;min-height:440px;min-width:0">
+              <div class="card-h"><span style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="161 142 1032 1001" fill="#3163ed" aria-hidden="true"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg>Althea</span><span class="note">reading this visit</span></div>
+              <div id="ld-chat" style="flex:1;padding:14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;max-height:420px"></div>
+              <div style="padding:10px 14px;border-top:1px solid var(--ln2)">
+                <div class="chip-row" id="ld-q" style="margin-bottom:8px"></div>
+                <form id="ld-form" style="display:flex;gap:6px"><input class="fld" id="ld-in" placeholder="Ask about this visit…" maxlength="160" autocomplete="off"><button class="btn btn-p" type="submit">Ask</button></form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ad-foot"><span>Sample chart and prepared answers. In Althais, Althea answers about your own visits and screens.</span><a href="/platform/team-onboarding#demo">Next: set up your team →</a></div>
+  </div>
+</section>
+<style>@media (max-width: 860px) { #ld .ld-grid { grid-template-columns: 1fr !important; } } #ld .m { max-width: 88%; padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.55; } #ld .m.u { align-self: flex-end; background: #0f1116; color: #fff; border-bottom-right-radius: 3px; } #ld .m.a { align-self: flex-start; background: #f3f5f9; border-bottom-left-radius: 3px; } #ld mark { background: #eef4fe; color: #0d5bd7; padding: 0 4px; border-radius: 3px; }</style>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var A = [
+    ["Why 99285?", ["why", "99285", "level", "complex"], "The note documents high-complexity medical decision making: chest pain with possible <mark>acute coronary syndrome</mark>, an EKG, serial troponins and a cardiology consult. For ED visits the level comes from MDM, not time, so that supports <mark>99285</mark>."],
+    ["Anything missing before I file?", ["missing", "file", "ready", "submit"], "Documentation is complete and the claim passed the bundling check with <mark>0 NCCI conflicts</mark>. One thing to confirm: 93010 assumes the provider interpreted the EKG. The note says so, so you're set."],
+    ["Can I bill the EKG too?", ["ekg", "93010", "bill"], "Yes, <mark>93010</mark> (interpretation and report) can be billed with 99285 when the provider documents the interpretation. The note includes “normal sinus rhythm”, which supports it."],
+    ["Summarize this visit", ["summar", "recap", "overview"], "58-year-old with 2 hours of pressure-like chest pain and dyspnea. BP 148/92, EKG normal sinus rhythm. Plan: serial troponins, repeat EKG, aspirin, cardiology consult, telemetry. Coded as <mark>99285</mark> with R07.9 and R06.02."],
+    ["What if troponin comes back high?", ["troponin", "high", "positive", "nstemi", "mi"], "Then the diagnosis likely changes to <mark>I21.4</mark> (NSTEMI) instead of R07.9, and you'd update the assessment before signing an addendum. I can't make the clinical call, but I'll flag the code change for you."],
+    ["How do I send this to billing?", ["send", "billing", "biller", "claim"], "Open <mark>Claims</mark>, find this visit and press Submit. If anything is missing, the claim is held with the reason instead of being rejected later."]
+  ];
+  function add(cls, html) { var d = document.createElement("div"); d.className = "m " + cls; d.innerHTML = html; $("ld-chat").appendChild(d); $("ld-chat").scrollTop = 1e6; return d; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var busy = false;
+  function ask(q) {
+    if (busy || !q.trim()) return; busy = true;
+    add("u", esc(q));
+    var l = q.toLowerCase(), hit = A.filter(function (a) { return a[0].toLowerCase() === l; })[0] || A.map(function (a) { return [a, a[1].filter(function (k) { return l.indexOf(k) > -1; }).length]; }).sort(function (x, y) { return y[1] - x[1]; }).filter(function (x) { return x[1] > 0; }).map(function (x) { return x[0]; })[0];
+    var ans = hit ? hit[2] : "In this demo I can answer the suggested questions about this visit. In Althais I answer anything about your own notes, codes and claims.";
+    var el = add("a", '<span class="muted">Reading the chart…</span>');
+    setTimeout(function () {
+      var plain = ans.replace(/<[^>]+>/g, ""), i = 0;
+      (function type() { i = Math.min(plain.length, i + 4); el.textContent = plain.slice(0, i); $("ld-chat").scrollTop = 1e6; if (i < plain.length) setTimeout(type, 14); else { el.innerHTML = ans; busy = false; } })();
+    }, 650);
+  }
+  $("ld-q").innerHTML = A.map(function (a) { return '<button type="button" class="chip" style="font-size:11px;padding:4px 9px">' + a[0] + '</button>'; }).join("");
+  $("ld-q").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) ask(b.textContent); });
+  $("ld-form").addEventListener("submit", function (e) { e.preventDefault(); var v = $("ld-in").value; $("ld-in").value = ""; ask(v); });
+  add("a", "Hi, I'm Althea. I've read this visit. Ask me about the note, the codes or the claim.");
+})();
+</script>

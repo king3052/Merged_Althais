@@ -1,0 +1,92 @@
+{# Shared look for the interactive product demos: a browser window holding a copy of the real Althais app (same cards,
+   labels and buttons as templates/scribe.html, coding.html, revenue_claims.html). Everything is scoped under .ad. #}
+<style>
+  .ad-sec { padding-top: 72px; scroll-margin-top: 80px; }
+  .ad-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .ad-head h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 4.6vw, 60px); line-height: 1.02; letter-spacing: -.015em; margin-top: 16px; }
+  .ad-head p { max-width: 460px; font-size: 16px; line-height: 1.6; color: var(--muted); }
+  .ad-live { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .ad-live i { width: 7px; height: 7px; border-radius: 50%; background: #1f9d63; box-shadow: 0 0 0 4px rgba(31,157,99,.15); }
+
+  .ad { --b: #0d5bd7; --b7: #0a4bb3; --b50: #eef4fe; --ink: #0f1116; --ink7: #2c313b; --ink5: #6b7280; --ink4: #9aa0ab; --ln: #e4e6eb; --ln2: #eceef2; --shell: #f6f7f9;
+        margin-top: 36px; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--shell); box-shadow: 0 30px 80px rgba(30,24,16,.10);
+        font-family: "Inter", "Geist", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .ad * { box-sizing: border-box; }
+  .ad-chrome { display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px; background: #fff; border-bottom: 1px solid var(--ln); }
+  .ad-chrome i { width: 10px; height: 10px; border-radius: 50%; background: #e3e5ea; }
+  .ad-url { margin-left: 14px; flex: 1; max-width: 420px; height: 24px; border-radius: 6px; background: var(--shell); font-family: var(--mono); font-size: 11.5px; color: var(--ink5); display: flex; align-items: center; padding: 0 10px; }
+  .ad-tag { margin-left: auto; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink4); }
+  .ad-body { display: grid; grid-template-columns: 188px minmax(0, 1fr); min-height: 560px; }
+  .ad-side { background: #fff; border-right: 1px solid var(--ln); padding: 14px 10px; }
+  .ad-logo { display: flex; align-items: center; gap: 8px; padding: 4px 8px 14px; font-weight: 600; font-size: 12px; letter-spacing: .26em; text-transform: uppercase; }
+  .ad-nav a { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 5px; font-size: 12.5px; color: var(--ink7); text-decoration: none; }
+  .ad-nav a:hover { background: var(--shell); }
+  .ad-nav a.on { background: var(--b50); color: var(--b); font-weight: 600; }
+  .ad-nav .sep { margin: 12px 9px 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink4); font-weight: 600; }
+  .ad-main { padding: 20px 22px 24px; min-width: 0; }
+  .ad-title { font-size: 18px; font-weight: 600; }
+  .ad-sub { font-size: 12.5px; color: var(--ink5); margin-top: 2px; }
+  .ad .card { background: #fff; border: 1px solid var(--ln); border-radius: 6px; }
+  .ad .card-h { padding: 11px 14px; border-bottom: 1px solid var(--ln2); display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; }
+  .ad .card-b { padding: 14px; }
+  .ad .lbl { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink5); font-weight: 600; margin-bottom: 5px; }
+  .ad .fld { width: 100%; border-radius: 4px; border: 1px solid var(--ln); background: #fff; padding: 7px 10px; font: inherit; font-size: 12.5px; color: var(--ink); outline: none; }
+  .ad .fld:focus { border-color: var(--b); box-shadow: 0 0 0 3px rgba(13,91,215,.15); }
+  .ad textarea.fld { resize: none; line-height: 1.5; }
+  .ad .fld.filled { border-color: var(--b); background: var(--b50); transition: background .4s, border-color .4s; }
+  .ad .btn { font: inherit; font-size: 12px; padding: 7px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; white-space: nowrap; border: 1px solid var(--ln); background: #fff; color: var(--ink7); }
+  .ad .btn:hover { background: #f4f5f7; }
+  .ad .btn:disabled { opacity: .45; cursor: default; }
+  .ad .btn-p { background: var(--b); color: #fff; border-color: var(--b); }
+  .ad .btn-p:hover { background: var(--b7); }
+  .ad .btn-rec { background: #c83838; color: #fff; border-color: #c83838; }
+  .ad .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; display: inline-block; margin-right: 6px; }
+  .ad .recording .rec-dot { animation: adPulse 1.1s ease-in-out infinite; }
+  @keyframes adPulse { 50% { opacity: .3; } }
+  .ad .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--b50); color: var(--b); white-space: nowrap; }
+  .ad .pill.g { background: #e7f6ee; color: #137a4a; }
+  .ad .pill.w { background: #fff4e0; color: #a35c00; }
+  .ad .pill.r { background: #fdecec; color: #b42323; }
+  .ad .pill.m { background: #f1f2f4; color: var(--ink5); }
+  .ad .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ad .chip { font: inherit; font-size: 12px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--ln); background: #fff; color: var(--ink7); cursor: pointer; }
+  .ad .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .ad .mono { font-family: var(--mono); }
+  .ad table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .ad th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink5); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--ln2); }
+  .ad td { padding: 9px 10px; border-bottom: 1px solid var(--ln2); vertical-align: top; }
+  .ad tr:last-child td { border-bottom: 0; }
+  .ad .note { font-size: 11.5px; color: var(--ink5); }
+  .ad .muted { color: var(--ink5); }
+  .ad .typing::after { content: ""; display: inline-block; width: 1px; height: 1em; background: var(--ink); vertical-align: text-bottom; margin-left: 1px; animation: adBlink 1s steps(2) infinite; }
+  @keyframes adBlink { 50% { opacity: 0; } }
+  .ad-foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .ad-foot a { color: var(--accent); }
+  @media (max-width: 860px) {
+    .ad-body { grid-template-columns: 1fr; min-height: 0; }
+    .ad-side { display: none; }
+    .ad-main { padding: 16px 14px 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ad .recording .rec-dot, .ad .typing::after { animation: none; } }
+</style>
+{% macro window(path, here) -%}
+<div class="ad-chrome"><i></i><i></i><i></i><span class="ad-url">app.althais.com{{ path }}</span><span class="ad-tag">Demo · sample data</span></div>
+{%- endmacro %}
+{% macro side(here) -%}
+<aside class="ad-side" aria-hidden="true">
+  <div class="ad-logo"><svg width="16" height="16" viewBox="0 0 80 80" fill="none"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8"/></svg>Althais</div>
+  <nav class="ad-nav">
+    <a class="{{ 'on' if here == 'overview' }}">Overview</a>
+    <a class="{{ 'on' if here == 'emr' }}">EMR</a>
+    <a class="{{ 'on' if here == 'scribe' }}">Scribe</a>
+    <a class="{{ 'on' if here == 'coding' }}">Coding</a>
+    <div class="sep">Revenue</div>
+    <a class="{{ 'on' if here == 'claims' }}">Claims</a>
+    <a>Denials &amp; Appeals</a>
+    <a>Payments</a>
+    <div class="sep">Practice</div>
+    <a class="{{ 'on' if here == 'team' }}">Team</a>
+    <a>Settings</a>
+  </nav>
+</aside>
+{%- endmacro %}

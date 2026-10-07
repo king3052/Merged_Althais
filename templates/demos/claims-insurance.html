@@ -1,0 +1,97 @@
+{% from "demos/_app.html" import window, side %}
+<section class="ad-sec" id="demo">
+  <div class="wrap">
+    <div class="ad-head">
+      <div><span class="ad-live"><i></i>Interactive demo · real checks</span><h2>Try Claims.<br /><span class="em">Open one. Fix one. Appeal one.</span></h2></div>
+      <p>The Althais claims queue with sample claims. Filter it, open any claim, run the pre-submission check on the real Althais rules engine, fix a held claim and draft an appeal for a denied one.</p>
+    </div>
+    <div class="ad" id="kd">
+      {{ window('/revenue/claims') }}
+      <div class="ad-body">
+        {{ side('claims') }}
+        <div class="ad-main">
+          <div class="ad-title">Claims</div><div class="ad-sub">Every claim across the practice: coding, submission, and payer status in one place.</div>
+          <div class="kd-kpis" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px" id="kd-kpis"></div>
+          <div class="kd-grid" style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px;margin-top:14px">
+            <div class="card" style="min-width:0">
+              <div class="card-h" style="flex-wrap:wrap">All Claims <div class="chip-row" id="kd-tabs"></div></div>
+              <div style="overflow-x:auto"><table><thead><tr><th>Claim</th><th>CPT</th><th>Payer</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead><tbody id="kd-rows"></tbody></table></div>
+            </div>
+            <div class="card" id="kd-detail" style="min-width:0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ad-foot"><span>Sample claims for fictional patients. The pre-submission check calls the real Althais NCCI and code-format rules.</span><a href="/platform/althea#demo">Next: ask Althea about a claim →</a></div>
+  </div>
+</section>
+<style>@media (max-width: 860px) { #kd .kd-grid { grid-template-columns: 1fr !important; } #kd .kd-kpis { grid-template-columns: 1fr 1fr !important; } } #kd tbody tr { cursor: pointer; } #kd #kd-rows td:first-child, #kd #kd-rows td:last-child, #kd #kd-rows td:nth-child(4) { white-space: nowrap; } #kd #kd-rows td:nth-child(3) { min-width: 90px; } #kd #kd-rows td:first-child b { font-size: 11px; } #kd tbody tr:hover td { background: #fafbfc; } #kd tbody tr.sel td { background: #eef4fe; }</style>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var C = [
+    { id: "CHC-2026-00412", pt: "Demo Patient A", cpt: ["99285", "93010"], icd: ["R07.9", "R06.02"], payer: "Blue Cross PPO", st: "Submitted", amt: 1240, dos: "Oct 2" },
+    { id: "CHC-2026-00411", pt: "Demo Patient D", cpt: ["99214", "83036"], icd: ["E11.65", "I10"], payer: "Medicare", st: "Paid", amt: 212, paid: 186.40, dos: "Sep 30" },
+    { id: "CHC-2026-00410", pt: "Demo Patient E", cpt: ["99283", "12001"], icd: ["S61.411A"], payer: "Aetna", st: "Ready", amt: 640, dos: "Sep 30" },
+    { id: "CHC-2026-00409", pt: "Demo Patient F", cpt: ["99283"], icd: ["J20.9"], payer: "UnitedHealthcare", st: "Denied", amt: 410, dos: "Sep 27", denial: "CO-16: Claim lacks information needed for adjudication (referring provider NPI missing)." },
+    { id: "CHC-2026-00408", pt: "Demo Patient G", cpt: ["99203", "87880"], icd: ["J02.0"], payer: "Cigna", st: "Paid", amt: 268, paid: 241.15, dos: "Sep 26" },
+    { id: "CHC-2026-00407", pt: "Demo Patient H", cpt: ["99291"], icd: ["I21.4"], payer: "Medicare", st: "Held", amt: 890, dos: "Sep 25", hold: "Rendering provider's Medicare enrollment isn't active yet." },
+    { id: "CHC-2026-00406", pt: "Demo Patient I", cpt: ["99213"], icd: ["M54.50"], payer: "Medicaid", st: "Submitted", amt: 148, dos: "Sep 25" },
+    { id: "CHC-2026-00405", pt: "Demo Patient J", cpt: ["99215", "96372"], icd: ["E11.65"], payer: "Blue Cross PPO", st: "Paid", amt: 395, paid: 352.60, dos: "Sep 24" }
+  ];
+  var PILL = { Paid: "g", Submitted: "", Ready: "m", Denied: "r", Held: "w", Appealed: "" };
+  var tab = "All", sel = C[2].id;
+  var TABS = ["All", "Pending", "Denied", "Paid"];
+  function money(n) { return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  function kpis() {
+    var pending = C.filter(function (c) { return ["Submitted", "Ready", "Held"].indexOf(c.st) > -1; }).length, denied = C.filter(function (c) { return c.st === "Denied"; }).length;
+    var k = [["Claims in queue", C.length, "sample practice"], ["Pending", pending, "submitted, ready or held"], ["Denial rate", Math.round(denied / C.length * 100) + "%", denied + (denied === 1 ? " claim flagged" : " claims flagged")], ["Total billed", money(C.reduce(function (s, c) { return s + c.amt; }, 0)), "sum of charges"]];
+    $("kd-kpis").innerHTML = k.map(function (x) { return '<div class="card" style="padding:10px 12px"><span class="lbl" style="margin:0">' + x[0] + '</span><div style="font-size:18px;font-weight:600;margin-top:2px">' + x[1] + '</div><div class="note">' + x[2] + '</div></div>'; }).join("");
+  }
+  function rows() {
+    $("kd-tabs").innerHTML = TABS.map(function (t) { return '<button type="button" class="chip' + (t === tab ? ' on' : '') + '" data-t="' + t + '" style="padding:3px 10px;font-size:11px">' + t + '</button>'; }).join("");
+    var list = C.filter(function (c) { return tab === "All" || (tab === "Pending" ? ["Submitted", "Ready", "Held", "Appealed"].indexOf(c.st) > -1 : c.st === tab); });
+    $("kd-rows").innerHTML = list.map(function (c) { return '<tr data-id="' + c.id + '" class="' + (c.id === sel ? 'sel' : '') + '"><td><b class="mono" style="font-size:11.5px">' + c.id + '</b><br><span class="note">' + esc(c.pt) + ' · ' + c.dos + '</span></td><td class="mono">' + c.cpt.join("<br>") + '</td><td>' + esc(c.payer) + '</td><td><span class="pill ' + PILL[c.st] + '">' + c.st + '</span></td><td style="text-align:right" class="mono">' + money(c.amt) + '</td></tr>'; }).join("");
+  }
+  function detail() {
+    var c = C.filter(function (x) { return x.id === sel; })[0], d = $("kd-detail");
+    var steps = [["Coded", true], ["Checked", ["Submitted", "Paid", "Denied", "Appealed", "Ready"].indexOf(c.st) > -1], ["Submitted", ["Submitted", "Paid", "Denied", "Appealed"].indexOf(c.st) > -1], [c.st === "Denied" || c.st === "Appealed" ? "Denied" : "Paid", c.st === "Paid" || c.st === "Denied" || c.st === "Appealed"]];
+    var html = '<div class="card-h"><span class="mono" style="font-size:12px">' + c.id + '</span><span class="pill ' + PILL[c.st] + '">' + c.st + '</span></div><div class="card-b">';
+    html += '<div style="display:flex;gap:6px;margin-bottom:12px">' + steps.map(function (s) { return '<div style="flex:1"><div style="height:4px;border-radius:4px;background:' + (s[1] ? (s[0] === "Denied" ? '#c83838' : 'var(--b)') : 'var(--ln)') + '"></div><div class="note" style="margin-top:4px">' + s[0] + '</div></div>'; }).join("") + '</div>';
+    html += '<table><tbody><tr><td class="muted">Patient</td><td>' + esc(c.pt) + '</td></tr><tr><td class="muted">Payer</td><td>' + esc(c.payer) + '</td></tr><tr><td class="muted">Service date</td><td>' + c.dos + '</td></tr><tr><td class="muted">Procedures</td><td class="mono">' + c.cpt.join(", ") + '</td></tr><tr><td class="muted">Diagnoses</td><td class="mono">' + c.icd.join(", ") + '</td></tr><tr><td class="muted">Charge</td><td class="mono">' + money(c.amt) + (c.paid ? ' · paid ' + money(c.paid) : '') + '</td></tr></tbody></table>';
+    if (c.hold) html += '<div class="note" style="margin-top:10px;padding:9px 10px;border-radius:4px;background:#fff8ec;color:var(--ink7)"><b>Held, not sent:</b> ' + esc(c.hold) + '</div>';
+    if (c.denial) html += '<div class="note" style="margin-top:10px;padding:9px 10px;border-radius:4px;background:#fdf1f1;color:var(--ink7)"><b>Denial reason:</b> ' + esc(c.denial) + '</div>';
+    html += '<div id="kd-out" style="margin-top:10px"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">';
+    html += '<button class="btn" type="button" data-act="check">Run Pre-Submission Check</button>';
+    if (c.st === "Held") html += '<button class="btn btn-p" type="button" data-act="fix">Mark Fixed &amp; Resend</button>';
+    if (c.st === "Denied") html += '<button class="btn btn-p" type="button" data-act="appeal">Draft Appeal Letter</button>';
+    if (c.st === "Ready") html += '<button class="btn btn-p" type="button" data-act="send">Submit Claim</button>';
+    d.innerHTML = html + '</div></div>';
+  }
+  async function act(a) {
+    var c = C.filter(function (x) { return x.id === sel; })[0], out = $("kd-out");
+    if (a === "check") {
+      out.innerHTML = '<span class="note">Checking…</span>';
+      try {
+        var r = await fetch("/api/public/demo/check-codes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cpt: c.cpt, icd: c.icd }) });
+        var j = await r.json(); if (!r.ok) throw new Error(j.error || "Couldn't reach the demo engine.");
+        var bad = j.codes.filter(function (x) { return !x.format_valid; });
+        out.innerHTML = (j.conflicts.length ? j.conflicts.map(function (x) { return '<div class="note" style="padding:8px 10px;border-radius:4px;background:#fdf1f1;color:var(--ink7);margin-top:6px"><span class="pill r">NCCI</span> ' + esc(x.message) + '</div>'; }).join("") : '<span class="pill g">0 bundling conflicts</span> ') + (bad.length ? bad.map(function (x) { return '<div class="note" style="margin-top:6px">' + esc(x.format_warning) + '</div>'; }).join("") : '<span class="pill g">Codes well-formed</span>') + '<div class="note" style="margin-top:6px">Live: ' + esc(j.engine) + '.</div>';
+      } catch (e) { out.innerHTML = '<span class="note">' + esc(e.message) + '</span>'; }
+    }
+    if (a === "fix") { c.st = "Submitted"; delete c.hold; kpis(); rows(); detail(); $("kd-out").innerHTML = '<span class="pill g">Resent</span> <span class="note">Enrollment confirmed, claim released to the clearinghouse.</span>'; }
+    if (a === "send") { c.st = "Submitted"; kpis(); rows(); detail(); $("kd-out").innerHTML = '<span class="pill g">Submitted</span> <span class="note">Sent electronically. Status updates will appear here.</span>'; }
+    if (a === "appeal") {
+      var letter = "To: " + c.payer + " Appeals Department\nRe: Claim " + c.id + " · " + c.pt + " · DOS " + c.dos + "\n\nWe are requesting reconsideration of the denial above (" + c.denial.split(":")[0] + "). The referring provider NPI has been added to the corrected claim, and the visit note documents the medical necessity of " + c.cpt.join(", ") + " for diagnosis " + c.icd.join(", ") + ".\n\nPlease reprocess the corrected claim. The supporting documentation is attached.\n\nSincerely,\nDemo Clinic Billing";
+      out.innerHTML = '<span class="lbl" style="margin-top:4px">Appeal letter · draft</span><textarea class="fld" rows="9" readonly id="kd-letter"></textarea><button class="btn btn-p" type="button" data-act="sendappeal" style="margin-top:8px">Send Appeal</button>';
+      var ta = $("kd-letter"), i = 0; (function type() { i = Math.min(letter.length, i + 5); ta.value = letter.slice(0, i); ta.scrollTop = ta.scrollHeight; if (i < letter.length) setTimeout(type, 12); })();
+    }
+    if (a === "sendappeal") { c.st = "Appealed"; kpis(); rows(); detail(); $("kd-out").innerHTML = '<span class="pill">Appealed</span> <span class="note">Corrected claim and letter sent. Tracked until the payer responds.</span>'; }
+  }
+  $("kd-tabs").addEventListener("click", function (e) { var b = e.target.closest("[data-t]"); if (b) { tab = b.dataset.t; rows(); } });
+  $("kd-rows").addEventListener("click", function (e) { var r = e.target.closest("[data-id]"); if (r) { sel = r.dataset.id; rows(); detail(); } });
+  $("kd-detail").addEventListener("click", function (e) { var b = e.target.closest("[data-act]"); if (b) act(b.dataset.act); });
+  kpis(); rows(); detail();
+})();
+</script>

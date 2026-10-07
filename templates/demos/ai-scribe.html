@@ -1,0 +1,107 @@
+{% from "demos/_app.html" import window, side %}
+<section class="ad-sec" id="demo">
+  <div class="wrap">
+    <div class="ad-head">
+      <div><span class="ad-live"><i></i>Interactive demo</span><h2>Try Scribe.<br /><span class="em">Record, draft, sign.</span></h2></div>
+      <p>This is the Althais Scribe screen with a sample visit. Check consent, start recording, then let it write the note. Every field stays editable.</p>
+    </div>
+    <div class="ad" id="sd">
+      {{ window('/scribe') }}
+      <div class="ad-body">
+        {{ side('scribe') }}
+        <div class="ad-main">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+            <div><div class="ad-title">Scribe</div><div class="ad-sub">Record or paste a visit and Althea drafts the note. You review every line and sign it.</div></div>
+            <div class="chip-row" id="sd-visits" role="group" aria-label="Sample visit"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:14px;margin-top:16px" class="sd-grid">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="card"><div class="card-h">Visit <span class="pill m" id="sd-status">New note</span></div>
+                <div class="card-b" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div><span class="lbl">Patient</span><input class="fld" id="sd-patient" readonly></div>
+                  <div><span class="lbl">Patient ID / MRN</span><input class="fld mono" id="sd-mrn" readonly></div>
+                  <div><span class="lbl">Provider</span><input class="fld" value="Dr. Demo, MD" readonly></div>
+                  <div><span class="lbl">Visit Type</span><input class="fld" id="sd-type" readonly></div>
+                </div></div>
+              <div class="card"><div class="card-h">Capture The Visit <span class="mono muted" id="sd-timer">0:00</span></div>
+                <div class="card-b">
+                  <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--ink7)"><input type="checkbox" id="sd-consent" checked style="margin-top:2px">The patient knows this visit is being recorded to help with documentation and has agreed.</label>
+                  <div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-rec" id="sd-rec" type="button"><span class="rec-dot"></span><span id="sd-rec-l">Start Recording</span></button><button class="btn" id="sd-reset" type="button">Reset</button></div>
+                  <span class="lbl" style="margin-top:14px">Transcript</span>
+                  <textarea class="fld" id="sd-transcript" rows="9" readonly placeholder="The transcript appears here as you talk."></textarea>
+                </div></div>
+            </div>
+            <div class="card"><div class="card-h">Note <button class="btn btn-p" id="sd-write" type="button" disabled>Write The Note</button></div>
+              <div class="card-b">
+                <p class="note" style="margin:0 0 10px">Drafted by Althea from the transcript. Check every field before signing.</p>
+                <div style="display:grid;gap:9px" id="sd-fields"></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
+                  <span class="note" id="sd-sign-note">Sign when it says what you meant.</span>
+                  <div style="display:flex;gap:8px"><button class="btn" id="sd-sign" type="button" disabled>Sign Note</button><a class="btn btn-p" id="sd-code" href="/platform/medical-coding#demo" style="text-decoration:none;display:none">Code This Note →</a></div>
+                </div>
+              </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ad-foot"><span>Sample visits with fictional patients. In Althais, Althea drafts the note from your real recording or transcript.</span><a href="/platform/medical-coding#demo">Next: code this visit →</a></div>
+  </div>
+</section>
+<style>@media (max-width: 860px) { #sd .sd-grid { grid-template-columns: 1fr !important; } }</style>
+<script src="/static/js/althais-demo-visits.js?v={{ asset_v }}"></script>
+<script>
+(function () {
+  var V = window.ALTHAIS_DEMO_VISITS, $ = function (id) { return document.getElementById(id); };
+  var FIELDS = [["cc", "Chief Complaint", 1], ["hpi", "History Of Present Illness", 2], ["ros", "Review Of Systems", 2], ["vitals", "Vitals", 1], ["exam", "Exam", 2], ["assessment", "Assessment", 2], ["plan", "Plan", 2]];
+  var key = "ed", timers = [], seconds = 0, tick = null, stage = "idle";
+  $("sd-fields").innerHTML = FIELDS.map(function (f) { return '<div><span class="lbl">' + f[1] + '</span><textarea class="fld" rows="' + f[2] + '" data-f="' + f[0] + '"></textarea></div>'; }).join("");
+  $("sd-visits").innerHTML = Object.keys(V).map(function (k) { return '<button type="button" class="chip" data-v="' + k + '">' + V[k].label + '</button>'; }).join("");
+  function clear() { timers.forEach(clearTimeout); timers = []; clearInterval(tick); }
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function status(t, cls) { var s = $("sd-status"); s.textContent = t; s.className = "pill " + cls; }
+  function load(k) {
+    clear(); key = k; stage = "idle"; seconds = 0; var v = V[k];
+    document.querySelectorAll("#sd-visits .chip").forEach(function (c) { c.classList.toggle("on", c.dataset.v === k); });
+    $("sd-patient").value = v.patient; $("sd-mrn").value = v.mrn; $("sd-type").value = v.type;
+    $("sd-transcript").value = ""; $("sd-timer").textContent = "0:00";
+    document.querySelectorAll("#sd-fields .fld").forEach(function (f) { f.value = ""; f.classList.remove("filled"); f.readOnly = false; });
+    $("sd-rec").disabled = false; $("sd-rec").classList.remove("recording"); $("sd-rec-l").textContent = "Start Recording";
+    $("sd-write").disabled = true; $("sd-sign").disabled = true; $("sd-code").style.display = "none";
+    $("sd-sign-note").textContent = "Sign when it says what you meant."; status("New note", "m");
+    try { sessionStorage.setItem("althais-demo-visit", k); } catch (e) {}
+  }
+  function record() {
+    if (!$("sd-consent").checked) { $("sd-sign-note").textContent = "Check the consent box to record."; return; }
+    if (stage !== "idle") return; stage = "recording";
+    var v = V[key], text = v.transcript, i = 0, ta = $("sd-transcript");
+    $("sd-rec").classList.add("recording"); $("sd-rec-l").textContent = "Recording…"; status("Recording", "r");
+    tick = setInterval(function () { seconds++; $("sd-timer").textContent = Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0"); }, 1000);
+    (function type() {
+      i = Math.min(text.length, i + 3); ta.value = text.slice(0, i); ta.scrollTop = ta.scrollHeight;
+      if (i < text.length) later(type, 18); else { clearInterval(tick); stage = "recorded"; $("sd-rec").classList.remove("recording"); $("sd-rec-l").textContent = "Recorded"; $("sd-rec").disabled = true; $("sd-write").disabled = false; status("Ready to draft", "w"); }
+    })();
+  }
+  function write() {
+    if (stage !== "recorded") return; stage = "drafting"; $("sd-write").disabled = true; status("Drafting", "w");
+    var v = V[key];
+    FIELDS.forEach(function (f, n) {
+      later(function () {
+        var el = document.querySelector('#sd-fields [data-f="' + f[0] + '"]'), text = v.soap[f[0]], i = 0;
+        el.classList.add("filled");
+        (function type() { i = Math.min(text.length, i + 4); el.value = text.slice(0, i); if (i < text.length) later(type, 14); })();
+      }, n * 520);
+    });
+    later(function () { stage = "drafted"; $("sd-sign").disabled = false; status("Draft · review", "w"); $("sd-sign-note").textContent = "Edit any field, then sign."; }, FIELDS.length * 520 + 600);
+  }
+  function sign() {
+    if (stage !== "drafted") return; stage = "signed";
+    document.querySelectorAll("#sd-fields .fld").forEach(function (f) { f.readOnly = true; });
+    $("sd-sign").disabled = true; status("Signed", "g"); $("sd-code").style.display = "";
+    $("sd-sign-note").textContent = "Signed by Dr. Demo, MD · " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  $("sd-visits").addEventListener("click", function (e) { var b = e.target.closest("[data-v]"); if (b) load(b.dataset.v); });
+  $("sd-rec").addEventListener("click", record); $("sd-write").addEventListener("click", write); $("sd-sign").addEventListener("click", sign);
+  $("sd-reset").addEventListener("click", function () { load(key); });
+  load("ed");
+})();
+</script>

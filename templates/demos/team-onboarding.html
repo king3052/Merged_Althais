@@ -1,0 +1,65 @@
+{% from "demos/_app.html" import window, side %}
+<section class="ad-sec" id="demo">
+  <div class="wrap">
+    <div class="ad-head">
+      <div><span class="ad-live"><i></i>Interactive demo</span><h2>Try Team.<br /><span class="em">Invite someone and watch.</span></h2></div>
+      <p>The Althais Team screen with a sample clinic. Invite a person, watch them move through onboarding, and see exactly what each role can open.</p>
+    </div>
+    <div class="ad" id="td">
+      {{ window('/staff/team') }}
+      <div class="ad-body">
+        {{ side('team') }}
+        <div class="ad-main">
+          <div class="ad-title">Team</div><div class="ad-sub">Everyone at the clinic: invitations, onboarding, training and access.</div>
+          <div class="td-grid" style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;margin-top:14px">
+            <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+              <div class="card"><div class="card-h">Invite A Person</div>
+                <form class="card-b" id="td-form" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
+                  <div><span class="lbl">Full name</span><input class="fld" id="td-name" placeholder="e.g. Sam Lee" maxlength="40" required></div>
+                  <div><span class="lbl">Role</span><select class="fld" id="td-role"><option>Provider</option><option selected>Biller</option><option>Front Desk</option><option>Manager</option></select></div>
+                  <button class="btn btn-p" type="submit">Send Invite</button>
+                </form></div>
+              <div class="card" style="min-width:0"><div class="card-h">People <span class="note" id="td-count"></span></div>
+                <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Role</th><th>Onboarding</th><th>Status</th></tr></thead><tbody id="td-rows"></tbody></table></div></div>
+            </div>
+            <div class="card" style="min-width:0"><div class="card-h">Roles &amp; Permissions</div>
+              <div class="card-b">
+                <div class="chip-row" id="td-roles"></div>
+                <table style="margin-top:10px"><tbody id="td-perm"></tbody></table>
+                <p class="note" style="margin-top:10px">Managers can change any role's access. Billers can't send claims until billing training is done.</p>
+              </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ad-foot"><span>Sample clinic with fictional staff. In Althais, invitations go out by email and people finish onboarding in their own Staff Portal.</span><a href="/platform/ai-scribe#demo">Back to: Scribe →</a></div>
+  </div>
+</section>
+<style>@media (max-width: 860px) { #td .td-grid { grid-template-columns: 1fr !important; } #td #td-form { grid-template-columns: 1fr !important; } } #td .bar { height: 5px; border-radius: 5px; background: #eceef2; overflow: hidden; min-width: 90px; } #td .bar b { display: block; height: 100%; background: #0d5bd7; transition: width .5s ease; }</style>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var STAGES = [["Invited", "m", 10], ["Documents", "w", 40], ["Training", "w", 75], ["Active", "g", 100]];
+  var P = [{ n: "Dr. Demo Patel", r: "Provider", s: 3 }, { n: "Bea Demo", r: "Biller", s: 2, note: "Billing training" }, { n: "Fay Demo", r: "Front Desk", s: 1, note: "License upload" }, { n: "Max Demo", r: "Manager", s: 3 }];
+  var AREAS = ["EMR & charts", "Scribe", "Coding", "Claims", "Payments", "Team & settings"];
+  var PERM = { Provider: [1, 1, 1, 0, 0, 0], Biller: [0, 0, 1, 1, 1, 0], "Front Desk": [1, 0, 0, 0, 0, 0], Manager: [1, 1, 1, 1, 1, 1] };
+  var role = "Biller";
+  function rows() {
+    $("td-rows").innerHTML = P.map(function (p) { var st = STAGES[p.s]; return '<tr><td><b>' + esc(p.n) + '</b>' + (p.note && p.s < 3 ? '<br><span class="note">Next: ' + esc(p.note) + '</span>' : '') + '</td><td>' + p.r + '</td><td><div class="bar"><b style="width:' + st[2] + '%"></b></div></td><td><span class="pill ' + st[1] + '">' + st[0] + '</span></td></tr>'; }).join("");
+    $("td-count").textContent = P.length + " people · " + P.filter(function (p) { return p.s === 3; }).length + " active";
+  }
+  function perms() {
+    $("td-roles").innerHTML = Object.keys(PERM).map(function (r) { return '<button type="button" class="chip' + (r === role ? ' on' : '') + '" data-r="' + r + '" style="font-size:11px;padding:4px 10px">' + r + '</button>'; }).join("");
+    $("td-perm").innerHTML = AREAS.map(function (a, i) { var on = PERM[role][i]; return '<tr><td>' + a + '</td><td style="text-align:right"><button type="button" data-i="' + i + '" class="pill ' + (on ? 'g' : 'm') + '" style="border:0;cursor:pointer">' + (on ? 'Can open' : 'Hidden') + '</button></td></tr>'; }).join("");
+  }
+  $("td-form").addEventListener("submit", function (e) {
+    e.preventDefault(); var name = $("td-name").value.trim(); if (!name || P.length >= 9) return;
+    var p = { n: name, r: $("td-role").value, s: 0, note: $("td-role").value === "Biller" ? "Billing training" : "Documents" }; P.push(p); $("td-name").value = ""; rows();
+    [1, 2, 3].forEach(function (s, k) { setTimeout(function () { p.s = s; p.note = s === 1 ? "Upload license & ID" : s === 2 ? "Althais Training quiz" : ""; rows(); }, 1400 * (k + 1)); });
+  });
+  $("td-roles").addEventListener("click", function (e) { var b = e.target.closest("[data-r]"); if (b) { role = b.dataset.r; perms(); } });
+  $("td-perm").addEventListener("click", function (e) { var b = e.target.closest("[data-i]"); if (b) { var i = +b.dataset.i; PERM[role][i] = PERM[role][i] ? 0 : 1; perms(); } });
+  rows(); perms();
+})();
+</script>

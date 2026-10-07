@@ -23,6 +23,20 @@ def _shot(name, alt, eyebrow):
 
 PAGES = {
     "/how-it-works": {
+        "ctas": [("Walk through the eight steps", "#rows"), ("Try the product demos", "/platform/ai-scribe#demo")],
+        "card": "One encounter from the note to the payment, in eight steps.",
+        "timeline_head": ("Going live", "Live in 30 to 60 days,", "with a pilot first."),
+        "timeline": [("Week 1", "Connect", "Your EHR and clearinghouse are connected, and practice, provider and payer details are set up."),
+                     ("Weeks 2 to 3", "Tune", "Coding is tuned to your specialty mix, roles are set, and your team is invited and trained."),
+                     ("Pilot", "Prove it", "A small group of providers uses Althais on real documentation while you check the results."),
+                     ("Rollout", "Go live", "Everyone moves over, with support included as you grow.")],
+        "specs_label": "Who does what", "specs_title": "Everyone keeps their job. The busywork goes.",
+        "specs": [("Providers", "Record the visit, review the drafted note, sign it, and approve or change the codes"),
+                  ("Coders", "Review suggested codes with their confidence and reasons, and run the code check"),
+                  ("Billers", "Work the claims queue, fix held claims, send appeals and post payments"),
+                  ("Front desk", "Schedule and register patients so visits start with the right details"),
+                  ("Managers", "Invite staff, set role access, and see the whole practice's claims"),
+                  ("Althais", "Drafts notes, suggests codes, runs the checks, assembles claims and tracks them")],
         "nav": "How It Works", "eyebrow": "How It Works",
         "title": "From the visit", "em": "to the payment.",
         "lede": "Follow one encounter through Althais: the note, the codes, your review, the claim, the checks, and the money coming back.",
@@ -64,6 +78,14 @@ PAGES = {
                 ("Do we need a new clearinghouse?", "No. Althais works with the clearinghouse you already use.")],
     },
     "/hipaa-compliance": {
+        "ctas": [("Who handles what", "#compare-tiers"), ("Read the security details", "/security")],
+        "card": "The safeguards behind Althais and what your clinic controls.",
+        "matrix_head": ("Shared responsibility", "What Althais handles,", "and what stays with you."),
+        "matrix": {"cols": ["Althais", "Your clinic"], "groups": [
+            ("Protecting data", [("Encryption in transit and at rest", ["Handles", ""]), ("Secure infrastructure for PHI", ["Handles", ""]), ("Logging sign-ins and key actions", ["Handles", ""])]),
+            ("Access", [("Role-based permissions", ["Provides", "Sets them"]), ("Inviting and removing staff", ["Provides", "Decides"]), ("Pausing a person's access", ["Provides", "Decides"])]),
+            ("People and paperwork", [("Business Associate Agreement", ["Enterprise plans", "Signs"]), ("Compliance training", ["Provides", "Assigns"]), ("Patient consent to record", ["Asks every time", "Obtains"])]),
+        ]},
         "nav": "HIPAA Compliance", "eyebrow": "HIPAA Compliance",
         "title": "Built for protected", "em": "health information.",
         "lede": "Althais is designed around HIPAA's safeguards: least-privilege access, encryption and audit trails, with Business Associate Agreements available.",
@@ -92,6 +114,13 @@ PAGES = {
                 ("Where can I read more?", "See the Security page and our Privacy Policy, or contact us with your compliance team's questions.")],
     },
     "/security": {
+        "ctas": [("See the details", "#specs"), ("HIPAA compliance", "/hipaa-compliance")],
+        "card": "Encryption, access control, audit logs and SOC 2 readiness.",
+        "specs_title": "How Althais is secured.",
+        "specs": [("In transit", "TLS 1.2 or newer on every connection"), ("At rest", "Data encrypted where it is stored"),
+                  ("Access", "Role-based; managers grant and remove access"), ("Sign-in", "Sessions time out; temporary passwords must be changed on first use"),
+                  ("Paused accounts", "Can't sign in until a manager restores them"), ("Support access", "Althais staff viewing an account is time-limited and logged"),
+                  ("Audit trail", "Sign-ins, consequential actions and access changes are recorded"), ("SOC 2", "Controls built to Trust Services criteria; formal audit in progress")],
         "nav": "Security", "eyebrow": "Security",
         "title": "Security built into", "em": "every layer.",
         "lede": "Patient information deserves care at every step. Here's how Althais protects it.",
@@ -119,6 +148,15 @@ PAGES = {
                 ("Is Althais SOC 2 certified?", "Not yet. Our controls are built to SOC 2 Trust Services criteria and we're completing a formal audit.")],
     },
     "/pricing": {
+        "ctas": [("Compare the tiers", "#compare-tiers"), ("Estimate your ROI", "/roi-calculator")],
+        "card": "Three tiers priced around claim volume, not seats.",
+        "matrix_head": ("Compare tiers", "Everything in each tier,", "side by side."),
+        "matrix": {"cols": ["Starter", "Professional", "Enterprise"], "groups": [
+            ("Coding and claims", [("AI medical coding (ICD-10 + CPT)", [True, True, True]), ("Claims builder", [True, True, True]), ("Prior authorization support", [False, True, True])]),
+            ("Revenue intelligence", [("Core revenue analytics", [True, True, True]), ("Payer intelligence engine", [False, True, True]), ("Advanced analytics & benchmarking", [False, True, True])]),
+            ("Team and scale", [("Multi-provider role management", [False, True, True]), ("Providers", ["", "", "Unlimited"]), ("SSO & API access", [False, False, True]), ("Custom EHR & clearinghouse integrations", [False, False, True]), ("Custom-tuned AI for your specialty mix", [False, False, True])]),
+            ("Support and security", [("Implementation, training and support", [True, True, True]), ("Email + chat support", [True, True, True]), ("Dedicated customer success manager", [False, False, True]), ("HIPAA-eligible infrastructure & BAA", [False, False, True])]),
+        ]},
         "nav": "Pricing", "eyebrow": "Pricing",
         "title": "Priced around", "em": "your claim volume.",
         "lede": "Pricing follows claim volume and provider count, not a flat per-seat fee. Every tier includes implementation, training and support.",
@@ -144,6 +182,13 @@ PAGES = {
                 ("Does Althais work with our EHR and clearinghouse?", "Yes. Althais connects to the clearinghouse you already use and integrates with major EHRs. Enterprise plans include custom integration work.")],
     },
     "/compare": {
+        "ctas": [("See the comparison", "#compare"), ("How switching works", "#steps-switch")],
+        "card": "Althais next to the usual patchwork of tools.",
+        "timeline_head": ("Switching", "Moving over", "without starting over."),
+        "timeline": [("Step 1", "Keep or replace", "Add Althais on top of your EHR, or move everything to the Full Suite."),
+                     ("Step 2", "Connect", "Your EHR and clearinghouse are connected and your payers set up."),
+                     ("Step 3", "Pilot", "A few providers try it on real visits while the old way keeps running."),
+                     ("Step 4", "Retire the extras", "Drop the separate scribe, coding and denial tools you no longer need.")],
         "nav": "Compare Althais", "eyebrow": "Compare Althais",
         "title": "One platform instead", "em": "of five disconnected tools.",
         "lede": "Most practices stitch together a scribe, a coder, a billing service and a stack of payer portals. Here's how that compares with Althais.",
@@ -168,16 +213,14 @@ PAGES = {
     },
 }
 
-_ORDER = [href for _, href in NAV]
-
-
 def _view(href):
     async def view(request: Request, user=Depends(current_user)):
-        nxt = _ORDER[(_ORDER.index(href) + 1) % len(_ORDER)]
-        return platform_pages.render(request, user, PAGES[href], href, "For Your Practice", NAV, nxt, PAGES[nxt]["nav"])
+        return platform_pages.render(request, user, PAGES[href], href, "For Your Practice", NAV)
     view.__name__ = "practice_" + href.strip("/").replace("-", "_")
     return view
 
 
 for _href in PAGES:
     router.add_api_route(_href, _view(_href), methods=["GET"], include_in_schema=False)
+
+platform_pages.register("For Your Practice", PAGES, NAV)

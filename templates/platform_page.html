@@ -70,9 +70,6 @@
     .pf-faq summary i { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-style: normal; font-family: var(--sans); font-size: 16px; color: var(--muted); transition: transform .2s ease; }
     .pf-faq details[open] summary i { transform: rotate(45deg); }
     .pf-faq details p { padding: 0 0 26px; max-width: 760px; font-size: 17px; line-height: 1.65; color: var(--muted); }
-    .pf-next { margin-top: 64px; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 28px 30px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
-    .pf-next b { display: block; font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; margin-top: 8px; }
-    .pf-next:hover { border-color: #cfcfcf; }
     .pf-who { display: flex; align-items: center; gap: 12px; }
     .pf-who .avatar { width: 36px; height: 36px; font-size: 14px; }
     .pf-who b { display: block; font-weight: 500; font-size: 15px; }
@@ -144,9 +141,39 @@
     .pf-story { max-width: 760px; }
     .pf-story p { margin-top: 22px; font-family: var(--serif); font-size: clamp(24px, 2.6vw, 32px); line-height: 1.35; }
     .pf-faq-group { padding: 32px 0 6px; }
+    .pf-stats { margin-top: 48px; display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); border-top: 1px solid var(--line); }
+    .pf-stats > div { padding: 28px 24px 8px 0; }
+    .pf-stats b { display: block; font-family: var(--serif); font-weight: 400; font-size: clamp(44px, 5vw, 68px); line-height: 1; color: var(--accent); }
+    .pf-stats span { display: block; margin-top: 10px; font-size: 15px; line-height: 1.5; color: var(--muted); max-width: 260px; }
+    .pf-time { list-style: none; padding: 0; margin: 48px 0 0; display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line); counter-reset: t; }
+    .pf-time li { position: relative; padding: 30px 24px 0 0; }
+    .pf-time li::before { content: ""; position: absolute; top: -5px; left: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+    .pf-time h3 { margin-top: 12px; font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.1; }
+    .pf-time p { margin-top: 8px; font-size: 15px; line-height: 1.6; color: var(--muted); }
+    .pf-specs { margin: 48px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; border-top: 1px solid var(--line); }
+    .pf-specs > div { display: grid; grid-template-columns: 170px 1fr; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .pf-specs dt { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding-top: 3px; }
+    .pf-specs dd { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-2); }
+    .pf-matrix th.c, .pf-matrix td.c { text-align: center; width: 15%; }
+    .pf-matrix .yes { color: var(--accent); font-weight: 600; }
+    .pf-matrix .no { color: #c9c9c9; }
+    .pf-matrix .txt { font-size: 13px; color: var(--ink-2); }
+    .pf-matrix tr.grp td { padding: 22px 24px 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); border-bottom: 0; }
+    .pf-matrix tbody th { font-family: var(--sans); font-weight: 400; font-size: 15px; }
+    .pf-rec { padding: 32px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+    .pf-rec h3 { margin-top: 12px; font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1.05; }
+    .pf-rec p { margin-top: 10px; font-size: 16px; line-height: 1.6; color: var(--muted); }
+    .pf-rec .chip { text-decoration: none; }
+    .pf-explore { padding-bottom: 40px; }
+    .pf-rel { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pf-rel h3 { font-size: 24px; }
     .pf-links { margin-top: 36px; display: flex; gap: 10px; flex-wrap: wrap; }
     @media (max-width: 960px) {
       .pf-tiers { grid-template-columns: 1fr; }
+      .pf-stats, .pf-time { grid-template-columns: 1fr 1fr; }
+      .pf-specs { grid-template-columns: 1fr; }
+      .pf-rec { grid-template-columns: 1fr; }
+      .pf-rel { grid-template-columns: 1fr 1fr; }
       .pf-cards { grid-template-columns: 1fr 1fr; }
       .pf-cases, .pf-calc, .pf-people { grid-template-columns: 1fr; }
       .pf-tier p { min-height: 0; }
@@ -157,10 +184,10 @@
       .pf-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
-      .pf-grid, .pf-cards { grid-template-columns: 1fr; }
+      .pf-grid, .pf-cards, .pf-rel, .pf-stats, .pf-time { grid-template-columns: 1fr; }
+      .pf-specs > div { grid-template-columns: 1fr; gap: 6px; }
       .pf-case blockquote { font-size: 22px; }
       .pf-faq summary { font-size: 22px; }
-      .pf-next b { font-size: 26px; }
     }
   </style>
 </head>
@@ -188,19 +215,27 @@
       <span class="eyebrow"><i class="dot"></i> {{ section }} · {{ page.eyebrow }}</span>
       <h1 class="display">{{ page.title }}<br /><span class="em">{{ page.em }}</span></h1>
       <p class="lede">{{ page.lede }}</p>
-      <div class="hero-cta">
-        <a href="/pilot" class="btn btn-dark btn-lg">Join the Pilot
-          <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-        </a>
-        <a href="/demo" class="btn btn-ghost btn-lg">Book A Demo</a>
-      </div>
+      {% if ctas %}<div class="hero-cta">{% for label, href in ctas %}<a href="{{ href }}" class="btn {{ 'btn-dark' if loop.first else 'btn-ghost' }} btn-lg">{{ label }}{% if loop.first %}
+          <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>{% endif %}</a>{% endfor %}</div>{% endif %}
     </div>
     {% if page.hero %}<div class="stack rv">{% for c in page.hero %}{{ mock(c) }}{% endfor %}</div>{% endif %}
   </div>
 </section>
 
-{% if page.rows %}
+{% if page.demo %}{% include "demos/_app.html" %}{% include "demos/" ~ page.demo ~ ".html" %}{% endif %}
+
+{% if page.stats %}
 <section class="block">
+  <div class="wrap">
+    {% if page.stats_head %}<div class="sec-head rv"><div class="eyebrow">{{ page.stats_head[0] }}</div><h2>{{ page.stats_head[1] }}<br /><span class="em">{{ page.stats_head[2] }}</span></h2></div>{% endif %}
+    <div class="pf-stats rv" style="--n:{{ [page.stats|length, 4]|min }}">{% for v, l in page.stats %}<div><b>{{ v }}</b><span>{{ l }}</span></div>{% endfor %}</div>
+    {% if page.stats_note %}<p class="foot-note rv">{{ page.stats_note }}</p>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if page.rows %}
+<section class="block" id="rows">
   <div class="wrap">
     {% if page.rows_head %}<div class="sec-head rv" style="margin-bottom:72px"><div class="eyebrow">{{ page.rows_head[0] }}</div><h2>{{ page.rows_head[1] }}<br /><span class="em">{{ page.rows_head[2] }}</span></h2></div>{% endif %}
     {% for r in page.rows %}
@@ -339,7 +374,7 @@
 {% endif %}
 
 {% if page.tiers %}
-<section class="block">
+<section class="block" id="tiers">
   <div class="wrap">
     <div class="pf-tiers">
       {% for t in page.tiers %}
@@ -360,7 +395,7 @@
 {% endif %}
 
 {% if page.table %}
-<section class="block">
+<section class="block" id="compare">
   <div class="wrap">
     {% if page.table_head %}<div class="sec-head rv"><div class="eyebrow">{{ page.table_head[0] }}</div><h2>{{ page.table_head[1] }}<br /><span class="em">{{ page.table_head[2] }}</span></h2></div>{% endif %}
     <div class="card pf-table rv">
@@ -388,6 +423,49 @@
 </section>
 {% endif %}
 
+{% if page.timeline %}
+<section class="block" id="steps-switch">
+  <div class="wrap">
+    {% if page.timeline_head %}<div class="sec-head rv"><div class="eyebrow">{{ page.timeline_head[0] }}</div><h2>{{ page.timeline_head[1] }}<br /><span class="em">{{ page.timeline_head[2] }}</span></h2></div>{% endif %}
+    <ol class="pf-time rv" style="--n:{{ [page.timeline|length, 4]|min }}">{% for when, t, d in page.timeline %}<li><span class="eyebrow">{{ when }}</span><h3>{{ t }}</h3><p>{{ d }}</p></li>{% endfor %}</ol>
+  </div>
+</section>
+{% endif %}
+
+{% if page.matrix %}
+<section class="block" id="compare-tiers">
+  <div class="wrap">
+    {% if page.matrix_head %}<div class="sec-head rv"><div class="eyebrow">{{ page.matrix_head[0] }}</div><h2>{{ page.matrix_head[1] }}<br /><span class="em">{{ page.matrix_head[2] }}</span></h2></div>{% endif %}
+    <div class="card pf-table pf-matrix rv">
+      <table>
+        <thead><tr><th></th>{% for c in page.matrix.cols %}<th class="c">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for group, rows in page.matrix.groups %}<tr class="grp"><td colspan="{{ page.matrix.cols|length + 1 }}">{{ group }}</td></tr>{% for label, vals in rows %}<tr><th scope="row">{{ label }}</th>{% for v in vals %}<td class="c">{% if v is sameas true %}<span class="yes" aria-label="Included">✓</span>{% elif v %}<span class="txt">{{ v }}</span>{% else %}<span class="no" aria-label="Not included">·</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.recommend %}
+<section class="block">
+  <div class="wrap">
+    <div class="card pf-rec rv">
+      <div><span class="eyebrow">Recommended setup</span><h3>{{ page.recommend.tier }}</h3><p>{{ page.recommend.text }}</p></div>
+      <div><div class="chips">{% for t, href in page.recommend.tools %}<a class="chip" href="{{ href }}">{{ t }} &rarr;</a>{% endfor %}</div></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if page.specs %}
+<section class="block" id="specs">
+  <div class="wrap">
+    <div class="sec-head rv"><div class="eyebrow">{{ page.specs_label or 'Under the hood' }}</div><h2>{{ page.specs_title or 'The details.' }}</h2></div>
+    <dl class="pf-specs rv">{% for k, v in page.specs %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl>
+  </div>
+</section>
+{% endif %}
+
 <section class="block">
   <div class="wrap">
     <div class="sec-head rv">
@@ -397,23 +475,21 @@
     <div class="pf-faq rv">
       {% for group, items in (page.faq_groups or [('', page.faq)]) %}{% if group %}<div class="pf-faq-group eyebrow">{{ group }}</div>{% endif %}{% for q, a in items %}<details><summary>{{ q }}<i aria-hidden="true">+</i></summary><p>{{ a }}</p></details>{% endfor %}{% endfor %}
     </div>
-    <a class="pf-next rv" href="{{ next_href }}">
-      <div><span class="eyebrow">Next · {{ section }}</span><b>{{ next_name }}</b></div>
-      <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-    </a>
   </div>
 </section>
 
-<section class="cta">
+{% if related %}
+<section class="block pf-explore">
   <div class="wrap">
-    <div class="eyebrow">See it on your visits</div>
-    <h2>{{ page.title }} <span style="font-style:italic;color:var(--accent-dark)">{{ page.em }}</span></h2>
-    <p>Book a demo and we'll walk through {{ page.nav if section == 'Platform' else 'Althais' }} with your specialty, your payers and your workflow.</p>
-    <a href="/demo" class="btn btn-pill">Book A Demo
-      <svg class="arr" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-    </a>
+    <div class="sec-head rv"><div class="eyebrow">Keep exploring</div><h2>More of {{ 'the platform' if section == 'Platform' else 'Althais' }}.</h2></div>
+    <div class="pf-cards pf-rel rv">
+      {% for r in related %}
+      <a class="card pf-linkcard" href="{{ r.href }}"><span class="eyebrow">{{ r.section }}</span><h3>{{ r.name }}</h3><p>{{ r.text }}</p><span class="pf-go">{{ 'Try the demo' if r.demo else 'Open' }} <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></a>
+      {% endfor %}
+    </div>
   </div>
 </section>
+{% endif %}
 
 </main>
 

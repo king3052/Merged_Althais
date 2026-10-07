@@ -31,9 +31,36 @@ def _seg_href(seg_id):
     return f"/solutions/{seg_id}" if seg_id in OWN_PAGE else f"/solutions#{seg_id}"
 
 
+FIT = {  # which tier and tools each kind of organization usually starts with (tiers as on /pricing)
+    "private-practices": ("Starter", "AI coding and the claims builder, with Scribe to end after-hours notes.", ["AI Scribe", "Medical Coding", "Claims & Insurance"]),
+    "hospital-systems": ("Enterprise", "Unlimited providers, custom EHR and clearinghouse integrations, SSO and a dedicated success manager.", ["Medical Coding", "Claims & Insurance", "Team & Onboarding"]),
+    "multi-specialty-groups": ("Professional", "Specialty-aware coding, payer intelligence and multi-provider roles.", ["Medical Coding", "Claims & Insurance"]),
+    "urgent-care": ("Professional", "Fast E/M leveling and same-day claims for high volume.", ["AI Scribe", "Medical Coding", "Claims & Insurance"]),
+    "fqhc": ("Professional", "Payer intelligence tuned to Medicaid managed care, with audit-ready logs.", ["Medical Coding", "Claims & Insurance"]),
+    "specialty-clinics": ("Professional", "Modifier checks and specialty coding logic.", ["Medical Coding", "Claims & Insurance"]),
+    "revenue-cycle-teams": ("Professional", "Payer intelligence, prior auth support and analytics across the team.", ["Claims & Insurance", "Medical Coding", "Team & Onboarding"]),
+    "medical-billers": ("Starter", "One claims queue, drafted appeals and payer rules in one place.", ["Claims & Insurance", "Althea Assistant"]),
+}
+TOOL_HREF = {"AI Scribe": "/platform/ai-scribe#demo", "Medical Coding": "/platform/medical-coding#demo", "Claims & Insurance": "/platform/claims-insurance#demo",
+             "Team & Onboarding": "/platform/team-onboarding#demo", "Althea Assistant": "/platform/althea#demo"}
+
+
+def _stat(r):
+    v = r["value"]
+    num = f"{v:.{r['decimals']}f}" if r.get("decimals") else f"{v:,.0f}"
+    return (f"{r.get('prefix', '')}{num}{r.get('suffix', '')}", r["label"])
+
+
 def _segment_page(seg_id, title, em):
     s = SEG[seg_id]
+    tier, why, tools = FIT.get(seg_id, ("Professional", "", []))
     page = {
+        "ctas": [("See what changes", "#rows"), ("Try the " + tools[0] + " demo", TOOL_HREF[tools[0]])] if tools else [("See what changes", "#rows")],
+        "card": s["headline"],
+        "stats_head": ("By the numbers", "What " + s["case_study"]["org"].lower(), "saw with Althais."),
+        "stats": [_stat(r) for r in s.get("roi", [])],
+        "stats_note": "Results from one organization; yours will depend on your volume, payers and specialties.",
+        "recommend": {"tier": tier + " tier", "text": why, "tools": [(t, TOOL_HREF[t]) for t in tools]},
         "nav": s["label"], "eyebrow": s["label"], "title": title, "em": em, "lede": s["headline"],
         "meta": f"Althais for {s['label']}: {s['headline']}",
         "hero": [{"type": "rows", "eyebrow": "Before and after · " + s["case_study"]["org"].lower(),
@@ -72,6 +99,11 @@ PAGES = {
         "links_head": ("Solutions", "Find your", "starting point."),
         "links_grid": [{"eyebrow": s["label"], "title": s["label"], "text": s["headline"], "href": _seg_href(s["id"]),
                         "go": "See how" if s["id"] in OWN_PAGE else "Learn more"} for s in SOLUTION_SEGMENTS],
+        "ctas": [("Find your setup", "#compare-tiers"), ("Compare tiers", "/pricing#compare-tiers")],
+        "card": "Every care setting Althais is built for.",
+        "matrix_head": ("Which setup fits", "Where each kind of team", "usually starts."),
+        "matrix": {"cols": ["Usually starts on", "Most-used tools"], "groups": [("By organization", [
+            (o["label"], [FIT[o["id"]][0], ", ".join(FIT[o["id"]][2])]) for o in SOLUTION_SEGMENTS if o["id"] in FIT])]},
         "faq": [("Does Althais work for small practices?", "Yes. The Starter tier is built for independent practices getting AI coding and claims in place for the first time."),
                 ("Can large systems standardize on it?", "Yes. Specialty-aware coding and one claims pipeline can roll out across facilities and departments."),
                 ("Which care settings does it support?", "Hospital systems, multi-specialty groups, private practices, urgent care, FQHCs, specialty clinics, revenue cycle teams and billing services.")],
@@ -203,11 +235,9 @@ PAGES = {
 
 def _view(href, section):
     nav = SECTIONS[section]
-    order = [h for _, h in nav if h in PAGES]
 
     async def view(request: Request, user=Depends(current_user)):
-        nxt = order[(order.index(href) + 1) % len(order)]
-        return platform_pages.render(request, user, PAGES[href], href, section, nav, nxt, PAGES[nxt]["nav"])
+        return platform_pages.render(request, user, PAGES[href], href, section, nav)
     view.__name__ = "more_" + href.strip("/").replace("/", "_").replace("-", "_")
     return view
 
@@ -216,6 +246,10 @@ for _section, _nav in SECTIONS.items():
     for _name, _href in _nav:
         if _href in PAGES:
             router.add_api_route(_href, _view(_href, _section), methods=["GET"], include_in_schema=False)
+
+
+for _section, _nav in SECTIONS.items():
+    platform_pages.register(_section, {h: PAGES[h] for _, h in _nav if h in PAGES}, _nav)
 
 
 @router.get("/our-story", include_in_schema=False)

@@ -18,13 +18,37 @@ NAV = [("AI Scribe", "/platform/ai-scribe"), ("Medical Coding", "/platform/medic
        ("Althea", "/platform/althea"), ("Team & Onboarding", "/platform/team-onboarding")]
 
 
-def render(request: Request, user, page: dict, here: str, section: str, nav: list, next_href: str, next_name: str):
-    """Shared by the Platform and For Your Practice pages (practice_pages.py)."""
+REGISTRY = {}   # href -> {"section", "name", "text", "demo"}: every page built on this template, for "Keep exploring"
+CROSS = {"Platform": "/how-it-works", "For Your Practice": "/platform/ai-scribe", "Solutions": "/platform/medical-coding",
+         "Resources": "/platform/ai-scribe", "Company": "/how-it-works"}
+
+
+def register(section: str, pages: dict, nav: list):
+    names = {h: n for n, h in nav}
+    for href, p in pages.items():
+        REGISTRY[href] = {"section": section, "name": names.get(href, p["nav"]), "text": p.get("card") or p["lede"], "demo": bool(p.get("demo")), "href": href}
+
+
+def related(here: str, section: str, nav: list) -> list:
+    """Three neighbours from the same section, then one page from elsewhere on the site."""
+    own = [REGISTRY[h] for _, h in nav if h != here and h in REGISTRY]
+    i = [h for _, h in nav].index(here) if here in [h for _, h in nav] else 0
+    own = own[i:] + own[:i]
+    cross = REGISTRY.get(CROSS.get(section, ""))
+    out = own[:3] + ([cross] if cross and cross["href"] != here else own[3:4])
+    return out
+
+
+def render(request: Request, user, page: dict, here: str, section: str, nav: list, ctas=None):
+    """Shared by every page built on templates/platform_page.html (Platform, For Your Practice, Solutions, Resources, Company)."""
     return _templates.TemplateResponse(request, "platform_page.html", {
-        "user": user, "page": page, "here": here, "section": section, "nav_items": nav, "next_href": next_href, "next_name": next_name})
+        "user": user, "page": page, "here": here, "section": section, "nav_items": nav,
+        "ctas": page.get("ctas", ctas) or [], "related": related(here, section, nav)})
 
 PAGES = {
     "ai-scribe": {
+        "demo": "ai-scribe", "card": 'Record or paste a visit; get a SOAP note to review and sign.',
+        "specs": [('Capture', 'Live recording in the browser, an uploaded recording, or a pasted transcript'), ('Consent', 'A patient-consent check must be ticked before recording starts'), ('Note sections', 'Chief complaint, HPI, review of systems, vitals, exam, assessment and plan'), ('More history', 'Current medications, allergies, past medical, surgical and family history'), ('Visit types', 'Office visit, follow-up, new patient, telehealth, urgent care, emergency and procedures'), ('Review', 'Every field stays editable; the draft is labeled until you sign it'), ('Sign', 'Signed notes are saved with your name and the time'), ('After signing', 'Copy, download, add to the chart, or send straight to Coding')],
         "nav": "AI Scribe", "eyebrow": "AI Scribe",
         "title": "Say the visit.", "em": "Get the note.",
         "lede": "Record the encounter or paste a transcript. Althais drafts a structured SOAP note in the way you'd write it, ready for you to review and sign.",
@@ -57,6 +81,8 @@ PAGES = {
         "next": "medical-coding",
     },
     "medical-coding": {
+        "demo": "medical-coding", "card": 'CPT and ICD-10 codes with confidence and reasons, checked before billing.',
+        "specs": [('Code sets', 'CPT and HCPCS procedures, ICD-10-CM diagnoses'), ('Inputs', 'A note from Scribe or the EMR, or any pasted note, plus encounter type and visit minutes'), ('Encounter types', 'Office / outpatient, urgent care and emergency department'), ('Time-based rules', 'Office E/M by total time, critical care 99291 and 99292 thresholds, prolonged services'), ('Emergency visits', 'ED levels 99281 to 99285 follow medical decision making, not time'), ('Bundling', 'Every claim is checked against CMS NCCI procedure-to-procedure edits'), ('Format checks', 'Malformed CPT, HCPCS and ICD-10 codes are flagged before they reach a claim'), ('Confidence floor', "Suggestions under your clinic's confidence setting are set aside until you ask for them"), ('Export', 'Copy the codes or export them to CSV')],
         "nav": "Medical Coding", "eyebrow": "Medical Coding",
         "title": "Codes you can defend,", "em": "with the reasons attached.",
         "lede": "Althais reads the note and suggests ICD-10 and CPT codes, each with a confidence score and the documentation behind it. You decide on every one.",
@@ -85,6 +111,8 @@ PAGES = {
         "next": "claims-insurance",
     },
     "claims-insurance": {
+        "demo": "claims-insurance", "card": 'Build, check, send and follow claims, including denials.',
+        "specs": [('Claims queue', 'Every claim in one list with status, payer, amount, risk and AI confidence'), ('Statuses', 'Pending, submitted, held, denied, appealed and paid'), ('Import', 'Bring in existing claims from a CSV file'), ('Before sending', "Bundling, code format, required fields and the practice's billing setup are checked first"), ('Held claims', 'Anything missing holds the claim with the reason instead of sending it to be rejected'), ('Submission', 'Electronic claims through your clearinghouse connection'), ('Denials', "The payer's reason, plus an appeal letter drafted from it and the note"), ('Payments', "Posted payments per claim, so you can see what's still outstanding"), ('Billing activation', 'A guided setup of practice, provider and payer details before the first claim')],
         "nav": "Claims & Insurance", "eyebrow": "Claims & Insurance",
         "title": "From approved codes", "em": "to a clean claim.",
         "lede": "Althais assembles the claim, checks it before it leaves, sends it electronically and follows it to payment, including the denials.",
@@ -115,6 +143,8 @@ PAGES = {
         "next": "althea",
     },
     "althea": {
+        "demo": "althea", "card": 'An assistant that has read the visit you are looking at.',
+        "specs": [('Where', 'One click away on every Althais page'), ('Context', 'Answers about the note, codes and claim on your screen'), ('Product help', 'How to do anything in Althais, in plain language'), ('Clinic control', 'Switch Althea on or off for the clinic, and hide her in chosen areas'), ('Plans', 'Available on any plan'), ('Themes', 'Follows light and dark mode')],
         "nav": "Althea Assistant", "eyebrow": "Althea Assistant",
         "title": "Ask Althea.", "em": "Get back to patients.",
         "lede": "Althea is the AI inside Althais. Ask how to do something, what a screen means, or what's at risk today, and get a plain answer in seconds.",
@@ -143,6 +173,8 @@ PAGES = {
         "next": "team-onboarding",
     },
     "team-onboarding": {
+        "demo": "team-onboarding", "card": 'Invite staff, collect documents, train them and set access by role.',
+        "specs": [('Invitations', 'Each invite creates a sign-in and a guided Staff Portal setup'), ('Documents', 'Licenses, certifications and IDs, with expiration dates tracked'), ('Forms', 'Policies and onboarding forms signed inside the portal'), ('Training', 'Althais Training: guided lessons, interactive practice and a quiz, by role'), ('Billing readiness', 'Billers finish billing training and forms before they can send claims'), ('Roles', 'Provider, biller, front desk and manager, each with adjustable access'), ('Portal lock', "Send someone back to their portal to finish training; access returns when they're done"), ('Audit', 'Onboarding steps and access changes are recorded')],
         "nav": "Team & Onboarding", "eyebrow": "Team & Onboarding",
         "title": "Your team,", "em": "set up right from day one.",
         "lede": "Invite staff, collect their documents, assign training, and give each person exactly the access their role needs, all in one place.",
@@ -175,11 +207,13 @@ PAGES = {
 
 def _view(slug):
     async def view(request: Request, user=Depends(current_user)):
-        page = PAGES[slug]
-        return render(request, user, page, f"/platform/{slug}", "Platform", NAV, f"/platform/{page['next']}", PAGES[page["next"]]["nav"])
+        return render(request, user, PAGES[slug], f"/platform/{slug}", "Platform", NAV,
+                      ctas=[("Try the demo", "#demo"), ("See the details", "#specs")])
     view.__name__ = "platform_" + slug.replace("-", "_")
     return view
 
 
 for _slug in PAGES:
     router.add_api_route(f"/platform/{_slug}", _view(_slug), methods=["GET"], include_in_schema=False)
+
+register("Platform", {f"/platform/{k}": v for k, v in PAGES.items()}, NAV)

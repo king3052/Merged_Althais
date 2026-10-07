@@ -1,0 +1,123 @@
+{% from "demos/_app.html" import window, side %}
+<section class="ad-sec" id="demo">
+  <div class="wrap">
+    <div class="ad-head">
+      <div><span class="ad-live"><i></i>Interactive demo · real checks</span><h2>Try Coding.<br /><span class="em">Then try to break it.</span></h2></div>
+      <p>Pick a visit and press Suggest Codes. Time-based E/M levels and the bundling check run on the real Althais rules engine. Add your own codes and check them too.</p>
+    </div>
+    <div class="ad" id="cd">
+      {{ window('/coding') }}
+      <div class="ad-body">
+        {{ side('coding') }}
+        <div class="ad-main">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+            <div><div class="ad-title">Coding</div><div class="ad-sub">Paste a visit note to get CPT and ICD-10 codes with the documentation behind each one, then check them before they go on a claim.</div></div>
+            <div class="chip-row" id="cd-visits" role="group" aria-label="Sample visit"></div>
+          </div>
+          <div class="cd-grid" style="display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:14px;margin-top:16px">
+            <div class="card"><div class="card-h">Visit Note</div>
+              <div class="card-b">
+                <textarea class="fld" id="cd-note" rows="11"></textarea>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                  <div><span class="lbl">Encounter Type</span><select class="fld" id="cd-enc"><option value="office">Office / Outpatient</option><option value="urgent">Urgent Care</option><option value="emergency">Emergency Department</option></select></div>
+                  <div><span class="lbl">Visit Minutes</span><input class="fld mono" id="cd-min" type="number" min="0" max="600"></div>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--ink7)"><label><input type="checkbox" id="cd-new"> New Patient</label><label><input type="checkbox" id="cd-crit"> Critical Care</label></div>
+                <button class="btn btn-p" id="cd-suggest" type="button" style="margin-top:12px;width:100%">Suggest Codes</button>
+              </div></div>
+            <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+              <div class="card"><div class="card-h">Codes <span class="note" id="cd-count"></span></div>
+                <div style="overflow-x:auto"><table><thead><tr><th>Code</th><th>Description</th><th>Conf.</th><th>Why</th></tr></thead><tbody id="cd-rows"><tr><td colspan="4" class="muted" style="padding:22px 10px">Codes appear here after you click Suggest Codes.</td></tr></tbody></table></div>
+                <div class="card-b" id="cd-rule" style="display:none;border-top:1px solid var(--ln2)"></div>
+              </div>
+              <div class="card"><div class="card-h">Code Check <span class="note">Verify bundling against the current NCCI edits before billing</span></div>
+                <div class="card-b">
+                  <div class="chip-row" id="cd-chips"></div>
+                  <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+                    <select class="fld" id="cd-addtype" style="width:auto"><option>CPT</option><option>ICD-10</option></select>
+                    <input class="fld mono" id="cd-addcode" placeholder="Add a code, e.g. 12001" maxlength="10" style="flex:1;min-width:120px">
+                    <button class="btn" id="cd-add" type="button">Add</button>
+                    <button class="btn btn-p" id="cd-check" type="button">Check Codes</button>
+                  </div>
+                  <div style="margin-top:8px"><button class="btn" id="cd-trap" type="button" style="font-size:11px;padding:4px 9px">Try a bundling conflict: 99283 + 12001</button></div>
+                  <div id="cd-result" style="margin-top:12px"></div>
+                </div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ad-foot"><span>Real: time-based E/M rules, NCCI PTP edits and code format checks. Sample: the visit notes and the AI-suggested codes for them.</span><a href="/platform/claims-insurance#demo">Next: put it on a claim →</a></div>
+  </div>
+</section>
+<style>@media (max-width: 860px) { #cd .cd-grid { grid-template-columns: 1fr !important; } }</style>
+<script src="/static/js/althais-demo-visits.js?v={{ asset_v }}"></script>
+<script>
+(function () {
+  var V = window.ALTHAIS_DEMO_VISITS, $ = function (id) { return document.getElementById(id); };
+  var LABELS = { cc: "Chief complaint", hpi: "HPI", ros: "ROS", vitals: "Vitals", exam: "Exam", assessment: "Assessment", plan: "Plan" };
+  var key = "ed", list = [];
+  try { var k = sessionStorage.getItem("althais-demo-visit"); if (k && V[k]) key = k; } catch (e) {}
+  $("cd-visits").innerHTML = Object.keys(V).map(function (k) { return '<button type="button" class="chip" data-v="' + k + '">' + V[k].label + '</button>'; }).join("");
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function load(k) {
+    key = k; var v = V[k];
+    document.querySelectorAll("#cd-visits .chip").forEach(function (c) { c.classList.toggle("on", c.dataset.v === k); });
+    $("cd-note").value = Object.keys(LABELS).map(function (f) { return LABELS[f] + ": " + v.soap[f]; }).join("\n");
+    $("cd-enc").value = v.encounter; $("cd-min").value = v.minutes; $("cd-new").checked = v.newPatient; $("cd-crit").checked = v.critical;
+    $("cd-rows").innerHTML = '<tr><td colspan="4" class="muted" style="padding:22px 10px">Codes appear here after you click Suggest Codes.</td></tr>';
+    $("cd-rule").style.display = "none"; $("cd-count").textContent = ""; list = []; chips(); $("cd-result").innerHTML = "";
+  }
+  function chips() {
+    $("cd-chips").innerHTML = list.length ? list.map(function (c, i) { return '<span class="pill ' + (c.type === "CPT" ? "" : "m") + '">' + esc(c.type) + ' <b class="mono">' + esc(c.code) + '</b> <button type="button" data-rm="' + i + '" aria-label="Remove ' + esc(c.code) + '" style="border:0;background:none;cursor:pointer;color:inherit;padding:0 0 0 2px">×</button></span>'; }).join("")
+      : '<span class="note">Suggest codes above, or add your own.</span>';
+  }
+  async function post(url, body) {
+    var r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    var j = await r.json().catch(function () { return {}; }); if (!r.ok) throw new Error(j.error || "Couldn't reach the demo engine."); return j;
+  }
+  async function suggest() {
+    var b = $("cd-suggest"); b.disabled = true; b.textContent = "Reading the note…";
+    var v = V[key], enc = $("cd-enc").value, rows = [], rule = "";
+    try {
+      var t = await post("/api/public/demo/time-codes", { minutes: Number($("cd-min").value) || 0, encounter: enc, new_patient: $("cd-new").checked, critical_care: $("cd-crit").checked });
+      t.codes.forEach(function (c) { rows.push(["CPT", c.code, c.description, c.confidence, c.justification, true]); });
+      rule = t.note;
+    } catch (e) { rule = e.message; }
+    var hasEM = rows.some(function (r) { return /^99(2[0-9]|4[0-9])/.test(r[1]); });
+    v.codes.forEach(function (c) { if (hasEM && /^992/.test(c[1])) return; rows.push([c[0], c[1], c[2], c[3], c[4], false]); });
+    $("cd-rows").innerHTML = "";
+    rows.forEach(function (r, i) {
+      setTimeout(function () {
+        var tr = document.createElement("tr");
+        tr.innerHTML = '<td><span class="note">' + r[0] + '</span><br><b class="mono">' + esc(r[1]) + '</b></td><td>' + esc(r[2]) + (r[5] ? '<br><span class="pill g" style="margin-top:4px">Rules engine</span>' : '') + '</td><td class="mono" style="color:' + (r[3] >= 85 ? 'var(--b)' : '#a35c00') + '">' + r[3] + '%</td><td class="note" style="max-width:260px">' + esc(r[4]) + '</td>';
+        $("cd-rows").appendChild(tr);
+      }, i * 260);
+    });
+    setTimeout(function () { b.disabled = false; b.textContent = "Suggest Codes"; $("cd-count").textContent = rows.length + " codes · you approve each one"; }, rows.length * 260);
+    if (rule) { $("cd-rule").style.display = ""; $("cd-rule").innerHTML = '<span class="pill w">Rules engine</span> <span class="note" style="margin-left:6px">' + esc(rule) + '</span>'; } else $("cd-rule").style.display = "none";
+    list = rows.map(function (r) { return { type: r[0], code: r[1] }; }); chips(); $("cd-result").innerHTML = "";
+  }
+  async function check() {
+    var b = $("cd-check"); if (!list.length) { $("cd-result").innerHTML = '<span class="note">Add at least one code.</span>'; return; }
+    b.disabled = true; b.textContent = "Checking…";
+    try {
+      var j = await post("/api/public/demo/check-codes", { cpt: list.filter(function (c) { return c.type === "CPT"; }).map(function (c) { return c.code; }), icd: list.filter(function (c) { return c.type !== "CPT"; }).map(function (c) { return c.code; }) });
+      var bad = j.codes.filter(function (c) { return !c.format_valid; });
+      var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' + (j.conflicts.length ? '<span class="pill r">' + j.conflicts.length + ' NCCI conflict' + (j.conflicts.length > 1 ? 's' : '') + '</span>' : '<span class="pill g">0 bundling conflicts</span>') + (bad.length ? '<span class="pill w">' + bad.length + ' format warning' + (bad.length > 1 ? 's' : '') + '</span>' : '<span class="pill g">All codes well-formed</span>') + '</div>';
+      html += j.conflicts.map(function (c) { return '<div class="note" style="padding:8px 10px;border-radius:4px;background:' + (c.modifier_allowed ? '#fff8ec' : '#fdf1f1') + ';margin-top:6px;color:var(--ink7)"><b class="mono">' + esc(c.col1) + ' + ' + esc(c.col2) + '</b> · ' + esc(c.message) + '</div>'; }).join("");
+      html += bad.map(function (c) { return '<div class="note" style="padding:8px 10px;border-radius:4px;background:#fff8ec;margin-top:6px;color:var(--ink7)">' + esc(c.format_warning) + '</div>'; }).join("");
+      $("cd-result").innerHTML = html + '<div class="note" style="margin-top:8px">Checked live by ' + esc(j.engine) + '.</div>';
+    } catch (e) { $("cd-result").innerHTML = '<span class="note">' + esc(e.message) + '</span>'; }
+    b.disabled = false; b.textContent = "Check Codes";
+  }
+  function add(type, code) { code = (code || "").trim().toUpperCase(); if (!code || list.length >= 12 || list.some(function (c) { return c.code === code; })) return; list.push({ type: type, code: code }); chips(); }
+  $("cd-visits").addEventListener("click", function (e) { var b = e.target.closest("[data-v]"); if (b) load(b.dataset.v); });
+  $("cd-suggest").addEventListener("click", suggest); $("cd-check").addEventListener("click", check);
+  $("cd-add").addEventListener("click", function () { add($("cd-addtype").value, $("cd-addcode").value); $("cd-addcode").value = ""; });
+  $("cd-addcode").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("cd-add").click(); } });
+  $("cd-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-rm]"); if (b) { list.splice(+b.dataset.rm, 1); chips(); } });
+  $("cd-trap").addEventListener("click", function () { list = [{ type: "CPT", code: "99283" }, { type: "CPT", code: "12001" }, { type: "ICD-10", code: "S61.411A" }]; chips(); check(); });
+  load(key);
+})();
+</script>
