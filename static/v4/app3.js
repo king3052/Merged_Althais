@@ -309,7 +309,7 @@
     var Q = 'open', sel = q.get('claim') || '';
     var openL = function () { return S.claims.filter(function (c) { return c.stage === 'denied'; }); };
     var match = function (c) { return Q === 'open' || (Q === 'review' && c.dstatus === 'Needs review') || (Q === 'drafted' && c.dstatus === 'Appeal drafted') || (Q === 'appealed' && c.dstatus === 'Appealed') || Q === c.carc; };
-    var letterFor = function (c) { var p = D.pt(c.mrn) || {}, prov = D.staff(c.prov) || {}; return 'To ' + D.payer(c) + ' Appeals,\n\nWe request reconsideration of claim ' + c.id + ' for ' + (p.name || '').split(', ').reverse().join(' ') + ', DOS ' + D.us(c.dos) + ', denied ' + c.carc + ' (' + c.reason + ').\n\n[State why the service should be paid and what is enclosed.]\n\nSincerely,\n' + (prov.name ? prov.name.split(', ').reverse().join(' ') + (prov.cred ? ', ' + prov.cred : '') : S.clinic.user) + '\n' + (S.clinic.name || ''); };
+    var letterFor = function (c) { var p = D.pt(c.mrn) || {}, prov = D.staff(c.prov) || {}; return 'To ' + D.payer(c) + ' Appeals,\n\nWe request reconsideration of claim ' + c.id + ' for ' + (p.name || '').split(', ').reverse().join(' ') + ', DOS ' + D.us(c.dos) + ', denied ' + c.carc + ' (' + c.reason + ').\n\n[State why the service should be paid and what is enclosed.]\n\nSincerely,\n' + (prov.name ? V.personName(prov.name) + (prov.cred && prov.name.indexOf(prov.cred) < 0 ? ', ' + prov.cred : '') : S.clinic.user) + '\n' + (S.clinic.name || ''); };
     function right() {
       var c = findClaim(sel);
       if (!c || c.stage !== 'denied' && !c.appealOutcome) return U.pane('Appeal', '', '', '<div class="blank">' + (openL().length ? 'Select a denial.' : 'No open denials. Record a denial on a submitted claim in Claims (Record denial).') + '</div>');
@@ -321,7 +321,7 @@
         '<div class="dp-sec"><div class="dp-h">Letter draft <span class="sub">edit before sending</span>' + (ro ? '' : '<span class="end"><button class="mini" id="ailetter">Draft with AI</button></span>') + '</div><textarea class="ed" id="letter" rows="11"' + (ro ? ' readonly' : '') + '>' + E(c.letter || letterFor(c)) + '</textarea></div>' +
         '<div class="dp-sec"><div class="dp-h">Attachments <span class="end">' + (ro ? '' : '<a href="#" id="attach">Upload</a>') + '</span></div>' + (c.encId ? '<label class="chk" style="margin:0 0 4px"><input type="checkbox" data-att="note"' + ((c.attach || ['note']).indexOf('note') >= 0 ? ' checked' : '') + (ro ? ' disabled' : '') + '> Visit note, ' + D.us(c.dos) + '</label><br>' : '') +
           docs.map(function (d) { return '<label class="chk" style="margin:0 0 4px"><input type="checkbox" data-att="' + d.id + '"' + ((c.attach || []).indexOf(d.id) >= 0 ? ' checked' : '') + (ro ? ' disabled' : '') + '> ' + E(d.name) + '</label><br>'; }).join('') + (!docs.length && !c.encId ? '<span class="mut">No documents for this patient.</span>' : '') + '</div>' +
-        '</div><div class="dp-f">' + (c.appealOutcome ? '' : c.dstatus === 'Appealed' ? '<button class="btn" id="upheld">Upheld, write off</button><button class="btn pri" id="overturn">Overturned, post payment</button>' : '<button class="btn" id="resub">Correct and resubmit</button><button class="btn" id="savedraft">Save draft</button><button class="btn pri" id="send">Send appeal</button>') + '</div></section>';
+        '</div><div class="dp-f">' + (c.appealOutcome ? '' : c.dstatus === 'Appealed' ? '<button class="btn" id="upheld">Upheld, write off</button><button class="btn pri" id="overturn">Overturned, post payment</button>' : '<button class="btn" id="resub">Correct and resubmit</button><button class="btn" id="savedraft">Save draft</button><button class="btn" id="apdf">' + U.I.download + 'Appeal claim (PDF)</button><button class="btn pri" id="send">Send appeal</button>') + '</div></section>';
     }
     function draw() {
       var all = openL(), list = all.filter(match), t = D.totals(), carcs = [];
@@ -331,7 +331,7 @@
       ever.forEach(function (c) { (byR[c.carc] = byR[c.carc] || []).push(c); });
       var due = all.filter(function (c) { return c.dstatus !== 'Appealed' && D.daysBetween(D.today(), c.appealBy) <= 30; });
       app.innerHTML = U.header('denials') +
-        U.toolbar('Denials', [['Send appeal', 'send', { pri: 1, id: 'send2' }], ['Edit appeal', 'pencil', { id: 'editl' }], ['Correct and resubmit', 'refresh', { id: 'resub2' }], '|', ['Print', 'print', { id: 'printl' }], ['Export', 'download', { id: 'export' }]]) +
+        U.toolbar('Denials', [['Appeal claim', 'download', { pri: 1, id: 'apdf2' }], ['Send appeal', 'send', { id: 'send2' }], ['Edit appeal', 'pencil', { id: 'editl' }], ['Correct and resubmit', 'refresh', { id: 'resub2' }], '|', ['Print', 'print', { id: 'printl' }], ['Export', 'download', { id: 'export' }]]) +
         U.strip([['Open denials', all.length, M(D.sum(all, D.charge)), all.length ? 'red' : ''], ['Appeals drafted', all.filter(function (c) { return c.dstatus === 'Appeal drafted'; }).length, 'ready to send'], ['Due in 7 days', due.filter(function (c) { return D.daysBetween(D.today(), c.appealBy) <= 7; }).length, M(D.sum(due.filter(function (c) { return D.daysBetween(D.today(), c.appealBy) <= 7; }), D.charge)), due.some(function (c) { return D.daysBetween(D.today(), c.appealBy) <= 7; }) ? 'amb' : ''],
           ['Denial rate, 90 days', t.r90 ? U.pct(t.d90 / t.r90) : '0.0%', t.d90 + ' of ' + t.r90], ['Overturn rate', t.decided ? U.pct(t.overturned / t.decided, 0) : '-', 'last 90 days']]) +
         '<div class="main" style="grid-template-columns:205px minmax(0,1fr) 420px">' +
@@ -362,6 +362,24 @@
     U.on(app, '#savedraft', 'click', function () { keep(); var c = C(); c.dstatus = 'Appeal drafted'; D.history(c, 'Appeal drafted'); D.save(); draw(); U.toast('Draft saved.'); });
     var send = function () { var c = C(); if (!c || c.stage !== 'denied') return U.toast('Select a denial.'); if (c.dstatus === 'Appealed') return U.toast('Already sent.'); keep(); if (/\[State why/.test(c.letter || '')) return U.toast('Finish the letter first: replace the bracketed line.'); c.dstatus = 'Appealed'; c.appealSent = D.today(); D.history(c, 'Appeal sent with ' + (c.attach || []).length + ' attachment(s)'); D.log('Appeal sent: ' + c.id); D.save(); draw(); U.toast('Appeal recorded as sent. (This preview doesn’t transmit to payers.) Record the outcome when the payer answers.'); };
     U.on(app, '#send', 'click', send); U.on(app, '#send2', 'click', send);
+    // Appeal Claim: the appeal request form plus the letter, as a PDF to send to the payer
+    var apdf = function (b) {
+      var c = C(); if (!c || (c.stage !== 'denied' && !c.appealOutcome)) return U.toast('Select a denial.');
+      keep();
+      if (!String(c.letter || '').trim()) c.letter = letterFor(c);
+      var bl = String(c.basis || '').split(/\n+/).map(function (x) { return x.replace(/^[-•*]\s*/, '').trim(); }).filter(Boolean);
+      if (bl.length && /\[State why[^\]]*\]/.test(c.letter)) {
+        c.letter = c.letter.replace(/\[State why[^\]]*\]/, 'This claim should be paid because:\n' + bl.map(function (x) { return '- ' + x; }).join('\n') + '\n\nEnclosed are the appeal request form, a copy of the denial notice' + ((c.attach || []).indexOf('note') >= 0 ? ', the signed progress note for the date of service' : '') + ' and the supporting documents listed on the form. Please reprocess the claim for payment.');
+      }
+      if (/\[State why/.test(c.letter)) U.toast('The letter still has a [State why…] placeholder. Fill it in, then download again.', 'warn');
+      var lbl = b && b.innerHTML; if (b) { b.disabled = true; b.textContent = 'Building PDF…'; }
+      V.appealPdf(c).then(function (file) {
+        if (c.dstatus === 'Needs review') c.dstatus = 'Appeal drafted';
+        D.history(c, 'Appeal packet created (' + file + ')'); D.log('Appeal packet created: ' + c.id); D.save(); draw();
+        U.toast('Appeal packet downloaded: ' + file + '. Sign it, then send it to ' + D.payer(c) + '.', 'ok');
+      }).catch(function (e) { if (b) { b.disabled = false; b.innerHTML = lbl; } U.toast(e.message || 'The PDF couldn’t be made.', 'warn'); });
+    };
+    U.on(app, '#apdf', 'click', apdf); U.on(app, '#apdf2', 'click', apdf);
     U.on(app, '#editl', 'click', function () { var l = document.getElementById('letter'); if (l) l.focus(); });
     U.on(app, '#printl', 'click', function () { var c = C(); if (!c) return window.print(); keep(); var w = window.open(''); w.document.write('<pre style="font:14px/1.6 Georgia,serif;white-space:pre-wrap;max-width:680px;margin:40px auto">' + E(c.letter || letterFor(c)) + '</pre>'); setTimeout(function () { w.print(); }, 300); });
     var resub = function () { var c = C(); if (!c || c.stage !== 'denied') return U.toast('Select a denial.'); U.confirm('Correct And Resubmit', '<p class="cf">Move ' + E(c.id) + ' back to claims so it can be corrected and resubmitted?</p>', 'Move To Claims', function () { c.stage = 'edits'; c.dstatus = 'Resubmitted'; D.scrub(c); D.history(c, 'Sent back for correction after ' + c.carc); D.log('Correcting ' + c.id); D.save(); location.href = V.claimHref(c.id); }); };
