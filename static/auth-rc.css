@@ -98,3 +98,9 @@ body.rcx #lo-count { margin-top: 26px; }
 body.rcx .lo-bar { height: 3px; background: #ececec; border-radius: 0; overflow: hidden; }
 body.rcx .lo-bar i { display: block; height: 100%; width: 100%; background: var(--accent); }
 body.rcx .lo-note { margin-top: 10px; text-align: center; }
+
+/* login: no site header, just the card (with the logo above it), centered on the full screen */
+body.login-page.rcx:not(:has(.nav)) .lg-shell, body.login-page.rcx:not(:has(.nav)) .lg-left { min-height: 100dvh; }
+body.rcx .lg-main { flex-direction: column; }
+body.rcx .lg-logo { display: inline-flex; align-items: center; gap: 12px; margin: 0 auto 28px; color: #111; font-family: "Inter", var(--rsans); font-weight: 600; font-size: 17px; letter-spacing: .3em; text-decoration: none; }
+body.rcx .lg-logo span { padding-left: .2em; }
