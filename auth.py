@@ -624,6 +624,7 @@ def register(
 
 @router.post("/login")
 def login(
+    request: Request,
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db),
@@ -633,6 +634,9 @@ def login(
     # Same generic message whether the email is unknown or the password is wrong,
     # so an attacker can't tell which emails have accounts.
     if not user or not verify_password(password, user.password_hash):
+        import audit
+        audit.record_request(request, user=user, email=email, action="sign_in_failed", what="session", status=401,
+                             detail="unknown email" if not user else "wrong password")
         return JSONResponse({"error": "Invalid email or password."}, status_code=401)
     if getattr(user, "active", 1) == 0:
         if getattr(user, "must_change_password", 0):
@@ -650,6 +654,8 @@ def login(
     user.last_login = dt.datetime.now(timezone.utc)
     record_activity(db, user, "login")
     db.commit()
+    import audit
+    audit.record_request(request, user=user, action="sign_in", what="session", detail="temporary password" if temp_login else "")
 
     # invited staff whose clinic only gives them the Staff Portal land there; everyone else in the app
     resp = JSONResponse({"ok": True, "redirect": "/set-password" if temp_login else "/portal" if getattr(user, "portal_only", 0) else "/overview"})

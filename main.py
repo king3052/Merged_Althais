@@ -100,6 +100,9 @@ import tebra   # Tebra (Kareo) PM connection, see tebra.py
 app.include_router(tebra.router)
 import extension_api   # browser extension: pairing, claim checks, coding a note, creating claims (extension_api.py)
 app.include_router(extension_api.router)
+import audit   # access log: who viewed or changed patient and billing data (audit.py)
+app.include_router(audit.router)
+app.middleware("http")(audit.middleware)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
@@ -308,9 +311,16 @@ async def admin_report(kind: str, request: Request):
     })
 
 
+def _audit_sign_out(request: Request) -> None:
+    who, behalf = audit._who_from_request(request)
+    if who is not None:
+        audit.record_request(request, user=who, email=who.email, action="sign_out", what="session", on_behalf=behalf)
+
+
 @app.post("/logout")
 async def logout(request: Request):
     """Clear the session cookie and serve the signed-out page."""
+    _audit_sign_out(request)
     resp = templates.TemplateResponse(request, "logout.html", {})
     resp.delete_cookie(COOKIE_NAME, path="/")
     return resp
@@ -319,6 +329,7 @@ async def logout(request: Request):
 @app.get("/logout")
 async def logout_get(request: Request):
     """Handle direct GET visits to /logout (e.g. typing the URL)."""
+    _audit_sign_out(request)
     resp = templates.TemplateResponse(request, "logout.html", {})
     resp.delete_cookie(COOKIE_NAME, path="/")
     return resp

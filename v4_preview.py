@@ -34,6 +34,7 @@ PAGES = {
     "/v4/revenue/connect": ("connect", "Connect EMR"),
     "/v4/staff/team": ("team", "Team"),
     "/v4/settings": ("settings", "Settings"),
+    "/v4/settings/access-log": ("accesslog", "Access Log"),
 }
 
 

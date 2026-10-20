@@ -19,6 +19,7 @@ Live app: [althais.com](https://althais.com)
 | Staff portal | Onboarding, credentials, training, document review, offboarding | `staff_*.py`, `althais_training.py`, `training_content.py`, `practice_pages.py` |
 | Althea | Voice and chat assistant across the app | `staff_assistant.py`, `policy_knowledge.py`, `static/` |
 | Accounts | Sign-in, roles, teams, admin console | `auth.py`, `templates/admin_*.html` |
+| Access log | HIPAA audit trail: who opened or changed patient and billing data, sign-ins, exports; Settings › Access Log for clinic admins | `audit.py`, `static/v4/app9.js` |
 
 ## Tech stack
 
@@ -78,7 +79,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first change. In short: bran
 
 ## Data and privacy
 
-Althais handles protected health information. Use synthetic test data only, keep keys in environment variables, and talk to Kanishk before adding anything that stores, logs or sends patient data.
+Althais handles protected health information. Use synthetic test data only, keep keys in environment variables, and talk to Kanishk before adding anything that stores, logs or sends patient data. Every call to `/api/...` is recorded in the access log automatically (`audit.py`); new pages that open a single patient, visit or claim should call `V.seen(...)` so opening it is recorded too.
 
 ## Team
 

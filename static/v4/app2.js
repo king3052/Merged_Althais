@@ -93,6 +93,7 @@
     var e = D.enc(V.q.get('enc'));
     if (!e) return chooser();
     var p = D.pt(e.mrn) || { name: '(removed patient)', mrn: e.mrn };
+    if (V.seen) V.seen('visit', e.id, e.mrn);
     var chk = { busy: false, err: '' };
     var auto = { busy: false, err: '', timer: null, again: false };
     var tab = V.q.get('tab') || 'note', REC = { on: false, rec: null, start: 0, consent: false }, codeMsg = '', busy = false;
