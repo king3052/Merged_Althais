@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Althais Claim Check",
+  "version": "0.6.1",
+  "description": "Checks each claim as you open it in your EMR and shows what to fix before you submit. Prototype.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel",
+    "storage",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://web-production-8fe4.up.railway.app/*",
+    "https://*.althais.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "action": {
+    "default_title": "Althais Claim Check",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://web-production-8fe4.up.railway.app/*",
+        "https://*.althais.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": [
+        "pair.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "commands": {
+    "toggle-overlay": {
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
+      "description": "Show or hide the Althais overlay"
+    }
+  }
+}

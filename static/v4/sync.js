@@ -143,7 +143,7 @@
   function claimOut(c) {
     return { id: c.id, patientName: D.ptName(c.mrn), mrn: c.mrn, payer: D.payer(c), amount: Math.round(D.charge(c)), status: c.stage === 'denied' && c.dstatus === 'Appealed' ? 'Appealed' : STATUS[c.stage] || 'Draft',
       codes: c.lines.map(function (l) { return { code: l.code, type: 'CPT', modifier: l.mod || '', units: l.units || 1 }; }).concat(c.dx.map(function (d) { return { code: d, type: 'ICD-10' }; })),
-      flags: (c.edits || []).map(function (x) { return x.id; }), appealLetter: c.letter || '', createdAt: c.created || '' };
+      flags: (c.edits || []).map(function (x) { return x.id; }), appealLetter: c.letter || '', createdAt: c.created || '', dos: c.dos || '', provider: (D.staff(c.prov) || {}).name || '' };
   }
   function push() {
     if (!ready) return;

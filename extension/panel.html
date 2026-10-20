@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Althais Claim Check</title><link rel="stylesheet" href="panel.css"></head>
+<body>
+<header class="bar">
+  <svg class="mark" viewBox="120 85.5 1114 1114" aria-hidden="true"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg>
+  <span class="word">ALTHAIS</span>
+  <span class="prod">Claim Check</span>
+  <button id="gear" class="iconbtn" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
+</header>
+<div class="status"><span id="dot" class="dot"></span><span id="conn">Not connected</span></div>
+
+<section id="settings" class="card" hidden>
+  <h2>Connect to Althais</h2>
+  <p class="note">Easiest: in Althais, open Revenue › Connect EMR › Browser Extension and press <b>Connect This Browser</b>. Or paste a pairing token here.</p>
+  <label>Althais address<input id="server" spellcheck="false" placeholder="https://web-production-8fe4.up.railway.app"></label>
+  <label>Pairing token<input id="token" type="password" spellcheck="false" placeholder="Paste your token"></label>
+  <div class="row"><button id="save" class="btn pri">Save</button><button id="test" class="btn">Test connection</button></div>
+  <p id="setmsg" class="msg"></p>
+  <label class="switch set-sw"><input type="checkbox" id="overlay" checked><span class="track"><span class="knob"></span></span><span class="sw-text"><b>On-page overlay</b><span>Shows the result on the EMR screen and outlines what to fix</span></span></label>
+  <div id="offsites" class="note" hidden></div>
+</section>
+
+<main id="main">
+  <section id="verify" class="card verify idle">
+    <div class="vtop">
+      <div class="ring" aria-hidden="true"><svg viewBox="0 0 64 64"><circle class="rt" cx="32" cy="32" r="27"/><circle id="rbar" class="rb" cx="32" cy="32" r="27" pathLength="100" stroke-dasharray="0 100"/></svg><span class="spin"></span><div class="pct"><b id="pct">&ndash;</b><small id="pctsign"></small></div></div>
+      <div class="vinfo">
+        <span class="eyebrow">Claim verification</span>
+        <span id="vlabel" class="vlabel">No claim checked yet</span>
+        <span id="vmeta" class="vmeta">Open a claim in your EMR to start.</span>
+      </div>
+    </div>
+    <div class="stats">
+      <button type="button" class="stat error" data-jump="error"><b id="n-error">0</b><span>Errors</span></button>
+      <button type="button" class="stat warn" data-jump="warn"><b id="n-warn">0</b><span>Warnings</span></button>
+      <button type="button" class="stat info" data-jump="info"><b id="n-info">0</b><span>Info</span></button>
+    </div>
+    <div class="actions">
+      <button id="read" type="button" class="btn pri"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6M8 14h8M8 17h5"/></svg>Read page</button>
+      <button id="recheck" type="button" class="btn" disabled title="Check the claim again"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Re-check</button>
+      <button id="copy" type="button" class="btn sq" disabled title="Copy results" aria-label="Copy results"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button>
+    </div>
+    <label class="switch"><input type="checkbox" id="auto" checked><span class="track"><span class="knob"></span></span><span class="sw-text"><b>Automatic</b><span id="autohint"></span></span></label>
+    <p id="readmsg" class="msg"></p>
+  </section>
+
+  <div id="result" aria-live="polite"></div>
+
+  <details id="edit" class="card">
+    <summary><b>Claim details</b><span>Edit and re-check</span></summary>
+    <form id="form" autocomplete="off">
+      <div class="two">
+        <label>Claim ID<input name="claim_id" class="mono"></label>
+        <label>Date of service<input name="dos" placeholder="MM/DD/YYYY" class="mono"></label>
+      </div>
+      <button id="fetch" type="button" class="link">Fetch codes from athenahealth by claim ID</button>
+      <label>Payer<input name="payer"></label>
+      <label>CPT / HCPCS <i>comma separated</i><input name="cpt" class="mono"></label>
+      <label>ICD-10 <i>comma separated</i><input name="icd" class="mono"></label>
+      <div class="two">
+        <label>Modifiers<input name="modifiers" class="mono"></label>
+        <label>Charge ($)<input name="amount" inputmode="decimal" class="mono"></label>
+      </div>
+      <button id="check" class="btn pri wide" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>Check claim</button>
+    </form>
+  </details>
+
+  <details id="diag" class="card"><summary>Trouble reading a page?</summary>
+    <p class="note">Builds a report of the page's layout: labels, column names and field names. Every value is masked, so no patient data is included. Send it to Althais so the reader can be tuned to this screen.</p>
+    <button id="mkdiag" type="button" class="btn">Create page report</button>
+    <textarea id="diagout" readonly rows="8" hidden></textarea>
+    <button id="copydiag" type="button" class="btn" hidden>Copy report</button>
+  </details>
+</main>
+<footer><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Checks send only codes, payer, date and charge, and save nothing. Patient details are read only when you press Create claim.</span></footer>
+<script src="shared.js"></script>
+<script src="panel.js"></script>
+</body></html>

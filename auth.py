@@ -16,6 +16,7 @@ Wire it into main.py with:
 """
 
 import os
+import re
 import datetime as dt
 from datetime import timezone, timedelta
 
@@ -187,6 +188,10 @@ class OrgClaim(Base):
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
+    # added for claims that arrive from an EMR export, a live EMR connection or the browser extension (emr_connect.py, extension_api.py)
+    dos: Mapped[str] = mapped_column(String(20), default="", nullable=True)          # date of service, YYYY-MM-DD
+    provider: Mapped[str] = mapped_column(String(255), default="", nullable=True)    # rendering provider name
+    source: Mapped[str] = mapped_column(String(32), default="", nullable=True)       # "" (typed in Althais) | "import" | "drchrono" | "athenahealth" | "tebra" | "extension"
 
 
 class UserActivity(Base):
@@ -301,6 +306,17 @@ try:
         _conn.commit()
 except Exception:
     pass  # column already exists
+
+# org_claims gained date of service, provider and source (same safe-ALTER pattern)
+for _ddl in ("ALTER TABLE org_claims ADD COLUMN dos VARCHAR(20) DEFAULT ''", "ALTER TABLE org_claims ADD COLUMN provider VARCHAR(255) DEFAULT ''",
+             "ALTER TABLE org_claims ADD COLUMN source VARCHAR(32) DEFAULT ''"):
+    try:
+        with engine.connect() as _conn:
+            _conn.execute(text(_ddl))
+            _conn.commit()
+    except Exception:
+        pass  # column already exists
+
 
 
 def get_db():

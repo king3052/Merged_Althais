@@ -31,6 +31,7 @@ PAGES = {
     "/v4/revenue/code-a-note": ("codenote", "Code a Note"),
     "/v4/revenue/claim-tracker": ("tracker", "Claim Tracker"),
     "/v4/revenue/billing-activation": ("billing", "Billing Activation"),
+    "/v4/revenue/connect": ("connect", "Connect EMR"),
     "/v4/staff/team": ("team", "Team"),
     "/v4/settings": ("settings", "Settings"),
 }

@@ -42,7 +42,7 @@
   var NAV = [
     ['overview', 'Overview', '/v4/overview', []],
     ['emr', 'EMR', '/v4/emr/schedule', [['schedule', 'Schedule', '/v4/emr/schedule'], ['patients', 'Patients', '/v4/emr/patients'], ['chart', 'Patient chart', '/v4/emr/chart'], ['encounter', 'Encounter', '/v4/emr/encounter'], ['documents', 'Documents', '/v4/emr/documents']]],
-    ['revenue', 'Revenue', '/v4/revenue/claims', [['claims', 'Claims', '/v4/revenue/claims'], ['tracker', 'Claim Tracker', '/v4/revenue/claim-tracker'], ['denials', 'Denials', '/v4/revenue/denials'], ['rules', 'Payer rules', '/v4/revenue/payer-rules'], ['codenote', 'Code a Note', '/v4/revenue/code-a-note'], ['billing', 'Billing activation', '/v4/revenue/billing-activation']]],
+    ['revenue', 'Revenue', '/v4/revenue/claims', [['claims', 'Claims', '/v4/revenue/claims'], ['tracker', 'Claim Tracker', '/v4/revenue/claim-tracker'], ['denials', 'Denials', '/v4/revenue/denials'], ['rules', 'Payer rules', '/v4/revenue/payer-rules'], ['codenote', 'Code a Note', '/v4/revenue/code-a-note'], ['billing', 'Billing activation', '/v4/revenue/billing-activation'], ['connect', 'Connect EMR', '/v4/revenue/connect']]],
     ['staff', 'Staff', '/v4/staff/team', []],
     ['settings', 'Settings', '/v4/settings', []],
   ];

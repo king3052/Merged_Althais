@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>Althais | Revenue · Connect your EMR</title>
+  <script>var __ALTHAIS_USER__ = {{ user_json|safe }};</script>
+</head>
+<body class="bg-shell">
+  {% include "_nav.html" %}
+
+  <div class="max-w-[1560px] mx-auto">
+    <main class="min-w-0">
+
+      <div class="flex items-center justify-between px-4 py-2.5 border-b border-line bg-panel flex-wrap gap-2">
+        <div>
+          <h1 class="text-[15px] font-semibold text-ink-900">Connect your EMR</h1>
+          <p class="text-[11.5px] text-ink-500 mt-0.5">Keep your EMR. Send Althais your claims, and get back the ones to fix before they go out.</p>
+        </div>
+        <a href="/api/integrations/template.csv" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Download sample file</a>
+      </div>
+
+      <!-- At-risk strip: from claims already saved -->
+      <div class="bg-panel border-b border-line">
+        <div class="flex flex-wrap">
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Open claims</div><div id="s-open" class="text-[20px] font-semibold text-ink-900 num mt-0.5">0</div><div class="text-[10.5px] text-ink-400 mt-0.5">not yet sent</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Flagged</div><div id="s-flagged" class="text-[20px] font-semibold text-ink-900 num mt-0.5">0</div><div class="text-[10.5px] text-ink-400 mt-0.5">need a fix or a look</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Dollars at risk</div><div id="s-risk" class="text-[20px] font-semibold text-ink-900 num mt-0.5">$0</div><div class="text-[10.5px] text-ink-400 mt-0.5">charges on flagged claims</div></div>
+          <div class="kpi"><div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Top payer at risk</div><div id="s-payer" class="text-[20px] font-semibold text-ink-900 mt-0.5 truncate">None</div><div id="s-payer-sub" class="text-[10.5px] text-ink-400 mt-0.5">&nbsp;</div></div>
+        </div>
+      </div>
+
+      <!-- Step 1: pick the EMR -->
+      <section class="bg-panel border-b border-line px-4 py-4">
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-2">1 · Your EMR</div>
+        <div id="emr-cards" class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))"></div>
+        <p class="text-[11.5px] text-ink-500 mt-2">Upload works with any of these today. A live connection (claims pulled automatically) is listed per EMR and is only shown as connected once it really is.</p>
+      </section>
+
+      <!-- Step 2: upload -->
+      <section class="bg-panel border-b border-line px-4 py-4">
+        <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-2">2 · Send your claims</div>
+        <label id="drop" class="block border border-dashed border-line rounded-sm px-4 py-8 text-center cursor-pointer hover:bg-shell">
+          <input id="file" type="file" accept=".csv,.xlsx,.xlsm,.tsv,.txt" class="hidden" />
+          <div class="text-[13px] font-semibold text-ink-900">Drop a charges or claims export here, or click to choose</div>
+          <div class="text-[11.5px] text-ink-500 mt-1">CSV or Excel, up to 5 MB. Needs a patient, a CPT code and ideally payer, service date, diagnosis and charge. One row per visit or one per procedure both work.</div>
+        </label>
+        <div id="upload-msg" class="text-[12px] mt-2" role="status"></div>
+      </section>
+
+      <!-- Step 3: results -->
+      <section id="results" class="bg-panel border-b border-line px-4 py-4" style="display:none">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">3 · Checked before it leaves</div>
+          <div class="flex items-center gap-2">
+            <button id="save-clean" type="button" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Save only clean claims</button>
+            <button id="save-all" type="button" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700">Save all to worklist</button>
+          </div>
+        </div>
+        <div id="sum" class="flex flex-wrap gap-2 mb-3"></div>
+        <div id="unmapped" class="text-[11.5px] text-ink-500 mb-2"></div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="border-b border-line text-[10.5px] uppercase tracking-wider text-ink-500">
+              <th class="td font-semibold">Result</th><th class="td font-semibold">Claim</th><th class="td font-semibold">Patient</th><th class="td font-semibold">Payer</th>
+              <th class="td font-semibold">Service</th><th class="td font-semibold">Codes</th><th class="td font-semibold text-right">Charge</th><th class="td font-semibold">What to fix</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Worklist -->
+      <section class="bg-panel border-b border-line px-4 py-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">Worklist · saved claims not yet sent</div>
+          <button id="refresh" type="button" class="text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">Refresh</button>
+        </div>
+        <div class="overflow-x-auto thin-scroll">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="border-b border-line text-[10.5px] uppercase tracking-wider text-ink-500">
+              <th class="td font-semibold">Status</th><th class="td font-semibold">Claim</th><th class="td font-semibold">Patient</th><th class="td font-semibold">Payer</th><th class="td font-semibold text-right">Charge</th><th class="td font-semibold">Issues</th>
+            </tr></thead>
+            <tbody id="work"><tr><td class="td text-ink-500" colspan="6">Nothing saved yet.</td></tr></tbody>
+          </table>
+        </div>
+        <p class="text-[11.5px] text-ink-500 mt-3">These checks are screening before you send, not a promise a payer will pay. A person still reviews every claim.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+    const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const VERDICT = {
+      clean:  { bg: '#d8f5e3', fg: '#0c8a4f', text: 'Clean' },
+      review: { bg: '#fff0d6', fg: '#b86a00', text: 'Review' },
+      fix:    { bg: '#ffe1e1', fg: '#c83838', text: 'Fix first' },
+    };
+    const STATUS_BG = { 'Draft': ['#eceef2', '#4a505c'], 'Pending Review': ['#fff0d6', '#b86a00'], 'Ready to Submit': ['#dbeafe', '#1d4ed8'] };
+    let EMR = 'other', LAST = null;
+
+    async function api(url, opts) {
+      const r = await fetch(url, Object.assign({ credentials: 'same-origin' }, opts || {}));
+      let j = {}; try { j = await r.json(); } catch (e) {}
+      if (!r.ok) throw new Error(j.error || j.detail || ('Request failed (' + r.status + ')'));
+      return j;
+    }
+    const say = (t, bad) => { const m = $('upload-msg'); m.textContent = t || ''; m.style.color = bad ? '#c83838' : '#4a505c'; };
+
+    async function loadEmrs() {
+      try {
+        const { emrs } = await api('/api/integrations/emrs');
+        $('emr-cards').innerHTML = emrs.map(e =>
+          '<div><button type="button" data-emr="' + esc(e.key) + '" class="emr w-full text-left border border-line rounded-sm px-3 py-2.5 bg-white hover:bg-shell">' +
+          '<div class="flex items-center justify-between"><span class="text-[13px] font-semibold text-ink-900">' + esc(e.label) + '</span>' +
+          '<span class="pill" style="background:' + (e.live ? '#d8f5e3;color:#0c8a4f' : '#eceef2;color:#4a505c') + '">' + (e.live ? 'Connected' : 'Upload') + '</span></div>' +
+          '<div class="text-[11px] text-ink-500 mt-0.5">' + esc(e.segment) + '</div>' +
+          '<div class="text-[11px] text-ink-600 mt-1.5">Live connection: ' + esc(e.live_state) + '</div></button>' +
+          (e.actions && e.actions.length ? '<div class="flex gap-1.5 flex-wrap mt-1.5">' + e.actions.map(a => a.kind === 'link'
+            ? '<a href="' + esc(a.url) + '" class="text-[12px] px-2.5 py-1 rounded-sm bg-med-600 text-white hover:bg-med-700">' + esc(a.label) + '</a>'
+            : '<button type="button" data-act="' + esc(a.kind) + '" data-emr="' + esc(e.key) + '" data-days="' + (a.days || '') + '" class="act text-[12px] px-2.5 py-1 rounded-sm border border-line bg-white text-ink-700 hover:bg-shell">' + esc(a.label) + '</button>').join('') + '</div>' : '') + '</div>').join('');
+        document.querySelectorAll('button.emr').forEach(b => b.addEventListener('click', () => pick(b.dataset.emr)));
+        document.querySelectorAll('button.act').forEach(b => b.addEventListener('click', () => act(b.dataset.emr, b.dataset.act, +b.dataset.days || 30)));
+        pick(EMR);
+      } catch (e) { say(e.message, true); }
+    }
+    function pick(k) {
+      EMR = k;
+      document.querySelectorAll('.emr').forEach(b => { const on = b.dataset.emr === k; b.style.outline = on ? '2px solid var(--brand-rgb, #0b6e99)' : 'none'; b.setAttribute('aria-pressed', on); });
+    }
+
+    async function loadSummary() {
+      try {
+        const s = await api('/api/integrations/summary');
+        $('s-open').textContent = s.open; $('s-flagged').textContent = s.flagged; $('s-risk').textContent = money(s.at_risk);
+        const top = s.by_payer[0];
+        $('s-payer').textContent = top ? top.payer : 'None';
+        $('s-payer-sub').textContent = top ? (top.claims + ' flagged · ' + money(top.amount)) : ' ';
+      } catch (e) {}
+    }
+    async function loadWork() {
+      try {
+        const { claims } = await api('/api/integrations/worklist');
+        $('work').innerHTML = claims.length ? claims.map(c => {
+          const st = STATUS_BG[c.status] || STATUS_BG['Draft'];
+          return '<tr class="border-b border-line align-top"><td class="td"><span class="pill" style="background:' + st[0] + ';color:' + st[1] + '">' + esc(c.status) + '</span></td>' +
+            '<td class="td num">' + esc(c.id) + '</td><td class="td">' + esc(c.patient) + '</td><td class="td">' + esc(c.payer || 'No payer') + '</td>' +
+            '<td class="td text-right num">' + money(c.amount) + '</td><td class="td text-ink-600">' + (c.flags.length ? c.flags.map(f => '<div>' + esc(f) + '</div>').join('') : '<span class="text-ink-400">None</span>') + '</td></tr>';
+        }).join('') : '<tr><td class="td text-ink-500" colspan="6">Nothing saved yet.</td></tr>';
+      } catch (e) {}
+    }
+
+    function render(p) {
+      LAST = p; const s = p.summary;
+      $('results').style.display = '';
+      $('sum').innerHTML = [['Claims', s.total, '#eceef2', '#4a505c'], ['Clean', s.clean, '#d8f5e3', '#0c8a4f'], ['Review', s.review, '#fff0d6', '#b86a00'], ['Fix first', s.fix, '#ffe1e1', '#c83838'], ['Charges at risk', money(s.at_risk), '#eceef2', '#1a1d24']]
+        .map(x => '<span class="pill" style="background:' + x[2] + ';color:' + x[3] + ';font-size:12px;padding:3px 9px">' + x[0] + ' · ' + x[1] + '</span>').join('');
+      $('unmapped').textContent = (p.notes && p.notes.length ? p.notes.join(' ') + ' ' : '') + (p.unmapped_columns.length ? ('Columns not used: ' + p.unmapped_columns.join(', ')) : '');
+      $('rows').innerHTML = p.claims.map(c => {
+        const v = VERDICT[c.verdict];
+        const fl = c.flags.filter(f => f.severity !== 'info');
+        return '<tr class="border-b border-line align-top"><td class="td"><span class="pill" style="background:' + v.bg + ';color:' + v.fg + '">' + v.text + ' · ' + c.score + '</span></td>' +
+          '<td class="td num">' + esc(c.claim_id || '—') + '</td><td class="td">' + esc(c.patient_name) + '</td><td class="td">' + esc(c.payer || '—') + '</td>' +
+          '<td class="td num">' + esc(c.dos || c.dos_raw || '—') + '</td>' +
+          '<td class="td num">' + esc(c.cpt.join(' ')) + (c.icd.length ? '<div class="text-ink-500">' + esc(c.icd.join(' ')) + '</div>' : '') + '</td>' +
+          '<td class="td text-right num">' + money(c.amount) + '</td>' +
+          '<td class="td text-ink-600">' + (fl.length ? fl.map(f => '<div style="color:' + (f.severity === 'error' ? '#c83838' : '#b86a00') + '">' + esc(f.message) + '</div>').join('') : '<span class="text-ink-400">Nothing found</span>') + '</td></tr>';
+      }).join('');
+      $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function upload(f) {
+      if (!f) return;
+      say('Reading ' + f.name + ' and checking every claim…');
+      const fd = new FormData(); fd.append('file', f); fd.append('emr', EMR);
+      try { render(await api('/api/integrations/import/preview', { method: 'POST', body: fd })); say(''); }
+      catch (e) { say(e.message, true); }
+    }
+    async function act(emr, kind, days) {
+      try {
+        if (kind === 'sync') {
+          const nm = { athenahealth: 'athenahealth', tebra: 'Tebra' }[emr] || 'DrChrono';
+          say('Pulling the last ' + days + ' days from ' + nm + '. This can take a minute…'); EMR = emr;
+          render(await api('/api/integrations/' + emr + '/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ days: days }) }));
+          say('Review the preview below. ' + nm + ' field names haven\'t been tested on a real account yet, so compare a few claims with ' + nm + ' before saving.'); loadEmrs();
+        } else if (kind === 'practice') {
+          const pid = (window.prompt('Enter the athenahealth practice ID (digits only):') || '').trim();
+          if (!pid) return;
+          await api('/api/integrations/athenahealth/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ practice_id: pid }) });
+          say('athenahealth connected. Pull recent claims from its card above.'); loadEmrs();
+        } else if (kind === 'tebra') {
+          const user = (window.prompt('Tebra API username:') || '').trim(); if (!user) return;
+          const password = window.prompt('Tebra password (stored encrypted):') || ''; if (!password) return;
+          const key = (window.prompt('Tebra Customer Key (your Tebra System Administrator generates it):') || '').trim(); if (!key) return;
+          const practice = (window.prompt('Practice name, only if your account has more than one (otherwise leave blank):') || '').trim();
+          await api('/api/integrations/tebra/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user, password, customer_key: key, practice }) });
+          say('Tebra connected. Pull recent claims from its card above.'); loadEmrs();
+        } else if (kind === 'disconnect') {
+          await api('/api/integrations/' + emr + '/disconnect', { method: 'POST' }); say('Disconnected.'); loadEmrs();
+        }
+      } catch (e) { say(e.message, true); }
+    }
+    (function () { const q = new URLSearchParams(location.search).get('drchrono'); if (q === 'connected') say('DrChrono connected. Pull recent claims from its card above.'); else if (q === 'failed') say('DrChrono connection failed. Try again, or check the app credentials and redirect address.', true); })();
+    $('file').addEventListener('change', e => { upload(e.target.files[0]); e.target.value = ''; });
+    ['dragover', 'drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); if (ev === 'drop') upload(e.dataTransfer.files[0]); }));
+
+    async function save(onlyClean) {
+      if (!LAST) return;
+      say('Saving…');
+      try {
+        const r = await api('/api/integrations/import/commit', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emr: EMR, only_clean: onlyClean, claims: LAST.claims }) });
+        say('Saved ' + r.created + ' new and updated ' + r.updated + (r.skipped ? ', skipped ' + r.skipped + ' that need fixes' : '') + '.');
+        $('results').style.display = 'none'; LAST = null; loadSummary(); loadWork();
+      } catch (e) { say(e.message, true); }
+    }
+    $('save-all').addEventListener('click', () => save(false));
+    $('save-clean').addEventListener('click', () => save(true));
+    $('refresh').addEventListener('click', () => { loadSummary(); loadWork(); });
+
+    loadEmrs(); loadSummary(); loadWork();
+  </script>
+</body>
+</html>
