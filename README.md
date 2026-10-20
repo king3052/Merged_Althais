@@ -2,7 +2,7 @@
 
 Althais is AI-assisted billing and coding software for small emergency and urgent care clinics. It suggests ICD-10 and CPT codes from clinical notes, checks claims before they go out (code format, NCCI bundling, missing information, filing deadlines), and runs the claim from creation through the clearinghouse.
 
-Live app: [app.althais.com](https://app.althais.com)
+Live app: [althais.com](https://althais.com)
 
 ## What's in the app
 
@@ -79,5 +79,6 @@ Althais handles protected health information. Use synthetic test data only, keep
 
 ## Team
 
-- Kanishk Yankarla, CTO
-- Kevin Qu, CEO
+- Kevin Qu
+- Kanishk Yankarla
+- Ammar Multani
