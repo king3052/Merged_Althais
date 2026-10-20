@@ -71,7 +71,7 @@ def _date(s):
 
 
 # ──────────────────────────────────────────────────────────────────────────
-#  Tables (created on startup; see BILLING_ACTIVATION.md for the list)
+#  Tables (created on startup; see docs/BILLING_ACTIVATION.md for the list)
 # ──────────────────────────────────────────────────────────────────────────
 class BillingProfile(Base):
     """The clinic's billing profile: one per clinic, versioned with rev."""

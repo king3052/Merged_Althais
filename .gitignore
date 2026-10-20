@@ -1,6 +1,30 @@
+# Secrets and local config
 .env
+.env.*
+!.env.example
+
+# Python
 venv/
 .venv/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Databases: local SQLite files stay out of git.
+# ncci_edits.db is the bundled NCCI edit table the app reads at runtime, so it is committed on purpose.
 *.db
+!ncci_edits.db
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and scratch
+*.log
+tmp/

@@ -10,7 +10,7 @@ form is the same form as before, and staff can switch to it at any step without 
    Insurance Card Front, Insurance Card Back, Photo ID, Intake Form, or Consent / Other, and the tag can be changed.
    Files are uploaded as soon as they're added and are stored encrypted.
 2. **Read.** `POST /api/intake/{id}/extract` sends each document to Claude (vision) with the prompt in
-   [prompts/patient_intake_extraction.md](prompts/patient_intake_extraction.md). For each field the model returns a value,
+   [prompts/patient_intake_extraction.md](../prompts/patient_intake_extraction.md). For each field the model returns a value,
    a confidence (high, medium or low) and the field's location on the page, or null when the field isn't there.
    `parse_extraction` normalizes dates, phone numbers, states and ZIP codes. A value with a bad format is kept but
    marked low confidence, and placeholders such as "N/A" are dropped. `merge_documents` combines the documents. When two
@@ -57,7 +57,7 @@ the file bytes, the content type and the tag, and returns the JSON text.
 
 ## Eligibility
 
-[eligibility.py](eligibility.py) defines an `EligibilityRequest` (payer, member ID, subscriber, DOB, relationship, plus
+[eligibility.py](../eligibility.py) defines an `EligibilityRequest` (payer, member ID, subscriber, DOB, relationship, plus
 the clinic's NPI and Tax ID) and an `EligibilityResult` (active, inactive, not_connected or error, with copay,
 deductible, deductible remaining and errors).
 

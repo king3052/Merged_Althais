@@ -11,7 +11,7 @@ ever sent. So:
                  readiness, and a production clinic can never get this connector.
 
 A real partner is added by writing a Connector subclass against that partner's documented API and registering it in
-PARTNERS, with its credentials in the environment (see BILLING_ACTIVATION.md). Endpoints are never guessed: until a
+PARTNERS, with its credentials in the environment (see docs/BILLING_ACTIVATION.md). Endpoints are never guessed: until a
 partner's documentation and credentials are in hand, its entry stays unimplemented and every capability stays False.
 
 Inbound status (enrollment decisions, 999/277CA acknowledgments, payer responses) arrives through
