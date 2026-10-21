@@ -37,6 +37,7 @@
     function detail() {
       if (Q === 'signoff') return visitDetail();
       var c = findClaim(sel);
+      if (c && V.seen) V.seen('claim', c.id, c.mrn);
       if (!c) return U.pane('Claim detail', '', '', '<div class="blank">' + (S.claims.length ? 'Select a claim.' : 'No claims yet. Claims are created when a provider signs a visit note with an accepted CPT code, or with New claim.') + '</div>');
       var p = D.pt(c.mrn) || {}, e = D.enc(c.encId), body = '', foot = '';
       var lines = '<div class="dp-sec"><div class="dp-h">Charge lines' + (['edits', 'ready'].indexOf(c.stage) >= 0 ? '<span class="end"><a href="#" id="addline">Add line</a></span>' : '') + '</div>' +

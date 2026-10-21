@@ -386,6 +386,7 @@
       U.on(app, '#newpt2', 'click', function () { V.patientForm(null, function (p) { location.href = V.chartHref(p.mrn); }); });
       return;
     }
+    if (V.seen) V.seen('patient', mrn);
     function draw() {
       var p = D.pt(mrn), encs = S.encs.filter(function (e) { return e.mrn === mrn; }).sort(function (a, b) { return b.date.localeCompare(a.date); });
       var claims = S.claims.filter(function (c) { return c.mrn === mrn; }), orders = [], vit = encs.filter(function (e) { return e.vitals && (e.vitals.bp || e.vitals.hr || e.vitals.wt); });

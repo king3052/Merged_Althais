@@ -12,11 +12,14 @@ Live app: [althais.com](https://althais.com)
 | EMR (new UI) | Schedule, encounters, patients, charts, documents | `templates/v4/`, `static/v4/`, `v4_preview.py` |
 | EMR (classic) | The original clinical workspace and Virtual SOAP | `templates/dashboard.html`, `main.py` |
 | Revenue | Claims, Claim Tracker, Denials, Payer Rules, Code a Note | `main.py`, `ncci_checker.py`, `code_validation.py`, `coding_rules.py`, `icd10.py` |
+| Connect EMR | Bring claims in from an EMR (athenahealth, DrChrono, Tebra, or any CSV/Excel export) and check them | `emr_connect.py`, `athenahealth.py`, `drchrono.py`, `tebra.py`, `static/v4/app8.js` |
+| Browser extension | Althais on top of the clinic's EMR: claim checks, coding a visit note, creating claims | `extension/` ([README](extension/README.md)), `extension_api.py`, test screens in `static/mock-emr/` |
 | Billing Activation | Gets a clinic ready to send claims; Claim.MD connection | `billing_activation.py`, `billing_registry.py`, `clearinghouse.py`, [docs](docs/BILLING_ACTIVATION.md) |
 | Patient intake | Scan To Autofill for new-patient registration | `patient_intake.py`, `eligibility.py`, [docs](docs/PATIENT_INTAKE.md) |
 | Staff portal | Onboarding, credentials, training, document review, offboarding | `staff_*.py`, `althais_training.py`, `training_content.py`, `practice_pages.py` |
 | Althea | Voice and chat assistant across the app | `staff_assistant.py`, `policy_knowledge.py`, `static/` |
 | Accounts | Sign-in, roles, teams, admin console | `auth.py`, `templates/admin_*.html` |
+| Access log | HIPAA audit trail: who opened or changed patient and billing data, sign-ins, exports; Settings › Access Log for clinic admins | `audit.py`, `static/v4/app9.js` |
 
 ## Tech stack
 
@@ -67,6 +70,7 @@ data/                   ICD-10-CM code list
 prompts/                AI prompts
 docs/                   Feature documentation
 tests/                  Pytest tests
+extension/              Chrome/Edge extension (load it unpacked from this folder)
 ```
 
 ## Working on the code
@@ -75,7 +79,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first change. In short: bran
 
 ## Data and privacy
 
-Althais handles protected health information. Use synthetic test data only, keep keys in environment variables, and talk to Kanishk before adding anything that stores, logs or sends patient data.
+Althais handles protected health information. Use synthetic test data only, keep keys in environment variables, and talk to Kanishk before adding anything that stores, logs or sends patient data. Every call to `/api/...` is recorded in the access log automatically (`audit.py`); new pages that open a single patient, visit or claim should call `V.seen(...)` so opening it is recorded too.
 
 ## Team
 

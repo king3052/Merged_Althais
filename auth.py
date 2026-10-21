@@ -16,6 +16,7 @@ Wire it into main.py with:
 """
 
 import os
+import re
 import datetime as dt
 from datetime import timezone, timedelta
 
@@ -187,6 +188,10 @@ class OrgClaim(Base):
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
+    # added for claims that arrive from an EMR export, a live EMR connection or the browser extension (emr_connect.py, extension_api.py)
+    dos: Mapped[str] = mapped_column(String(20), default="", nullable=True)          # date of service, YYYY-MM-DD
+    provider: Mapped[str] = mapped_column(String(255), default="", nullable=True)    # rendering provider name
+    source: Mapped[str] = mapped_column(String(32), default="", nullable=True)       # "" (typed in Althais) | "import" | "drchrono" | "athenahealth" | "tebra" | "extension"
 
 
 class UserActivity(Base):
@@ -301,6 +306,17 @@ try:
         _conn.commit()
 except Exception:
     pass  # column already exists
+
+# org_claims gained date of service, provider and source (same safe-ALTER pattern)
+for _ddl in ("ALTER TABLE org_claims ADD COLUMN dos VARCHAR(20) DEFAULT ''", "ALTER TABLE org_claims ADD COLUMN provider VARCHAR(255) DEFAULT ''",
+             "ALTER TABLE org_claims ADD COLUMN source VARCHAR(32) DEFAULT ''"):
+    try:
+        with engine.connect() as _conn:
+            _conn.execute(text(_ddl))
+            _conn.commit()
+    except Exception:
+        pass  # column already exists
+
 
 
 def get_db():
@@ -608,6 +624,7 @@ def register(
 
 @router.post("/login")
 def login(
+    request: Request,
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db),
@@ -617,6 +634,9 @@ def login(
     # Same generic message whether the email is unknown or the password is wrong,
     # so an attacker can't tell which emails have accounts.
     if not user or not verify_password(password, user.password_hash):
+        import audit
+        audit.record_request(request, user=user, email=email, action="sign_in_failed", what="session", status=401,
+                             detail="unknown email" if not user else "wrong password")
         return JSONResponse({"error": "Invalid email or password."}, status_code=401)
     if getattr(user, "active", 1) == 0:
         if getattr(user, "must_change_password", 0):
@@ -634,6 +654,8 @@ def login(
     user.last_login = dt.datetime.now(timezone.utc)
     record_activity(db, user, "login")
     db.commit()
+    import audit
+    audit.record_request(request, user=user, action="sign_in", what="session", detail="temporary password" if temp_login else "")
 
     # invited staff whose clinic only gives them the Staff Portal land there; everyone else in the app
     resp = JSONResponse({"ok": True, "redirect": "/set-password" if temp_login else "/portal" if getattr(user, "portal_only", 0) else "/overview"})

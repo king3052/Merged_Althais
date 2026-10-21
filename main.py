@@ -90,6 +90,19 @@ import more_pages
 app.include_router(more_pages.router)
 import demo_api
 app.include_router(demo_api.router)
+import emr_connect   # connect-your-EMR: upload an export or connect live (emr_connect.py)
+app.include_router(emr_connect.router)
+import drchrono      # DrChrono connection (OAuth + pull), see drchrono.py
+app.include_router(drchrono.router)
+import athenahealth   # athenahealth connection (2-legged OAuth + pull), see athenahealth.py
+app.include_router(athenahealth.router)
+import tebra   # Tebra (Kareo) PM connection, see tebra.py
+app.include_router(tebra.router)
+import extension_api   # browser extension: pairing, claim checks, coding a note, creating claims (extension_api.py)
+app.include_router(extension_api.router)
+import audit   # access log: who viewed or changed patient and billing data (audit.py)
+app.include_router(audit.router)
+app.middleware("http")(audit.middleware)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
@@ -298,9 +311,16 @@ async def admin_report(kind: str, request: Request):
     })
 
 
+def _audit_sign_out(request: Request) -> None:
+    who, behalf = audit._who_from_request(request)
+    if who is not None:
+        audit.record_request(request, user=who, email=who.email, action="sign_out", what="session", on_behalf=behalf)
+
+
 @app.post("/logout")
 async def logout(request: Request):
     """Clear the session cookie and serve the signed-out page."""
+    _audit_sign_out(request)
     resp = templates.TemplateResponse(request, "logout.html", {})
     resp.delete_cookie(COOKIE_NAME, path="/")
     return resp
@@ -309,6 +329,7 @@ async def logout(request: Request):
 @app.get("/logout")
 async def logout_get(request: Request):
     """Handle direct GET visits to /logout (e.g. typing the URL)."""
+    _audit_sign_out(request)
     resp = templates.TemplateResponse(request, "logout.html", {})
     resp.delete_cookie(COOKIE_NAME, path="/")
     return resp
@@ -625,7 +646,7 @@ _V4_EQUIV = {
     "/overview": "/v4/overview", "/emr": "/v4/emr/schedule", "/emr/patients": "/v4/emr/patients", "/emr/schedule": "/v4/emr/schedule",
     "/emr/encounter": "/v4/emr/encounter", "/emr/sign-off": "/v4/revenue/claims?q=ready", "/revenue/claims": "/v4/revenue/claims",
     "/revenue/denials": "/v4/revenue/denials", "/revenue/appeals": "/v4/revenue/denials", "/revenue/payer-intelligence": "/v4/revenue/payer-rules",
-    "/staff/team": "/v4/staff/team", "/settings": "/v4/settings", "/revenue/billing-activation": "/v4/revenue/billing-activation",
+    "/staff/team": "/v4/staff/team", "/settings": "/v4/settings", "/revenue/billing-activation": "/v4/revenue/billing-activation", "/revenue/connect": "/v4/revenue/connect",
 }
 
 
@@ -878,6 +899,7 @@ def _claim_dict(c: OrgClaim) -> dict:
         "flags": json.loads(c.flags or "[]"),
         "appealLetter": c.appeal_letter,
         "createdAt": c.created_at.isoformat() if c.created_at else "",
+        "dos": c.dos or "", "provider": c.provider or "", "source": c.source or "",
     }
 
 
@@ -1141,6 +1163,8 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
         row.score         = body.get("score", row.score)
         row.flags         = json.dumps(body.get("flags", json.loads(row.flags or "[]")))
         row.appeal_letter = body.get("appealLetter", row.appeal_letter)
+        row.dos           = body.get("dos", row.dos)
+        row.provider      = body.get("provider", row.provider)
     else:
         just_submitted = new_status == "Submitted"
         created_str = body.get("createdAt", "")
@@ -1156,6 +1180,7 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
             status=body.get("status", "Draft"), score=body.get("score"),
             flags=json.dumps(body.get("flags", [])),
             appeal_letter=body.get("appealLetter", ""), created_at=created,
+            dos=str(body.get("dos", "") or "")[:20], provider=str(body.get("provider", "") or "")[:255],
         ))
     # Track submissions on the user who actually submitted it - powers the
     # "Claims" stat on the admin Overview page, which was previously a

@@ -2101,10 +2101,16 @@ def next_batch_at() -> dt.datetime:
 @router.post("/api/billing/claims/queue")
 async def claims_queue(request: Request, c: Ctx = Depends(ctx)):
     """A provider signed the claim: it's approved and waits for Althais's end-of-day submission."""
-    if (c.user.role or "") not in ("admin", "biller", "provider"):
-        raise HTTPException(status_code=403, detail="Only the clinic's providers, billers and admins can approve claims.")
     body = await request.json()
     claim = body.get("claim") if isinstance(body.get("claim"), dict) else {}
+    return queue_claim(c, claim)
+
+
+def queue_claim(c: Ctx, claim: dict) -> dict:
+    """Approve one claim snapshot for the end-of-day batch (also used by the browser extension, extension_api.py).
+    The batch runs every check again and holds the claim, with its reasons, if anything isn't ready."""
+    if (c.user.role or "") not in ("admin", "biller", "provider"):
+        raise HTTPException(status_code=403, detail="Only the clinic's providers, billers and admins can approve claims.")
     cid = str(claim.get("claimId") or "")[:64]
     if not cid:
         raise HTTPException(status_code=400, detail="The claim has no claim number.")
