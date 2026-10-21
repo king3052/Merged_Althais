@@ -122,7 +122,7 @@ async function autoScan() {
     const outs = await scan(false, true);
     let own = ""; try { own = new URL(base()).host; } catch (e) {}
     const tu = scan.tabUrl ? new URL(scan.tabUrl) : null;
-    if (own && tu && tu.host === own && !tu.pathname.startsWith("/static/mock-emr/")) return;   // never auto-read Althais's own app pages (the test screens are fine)
+    if (own && tu && tu.host === own && !/^\/static\/mock-(emr|dental)\//.test(tu.pathname)) return;   // never auto-read Althais's own app pages (the test screens are fine)
     if (!outs.length) return;
     const out = merge(outs);
     if (!out.fields.cpt.length && !out.fields.icd.length) return;                    // not a claim screen

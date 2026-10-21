@@ -14,8 +14,12 @@ globalThis.__althaisParse = function (opts) {
   var KINDS = [
     ["claim_id", /^(claim|claim id|claim number|claim no|claim #|encounter id|encounter number|visit id|invoice number)$/],
     ["dos", /^(dos|date of service|service date|service dates?|billed service date|visit date|encounter date|from date)$/],
-    ["payer", /^(payer|payor|payer name|insurance|insurance name|insurance company|primary insurance|primary payer|primary insurance payer|carrier|plan)$/],
-    ["cpt", /^(cpt|cpt code|cpt codes|cpt hcpcs|hcpcs|procedure|procedures|procedure code|procedure codes|proc code|service code|charge code|code)$/],
+    ["payer", /^(payer|payor|payer name|insurance|insurance name|insurance company|primary insurance|primary payer|primary insurance payer|carrier|plan|dental plan|primary dental plan|dental insurance|primary dental insurance|dental carrier)$/],
+    ["cpt", /^(cpt|cpt code|cpt codes|cpt hcpcs|hcpcs|procedure|procedures|procedure code|procedure codes|proc code|proc|service code|charge code|code|cdt|cdt code|ada code)$/],
+    // dental screens: which tooth, which surfaces, which quadrant/arch each procedure is on
+    ["tooth", /^(tooth|tooth number|tooth no|tooth num|th|teeth)$/],
+    ["surface", /^(surface|surfaces|surf|tooth surface)$/],
+    ["quad", /^(quad|quadrant|arch)$/],
     ["icd", /^(icd|icd 10|icd10|icd 10 code|icd 10 codes|diagnosis|diagnoses|diagnosis code|diagnosis codes|dx|dx code|dx codes|dx codes icd 10)$/],
     ["modifiers", /^(modifier|modifiers|mod|mods|mod 1|mod 2|modifier 1|modifier 2)$/],
     ["amount", /^(charge|charges|charge amount|amount|total charge|total charges|billed|billed amount|fee|total)$/],
@@ -28,10 +32,10 @@ globalThis.__althaisParse = function (opts) {
     return null;
   }
 
-  var raw = { claim_id: [], dos: [], payer: [], cpt: [], icd: [], modifiers: [], amount: [], pos: [] };
+  var raw = { claim_id: [], dos: [], payer: [], cpt: [], icd: [], modifiers: [], amount: [], pos: [], tooth: [], surface: [], quad: [] };
   // Where each field lives on the page: refs = elements holding a value, labels = the label, empty input or table to point at
   // when the value is missing. Only kept in memory in this tab; never sent anywhere.
-  var refs = {}, labelEls = {}, empties = {}, lines = [];
+  var refs = {}, labelEls = {}, empties = {}, lines = [], rowRefs = [], toothColumn = false;
   var note = function (map, k, el) { if (!el || !el.nodeType) return; (map[k] = map[k] || []); if (map[k].indexOf(el) < 0 && map[k].length < 40) map[k].push(el); };
   var add = function (k, v, el, lab) {
     v = String(v || "").replace(/\s+/g, " ").trim();
@@ -87,18 +91,25 @@ globalThis.__althaisParse = function (opts) {
     // Cells can hold plain text or an input (editable claim screens); an empty input in a code column is a place to fill.
     var cell = function (td) { var c = td.querySelector("input, select, textarea"); return { v: c ? (c.tagName === "SELECT" ? (c.value ? txt(c.options[c.selectedIndex]) : "") : c.value) : txt(td), el: c || td, ctl: c }; };
     var hasCpt = cols.indexOf("cpt") >= 0;
+    if (hasCpt && cols.indexOf("tooth") >= 0) toothColumn = true;
     rows.forEach(function (tr, ri) {
-      var line = {};
+      var line = {}, els = {};
       Array.prototype.forEach.call(tr.children, function (td, i) {
         var k = cols[i];
         if (!k) { if (hasCpt && /^units?$/i.test(txt(head.children[i] || {}))) line.units = cell(td).v; return; }
         var c = cell(td);
+        if (k === "tooth" || k === "surface" || k === "quad") {            // per-line dental detail, kept with its procedure
+          if (!hasCpt) { add(k, c.v, c.el); return; }
+          line[k] = c.v; els[k] = c.el; note(refs, k, c.el); if (c.ctl && !c.v) note(empties, k, c.ctl);
+          return;
+        }
+        if (k === "cpt") els.cpt = c.el;
         if (c.ctl && !c.v && (k === "cpt" || k === "icd" || k === "modifiers")) { note(empties, k, c.ctl); return; }
         if (k === "claim_id" || k === "dos" || k === "payer" || k === "pos") { if (ri === 0) add(k, c.v, c.el); }
         else if (k === "amount") { tableAmounts.push(c.v); note(refs, k, c.el); line.charge = c.v; }
         else { add(k, c.v, c.el); if (k === "cpt") line.code = c.v; if (k === "modifiers" && c.v) line.mod = (line.mod ? line.mod + " " : "") + c.v; }
       });
-      if (line.code && lines.length < 12) lines.push(line);
+      if (line.code && lines.length < 40) { lines.push(line); rowRefs.push({ code: String(line.code).toUpperCase().trim(), tooth: String(line.tooth || "").replace(/[#\s]/g, "").toUpperCase(), els: els }); }
     });
   });
 
@@ -185,11 +196,18 @@ globalThis.__althaisParse = function (opts) {
     diag = { top: window === window.top, path: location.origin + location.pathname, query: qnames, labels: labels, inputs: inputs, tableHeaders: heads,
       counts: { tables: document.querySelectorAll("table").length, iframes: document.querySelectorAll("iframe, frame").length, inputs: controls.length, shadowRoots: shadow, textLength: (document.body && document.body.innerText || "").length } };
   }
-  if (opts.keep) globalThis.__althaisRefs = { refs: refs, labels: labelEls, empties: empties };
+  if (opts.keep) globalThis.__althaisRefs = { refs: refs, labels: labelEls, empties: empties, rows: rowRefs };
   fields.lines = lines.map(function (l) {
     var code = (String(l.code).toUpperCase().match(CPT) || [""])[0];
-    return { code: code, mod: String(l.mod || "").toUpperCase().replace(/[^A-Z0-9 ]/g, "").trim().split(/\s+/)[0] || "", units: parseInt(l.units, 10) || 1, charge: l.charge ? Math.round((num(l.charge) || 0) * 100) / 100 : "" };
+    var out = { code: code, mod: String(l.mod || "").toUpperCase().replace(/[^A-Z0-9 ]/g, "").trim().split(/\s+/)[0] || "", units: parseInt(l.units, 10) || 1, charge: l.charge ? Math.round((num(l.charge) || 0) * 100) / 100 : "" };
+    if (toothColumn || l.surface || l.quad) {
+      out.tooth = String(l.tooth || "").replace(/[#\s]/g, "").toUpperCase().slice(0, 4);
+      out.surface = String(l.surface || "").replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 7);
+      out.quad = String(l.quad || "").replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4);
+    }
+    return out;
   }).filter(function (l) { return l.code; });
+  fields.tooth_column = toothColumn;
   return { fields: fields, found: found, guessed: guessed, diag: diag, title: (document.title || "").slice(0, 80), host: location.hostname };
 };
 globalThis.__althaisParse({ diag: !!globalThis.__althaisDiag, keep: true })

@@ -8,6 +8,10 @@ A small Althais badge that sits on top of the clinic's EMR. Its card has three t
 
 A side panel holds the full check breakdown, manual editing and settings.
 
+**Dental practices** get the same three tabs with dental rules. The badge reads the tooth, surface and quadrant of each procedure and catches what dental plans deny for: a filling code that doesn't match its surfaces, an occlusal surface on a front tooth, a front-tooth code on a molar, a missing tooth number or quadrant, an extraction and a filling on the same tooth, two exams or a cleaning with scaling and root planing at one visit, and crowns, root canals, scaling and root planing or surgical extractions that need X-rays, a perio chart or a narrative. Code note recognizes a dental note and suggests CDT codes with tooth and surfaces; Fill into EMR puts each code in a row with its tooth and surfaces; Create claim builds an ADA dental claim. Dental claims are held in Althais until its dental (837D) clearinghouse route is set up.
+
+The badge only works on web-based practice systems (Dentrix Ascend, Denticon, Curve, tab32, Cloud 9). Dentrix, Eaglesoft and Open Dental are Windows programs, so for those clinics use an uploaded report in Connect EMR, or a live connection once Althais has the vendor's API access.
+
 ## Install (Chrome or Edge)
 1. Open `chrome://extensions` (Edge: `edge://extensions`) and turn on **Developer mode**.
 2. Press **Load unpacked** and choose this `extension` folder. Pin the Althais icon from the puzzle-piece menu.
@@ -23,6 +27,8 @@ A side panel holds the full check breakdown, manual editing and settings.
 
 ## Test it with fake patients
 Open `/static/mock-emr/index.html` on your Althais server. Seven synthetic claims each carry a known problem (no diagnosis, an ICD-9 code, NCCI bundling, a $0 charge, an aging visit, no payer). Click through them and watch the badge.
+
+Dental: open `/static/mock-dental/index.html`. Seven synthetic dental claims each carry a known problem; claim 60002's clinical note has two fillings that aren't on the claim, for trying Code note and Fill into EMR.
 
 To try the other tabs: open claim 50002 (no diagnosis), switch the mock EMR to **Visit note**, and press **Code note › Code this note**. Switch back to **Claim** and press **Fill into EMR**: the diagnosis goes into the first empty row and the badge turns to Ready to submit. Then **Use in claim** to build the claim, and **Approve for sending**.
 

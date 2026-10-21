@@ -13,8 +13,10 @@ const set = (obj) => new Promise((r) => chrome.storage.local.set(obj, r));
 
 // ---------- where the overlay runs ----------
 // Sites the biller allowed (optional host permissions), plus Althais's own synthetic test screens.
-const MOCK = ["https://web-production-8fe4.up.railway.app/static/mock-emr/*", "https://*.althais.com/static/mock-emr/*",
-  "http://localhost/static/mock-emr/*", "http://127.0.0.1/static/mock-emr/*"];
+// Althais's own synthetic test screens (a medical EMR and a dental practice system)
+const MOCK = ["mock-emr", "mock-dental"].flatMap((d) => ["https://web-production-8fe4.up.railway.app/static/" + d + "/*", "https://*.althais.com/static/" + d + "/*",
+  "http://localhost/static/" + d + "/*", "http://127.0.0.1/static/" + d + "/*"]);
+const isMock = (path) => /^\/static\/mock-(emr|dental)\//.test(path);
 const BUILT_IN = new Set(chrome.runtime.getManifest().host_permissions || []);
 const SCRIPT_ID = "althais-overlay";
 
@@ -43,7 +45,7 @@ async function injectOpenTabs() {
   const tabsNow = await chrome.tabs.query({});
   for (const t of tabsNow) {
     let u; try { u = new URL(t.url); } catch (e) { continue; }
-    if (allowed.has(u.origin + "/*") || u.pathname.startsWith("/static/mock-emr/")) injectInto(t.id);
+    if (allowed.has(u.origin + "/*") || isMock(u.pathname)) injectInto(t.id);
   }
 }
 chrome.runtime.onInstalled.addListener(async () => { await syncScripts(); injectOpenTabs(); });
@@ -100,7 +102,8 @@ async function check(cfg, fields) {
   let r;
   try {
     r = await fetch(base + "/api/extension/check", { method: "POST", headers: { Authorization: "Bearer " + cfg.token, "Content-Type": "application/json" },
-      body: JSON.stringify({ claim: { claim_id: fields.claim_id, dos: fields.dos, payer: fields.payer, cpt: fields.cpt, icd: fields.icd, modifiers: fields.modifiers, amount: fields.amount } }) });
+      body: JSON.stringify({ claim: { claim_id: fields.claim_id, dos: fields.dos, payer: fields.payer, cpt: fields.cpt, icd: fields.icd, modifiers: fields.modifiers, amount: fields.amount,
+      lines: (fields.lines || []).filter((l) => "tooth" in l), tooth_column: !!fields.tooth_column } }) });
   } catch (e) { throw Object.assign(new Error("Couldn't reach Althais. Check your connection."), { kind: "offline" }); }
   let j = {};
   try { j = await r.json(); } catch (e) {}

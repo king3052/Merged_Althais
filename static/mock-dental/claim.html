@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dental insurance claim</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:14px 18px;font:13px/1.4 "Segoe UI",Tahoma,Arial,sans-serif;color:#1b2a2c;background:#fff}
+.banner{display:flex;flex-wrap:wrap;gap:22px;background:#e6f1f1;border:1px solid #c9dcdc;padding:8px 12px;margin-bottom:12px}
+.banner b{font-size:14px}
+h2{font-size:15px;margin:14px 0 8px;border-bottom:2px solid #138086;padding-bottom:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 18px}
+.f label{display:block;font-size:11px;color:#5b6e70;font-weight:bold;text-transform:uppercase}
+.f input,.f select{width:100%;padding:5px 6px;border:1px solid #b9cccc;font:inherit}
+table{border-collapse:collapse;width:100%;margin-top:4px}th,td{border:1px solid #d3dfdf;padding:4px 6px;text-align:left}th{background:#f1f6f6;font-size:12px}
+td input{width:100%;border:1px solid #b9cccc;padding:3px 5px;font:inherit}td.n input{text-align:right}
+.odo{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;max-width:640px;margin:4px 0 2px}
+.odo div{border:1px solid #c9dcdc;border-radius:5px 5px 9px 9px;text-align:center;font-size:10.5px;padding:5px 0;color:#5b6e70;background:#fbfdfd}
+.odo div.lo{border-radius:9px 9px 5px 5px}
+.odo div.tx{background:#138086;color:#fff;border-color:#138086;font-weight:bold}
+.legend{font-size:11.5px;color:#5b6e70}
+.btns{margin-top:14px;display:flex;gap:8px}.btns button{padding:6px 14px;border:1px solid #8fb0b0;background:#f4f8f8;font:inherit}
+.att{margin-top:10px;color:#5b6e70;font-size:12px}
+</style></head>
+<body>
+<div class="banner" id="banner"></div>
+<h2>Insurance claim</h2>
+<div class="grid">
+  <div class="f"><label for="claimno">Claim Number</label><input id="claimno" readonly></div>
+  <div class="f"><label for="sdate">Date of Service</label><input id="sdate"></div>
+  <div class="f"><label for="ins">Primary Dental Plan</label><select id="ins"></select></div>
+  <div class="f"><label for="memid">Subscriber ID</label><input id="memid"></div>
+  <div class="f"><label for="prov">Treating Dentist</label><input id="prov"></div>
+  <div class="f"><label for="pos">Place of Service</label><input id="pos" value="11"></div>
+</div>
+<h2>Teeth on this claim</h2>
+<div class="odo" id="odo"></div>
+<div class="legend">Universal numbering. Highlighted teeth have a procedure on this claim.</div>
+<h2>Procedures</h2>
+<table id="px"><thead><tr><th>Tooth</th><th>Surface</th><th>Quadrant</th><th>Proc Code</th><th>Label</th><th>Fee</th></tr></thead><tbody></tbody></table>
+<div class="att">Attachments: none. X-rays and perio charts are sent with the claim through the attachment service.</div>
+<div class="btns"><button type="button">Save</button><button type="button">Hold</button><button type="button" id="send">Send claim</button></div>
+<p id="sent" style="display:none;margin-top:10px;color:#5b6e70">Synthetic screen: nothing was sent.</p>
+<script src="data.js"></script>
+<script>
+(function () {
+  var id = new URLSearchParams(location.search).get('claimid');
+  var c = MOCK_DENTAL.filter(function (x) { return x.id === id; })[0] || MOCK_DENTAL[0];
+  var esc = function (s) { var e = document.createElement('span'); e.textContent = s == null ? '' : String(s); return e.innerHTML; };
+  var inp = function (v) { return '<input value="' + esc(v) + '">'; };
+  document.getElementById('banner').innerHTML = '<b>' + esc(c.patient) + '</b><span>DOB ' + esc(c.dob) + '</span><span>Sex ' + esc(c.sex) + '</span><span>Chart # D' + esc(c.id) + '</span>';
+  document.getElementById('claimno').value = c.id;
+  document.getElementById('sdate').value = c.dos;
+  document.getElementById('memid').value = c.memberId || '';
+  document.getElementById('prov').value = c.dentist;
+  var ins = document.getElementById('ins');
+  ins.innerHTML = '<option value="">(no dental plan on file)</option>' + (c.payer ? '<option selected>' + esc(c.payer) + '</option>' : '');
+  // the tooth chart follows the procedure rows, like a practice system's odontogram
+  function drawTeeth() {
+    var teeth = {};
+    document.querySelectorAll('#px tbody tr').forEach(function (tr) { var v = (tr.querySelector('td input') || {}).value; if (v) teeth[String(v).replace('#', '').trim()] = 1; });
+    var odo = '';
+    for (var t = 1; t <= 16; t++) odo += '<div class="' + (teeth[t] ? 'tx' : '') + '">' + t + '</div>';
+    for (var b = 32; b >= 17; b--) odo += '<div class="lo ' + (teeth[b] ? 'tx' : '') + '">' + b + '</div>';
+    document.getElementById('odo').innerHTML = odo;
+  }
+  var rows = c.procs.slice(); rows.push(['', '', '', '', '', '']); rows.push(['', '', '', '', '', '']);
+  document.querySelector('#px tbody').innerHTML = rows.map(function (p) {
+    return '<tr><td>' + inp(p[1]) + '</td><td>' + inp(p[2]) + '</td><td>' + inp(p[3]) + '</td><td>' + inp(p[0]) + '</td><td>' + esc(p[4]) + '</td><td class="n">' + inp(p[5] === '' ? '' : Number(p[5]).toFixed(2)) + '</td></tr>';
+  }).join('');
+  drawTeeth();
+  document.getElementById('px').addEventListener('input', drawTeeth);
+  document.getElementById('send').onclick = function () { document.getElementById('sent').style.display = 'block'; };
+})();
+</script>
+</body></html>

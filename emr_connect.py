@@ -41,6 +41,7 @@ from sqlalchemy.orm import Session
 
 from auth import (OrgClaim, SessionLocal, _org_namespace, current_user, ensure_area, ensure_product, get_db,
                   record_activity, require_biller, require_user)
+import dental_rules
 from code_validation import check_code_format
 from ncci_checker import check_claim_ncci
 
@@ -111,10 +112,72 @@ EMRS = {
         "live_state": "A practice's Tebra admin generates a Customer Key; the clinic connects Althais itself.",
         "access": "Customer Key (self-service)",
     },
+    # ── dental practice software ── live connections need each vendor's developer or partner program; until then a
+    # practice uploads a procedure/claims report, and on the web-based systems the browser extension works on top.
+    "opendental": {
+        "label": "Open Dental", "segment": "Dental",
+        "live": None,
+        "live_state": "Next dental system to connect. Open Dental has an open API with a self-serve developer portal (a monthly fee per location). Upload a procedures report now.",
+        "access": "Self-serve API (per-location fee)",
+    },
+    "dentrix": {
+        "label": "Dentrix", "segment": "Dental",
+        "live": None,
+        "live_state": "Desktop software, so the browser extension can't sit on top of it. A live connection needs the Dentrix Developer Program (application, review and a fee). Upload a Dentrix procedures or claims report now.",
+        "access": "Developer program (paid, approval)",
+    },
+    "eaglesoft": {
+        "label": "Eaglesoft", "segment": "Dental",
+        "live": None,
+        "live_state": "Desktop software. A live connection needs a partnership with Patterson Dental. Upload an Eaglesoft report now.",
+        "access": "Partner program (Patterson)",
+    },
+    "dentrix_ascend": {
+        "label": "Dentrix Ascend", "segment": "Dental",
+        "live": None,
+        "live_state": "Web-based, so the Althais browser extension works on top of it today. A live connection needs approval in the Dentrix Ascend API Exchange.",
+        "access": "API Exchange (application) + browser extension",
+    },
+    "denticon": {
+        "label": "Denticon", "segment": "Dental",
+        "live": None,
+        "live_state": "Web-based, so the Althais browser extension works on top of it today. Planet DDS has no public API; live data needs a partner integration.",
+        "access": "Browser extension; partner program",
+    },
+    "curve": {
+        "label": "Curve Dental", "segment": "Dental",
+        "live": None,
+        "live_state": "Web-based, so the Althais browser extension works on top of it today. A live connection needs Curve's partner program.",
+        "access": "Browser extension; partner program",
+    },
+    "carestream": {
+        "label": "CS PracticeWorks / CS R4+", "segment": "Dental",
+        "live": None,
+        "live_state": "Desktop software. Live data needs the vendor's partner program. Upload a procedures report now.",
+        "access": "Partner program",
+    },
+    "tab32": {
+        "label": "tab32", "segment": "Dental",
+        "live": None,
+        "live_state": "Web-based, so the Althais browser extension works on top of it today. Ask tab32 about API access for a live connection.",
+        "access": "Browser extension; API by request",
+    },
+    "dolphin": {
+        "label": "Dolphin (orthodontics)", "segment": "Dental",
+        "live": None,
+        "live_state": "Orthodontic practice software. Live data needs the vendor's partner program. Upload a report now.",
+        "access": "Partner program",
+    },
+    "cloud9": {
+        "label": "Cloud 9 (orthodontics)", "segment": "Dental",
+        "live": None,
+        "live_state": "Web-based orthodontic software, so the Althais browser extension works on top of it today. Live data needs a Planet DDS partner integration.",
+        "access": "Browser extension; partner program",
+    },
     "other": {
         "label": "Other EMR", "segment": "Any system that can export a charges report",
         "live": None,
-        "live_state": "Upload works with any export that has patient, payer, date, CPT and diagnosis columns.",
+        "live_state": "Upload works with any export that has patient, payer, date, CPT and diagnosis columns. Dental reports also need tooth and surface columns.",
         "access": "Upload only",
     },
 }
@@ -136,6 +199,7 @@ def emr_cards(db=None, org=None):
 # ──────────────────────────────────────────────────────────────────────────
 
 CANON = ("claim_id", "patient_name", "mrn", "dob", "dos", "payer", "cpt", "icd", "modifiers", "amount", "provider", "pos")
+# dental exports also carry, per procedure line: tooth, surface, quadrant (claims get `lines`, see dental_rules.py)
 
 # Header names seen in practice-management exports, lower-cased with punctuation stripped. First match wins.
 # These are generic aliases, not any one vendor's documented export format. If a header isn't recognized the preview
@@ -149,12 +213,16 @@ ALIASES = {
     "dob":          ["dob", "dateofbirth", "birthdate", "birthday"],
     "dos":          ["dos", "dateofservice", "servicedate", "visitdate", "encounterdate", "date", "fromdate", "servicefromdate"],
     "payer":        ["payer", "payername", "insurance", "insurancename", "primaryinsurance", "primarypayer", "carrier", "plan", "insurancecompany"],
-    "cpt":          ["cpt", "cptcode", "cptcodes", "procedure", "procedurecode", "procedurecodes", "hcpcs", "code", "cptcodehcpcs", "service"],
+    "cpt":          ["cpt", "cptcode", "cptcodes", "procedure", "procedurecode", "procedurecodes", "hcpcs", "code", "cptcodehcpcs", "service",
+                     "cdt", "cdtcode", "adacode", "proccode", "proc", "procedurecodecdt"],
     "icd":          ["icd", "icd10", "icd10code", "icd10codes", "diagnosis", "diagnosiscode", "diagnosiscodes", "dx", "dxcodes", "dx1"],
     "modifiers":    ["modifier", "modifiers", "mod", "mod1"],
     "amount":       ["amount", "charge", "charges", "chargeamount", "billed", "billedamount", "totalcharge", "totalcharges", "fee", "price", "lineamount"],
     "provider":     ["provider", "providername", "renderingprovider", "doctor", "physician", "clinician"],
     "pos":          ["pos", "placeofservice", "placeofservicecode"],
+    "tooth":        ["tooth", "toothnumber", "toothno", "toothnum", "th", "teeth"],
+    "surface":      ["surface", "surfaces", "surf", "toothsurface"],
+    "quad":         ["quadrant", "quad", "arch", "area", "toothrange"],
 }
 
 
@@ -288,10 +356,15 @@ def to_canonical_rows(headers, rows):
         if key not in grouped:
             grouped[key] = {"claim_id": cid, "patient_name": name, "mrn": _s(cell(r, "mrn")), "dob": _date(cell(r, "dob")),
                             "dos": dos, "payer": _s(cell(r, "payer")), "cpt": [], "icd": [], "modifiers": [], "amount": 0.0,
-                            "provider": _s(cell(r, "provider")), "pos": _s(cell(r, "pos")), "rows": [], "dos_raw": _s(cell(r, "dos"))}
+                            "provider": _s(cell(r, "provider")), "pos": _s(cell(r, "pos")), "rows": [], "dos_raw": _s(cell(r, "dos")),
+                            "lines": [], "tooth_column": "tooth" in idx}
             order.append(key)
         g = grouped[key]
         g["rows"].append(n)
+        if "tooth" in idx or "surface" in idx or "quad" in idx:       # dental export: keep each procedure with its tooth
+            for code in cpts:
+                g["lines"].append({"code": code, "tooth": _s(cell(r, "tooth")), "surface": _s(cell(r, "surface")), "quad": _s(cell(r, "quad")),
+                                   "units": 1, "charge": _money(cell(r, "amount")) if len(cpts) == 1 else 0.0})
         for c in cpts:
             if c not in g["cpt"]:
                 g["cpt"].append(c)
@@ -322,6 +395,7 @@ def claim_check(c: dict, today: dt.date = None, seen_ids=None, existing_ids=None
         out.append({"severity": sev, "code": code, "message": msg})
 
     cpts, icds = c.get("cpt") or [], c.get("icd") or []
+    dental = dental_rules.is_dental(c)
     if not cpts:
         add("error", "no_cpt", "No procedure (CPT) code on this claim.")
     for code in cpts:
@@ -332,7 +406,7 @@ def claim_check(c: dict, today: dt.date = None, seen_ids=None, existing_ids=None
         ok, warn = check_code_format(code, "ICD-10")
         if not ok:
             add("error", "bad_icd", warn)
-    if cpts and not icds:
+    if cpts and not icds and not dental:      # dental claims (ADA form) usually don't need a diagnosis code
         add("error", "no_dx", "No diagnosis (ICD-10) code. Payers deny procedures that have no diagnosis to support them.")
     if not c.get("payer"):
         add("error", "no_payer", "No payer on this claim, so it can't be sent or checked against payer rules.")
@@ -355,12 +429,15 @@ def claim_check(c: dict, today: dt.date = None, seen_ids=None, existing_ids=None
         add("warn", "no_charge", "No charge amount (or zero). Check the fee schedule.")
     if c.get("dob") is not None and c.get("dob") == "" and c.get("patient_name"):
         add("info", "no_dob", "No date of birth in the file, so eligibility can't be checked from it.")
-    # NCCI bundling between the procedure codes (existing Althais edit table)
-    try:
-        for f in check_claim_ncci(cpts):
-            add("warn" if f.get("modifier_allowed") else "error", "ncci", f["message"])
-    except Exception:
-        pass
+    # NCCI bundling between the procedure codes (existing Althais edit table); medical claims only
+    if not dental:
+        try:
+            for f in check_claim_ncci(cpts):
+                add("warn" if f.get("modifier_allowed") else "error", "ncci", f["message"])
+        except Exception:
+            pass
+    else:
+        out.extend(dental_rules.check(c))
     # duplicates
     cid = c.get("claim_id")
     if cid and seen_ids is not None:
@@ -393,8 +470,9 @@ STATUS_FOR = {"clean": "Ready to Submit", "review": "Pending Review", "fix": "Dr
 
 def run_checks(claims, existing_ids=None):
     seen, out = set(), []
-    for c in claims:
-        flags = claim_check(c, seen_ids=seen, existing_ids=existing_ids)
+    history = dental_rules.history_flags(claims)          # dental frequency limits across the visits in this batch
+    for i, c in enumerate(claims):
+        flags = claim_check(c, seen_ids=seen, existing_ids=existing_ids) + history.get(i, [])
         out.append({**c, "flags": flags, "score": score_for(flags), "verdict": verdict_for(flags)})
     return out
 
@@ -424,10 +502,25 @@ def _existing_ids(db, org):
     return {r for (r,) in db.execute(sa_select(OrgClaim.claim_id).where(OrgClaim.org_key == org)).all()}
 
 
+def _lines(v):
+    """Procedure lines (dental): code, tooth, surface, quadrant, units, charge. Trimmed and bounded."""
+    out = []
+    for l in (v if isinstance(v, list) else [])[:60]:
+        if not isinstance(l, dict) or not _s(l.get("code")):
+            continue
+        try:
+            units = max(1, min(99, int(l.get("units") or 1)))
+        except (TypeError, ValueError):
+            units = 1
+        out.append({"code": _s(l.get("code")).upper()[:8], "tooth": _s(l.get("tooth"))[:4], "surface": _s(l.get("surface"))[:7].upper(),
+                    "quad": _s(l.get("quad"))[:5].upper(), "units": units, "charge": _money(l.get("charge"))})
+    return out
+
+
 def _public(c):
     """What the browser gets back for each claim."""
     return {k: c.get(k) for k in ("claim_id", "patient_name", "mrn", "dob", "dos", "payer", "cpt", "icd", "modifiers", "amount",
-                                   "provider", "pos", "dos_raw", "rows", "flags", "score", "verdict")}
+                                   "provider", "pos", "dos_raw", "rows", "flags", "score", "verdict", "lines", "tooth_column")}
 
 
 @router.get("/api/integrations/emrs")
@@ -437,7 +530,13 @@ def api_emrs(user=Depends(require_user), db: Session = Depends(get_db)):
 
 
 @router.get("/api/integrations/template.csv")
-def api_template(user=Depends(require_user)):
+def api_template(kind: str = "", user=Depends(require_user)):
+    if kind == "dental":
+        body = ("claim_id,patient_name,mrn,dob,date_of_service,payer,cdt,tooth,surface,quadrant,charge,provider\n"
+                "SAMPLE-D1,Sample Patient,MRN-0001,1980-01-31,2026-10-01,Sample Dental Plan,D0120,,,,65.00,Dr Example\n"
+                "SAMPLE-D1,Sample Patient,MRN-0001,1980-01-31,2026-10-01,Sample Dental Plan,D2392,14,MO,,210.00,Dr Example\n"
+                "SAMPLE-D2,Sample Patient,MRN-0001,1980-01-31,2026-10-08,Sample Dental Plan,D4341,,,UR,240.00,Dr Example\n")
+        return Response(body, media_type="text/csv", headers={"Content-Disposition": 'attachment; filename="althais-dental-claims-template.csv"'})
     body = ("claim_id,patient_name,mrn,dob,date_of_service,payer,cpt,icd10,modifier,charge,provider\n"
             "SAMPLE-001,Sample Patient,MRN-0001,1980-01-31,2026-10-01,Sample Payer,99284,R07.9,25,450.00,Dr Example\n"
             "SAMPLE-001,Sample Patient,MRN-0001,1980-01-31,2026-10-01,Sample Payer,93005,R07.9,,85.00,Dr Example\n")
@@ -487,7 +586,8 @@ async def api_commit(request: Request, user=Depends(require_biller), db: Session
                        "cpt": [c for c in map(lambda x: _s(x).upper(), it.get("cpt") or [])][:40],
                        "icd": [c for c in map(lambda x: _s(x).upper(), it.get("icd") or [])][:40],
                        "modifiers": [c for c in map(lambda x: _s(x).upper(), it.get("modifiers") or [])][:20],
-                       "amount": _money(it.get("amount")), "provider": _s(it.get("provider"))[:255], "pos": _s(it.get("pos"))[:8]})
+                       "amount": _money(it.get("amount")), "provider": _s(it.get("provider"))[:255], "pos": _s(it.get("pos"))[:8],
+                       "lines": _lines(it.get("lines")), "tooth_column": bool(it.get("tooth_column", True))})
     checked = run_checks(claims)    # duplicates against saved claims are updated in place below, not rejected
     made = updated = skipped = 0
     for i, c in enumerate(checked, start=1):
@@ -496,7 +596,11 @@ async def api_commit(request: Request, user=Depends(require_biller), db: Session
             continue
         cid = c["claim_id"] or f"IMP-{dt.datetime.now(timezone.utc):%y%m%d}-{i:04d}"
         flags = [f"{f['severity'].upper()}: {f['message']}" for f in c["flags"] if f["severity"] != "info"]
-        codes = ([{"code": x, "type": "CPT"} for x in c["cpt"]] + [{"code": x, "type": "ICD-10"} for x in c["icd"]])
+        if c.get("lines"):        # dental: each procedure with its tooth, surface and quadrant
+            codes = [{"code": l["code"], "type": "CDT" if dental_rules.CDT.match(l["code"]) else "CPT", "tooth": l["tooth"], "surface": l["surface"],
+                      "quad": l["quad"], "charge": l["charge"]} for l in c["lines"]] + [{"code": x, "type": "ICD-10"} for x in c["icd"]]
+        else:
+            codes = ([{"code": x, "type": "CPT"} for x in c["cpt"]] + [{"code": x, "type": "ICD-10"} for x in c["icd"]])
         note = f"Imported from {EMRS[emr]['label']} export. Service date {c['dos'] or 'unknown'}." + (f" Provider: {c['provider']}." if c["provider"] else "")
         row = db.scalar(sa_select(OrgClaim).where(OrgClaim.org_key == org, OrgClaim.claim_id == cid))
         # never move a claim that has already gone out back to Draft
