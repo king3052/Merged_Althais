@@ -20,7 +20,8 @@ Who can read it
   A clinic's admins see their own clinic's log on Settings > Access Log (/v4/settings/access-log), with filters and a
   CSV export. Exporting is itself recorded.
 
-Writing the log never breaks a request: if a write fails, the request still goes through and the error is printed.
+Writing the log never breaks or slows a request: rows from the middleware are queued and written by one background
+thread, and if a write fails the error is printed.
 """
 import csv
 import datetime as dt
@@ -28,6 +29,7 @@ import hashlib
 import hmac
 import io
 import json
+import queue
 import re
 import threading
 import time
@@ -141,6 +143,36 @@ def record(db: Session | None = None, *, user=None, email: str = "", org_key: st
         print(f"[ACCESS LOG] could not record {action} {path}: {e}")
 
 
+# Rows from the middleware are written by one background thread, so a request never waits on the log
+# (and, on SQLite in development, log writes never compete with each other for the database lock).
+_queue: "queue.Queue" = queue.Queue(maxsize=10000)
+
+
+def _writer():
+    while True:
+        kw = _queue.get()
+        try:
+            record(None, **kw)
+        finally:
+            _queue.task_done()
+
+
+threading.Thread(target=_writer, name="access-log-writer", daemon=True).start()
+
+
+def later(**kw) -> None:
+    """Queue a row for the background writer. If the queue is ever full, write it here instead of dropping it."""
+    try:
+        _queue.put_nowait(kw)
+    except queue.Full:
+        record(None, **kw)
+
+
+def drain() -> None:
+    """Wait until every queued row is written (tests, and before reading the log)."""
+    _queue.join()
+
+
 # What the request was about, from its address. First match wins.
 _WHAT = [
     (re.compile(r"^/api/patients/([^/]+)"), "patient"), (re.compile(r"^/api/patients"), "patients"),
@@ -232,10 +264,8 @@ async def middleware(request: Request, call_next):
         action = _action(method, path)
         if action == "view" and _recent((who.id, method, path), READ_WINDOW):
             return response
-        import asyncio
-        await asyncio.to_thread(record, None, user=who, org_key=who._org, action=action, what=what, record_id=rid,
-                                method=method, path=path, status=response.status_code, ip=client_ip(request),
-                                agent=request.headers.get("user-agent", ""), on_behalf=behalf)
+        later(user=who, org_key=who._org, action=action, what=what, record_id=rid, method=method, path=path,
+              status=response.status_code, ip=client_ip(request), agent=request.headers.get("user-agent", ""), on_behalf=behalf)
     except Exception as e:
         print(f"[ACCESS LOG] {e}")
     return response
@@ -292,6 +322,7 @@ def list_log(request: Request, user: User = Depends(require_user), db: Session =
     bad = _admin(user)
     if bad:
         return bad
+    drain()
     p = dict(request.query_params)
     rows = db.scalars(_query(db, user, p).limit(MAX_ROWS + 1)).all()
     org = _org_namespace(user)
@@ -304,6 +335,7 @@ def export_log(request: Request, user: User = Depends(require_user), db: Session
     bad = _admin(user)
     if bad:
         return bad
+    drain()
     rows = db.scalars(_query(db, user, dict(request.query_params)).limit(100000)).all()
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -321,6 +353,7 @@ def verify_log(user: User = Depends(require_user), db: Session = Depends(get_db)
     bad = _admin(user)
     if bad:
         return bad
+    drain()
     n, altered = 0, []
     for r in db.scalars(select(AccessLog).where(AccessLog.org_key == _org_namespace(user)).order_by(AccessLog.id)).yield_per(1000):
         n += 1
