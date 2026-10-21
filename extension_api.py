@@ -313,6 +313,32 @@ async def code_note(request: Request, authorization: str = Header(default=""), d
     return JSONResponse({"codes": codes}, headers=NO_STORE)
 
 
+def _ensure_patient(db, ns: str, snap: dict) -> None:
+    """The claim's patient, so Althais shows the claim with the patient's date of birth, sex and member ID. A patient the
+    clinic already has is never overwritten; only empty fields are filled in."""
+    from auth import OrgPatient
+    mrn = (snap.get("mrn") or snap.get("insuredId") or "")[:64]
+    if not mrn or not snap.get("patient"):
+        return
+    p = db.scalar(sa_select(OrgPatient).where(OrgPatient.org_key == ns, OrgPatient.mrn == mrn))
+    if p is None:
+        p = OrgPatient(org_key=ns, mrn=mrn, name=snap["patient"][:255], dob=snap.get("dob") or "", sex=(snap.get("sex") or "")[:1].upper(),
+                       payer=snap.get("payer", "")[:128], provider=snap.get("provider", "")[:255], data="{}")
+        db.add(p)
+    else:
+        p.dob, p.sex, p.payer = p.dob or snap.get("dob") or "", p.sex or (snap.get("sex") or "")[:1].upper(), p.payer or snap.get("payer", "")[:128]
+    try:
+        data = json.loads(p.data or "{}")
+    except ValueError:
+        data = {}
+    if not data.get("member") and snap.get("insuredId"):
+        data["member"] = snap["insuredId"]
+    if not data.get("insPrimary") and snap.get("payer"):
+        data["insPrimary"] = snap["payer"]
+    data.setdefault("source", "extension")
+    p.data = json.dumps(data)
+
+
 def _dental_findings(snap: dict) -> list:
     """For a dental claim: what the dental rules would flag (surfaces, tooth type, same-tooth conflicts, X-rays to attach...)."""
     import dental_rules
@@ -390,13 +416,14 @@ async def claim(request: Request, authorization: str = Header(default=""), db: S
         return JSONResponse(dict(out, error="Fix these before approving: " + " ".join(problems)), status_code=400, headers=NO_STORE)
     ns = _org_namespace(user)
     row = db.scalar(sa_select(OrgClaim).where(OrgClaim.org_key == ns, OrgClaim.claim_id == snap["claimId"]))
-    codes = [{"code": x["code"], "type": "CPT", "modifier": x["modifier"], "units": x["units"], "charge": x["charge"]} for x in snap["cpts"]] + \
+    codes = [{k: x[k] for k in ("code", "type", "modifier", "units", "charge", "tooth", "surface", "quad") if k in x} for x in snap["cpts"]] + \
             [{"code": x["code"], "type": "ICD-10"} for x in snap["icds"]]
     if not row:
         row = OrgClaim(org_key=ns, claim_id=snap["claimId"], status="Draft", created_at=dt.datetime.now(timezone.utc))
         db.add(row)
     row.patient_name, row.mrn, row.payer, row.codes, row.amount = snap["patient"], snap["mrn"] or snap["insuredId"], snap["payer"], json.dumps(codes), snap["totalAmt"]
     row.dos, row.provider, row.source = snap["svcDate"], snap["provider"], "extension"
+    _ensure_patient(db, ns, snap)
     if action == "draft":
         db.commit()
         return JSONResponse(dict(out, status="draft", message="Saved to Althais as a draft. Approve it here or from Claims when it's ready."), headers=NO_STORE)
