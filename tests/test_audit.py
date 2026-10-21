@@ -27,6 +27,7 @@ def _login(email, password="correct horse 1"):
 
 def _rows(**where):
     import audit, auth
+    audit.drain()
     with auth.SessionLocal() as db:
         q = select(audit.AccessLog)
         for k, v in where.items():
