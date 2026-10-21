@@ -125,7 +125,7 @@
       var tasks = [];
       if (!D.providers().length) tasks.push(['Setup', '', 'Add your providers', 'Needed to schedule and sign notes', null, 'Add provider', '/v4/staff/team?add=provider']);
       if (!S.patients.length) tasks.push(['Setup', '', 'Add patients', 'One at a time or import a CSV', null, 'Add patients', '/v4/emr/patients']);
-      if (!S.patients.some(function (p) { return p.sample; }) && S.claims.length < 3) tasks.push(['Try it', 'blue', 'Sample clinic', 'Example patients, a visit and claims in every stage', null, 'Load sample', '/v4/overview?sample=1']);
+      if (!S.patients.some(function (p) { return p.sample; }) && S.claims.length < 3) tasks.push(['Try it', 'blue', 'Sample clinic', 'A full clinic day: patients, schedule, a visit and claims in every stage', null, 'Load sample', '/v4/overview?sample=1']);
       if (!S.clinic.npi) tasks.push(['Setup', '', 'Practice details', 'Group NPI and billing address go on every claim', null, 'Open settings', '/v4/settings']);
       D.stage('edits').forEach(function (c) { var x = c.edits[0] || {}; tasks.push(['Claim edit', x.lvl || 'amb', D.ptName(c.mrn), (x.label || 'Edit') + ' (' + (x.id || '') + ')', D.charge(c), 'Resolve', V.claimHref(c.id)]); });
       drafts.forEach(function (e) { tasks.push(['Sign note', 'blue', D.ptName(e.mrn), 'Visit ' + D.us(e.date, 1) + ', ' + (e.reason || 'note in progress'), null, 'Open', V.encHref(e.id)]); });
@@ -175,7 +175,7 @@
     // live: redraw every 20 seconds and when you come back to the tab (not while a dialog is open or you're typing)
     var live = function () { if (V.redraw !== draw || document.hidden || document.querySelector('.mdl-wrap') || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) return; draw(); };
     setInterval(live, 20000); document.addEventListener('visibilitychange', live); window.addEventListener('focus', live);
-    if (q.get('sample')) { history.replaceState(null, '', '/v4/overview'); V.loadSample(); }
+    if (q.get('sample')) { var how = q.get('sample'); history.replaceState(null, '', '/v4/overview'); if (how === 'reset') V.resetSample(); else V.loadSample(); }
     U.on(app, 'tr[data-href]', 'click', function (tr, e) { if (!e.target.closest('a')) location.href = tr.dataset.href; });
     U.on(app, '#start', 'click', function () { V.pickPatient('Start visit for', function (mrn) { V.startVisit(mrn); }); });
     U.on(app, '#newpt', 'click', function () { V.patientForm(); });

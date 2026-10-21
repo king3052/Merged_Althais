@@ -46,6 +46,13 @@ uvicorn main:app --reload
 
 Open http://localhost:8000. Fill in `.env` first: `SECRET_KEY` and `ADMIN_PASSWORD` can be anything locally, and `GROQ_API_KEY` is needed for AI coding. Ask Kanishk or Kevin for development keys. Never commit `.env`.
 
+## Give a demo
+
+Sign in, then open `/v4/overview?sample=reset`. It loads (or resets) the sample clinic: twelve fictional patients, today's
+schedule with a visit in progress, notes that trip each payer rule, and claims in every stage from edits to denied and
+appealed. It stays in that browser and is never saved to the server. The same button is in Settings › Security and data.
+For the browser extension, use the test screens at `/static/mock-emr/` (medical) and `/static/mock-dental/` (dental).
+
 ## Run the tests
 
 ```bash

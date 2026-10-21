@@ -1605,7 +1605,7 @@ Visit note:
         res = _fast_json(prompt, _CHECK_SCHEMA, "claim_check")
     except Exception as e:   # the AI reviewer is busy: score by the rules a clearinghouse applies
         print(f"claim check by rules: {str(e)[:120]}", flush=True)
-        low = header.lower()
+        low = (header + " " + (note or "")[:3000]).lower()      # /api/validate-claim sends the claim header as the note's first line
         missing = [f for f, pat in (("patient DOB", r"dob (?!not on file)"), ("member ID", r"member id (?!not on file)"), ("rendering provider", r"rendering provider (?!not on file)"), ("date of service", r"date of service (?!not on file)")) if not re.search(pat, low)]
         res = {"score": max(0, 92 - 10 * len(missing)), "flags": [], "missing": missing, "by": "rules"}
     res["score"] = max(0, min(100, int(res.get("score", 0))))

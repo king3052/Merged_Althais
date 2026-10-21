@@ -310,39 +310,119 @@
     });
   };
 
-  /* ---------- sample clinic ---------- */
-  V.loadSample = function () {
-    if (S.patients.some(function (p) { return p.sample; })) return U.toast('The sample clinic is already loaded.');
-    var T = D.today(), add = function (n) { return D.addDays(T, n); }, me = V.myProvider();
-    var prov = me ? me.id : (function () { var s = { id: D.id('S'), name: 'Sample, Provider', cred: 'MD', provider: true, status: 'Active', access: 'Provider', creds: [], reminders: [], training: [], sample: true }; S.staff.push(s); return s.id; })();
-    var P = [['Sample, Robert', '1958-05-03', 'M', 'Medicare B', 'SMP-1EG4TE5MK72', 'Sulfa (rash)', 'E11.22 T2DM with diabetic CKD; I10 Hypertension; N18.31 CKD stage 3a', 'Metformin 500 mg BID\nAmlodipine 5 mg daily'],
-      ['Sample, Barbara', '1961-11-22', 'F', 'Aetna PPO', 'SMP-W288104417', '', 'E11.9 Type 2 diabetes', 'Metformin 1000 mg BID'], ['Sample, Marcus', '1970-11-30', 'M', 'UHC', 'SMP-912204558', '', 'I10 Hypertension', 'Lisinopril 20 mg daily'],
-      ['Sample, Ashley', '1990-07-30', 'F', 'Cigna', 'SMP-U77120394', 'Penicillin', '', ''], ['Sample, Thomas', '1972-08-16', 'M', 'UHC', 'SMP-913302871', '', '', '']];
-    var m = P.map(function (x) { var p = { mrn: D.nextMrn(x[0]), name: x[0], dob: x[1], sex: x[2], payer: x[3], member: x[4], allergies: x[5], problems: x[6], meds: x[7], pcp: prov, balance: 0, status: 'Active', created: T, eligChecked: T, sample: true }; S.patients.push(p); return p.mrn; });
-    var e = { id: D.id('E'), mrn: m[0], date: T, prov: prov, visitType: 'Office visit', reason: 'Diabetes and blood pressure follow-up', status: 'Draft', sample: true,
+  /* ---------- sample clinic ----------
+     A full urgent care day for demos and for trying every screen: today's schedule, a visit in progress, notes that trip
+     each payer rule, and claims in every stage (edits, ready and approved, with the payer, rejected, paid, denied,
+     appealed). Everything is marked sample: it stays in this browser and is never sent to the server. Reset puts the
+     same patients, visits and claims back with today's dates, so every demo begins the same way. */
+  V.loadSample = function (quiet) {
+    if (S.patients.some(function (p) { return p.sample; })) return quiet ? null : U.toast('The sample clinic is already loaded. Use Reset to start it over.');
+    var T = D.today(), add = function (n) { return D.addDays(T, n); }, me = V.myProvider(), now = new Date().toISOString();
+    var staff = function (name, cred, provider, access) { var x = { id: D.id('S'), name: name, cred: cred, provider: provider, status: 'Active', access: access, creds: [], reminders: [], training: [], sample: true }; S.staff.push(x); return x.id; };
+    var doc = me ? me.id : staff('Morgan, Alex', 'MD', true, 'Provider');
+    var np = staff('Rivera, Elena', 'FNP-C', true, 'Provider');
+    staff('Patel, Sam', 'CPC', false, 'Biller');
+    staff('Nguyen, Kim', '', false, 'Front desk');
+
+    // name, dob, sex, payer, member ID, allergies, problems, meds, provider
+    var P = {
+      robert: ['Sample, Robert', '1958-05-03', 'M', 'Medicare B', 'SMP-1EG4TE5MK72', 'Sulfa (rash)', 'E11.22 T2DM with diabetic CKD; I10 Hypertension; N18.31 CKD stage 3a', 'Metformin 500 mg BID\nAmlodipine 5 mg daily\nLosartan 50 mg daily', doc],
+      barbara: ['Sample, Barbara', '1961-11-22', 'F', 'Aetna PPO', 'SMP-W288104417', '', 'E11.9 Type 2 diabetes', 'Metformin 1000 mg BID', doc],
+      marcus: ['Sample, Marcus', '1970-11-30', 'M', 'UHC', 'SMP-912204558', '', 'I10 Hypertension', 'Lisinopril 20 mg daily', doc],
+      ashley: ['Sample, Ashley', '1990-07-30', 'F', 'Cigna', 'SMP-U77120394', 'Penicillin (hives)', '', '', np],
+      thomas: ['Sample, Thomas', '1972-08-16', 'M', 'UHC', 'SMP-913302871', '', 'M25.561 Right knee pain', 'Ibuprofen 600 mg PRN', doc],
+      linda: ['Sample, Linda', '1979-02-14', 'F', 'Cigna', 'SMP-U77341200', '', '', '', np],
+      jose: ['Sample, Jose', '2003-09-09', 'M', 'TX Medicaid', 'SMP-512339087', '', '', '', np],
+      grace: ['Sample, Grace', '1985-04-27', 'F', 'Aetna PPO', 'SMP-W288177320', '', 'F41.1 Generalized anxiety disorder', 'Sertraline 50 mg daily', doc],
+      daniel: ['Sample, Daniel', '1994-12-03', 'M', 'BCBS TX', 'SMP-XOD889120345', '', '', '', np],
+      olivia: ['Sample, Olivia', '1949-06-18', 'F', 'Medicare Adv.', 'SMP-H554019832', 'Codeine (nausea)', 'E11.9 Type 2 diabetes; N39.0 Recurrent UTI', 'Metformin 500 mg daily', doc],
+      ethan: ['Sample, Ethan', '2001-03-22', 'M', 'Aetna PPO', '', '', '', '', np],
+      priya: ['Sample, Priya', '1983-10-05', 'F', 'BCBS TX', 'SMP-XOD889155021', '', '', '', doc],
+    };
+    var m = {};
+    Object.keys(P).forEach(function (k) { var x = P[k]; var p = { mrn: D.nextMrn(x[0]), name: x[0], dob: x[1], sex: x[2], payer: x[3], member: x[4], allergies: x[5], problems: x[6], meds: x[7], pcp: x[8], balance: k === 'ethan' ? 45 : 0, status: 'Active', created: add(-120), eligChecked: T, sample: true }; S.patients.push(p); m[k] = p.mrn; });
+
+    var enc = function (k, o) { var e = Object.assign({ id: D.id('E'), mrn: m[k], date: T, prov: P[k][8], visitType: 'Office visit', status: 'Signed', signedAt: now, signedBy: S.clinic.user, sample: true, vitals: {}, transcript: [], orders: [], codes: [], addenda: [], ignored: {} }, o); S.encs.push(e); return e; };
+    // the visit in progress: the doctor writes, Althea codes live (Medicare CKD rule)
+    var eRobert = enc('robert', { status: 'Draft', signedAt: '', signedBy: '', reason: 'Diabetes and blood pressure follow-up',
       s: '68M returns for diabetes and blood pressure follow-up. Home BP readings in the 150s despite daily amlodipine. Fasting glucose 140 to 160. Mild ankle swelling in the evenings.',
       o: 'BP 152/94, HR 72. Trace bilateral ankle edema. A1c 7.8%, eGFR 58, urine albumin/creatinine 64.', a: '1. Type 2 diabetes with diabetic CKD, not at goal.\n2. Hypertension, uncontrolled on two agents.\n3. CKD stage 3a, stable.',
       p: 'Increase losartan to 100 mg daily. Start empagliflozin 10 mg. Repeat BMP in 2 weeks. Return in 6 weeks.', vitals: { bp: '152/94', hr: '72' },
       transcript: [{ t: '10:36 AM', text: 'My blood pressure at home has been running around 150, 155 most mornings.' }, { t: '10:39 AM', text: 'Your kidney number, the eGFR, was 58 last month, about the same as spring.' }],
-      orders: [{ type: 'Rx', name: 'Losartan 100 mg tab', detail: '1 daily, #90, 1 refill', dx: 'I12.9', status: 'Pending' }, { type: 'Lab', name: 'Basic metabolic panel', detail: 'Due in 2 weeks', dx: 'N18.31', status: 'Pending' }], codes: [], addenda: [], ignored: {} };
-    S.encs.push(e);
-    S.appts.push({ id: D.id('A'), mrn: m[0], date: T, time: '10:30', prov: prov, reason: 'DM, HTN follow-up', type: 'Office visit', visit: 'In room', room: 'Exam 2', encId: e.id, sample: true });
-    S.appts.push({ id: D.id('A'), mrn: m[4], date: T, time: '15:00', prov: prov, reason: 'Knee pain', type: 'Office visit', visit: 'Scheduled', sample: true });
-    var e2 = { id: D.id('E'), mrn: m[1], date: T, prov: prov, visitType: 'Office visit', status: 'Signed', signedAt: new Date().toISOString(), signedBy: S.clinic.user, sample: true, s: 'Diabetes check. Home sugars 140s.', o: 'BP 138/84.', a: 'Type 2 diabetes', p: 'Continue metformin.', vitals: {},
-      transcript: [{ t: '10:31 AM', text: 'Let me check your feet. Can you feel this? Good, both sides. No sores, pulses are strong.' }], orders: [], codes: [], addenda: [], ignored: {} };
-    S.encs.push(e2);
-    var mk = function (mrn, cpt, dx, stage, extra) { var c = Object.assign({ id: D.nextClaimId(), mrn: mrn, dos: T, prov: prov, payer: D.pt(mrn).payer, lines: cpt.map(function (x) { return { code: x, mod: '', units: 1 }; }), dx: dx, stage: stage, resolved: {}, created: new Date().toISOString(), sample: true }, extra || {}); if (stage === 'edits' || stage === 'ready') D.scrub(c); D.history(c, 'Sample claim'); S.claims.push(c); return c; };
-    mk(m[1], ['99214'], ['E11.9'], 'edits', { encId: e2.id });
-    mk(m[3], ['99213'], ['J06.9'], 'ready');
-    mk(m[2], ['99214'], ['I10'], 'submitted', { submittedOn: add(-2), status: 'Accepted 277CA', dos: add(-3) });
-    mk(m[3], ['99213'], ['R10.9'], 'paid', { submittedOn: add(-9), paidOn: add(-1), paid: 92.4, dos: add(-10) });
-    mk(m[4], ['73721'], ['M25.561'], 'denied', { submittedOn: add(-10), dos: add(-12), carc: 'CO-197', reason: 'Prior auth absent', appealBy: add(24), dstatus: 'Needs review', everDenied: true });
-    D.log('Sample clinic loaded'); D.save(); U.toast('Sample clinic loaded: 5 patients, 2 visits, 5 claims. Remove it in Settings › Security and data.'); V.refresh();
+      orders: [{ type: 'Rx', name: 'Losartan 100 mg tab', detail: '1 daily, #90, 1 refill', dx: 'I12.9', status: 'Pending' }, { type: 'Lab', name: 'Basic metabolic panel', detail: 'Due in 2 weeks', dx: 'N18.31', status: 'Pending' }] });
+    // Aetna diabetes visit: foot exam said out loud, not written down (AET-DM-014 finds it in the transcript)
+    var eBarbara = enc('barbara', { reason: 'Diabetes follow-up', s: 'Diabetes check. Home sugars in the 140s. No hypoglycemia. Taking metformin as prescribed.', o: 'BP 138/84, HR 76. A1c 7.2%.', a: 'Type 2 diabetes, improving.', p: 'Continue metformin. A1c in 3 months.', vitals: { bp: '138/84', hr: '76' },
+      transcript: [{ t: '8:41 AM', text: 'Let me check your feet. Can you feel this? Good, both sides. No sores, and the pulses are strong.' }] });
+    // UHC 99214 with thin decision making (UHC-EM-022)
+    var eMarcus = enc('marcus', { reason: 'Blood pressure check', s: 'BP check. Feels well.', o: 'BP 134/82.', a: 'Hypertension.', p: 'Continue lisinopril.', vitals: { bp: '134/82' } });
+    // Cigna preventive plus a problem visit, no modifier 25 (CIG-MD-007)
+    var eLinda = enc('linda', { reason: 'Annual physical, sore throat', s: 'Annual physical. Also 3 days of sore throat.', o: 'Normal exam. Pharynx red, no exudate. Rapid strep negative.', a: '1. Routine adult exam.\n2. Acute pharyngitis, viral.', p: 'Age-appropriate screening ordered. Supportive care for throat.' });
+    // Aetna telehealth with no patient location written (AET-TH-031)
+    var eGrace = enc('grace', { visitType: 'Telehealth', reason: 'Anxiety follow-up (video)', s: 'Video visit. Anxiety better on sertraline, sleeping well.', o: 'Calm, normal speech on video.', a: 'Generalized anxiety disorder, improving.', p: 'Continue sertraline 50 mg. Follow up in 3 months.',
+      transcript: [{ t: '10:04 AM', text: 'I\'m at home today, in my kitchen.' }] });
+    var eAshley = enc('ashley', { reason: 'Cough and congestion', s: '3 days of cough and congestion, no fever.', o: 'Lungs clear. No distress.', a: 'Acute upper respiratory infection.', p: 'Supportive care. Return if fever or shortness of breath.' });
+
+    var appt = function (k, date, time, visit, o) { S.appts.push(Object.assign({ id: D.id('A'), mrn: m[k], date: date, time: time, prov: P[k][8], reason: '', type: 'Office visit', visit: visit, sample: true }, o)); };
+    appt('ashley', T, '08:00', 'Checked out', { reason: 'Cough, congestion', encId: eAshley.id, room: 'Exam 1' });
+    appt('barbara', T, '08:30', 'Checked out', { reason: 'Diabetes follow-up', encId: eBarbara.id, room: 'Exam 2' });
+    appt('marcus', T, '09:00', 'Checked out', { reason: 'BP check', encId: eMarcus.id, room: 'Exam 3' });
+    appt('linda', T, '09:30', 'Checked out', { reason: 'Annual physical', encId: eLinda.id, room: 'Exam 1' });
+    appt('grace', T, '10:00', 'Checked out', { reason: 'Anxiety follow-up', type: 'Telehealth', encId: eGrace.id });
+    appt('robert', T, '10:30', 'In room', { reason: 'DM, HTN follow-up', encId: eRobert.id, room: 'Exam 2' });
+    appt('olivia', T, '11:00', 'Checked in', { reason: 'Burning with urination' });
+    appt('ethan', T, '11:30', 'No show', { reason: 'Sore throat' });
+    appt('daniel', T, '13:30', 'Scheduled', { reason: 'Ankle recheck' });
+    appt('priya', T, '14:00', 'Scheduled', { reason: 'Follow-up, chest pain' });
+    appt('thomas', T, '15:00', 'Scheduled', { reason: 'Knee pain' });
+    appt('jose', add(1), '09:00', 'Scheduled', { reason: 'Suture removal' });
+    appt('marcus', add(1), '10:30', 'Scheduled', { reason: 'Lab review' });
+    appt('grace', add(2), '16:00', 'Scheduled', { reason: 'Follow-up (video)', type: 'Telehealth' });
+
+    var mk = function (k, cpt, dx, stage, extra) {
+      var c = Object.assign({ id: D.nextClaimId(), mrn: m[k], dos: T, prov: P[k][8], payer: P[k][3], lines: cpt.map(function (x) { var l = typeof x === 'string' ? { code: x } : x; return { code: l.code, mod: l.mod || '', units: 1 }; }), dx: dx, stage: stage, resolved: {}, created: now, sample: true }, extra || {});
+      if (stage === 'edits' || stage === 'ready') D.scrub(c);
+      D.history(c, 'Sample claim'); S.claims.push(c); return c;
+    };
+    // edits: each one trips a different payer rule, with the evidence and the fix
+    mk('barbara', ['99214'], ['E11.9'], 'edits', { encId: eBarbara.id, hadEdits: true });
+    mk('marcus', ['99214'], ['I10'], 'edits', { encId: eMarcus.id, hadEdits: true });
+    mk('linda', ['99396', '99213'], ['Z00.00', 'J02.9'], 'edits', { encId: eLinda.id, hadEdits: true });
+    mk('grace', ['99213'], ['F41.1'], 'edits', { encId: eGrace.id, hadEdits: true });
+    mk('jose', ['12002', '99283'], ['S61.411A', 'W26.0XXA'], 'edits', { dos: add(-82), amount: 412, hadEdits: true });
+    // ready, one already approved for tonight's batch
+    mk('ashley', ['99213'], ['J06.9'], 'ready', { encId: eAshley.id });
+    var dq = mk('daniel', ['99213', '73610'], ['S93.401A'], 'ready', { dos: add(-1), amount: 236, queuedAt: now, submitAt: V.nextBatch() });
+    if (V.checkKey) dq.queueKey = V.checkKey(dq);
+    // with the payer
+    mk('priya', ['99214', '93000'], ['R07.9'], 'submitted', { dos: add(-3), submittedOn: add(-2), status: 'Accepted 277CA' });
+    mk('thomas', ['99213'], ['M25.561'], 'submitted', { dos: add(-39), submittedOn: add(-38), status: 'Accepted 277CA' });
+    mk('robert', ['99214'], ['E11.22', 'N18.31'], 'submitted', { dos: add(-6), submittedOn: add(-5), status: 'Rejected 277CA: subscriber ID not found' });
+    // paid this month
+    mk('ashley', ['99213'], ['R10.9'], 'paid', { dos: add(-10), submittedOn: add(-9), paidOn: add(-1), paid: 92.4 });
+    mk('daniel', ['99212'], ['J02.9'], 'paid', { dos: add(-18), submittedOn: add(-17), paidOn: add(-6), paid: 61.15 });
+    mk('olivia', ['99214', '81002'], ['N39.0'], 'paid', { dos: add(-25), submittedOn: add(-24), paidOn: add(-9), paid: 134.7 });
+    mk('grace', ['99203'], ['F41.1'], 'paid', { dos: add(-30), submittedOn: add(-29), paidOn: add(-12), paid: 104.1 });
+    // earlier this quarter, paid on first pass
+    [['priya', '99213', 'R51.9', -70, -48, 91.3], ['olivia', '99214', 'E11.9', -64, -41, 129.6], ['jose', '99283', 'S93.401A', -55, -33, 168.4], ['robert', '99214', 'I10', -50, -27, 131.2],
+      ['barbara', '99213', 'E11.9', -44, -22, 94.8], ['daniel', '99213', 'J06.9', -38, -19, 90.1], ['ashley', '99212', 'R05.9', -33, -16, 60.7]].forEach(function (x) {
+      mk(x[0], [x[1]], [x[2]], 'paid', { dos: add(x[3]), submittedOn: add(x[3] + 1), paidOn: add(x[4]), paid: x[5] });
+    });
+    // denied, appealed, overturned
+    mk('thomas', ['73721'], ['M25.561'], 'denied', { dos: add(-12), submittedOn: add(-10), deniedOn: add(-3), carc: 'CO-197', reason: 'Prior authorization absent', appealBy: add(24), dstatus: 'Needs review', everDenied: true });
+    mk('ethan', ['99213', '87880'], ['J02.9'], 'denied', { dos: add(-20), submittedOn: add(-19), deniedOn: add(-8), carc: 'CO-16', reason: 'Missing member ID', appealBy: add(52), dstatus: 'Needs review', everDenied: true, amount: 151 });
+    mk('linda', ['99214'], ['J01.90'], 'denied', { dos: add(-45), submittedOn: add(-44), deniedOn: add(-30), carc: 'CO-50', reason: 'Not medically necessary', appealBy: add(30), dstatus: 'Appealed', everDenied: true, appealedOn: add(-20),
+      basis: 'Symptoms for 12 days with facial pain and fever documented.\nExam findings support the visit level.', letter: '' });
+    mk('marcus', ['99213'], ['I10'], 'paid', { dos: add(-60), submittedOn: add(-59), paidOn: add(-14), paid: 88.2, everDenied: true, carc: 'CO-16', reason: 'Missing referring provider', appealOutcome: 'Overturned' });
+    D.log('Sample clinic loaded'); D.save();
+    if (!quiet) { U.toast('Sample clinic loaded: 12 patients, today\'s schedule, a visit in progress and 25 claims. Reset or remove it in Settings › Security and data.'); V.refresh(); }
   };
-  V.clearSample = function () {
+  V.clearSample = function (quiet) {
     ['patients', 'appts', 'encs', 'claims'].forEach(function (k) { S[k] = S[k].filter(function (x) { return !x.sample; }); });
-    S.staff = S.staff.filter(function (x) { return !x.sample; }); D.log('Sample clinic removed'); D.save(); V.refresh(); U.toast('Sample clinic removed.');
+    S.staff = S.staff.filter(function (x) { return !x.sample; }); D.log('Sample clinic removed'); D.save();
+    if (!quiet) { V.refresh(); U.toast('Sample clinic removed.'); }
   };
+  // start a demo over: the sample clinic exactly as it was first loaded (dates move to today)
+  V.resetSample = function () { V.clearSample(true); V.loadSample(true); U.toast('Sample clinic reset. Ready for a demo.'); V.refresh(); };
 })();
 
 /* ---------- Althea builds the claim: iterates until the claim check is 90% or better; the provider approves once ---------- */
