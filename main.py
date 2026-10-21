@@ -1,7 +1,7 @@
 import os, re
 from dotenv import load_dotenv
 load_dotenv()  # local dev: read GROQ_API_KEY from a git-ignored .env; real env vars still win
-from fastapi import FastAPI, Body, Request, Depends, UploadFile, File
+from fastapi import FastAPI, Body, Request, Depends, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse
@@ -44,7 +44,7 @@ from auth import (
     router as auth_router, current_user, require_user, COOKIE_NAME,
     current_admin, require_biller, require_admin_role, require_role,
     get_db, Base, engine, _org_namespace, OrgPatient, OrgClaim,
-    SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea, org_manager, ensure_area, area_for_path, member_blocked, AREAS,
+    SessionLocal, org_products, has_product, ensure_product, org_althea, ensure_althea, org_manager, org_practice, ensure_area, area_for_path, member_blocked, AREAS,
     impersonation_info,
 )
 # Exposes impersonation_info(request) to every template (via _head.html /
@@ -476,6 +476,11 @@ def _user_manager(user) -> bool:
         return org_manager(user, db)
 
 
+def _user_practice(user) -> str:
+    with SessionLocal() as db:
+        return org_practice(user, db)
+
+
 def _app_user_json(user) -> str:
     return json.dumps({
         "full_name": user.full_name or "",
@@ -487,6 +492,7 @@ def _app_user_json(user) -> str:
         "products": sorted(_user_products(user)),
         "althea": _user_althea(user),   # Althea switched on for this clinic (/admin)
         "manager": _user_manager(user),  # the clinic's admins get Manager (/manager); switched in /admin
+        "practice": _user_practice(user),  # "medical" or "dental": which version of the app this clinic sees (/admin)
         # pages and features this person's clinic manager switched off (Manager > employee), and their pages
         "blocked": sorted(member_blocked(user)),
         "blocked_pages": sorted({pg for a in member_blocked(user) for pg in AREAS[a][2]}),
@@ -650,11 +656,23 @@ _V4_EQUIV = {
 }
 
 
+# A dental clinic always uses the new app: the classic pages are built for medical visits (ICD-10, CPT, CMS-1500).
+# These classic pages have no page of their own in the new app; a dental clinic is sent to the closest one.
+_DENTAL_V4 = {"/scribe": "/v4/emr/encounter", "/coding": "/v4/revenue/code-a-note", "/revenue/coding": "/v4/revenue/claims",
+              "/revenue/payments": "/v4/revenue/claims", "/emr/documents": "/v4/emr/documents"}
+
+
 def _v4_redirect(request: Request, user):
     import v4_preview
-    if not v4_preview.ENABLED or request.cookies.get("althais_ui") == "classic" or "suite" not in _user_products(user):
+    if not v4_preview.ENABLED:
+        return None
+    dental = _user_practice(user) == "dental"
+    if not dental and (request.cookies.get("althais_ui") == "classic" or "suite" not in _user_products(user)):
         return None
     path = request.url.path.rstrip("/") or "/"
+    if dental and path not in _V4_EQUIV:
+        target = _DENTAL_V4.get(path) or ("/v4/emr/patients" if path.startswith("/emr") else "/v4/overview" if path.startswith("/overview") else None)
+        return RedirectResponse(url=target, status_code=302) if target else None
     if path not in _V4_EQUIV:
         return None
     mrn = request.query_params.get("patient") or request.query_params.get("mrn")
@@ -776,7 +794,7 @@ def _placeholder_route(config: dict):
     async def handler(request: Request, user=Depends(current_user)):
         if not user:
             return RedirectResponse(url="/login", status_code=302)
-        blocked = _gate(request, user)
+        blocked = _gate(request, user) or _v4_redirect(request, user)
         if blocked:
             return blocked
         ctx = {
@@ -1233,6 +1251,19 @@ def _rate_limited_response():
 def code_note(payload: dict = Body(...), user=Depends(require_role("provider")), db: Session = Depends(get_db)):
     ensure_product(user, db, "coding")
     ensure_area(user, "code_a_note")
+    if org_practice(user, db) == "dental":     # a dental clinic codes CDT procedures with teeth and surfaces
+        import dental_coding
+        note = str((payload or {}).get("note") or "").strip()[:20000]
+        if len(note) < 20:
+            return JSONResponse({"error": "That's too little text to code."}, status_code=400)
+        try:
+            return JSONResponse({"codes": dental_coding.code_note(note, user, db), "dental": True})
+        except HTTPException:
+            raise
+        except Exception as e:
+            if _is_rate_limited(e):
+                return _rate_limited_response()
+            return JSONResponse({"error": "Coding is unavailable right now."}, status_code=500)
     try:
         data = payload
         _ckey, _hit = _ai_cache_get('code', data)
@@ -1416,6 +1447,8 @@ async def validate_claim(request: Request, user=Depends(require_role("provider")
     ensure_area(user, "code_a_note", "coding_review", "claims")
     try:
         data = await request.json()
+        if org_practice(user, db) == "dental":     # rules only, so it's instant and never cached across a practice switch
+            return JSONResponse(_dental_claim_check(data, [c for c in (data.get("codes") or []) if isinstance(c, dict)]))
         _ckey, _hit = _ai_cache_get('validate', data)
         if _hit is not None:
             return JSONResponse(_hit)
@@ -1587,6 +1620,27 @@ _BUILD_SCHEMA = {"type": "object", "additionalProperties": False, "required": ["
     "unresolved": {"type": "array", "items": {"type": "string"}}}}
 _CHECK_SCHEMA = {"type": "object", "additionalProperties": False, "required": ["score", "flags", "missing"],
     "properties": {"score": {"type": "integer"}, "flags": {"type": "array", "items": {"type": "string"}}, "missing": {"type": "array", "items": {"type": "string"}}}}
+
+def _dental_claim_check(data: dict, codes: list) -> dict:
+    """The claim check for a dental clinic: the dental rules (tooth, surfaces, quadrant, same-tooth conflicts, age and
+    frequency limits, attachments), plus the header fields an ADA claim needs. No diagnosis code is required."""
+    import dental_rules
+    from emr_connect import _lines
+    lines = _lines(data.get("lines"))
+    cpt = [str(c.get("code") or "").strip().upper() for c in codes if dental_rules.CDT.match(str(c.get("code") or "").strip().upper())]
+    claim = {"cpt": cpt, "lines": lines, "tooth_column": True, "dob": str(data.get("dob") or "")[:10], "dos": str(data.get("dos") or "")[:10]}
+    history = []
+    for h in (data.get("history") or [])[:60]:
+        if isinstance(h, dict):
+            history.append({"dos": str(h.get("dos") or "")[:10], "cpt": [str(x).upper()[:6] for x in (h.get("cpt") or [])[:30]], "lines": _lines(h.get("lines"))})
+    res = dental_rules.score(claim, history)
+    low = str(data.get("note") or "")[:600].lower()
+    for label, pat in (("patient DOB", r"dob (?!not on file)"), ("subscriber ID", r"member id (?!not on file)"), ("treating dentist", r"rendering provider (?!not on file)"), ("date of service", r"date of service (?!not on file)")):
+        if low.startswith("claim:") and not re.search(pat, low):
+            res["missing"].append(label)
+            res["score"] = max(5, res["score"] - 10)
+    return {"score": res["score"], "flags": res["flags"], "missing": res["missing"]}
+
 
 def _claim_check(header, codes, note):
     prompt = f"""You are a medical billing compliance reviewer. Score how likely this claim is to be paid without denial (0-100), checking:
@@ -1797,10 +1851,14 @@ def appeal_letter(payload: dict = Body(...), user=Depends(require_biller), db: S
     ensure_area(user, "appeals")
     try:
         data = payload
-        prompt = f"""You are an expert medical billing specialist drafting a formal insurance claim appeal letter.
+        dental = org_practice(user, db) == "dental"
+        kind = "dental billing specialist" if dental else "medical billing specialist"
+        basis = ("clinical justification referencing the CDT procedure codes with their tooth numbers and surfaces, and the X-rays, "
+                 "periodontal charting or narrative that support them" if dental else "medical-necessity justification referencing the CPT and ICD-10 codes")
+        prompt = f"""You are an expert {kind} drafting a formal insurance claim appeal letter.
         Write a professional, persuasive appeal letter for the denied claim described below.
         Structure it as a real business letter with today's date, payer's appeals department as recipient,
-        a Re: line with the claim reference, medical-necessity justification referencing the CPT and ICD-10 codes,
+        a Re: line with the claim reference, {basis},
         and a professional closing. 250-350 words. Return ONLY the letter text. No markdown.
 
         Patient name: {data.get('patient', '')}

@@ -9,7 +9,7 @@
   // the claim a visit would produce: the accepted codes, or until any are accepted, the suggestions not rejected
   function visitClaim(e) {
     var acc = e.codes.filter(function (c) { return c.state === 'acc'; }); if (!acc.length) acc = e.codes.filter(function (c) { return c.state !== 'rej'; });
-    return { encId: e.id, mrn: e.mrn, dos: e.date, prov: e.prov, lines: acc.filter(function (c) { return c.type === 'CPT'; }).map(function (c) { return { code: c.code, mod: c.mod || '', units: 1 }; }), dx: acc.filter(function (c) { return c.type !== 'CPT'; }).map(function (c) { return c.code; }), stage: 'edits', resolved: e.ignored || {} };
+    return { encId: e.id, mrn: e.mrn, dos: e.date, prov: e.prov, lines: acc.filter(function (c) { return D.isProc(c.type); }).map(function (c) { return D.lineOf({ code: c.code, mod: c.mod || '', units: 1, tooth: c.tooth, surface: c.surface, quad: c.quad }); }), dx: acc.filter(function (c) { return !D.isProc(c.type); }).map(function (c) { return c.code; }), stage: 'edits', resolved: e.ignored || {} };
   }
   function visitEdits(e) { var c = visitClaim(e); c._enc = V.withAdds(e, e.pendingAdds || []); return D.checkClaim(c).filter(function (x) { return !(e.ignored || {})[x.id]; }); }
   V.visitClaim = visitClaim;
@@ -19,9 +19,9 @@
     opts = opts || {};
     var p = D.pt(e.mrn) || { name: '(removed patient)', mrn: e.mrn };
       var adds = e.pendingAdds || [];
-      var ed = visitEdits(e), cpt = e.codes.filter(function (c) { return c.state === 'acc' && c.type === 'CPT'; });
-      var dx = e.codes.filter(function (c) { return c.state === 'acc' && c.type !== 'CPT'; }), k = e.check, pc = visitClaim(e);
-      var row = function (c) { return '<div class="so-code"><b>' + E(c.code) + (c.mod ? '-' + E(c.mod) : '') + '</b><span>' + E(c.desc && c.desc !== c.code ? c.desc : '') + '</span></div>'; };
+      var ed = visitEdits(e), cpt = e.codes.filter(function (c) { return c.state === 'acc' && D.isProc(c.type); });
+      var dx = e.codes.filter(function (c) { return c.state === 'acc' && !D.isProc(c.type); }), k = e.check, pc = visitClaim(e);
+      var row = function (c) { return '<div class="so-code"><b>' + E(D.DENTAL && D.isProc(c.type) ? DX.lineText(c) : c.code + (c.mod ? '-' + c.mod : '')) + '</b><span>' + E(c.desc && c.desc !== c.code ? c.desc : '') + '</span></div>'; };
       var col = k ? V.scoreColor(k.score) : 'mut';
       var body = '<div class="so">' +
         '<div class="so-who">Signing as <b>' + E(S.clinic.user) + '</b> · ' + E(p.name) + ' · ' + E(D.us ? D.us(e.date) : e.date) + '</div>' +
@@ -105,24 +105,26 @@
     function billable() { var acc = e.codes.filter(function (c) { return c.state === 'acc'; }); return acc.length ? acc : e.codes.filter(function (c) { return c.state !== 'rej'; }); }
     function preview() {
       var acc = billable();
-      return { encId: e.id, mrn: e.mrn, dos: e.date, prov: e.prov, lines: acc.filter(function (c) { return c.type === 'CPT'; }).map(function (c) { return { code: c.code, mod: c.mod || '', units: 1 }; }), dx: acc.filter(function (c) { return c.type !== 'CPT'; }).map(function (c) { return c.code; }), stage: 'edits', resolved: e.ignored || {} };
+      return { encId: e.id, mrn: e.mrn, dos: e.date, prov: e.prov, lines: acc.filter(function (c) { return D.isProc(c.type); }).map(function (c) { return D.lineOf({ code: c.code, mod: c.mod || '', units: 1, tooth: c.tooth, surface: c.surface, quad: c.quad }); }), dx: acc.filter(function (c) { return !D.isProc(c.type); }).map(function (c) { return c.code; }), stage: 'edits', resolved: e.ignored || {} };
     }
     function edits() { var c = preview(); c._enc = V.withAdds(e, e.pendingAdds || []); return D.checkClaim(c).filter(function (x) { return !(e.ignored || {})[x.id]; }); }
 
     function left() {
       var v = e.vitals || {}, prior = S.encs.filter(function (x) { return x.mrn === e.mrn && x.id !== e.id; }).length;
       var vin = function (k, label, ph) { return '<div><label>' + label + '</label><input data-v="' + k + '" value="' + E(v[k] || '') + '" placeholder="' + ph + '"' + (signed() ? ' readonly' : '') + '></div>'; };
-      return U.pane('Chart', '', '', '<div class="dp-sec"><div class="dp-h">Vitals ' + D.us(e.date, 1).slice(0, 5) + '</div><div class="vit-in" style="grid-template-columns:1fr 1fr">' + vin('bp', 'BP', '120/80') + vin('hr', 'HR', 'bpm') + vin('temp', 'Temp', '°F') + vin('wt', 'Weight', 'lb') + vin('spo2', 'SpO2', '%') + '</div></div>' +
-        '<div class="dp-sec"><div class="dp-h">Problems <span class="end"><a href="#" data-editpt>Edit</a></span></div><div class="lst">' + (V.lines(p.problems).map(function (x) { return '<div>' + E(x) + '</div>'; }).join('') || '<span class="mut">None on file</span>') + '</div></div>' +
+      return U.pane('Chart', '', '', (D.DENTAL ? '<div class="dp-sec"><div class="dp-h">Teeth this visit</div>' + V.odontogram(billable().filter(function (c) { return D.isProc(c.type); }), { small: 1 }) + '</div>'
+          : '<div class="dp-sec"><div class="dp-h">Vitals ' + D.us(e.date, 1).slice(0, 5) + '</div><div class="vit-in" style="grid-template-columns:1fr 1fr">' + vin('bp', 'BP', '120/80') + vin('hr', 'HR', 'bpm') + vin('temp', 'Temp', '°F') + vin('wt', 'Weight', 'lb') + vin('spo2', 'SpO2', '%') + '</div></div>') +
+        '<div class="dp-sec"><div class="dp-h">' + (D.DENTAL ? 'Medical history' : 'Problems') + ' <span class="end"><a href="#" data-editpt>Edit</a></span></div><div class="lst">' + (V.lines(p.problems).map(function (x) { return '<div>' + E(x) + '</div>'; }).join('') || '<span class="mut">None on file</span>') + '</div></div>' +
         '<div class="dp-sec"><div class="dp-h">Medications</div><div class="lst">' + (V.lines(p.meds).map(function (x) { return '<div>' + E(x) + '</div>'; }).join('') || '<span class="mut">None on file</span>') + '</div></div>' +
         '<div class="dp-sec"><div class="dp-h">Allergies</div><div class="s-red">' + (V.lines(p.allergies).map(E).join('<br>') || '<span class="mut">None recorded</span>') + '</div></div>' +
-        '<div class="dp-sec"><div class="dp-h">Visits</div>' + U.kv([['Earlier visits', prior], ['Coverage', E(p.payer || 'None')], ['Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')]]) + '</div>');
+        '<div class="dp-sec"><div class="dp-h">Visits</div>' + U.kv([['Earlier visits', prior], ['Coverage', E(p.payer || 'None')], [D.L.member, p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')]]) + '</div>');
     }
     function noteTab() {
       var ro = signed() ? ' readonly' : '', ed = function (k, label, rows, ph) { return '<h4>' + label + '</h4><textarea class="ed" data-n="' + k + '" rows="' + rows + '" placeholder="' + ph + '"' + ro + '>' + E(e[k] || '') + '</textarea>'; };
       var pend = (e.addenda || []).filter(function (a) { return !a.signed; });
       var bn = signed() ? '<span class="s-grn">Signed by ' + E(e.signedBy) + ', ' + new Date(e.signedAt).toLocaleString('en-US') + '.</span> The note is locked; changes go in an addendum.' :
         (REC.on ? '<span class="rec"><span class="dot"></span>Recording</span> · the transcript fills in as you talk. ' : '') + (SR ? '' : 'This browser can’t record speech; type the note or paste a transcript.');
+      if (D.DENTAL) ed = function (k, label, rows, ph) { return '<h4>' + label + '</h4><textarea class="ed" data-n="' + k + '" rows="' + rows + '" placeholder="' + ({ s: 'Reason for visit, history, what the patient reports', o: 'Exam findings: teeth and surfaces, perio charting, X-rays taken and what they show', a: 'Diagnosis per tooth, e.g. caries #14 MO', p: 'Treatment done today (anesthetic, materials) and next visit' })[k] + '"' + ro + '>' + E(e[k] || '') + '</textarea>'; };
       return (bn ? '<div class="banner-note">' + bn + '</div>' : '') +
         (pend.length ? '<div class="dp-sec" style="background:var(--amb-bg)">' + pend.map(function (a, i) { return '<div style="margin-bottom:6px"><b class="s-amb">' + U.warn + 'Addendum waiting for your signature</b> <span class="mut">from ' + E(a.from) + '</span><div style="margin:4px 0">' + E(a.text) + '</div><button class="mini pri" data-sign-add="' + e.addenda.indexOf(a) + '">Sign addendum</button> <button class="mini" data-drop-add="' + e.addenda.indexOf(a) + '">Decline</button></div>'; }).join('') + '</div>' : '') +
         (!signed() ? '<div class="dp-sec" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="chk" style="margin:0"><input type="checkbox" id="consent"' + (REC.consent || REC.on ? ' checked' : '') + (REC.on ? ' disabled' : '') + '> Patient agreed to be recorded</label>' +
@@ -146,7 +148,7 @@
       return U.grid(['Name', 'Type', 'Received', 'Status'], S.docs.filter(function (d) { return d.mrn === e.mrn; }).map(function (d) { return { attrs: ' data-href="/v4/emr/documents?mrn=' + e.mrn + '"', cells: [E(d.name), E(d.type), D.us(d.rec), E(d.status)] }; }), { click: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(4, 'No documents for this patient.') + '</tbody>');
     }
     function right() {
-      var ed = edits(), acc = e.codes.filter(function (c) { return c.state === 'acc'; }), cpt = acc.filter(function (c) { return c.type === 'CPT'; }), dx = acc.filter(function (c) { return c.type !== 'CPT'; });
+      var ed = edits(), acc = e.codes.filter(function (c) { return c.state === 'acc'; }), cpt = acc.filter(function (c) { return D.isProc(c.type); }), dx = acc.filter(function (c) { return !D.isProc(c.type); });
       var claim = S.claims.filter(function (c) { return c.encId === e.id; })[0], k = e.check, adds = e.pendingAdds || [];
       var status = auto.busy ? 'Althea is building the claim…' : busy ? 'reading the note…' : e.autoAt ? 'built by Althea · ' + new Date(e.autoAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'builds as you write';
       var callouts = ed.filter(function (x) { return !/^BASIC/.test(x.id); }).map(function (x) {
@@ -160,7 +162,8 @@
         (codeMsg ? '<div class="banner-note">' + E(codeMsg) + '</div>' : '') +
         V.checkHtml({ id: '__enc', check: k }, auto.busy || chk.busy || auto.retrying || (!k && !auto.err && noteHasText()), chk.err || auto.err).replace('data-runcheck="__enc"', 'id="enccheck"') +
         '<div class="dp-sec cp-open" id="openclaim" title="Open the claim"><div class="dp-h">Claim preview <span class="end"><a href="#" id="openclaim2">Open Claim</a></span> <span class="sub">' + (claim ? V.link(claim.id, V.claimHref(claim.id)) : cpt.length ? 'built by Althea, sent when you sign' : 'builds as you write') + '</span></div>' +
-          U.grid(['Ln', 'CPT', 'Mod', 'Dx Ptr', ['Units', 'num'], ['Charge', 'num']], cpt.map(function (c, i) { return { cells: [i + 1, '<b>' + E(c.code) + '</b>', signed() ? E(c.mod || '') : '<input class="inl" data-mod="' + e.codes.indexOf(c) + '" value="' + E(c.mod || '') + '" style="width:44px">', dx.slice(0, 4).map(function (_, k2) { return String.fromCharCode(65 + k2); }).join(''), c.units || 1, M(D.fee(c.code) * (c.units || 1))] }; }), { tight: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(6, auto.busy || busy ? 'Building…' : 'Write the note; Althea builds the claim from it.') + '</tbody>') +
+          (D.DENTAL ? U.grid(['Ln', 'CDT', 'Tooth', 'Surface', 'Quad', ['Charge', 'num']], cpt.map(function (c, i) { return { cells: [i + 1, '<b>' + E(c.code) + '</b>', E(c.tooth || ''), E(c.surface || ''), E(c.quad || ''), M(D.fee(c.code) * (c.units || 1))] }; }), { tight: 1 }) :
+          U.grid(['Ln', 'CPT', 'Mod', 'Dx Ptr', ['Units', 'num'], ['Charge', 'num']], cpt.map(function (c, i) { return { cells: [i + 1, '<b>' + E(c.code) + '</b>', signed() ? E(c.mod || '') : '<input class="inl" data-mod="' + e.codes.indexOf(c) + '" value="' + E(c.mod || '') + '" style="width:44px">', dx.slice(0, 4).map(function (_, k2) { return String.fromCharCode(65 + k2); }).join(''), c.units || 1, M(D.fee(c.code) * (c.units || 1))] }; }), { tight: 1 })).replace('<tbody></tbody>', '<tbody>' + U.empty(6, auto.busy || busy ? 'Building…' : D.DENTAL ? 'Write the note; Althea codes the procedures from it.' : 'Write the note; Althea builds the claim from it.') + '</tbody>') +
           '<div class="mut" style="margin-top:5px">' + (dx.map(function (c, k2) { return (k2 < 12 ? String.fromCharCode(65 + k2) + ': ' : '') + c.code + (c.desc && c.desc !== c.code ? ' ' + c.desc : ''); }).join(' · ') || 'No diagnosis yet') + '</div>' +
           '<div style="display:flex;justify-content:space-between;margin-top:5px"><span class="mut">Total</span><b>' + M(D.sum(cpt, function (c) { return D.fee(c.code) * (c.units || 1); })) + '</b></div></div>' +
         (adds.length && !signed() ? '<div class="dp-sec"><div class="dp-h">Added to the note when you sign <span class="sub">each quotes the visit record</span></div>' + adds.map(function (a, n) {
@@ -168,10 +171,11 @@
         callouts +
         '<div class="dp-sec"><div class="dp-h">Codes <span class="sub">Althea picked ' + used + ' of ' + e.codes.length + '</span></div><div class="codes-scroll">' +
         U.grid(['Code', 'Description', ['Conf.', 'num'], ''], e.codes.map(function (c, n) {
-          return { cells: ['<b>' + E(c.code) + '</b><div class="mut" style="font-size:11px">' + c.type + '</div>', '<div class="wrap">' + E(c.desc) + '</div>' + (c.why ? '<div class="mut wrap" style="font-size:11.5px">' + E(c.why) + '</div>' : ''), c.conf ? '<b class="' + (c.conf < 80 ? 's-amb' : 's-grn') + '">' + c.conf + '%</b>' : '<span class="mut">' + (c.auto ? 'Althea' : 'manual') + '</span>',
+          return { cells: ['<b>' + E(c.code) + '</b>' + (c.tooth || c.surface || c.quad ? ' <span class="mono">' + E((c.tooth ? '#' + c.tooth : '') + (c.surface ? ' ' + c.surface : '') + (c.quad ? ' ' + c.quad : '')) + '</span>' : '') + '<div class="mut" style="font-size:11px">' + c.type + '</div>', '<div class="wrap">' + E(c.desc) + '</div>' + (c.why ? '<div class="mut wrap" style="font-size:11.5px">' + E(c.why) + '</div>' : ''), c.conf ? '<b class="' + (c.conf < 80 ? 's-amb' : 's-grn') + '">' + c.conf + '%</b>' : '<span class="mut">' + (c.auto ? 'Althea' : 'manual') + '</span>',
             signed() ? (c.state === 'acc' ? '<span class="s-grn">Billed</span>' : '') : '<button class="mini' + (c.state === 'acc' ? ' pri' : '') + '" data-acc="' + n + '" title="' + (c.state === 'acc' ? 'On the claim. Click to take it off.' : 'Not on the claim. Click to add it.') + '">' + (c.state === 'acc' ? '✓ On Claim' : 'Not Used') + '</button>'] };
         }), { tight: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(4, busy ? 'Reading the note…' : 'Codes appear as you write.') + '</tbody>') + '</div>' +
-        (signed() ? '' : '<div style="display:flex;gap:5px;margin-top:6px"><input class="inl" id="mcode" placeholder="Code (99213, E11.9)" style="width:120px"><input class="inl" id="mdesc" placeholder="Description"><button class="mini" id="addcode">Add</button></div>') + '</div>' +
+        (signed() ? '' : D.DENTAL ? '<div style="display:flex;gap:5px;margin-top:6px"><input class="inl" id="mcode" placeholder="CDT (D2392)" style="width:96px"><input class="inl" id="mtooth" placeholder="Tooth" style="width:52px"><input class="inl" id="msurf" placeholder="Surfaces" style="width:66px"><input class="inl" id="mquad" placeholder="Quad" style="width:48px"><button class="mini" id="addcode">Add</button></div>'
+          : '<div style="display:flex;gap:5px;margin-top:6px"><input class="inl" id="mcode" placeholder="Code (99213, E11.9)" style="width:120px"><input class="inl" id="mdesc" placeholder="Description"><button class="mini" id="addcode">Add</button></div>') + '</div>' +
         '<div class="dp-sec"><div class="dp-h">Checks run <span class="sub">' + E(p.payer || '') + '</span></div><div class="ok-list">' + (ed.map(function (x) { return '<div class="' + (x.lvl === 'red' ? 'e' : 'w') + '">' + U.mark(x.lvl) + E(x.label) + (/^BASIC/.test(x.id) ? ': ' + E(x.text) : '') + '</div>'; }).join('') || '<div>All ' + (6 + D.allRules().length) + ' checks passed</div>') +
           Object.keys(e.ignored || {}).map(function (k3) { return '<div class="w">' + E(k3) + ' ignored: ' + E(e.ignored[k3]) + '</div>'; }).join('') + '</div></div>' +
         '</div></section>';
@@ -179,8 +183,8 @@
     function draw() {
       var rec = REC.on ? '<span class="rec"><span class="dot"></span>Virtual SOAP <span id="clock">0:00</span></span>' : signed() ? '<span class="s-grn">' + I.check + 'Note signed</span>' : '<span class="mut">Draft</span>';
       app.innerHTML = U.header('encounter') + V.banner(e.mrn, rec + '<button class="btn" id="switch">Switch patient</button>') +
-        U.toolbar('Encounter ' + D.us(e.date), [['Edit note', 'pencil', { id: 'editnote' }], ['Orders', 'clip', { id: 'toorders' }], ['Message patient', 'chat', { id: 'msg' }], '|', ['Print', 'print', { id: 'print' }], ['Import CSV', 'upload', { id: 'importcsv' }]],
-          '<select class="mini" id="vtype"' + (signed() ? ' disabled' : '') + '>' + ['Office visit', 'Telehealth', 'New patient', 'Annual wellness', 'Procedure'].map(function (t) { return '<option' + (t === e.visitType ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
+        U.toolbar(D.L.visit + ' ' + D.us(e.date), [['Edit note', 'pencil', { id: 'editnote' }], ['Orders', 'clip', { id: 'toorders' }], ['Message patient', 'chat', { id: 'msg' }], '|', ['Print', 'print', { id: 'print' }], ['Import CSV', 'upload', { id: 'importcsv' }]],
+          '<select class="mini" id="vtype"' + (signed() ? ' disabled' : '') + '>' + D.VISIT_TYPES.concat(D.VISIT_TYPES.indexOf(e.visitType) < 0 && e.visitType ? [e.visitType] : []).map(function (t) { return '<option' + (t === e.visitType ? ' selected' : '') + '>' + E(t) + '</option>'; }).join('') + '</select>' +
           '<select class="mini" id="vprov"' + (signed() ? ' disabled' : '') + '>' + V.provOptions().map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === e.prov ? ' selected' : '') + '>' + E(o[1]) + '</option>'; }).join('') + '</select>') +
         '<div class="main" style="grid-template-columns:215px minmax(0,1fr) 470px">' + left() +
           '<section class="pane">' + U.tabs([['note', 'Progress note'], ['transcript', 'Transcript (' + e.transcript.length + ')'], ['orders', 'Orders (' + e.orders.length + ')'], ['history', 'History'], ['docs', 'Documents']], tab) +
@@ -190,7 +194,9 @@
       U.fit(); U.search();
       app.querySelectorAll('textarea.ed').forEach(function (t) { t.style.height = Math.max(64, t.scrollHeight + 2) + 'px'; });
     }
-    function redrawRight() { var r = app.querySelector('.main > section:last-child'); if (r) r.outerHTML = right(); }
+    function redrawRight() { var r = app.querySelector('.main > section:last-child'); if (r) r.outerHTML = right();
+      if (D.DENTAL) { var l = app.querySelector('.main > section:first-child'); if (l) l.outerHTML = left(); }   // the tooth chart follows the codes (no inputs to lose there)
+    }
     V.redraw = draw; draw();
 
     // typing in the note: save as you go, and re-check rules a moment later
@@ -253,6 +259,7 @@
     // and improves until the claim check is 90% or better. Note additions wait (each quoting its source) until the provider signs.
     function autoKey() { return D.noteText(e) + '|' + e.visitType + '|' + (p.payer || '') + '|' + e.codes.map(function (c) { return c.code + (c.manual ? c.state : ''); }).join(','); }
     function scheduleAuto(force) {
+      if (D.DENTAL) return dentalCheck(force);
       clearTimeout(auto.timer); if (signed() || (!e.codes.length && !noteHasText())) return;
       auto.timer = setTimeout(function () {
         if (auto.busy) { auto.again = true; return; }
@@ -269,6 +276,18 @@
         }).catch(function (x) { if (/plan or role|Log in/.test(x.message)) auto.err = x.message; else { auto.err = ''; setTimeout(function () { scheduleAuto(true); }, /usage limit/.test(x.message) ? 60000 : 4000); } })
           .then(function () { auto.busy = false; redrawRight(); if (auto.again) { auto.again = false; scheduleAuto(); } });
       }, 600);
+    }
+    // dental: the claim the visit would make, checked by the dental rules on the server (the same as dental.js)
+    function dentalCheck(force) {
+      clearTimeout(auto.timer); if (signed()) return;
+      auto.timer = setTimeout(function () {
+        var c = preview(); c.id = 'Visit ' + D.us(e.date); if (!c.lines.length) { e.check = null; redrawRight(); return; }
+        var key = V.checkKey(c); if (!force && e.check && e.checkKey === key) return;
+        auto.busy = true; auto.err = ''; redrawRight();
+        var real = D.save; D.save = function () {};   // the visit's preview claim isn't a claim yet
+        V.claimCheck(c, { tries: 4 }).then(function (k) { e.check = k; e.checkKey = key; e.autoAt = new Date().toISOString(); }).catch(function (x) { auto.err = x.message; })
+          .then(function () { D.save = real; auto.busy = false; save(); redrawRight(); });
+      }, 500);
     }
     var checkTimer = null;
     function scheduleCheck() { scheduleAuto(true); }
@@ -289,15 +308,16 @@
       if (!(e.s + e.o + e.a + e.p).trim()) return U.toast('Write the note first.');
       if (busy) { scheduleCodes(1500); return; }
       var key = codeKey(); if (!force && key === lastCoded) return;
-      if (noteHasText()) { lastCoded = key; codeMsg = ''; e.codedAt = new Date().toISOString(); scheduleAuto(!!force); return; }   // one call codes, builds and checks the claim
+      if (noteHasText() && !D.DENTAL) { lastCoded = key; codeMsg = ''; e.codedAt = new Date().toISOString(); scheduleAuto(!!force); return; }   // one call codes, builds and checks the claim
       busy = true; codeMsg = ''; redrawRight();
-      fetch('/api/code-note', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: D.noteText(e), encounter_type: 'office', is_new_patient: e.visitType === 'New patient', payer: p.payer || '', specialty: 'primary care / outpatient office' }) })
+      fetch('/api/code-note', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: D.noteText(e), encounter_type: 'office', is_new_patient: e.visitType === 'New patient', payer: p.payer || '', specialty: D.DENTAL ? 'general dentistry' : 'primary care / outpatient office' }) })
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j, s: r.status }; }); })
         .then(function (x) {
           if (!x.ok || x.j.error) throw new Error(x.s === 401 ? 'Log in to Althais on this server (/login) to get code suggestions. You can add codes by hand below.' : x.s === 403 ? 'Your account’s plan or role doesn’t include coding. Add codes by hand below.' : 'Coding is unavailable right now (' + (x.j.error || x.s) + '). Add codes by hand below.');
-          var keep = {}; e.codes.forEach(function (c) { keep[c.code] = c; });
-          e.codes = (x.j.codes || []).map(function (c) { var old = keep[c.code]; return { code: c.code, desc: c.description || '', type: /CPT/i.test(c.type || '') ? 'CPT' : 'ICD-10', conf: Number(c.confidence) || 0, why: c.justification || '', mod: old && old.manual ? old.mod : (c.modifier || ''), state: old ? old.state : '', manual: !!(old && old.manual) }; })
-            .concat(e.codes.filter(function (c) { return !c.conf && !(x.j.codes || []).some(function (n) { return n.code === c.code; }); }));
+          var keep = {}; e.codes.forEach(function (c) { keep[c.code + (c.tooth ? '#' + c.tooth : '')] = c; });
+          e.codes = (x.j.codes || []).map(function (c) { var old = keep[c.code + (c.tooth ? '#' + c.tooth : '')] || (!c.tooth && keep[c.code]); return { code: c.code, desc: c.description || '', type: /CDT/i.test(c.type || '') ? 'CDT' : /CPT/i.test(c.type || '') ? 'CPT' : 'ICD-10', tooth: c.tooth || '', surface: c.surface || '', quad: c.quad || '',
+            conf: Number(c.confidence) || 0, why: (c.justification || '') + (c.documentation_gap ? ' ' + c.documentation_gap : ''), mod: old && old.manual ? old.mod : (c.modifier || ''), state: old ? old.state : D.DENTAL ? 'acc' : '', manual: !!(old && old.manual) }; })
+            .concat(e.codes.filter(function (c) { return !c.conf && !(x.j.codes || []).some(function (n) { return n.code === c.code && (n.tooth || '') === (c.tooth || ''); }); }));
           codeMsg = (x.j.codes || []).length ? '' : 'No codes suggested for this note yet.'; lastCoded = key; fails = 0; scheduleAuto(); e.codedAt = new Date().toISOString(); save();
         }).catch(function (err) {
           fails++;
@@ -313,8 +333,8 @@
       if (ev.target.closest('input,button,a:not(#openclaim2)')) return; ev.preventDefault();
       var made = S.claims.filter(function (c) { return c.encId === e.id; })[0];
       if (made) { location.href = V.claimHref(made.id); return; }
-      var c = preview(); if (!c.lines.length) return U.toast('Get or accept a CPT code first.');
-      c.id = 'Draft, ' + D.us(e.date); c.payer = p.payer; V.cms1500(c);
+      var c = preview(); if (!c.lines.length) return U.toast('Get or accept a ' + D.L.proc + ' code first.');
+      c.id = 'Draft, ' + D.us(e.date); c.payer = p.payer; V.claimForm(c);
     });
     U.on(app, '[data-dropadd]', 'click', function (a, ev) { ev.preventDefault(); e.pendingAdds.splice(+a.dataset.dropadd, 1); save(); redrawRight(); scheduleAuto(true); });
     U.on(app, '#enccheck', 'click', function () { scheduleAuto(true); });
@@ -328,6 +348,12 @@
     U.on(app, '[data-acc]', 'click', function (b) { var c = e.codes[+b.dataset.acc]; c.state = c.state === 'acc' ? 'rej' : 'acc'; c.manual = true; save(); redrawRight(); scheduleCheck(); });
     U.on(app, '[data-rej]', 'click', function (b) { var c = e.codes[+b.dataset.rej]; if (c.state === 'rej' || !c.conf) { if (!c.conf && c.state !== 'rej') { e.codes.splice(+b.dataset.rej, 1); } else c.state = ''; } else c.state = 'rej'; save(); redrawRight(); scheduleCheck(); });
     U.on(app, '#addcode', 'click', function () {
+      if (D.DENTAL) {
+        var dc = document.getElementById('mcode').value.trim().toUpperCase(), tooth = DX.normTooth(document.getElementById('mtooth').value), surf = DX.normSurface(document.getElementById('msurf').value), quad = document.getElementById('mquad').value.trim().toUpperCase();
+        if (!DX.CDT.test(dc)) return U.toast('Enter a CDT code: D and four digits, like D2392.');
+        if (tooth && !DX.toothKind(tooth)) return U.toast('Tooth ' + tooth + ' isn\u2019t a tooth number. Use 1 to 32, or A to T for primary teeth.');
+        e.codes.push({ code: dc, desc: (S.fees.filter(function (f) { return f.code === dc; })[0] || {}).desc || dc, type: 'CDT', tooth: tooth, surface: surf, quad: quad, conf: 0, why: 'Added by ' + S.clinic.user, state: 'acc', manual: true }); save(); redrawRight(); scheduleCheck(); return;
+      }
       var code = document.getElementById('mcode').value.trim().toUpperCase(), desc = document.getElementById('mdesc').value.trim();
       if (!/^([0-9]{5}|[A-Z][0-9]{4}|[A-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?)$/.test(code)) return U.toast('Enter a CPT (5 digits, or a letter and 4 digits) or an ICD-10 code (E11.9).');
       var cpt = /^([0-9]{5}|[A-Z][0-9]{4})$/.test(code) && !/^[A-Z][0-9]{2}\./.test(code);

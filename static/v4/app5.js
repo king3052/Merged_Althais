@@ -5,6 +5,7 @@
    own enrollment. Nothing here sends a claim; Claims does, through the claim gate. */
 (function () {
   var app = V.app, E = U.esc, q = V.q;
+  var DENTAL = !!(window.D && window.D.DENTAL);   // the clinic's version (D below is this page's billing profile, not the clinic store)
   var D = null, SEC = (location.hash || '#checklist').slice(1), ERR = '';
   var SECTIONS = [['checklist', 'Setup Checklist'], ['routes', 'Payers & Providers'], ['items', 'Applications'], ['billers', 'Billers'],
     ['tasks', 'Tasks'], ['documents', 'Documents'], ['claims', 'Held & Sent Claims'], ['activity', 'Activity']];
@@ -40,6 +41,7 @@
       ['Give your billers claim submission access', D.billers.length ? D.billers.every(function (b) { return b.access === 'ACTIVE'; }) : false, 'billers']];
     var done = steps.filter(function (s) { return s[1]; }).length;
     return U.sect('Setup Checklist', done + ' of ' + steps.length + ' done', '<p class="ba-lead">Your whole workspace is open' + (D.purchasingOwner ? ' to ' + E(D.purchasingOwner) + ' and your team' : '') + '. Only sending claims waits for these steps. Drafts are kept safely until you’re ready.</p>' +
+      (DENTAL ? '<p class="ba-lead"><b>Dental claims:</b> Althais checks every dental claim and keeps it ready. Sending dental claims on the ADA form (837D) opens once Althais’s dental clearinghouse route is set up; until then, dental claims are held here and you send them from your practice software.</p>' : '') +
       '<div class="ba-steps">' + steps.map(function (s, i) { return step(i + 1, s[1], s[0], stepBody(s[2])); }).join('') + '</div>');
   }
   function src(k, ck) {
@@ -55,7 +57,7 @@
     var P = D.profile;
     if (k === 'profile') return '<form id="f-profile" class="form ba-form">' +
       fld('p-name', 'Legal business name' + src('legalName', 'legal_name'), P.legalName, { span: 2 }) + fld('p-npi', 'Organization NPI (Type 2)' + src('npi'), P.npi, { mono: 1 }) +
-      fld('p-tin', 'Tax ID (EIN)' + src('tin'), '', { mono: 1, ph: P.hasTin ? P.tinMasked + ' (leave blank to keep)' : '9 digits' }) + fld('p-tax', 'Taxonomy code', P.taxonomy, { mono: 1, ph: 'e.g. 207Q00000X' }) +
+      fld('p-tin', 'Tax ID (EIN)' + src('tin'), '', { mono: 1, ph: P.hasTin ? P.tinMasked + ' (leave blank to keep)' : '9 digits' }) + fld('p-tax', 'Taxonomy code', P.taxonomy, { mono: 1, ph: DENTAL ? 'e.g. 1223G0001X' : 'e.g. 207Q00000X' }) +
       fld('p-a1', 'Billing address' + src('address'), P.address.line1, { span: 2 }) + fld('p-city', 'City', P.address.city) + fld('p-state', 'State', P.address.state, { max: 2 }) + fld('p-zip', 'ZIP', P.address.zip) +
       fld('p-cname', 'Billing contact', P.contact.name) + fld('p-cemail', 'Contact email', P.contact.email) +
       '<div class="s4 ba-acts"><button class="btn pri" type="submit">Save Details</button><button class="btn" type="button" data-confirm-profile>These Are Correct</button><span class="mut">Prefilled details count only after you confirm them. Althais checks the NPI with the NPI Registry.</span></div></form>';
@@ -75,7 +77,7 @@
           '<input class="inl mono" data-k="payerId" value="' + E(p.payerId || '') + '" placeholder="e.g. 60054" style="width:100px" title="Claim.MD payer ID; leave blank to match by name">',
           '<a href="#" class="s-red" data-payer-del="' + i + '">Remove</a>'] };
       })).replace('<tbody></tbody>', '<tbody>' + U.empty(6, 'No payers yet.') + '</tbody>') +
-      '<div class="ba-acts"><input id="payer-new" placeholder="Add a payer, e.g. Aetna" style="width:240px"><button class="btn" data-add-payer>Add</button><button class="btn pri" data-save-payers>Save Payers</button></div></div>';
+      '<div class="ba-acts"><input id="payer-new" placeholder="Add a payer, e.g. ' + (DENTAL ? 'Delta Dental' : 'Aetna') + '" style="width:240px"><button class="btn" data-add-payer>Add</button><button class="btn pri" data-save-payers>Save Payers</button></div></div>';
     if (k === 'auth') { var a = D.items.filter(function (x) { return x.requirement === 'clinic_authorization'; })[0];
       return a ? '<div class="ba-note">' + pill(a.status, a.statusLabel) + ' ' + (a.ready ? 'Signed by ' + E(a.evidence.verifiedBy) : 'A clinic owner signs this in Althais. See Waiting On You.') + '</div>' : ''; }
     if (k === 'ch') return chBody();

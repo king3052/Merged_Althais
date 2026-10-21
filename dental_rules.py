@@ -363,3 +363,23 @@ def history_flags(claims: list) -> dict:
 
 def _th(n):
     return "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
+# ── a likelihood score, for the claim check in the app ──────────────────────
+def score(c: dict, history: list = None) -> dict:
+    """{score 0-100, flags, missing} for one dental claim, from these rules alone (no AI). Errors are what a plan
+    denies outright, warnings are common reasons for a pend or a denial. `history`: the patient's other claims
+    ({dos, cpt, lines}), for frequency limits."""
+    found = check(c)
+    if history:
+        both = [dict(h, mrn="p") for h in history if h.get("dos")] + [dict(c, mrn="p")]
+        found += history_flags(both).get(len(both) - 1, [])
+    errors = [f["message"] for f in found if f["severity"] == "error"]
+    warns = [f["message"] for f in found if f["severity"] == "warn"]
+    codes = [x for x in (c.get("cpt") or []) if CDT.match(str(x).upper())] or [l.get("code") for l in c.get("lines") or [] if CDT.match(str(l.get("code") or "").upper())]
+    if not codes:
+        errors.append("At least one CDT procedure code (D followed by four digits).")
+    s = 96 - 22 * len(errors) - 6 * len(warns)
+    if errors:
+        s = min(s, 60)
+    return {"score": max(5, min(100, s)), "flags": warns, "missing": errors, "by": "dental rules"}

@@ -332,7 +332,7 @@ class Athenahealth(ec.EmrConnector):
 
 @router.post("/api/integrations/athenahealth/connect")
 async def connect(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
-    ec._gate(user, db)
+    ec._gate_medical(user, db)
     if not configured():
         return JSONResponse({"error": "athenahealth isn't switched on for this server yet."}, status_code=400)
     try:
@@ -393,7 +393,7 @@ def disconnect(user=Depends(require_biller), db: Session = Depends(get_db)):
 @router.post("/api/integrations/athenahealth/sync")
 async def sync(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     """Pull recent claims and return them as a preview (same shape as an upload preview). Saves nothing."""
-    ec._gate(user, db)
+    ec._gate_medical(user, db)
     org = _org_namespace(user)
     _, doc = _load(db, org)
     if not doc.get("practice_id") or not configured():

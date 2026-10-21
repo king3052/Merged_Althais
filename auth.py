@@ -1244,6 +1244,22 @@ def clinic_products(user: User, db: Session) -> set:
     return {p for p in doc["products"] if p in PRODUCTS}
 
 
+PRACTICES = ("medical", "dental")   # which version of Althais a clinic sees; set per clinic in /admin
+
+
+def org_practice(user: User, db: Session) -> str:
+    """"medical" (ER, urgent care, office) or "dental". Set in /admin; a clinic with no setting is medical."""
+    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    return doc.get("practice") if row and doc.get("practice") in PRACTICES else "medical"
+
+
+def ensure_practice(user: User, db: Session, practice: str) -> None:
+    """For API handlers that belong to one version: 403 for a clinic on the other one."""
+    if org_practice(user, db) != practice:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail=f"That's part of the {practice} version of Althais, and your clinic is set up as {org_practice(user, db)}.")
+
+
 def org_althea(user: User, db: Session) -> bool:
     """Althea, the assistant, is switched on per clinic in /admin. Until it's set, it comes with the full suite only."""
     row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
@@ -1824,11 +1840,12 @@ def admin_export_orgs_csv(db: Session = Depends(get_db), _: bool = Depends(requi
             "suite" if "suite" in products else ", ".join(products) or "none",
             "yes" if org_althea(o["sample"], db) else "no",
             "yes" if org_manager(o["sample"], db) else "no",
+            org_practice(o["sample"], db),
         ])
     rows.sort(key=lambda r: r[1].lower())
     return _csv_response(
         "althais_organizations.csv",
-        ["org_key", "name", "user_count", "users", "products", "althea", "manager"],
+        ["org_key", "name", "user_count", "users", "products", "althea", "manager", "practice"],
         rows,
     )
 
@@ -1885,7 +1902,7 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
             except Exception:
                 mrr = 0
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
-                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "custom": bool(row),
+                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "practice": org_practice(o["sample"], db), "custom": bool(row),
                     "mrr": mrr, "startDate": _clinic_start(db, o["org_key"])})
     # clinics added in this console that nobody has joined yet
     for row in db.scalars(select(OrgSettings).where(OrgSettings.category == ENTITLEMENTS_CATEGORY)):
@@ -1897,7 +1914,8 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
         products = sorted(p for p in data.get("products") or [] if p in PRODUCTS)
         out.append({"org_key": row.org_key, "name": row.org_key, "users": [], "products": products,
                     "althea": data["althea"] if isinstance(data.get("althea"), bool) else "suite" in products,
-                    "manager": data.get("manager") is not False, "custom": True, "mrr": mrr, "createdInAdmin": True,
+                    "manager": data.get("manager") is not False, "practice": data.get("practice") if data.get("practice") in PRACTICES else "medical",
+                    "custom": True, "mrr": mrr, "createdInAdmin": True,
                     "createdAt": data.get("createdAt", ""), "startDate": _clinic_start(db, row.org_key, [])})
     return sorted(out, key=lambda o: o["name"].lower())
 
@@ -2035,6 +2053,9 @@ async def admin_add_clinic(request: Request, db: Session = Depends(get_db), _: b
     name = _re.sub(r"\s+", " ", str(body.get("name") or "")).strip()
     products = body.get("products") if isinstance(body.get("products"), list) else []
     althea = body.get("althea") if isinstance(body.get("althea"), bool) else None
+    practice = body.get("practice") or "medical"
+    if practice not in PRACTICES:
+        return JSONResponse({"error": "Practice type must be medical or dental."}, status_code=400)
     if len(name) < 2 or len(name) > 120:
         return JSONResponse({"error": "Enter the clinic's name (2 to 120 characters)."}, status_code=400)
     if name.lower() in _clinic_names(db):
@@ -2042,12 +2063,12 @@ async def admin_add_clinic(request: Request, db: Session = Depends(get_db), _: b
     if not products or any(p not in PRODUCTS for p in products):
         return JSONResponse({"error": "Choose at least one tool."}, status_code=400)
     chosen = ["suite"] if "suite" in products else sorted(set(products))
-    data = {"rev": 0, "products": chosen, "manager": True, "createdInAdmin": True, "createdAt": dt.datetime.now(timezone.utc).isoformat()}
+    data = {"rev": 0, "products": chosen, "manager": True, "practice": practice, "createdInAdmin": True, "createdAt": dt.datetime.now(timezone.utc).isoformat()}
     if althea is not None:
         data["althea"] = althea
     db.add(OrgSettings(org_key=name, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(data)))
     db.commit()
-    log_admin_action(db, "clinic_added", target=name, detail=f"Added {name}: " + ("the full suite" if "suite" in chosen else ", ".join(chosen)))
+    log_admin_action(db, "clinic_added", target=name, detail=f"Added {name} ({practice}): " + ("the full suite" if "suite" in chosen else ", ".join(chosen)))
     return {"ok": True, "org_key": name}
 
 
@@ -2194,7 +2215,7 @@ async def admin_set_org_products(request: Request, db: Session = Depends(get_db)
         for k in ("althea", "manager"):
             if k not in data and isinstance(prev.get(k), bool):
                 data[k] = prev[k]   # not sent: keep what it was
-        for k in ("createdInAdmin", "createdAt", "demo"):
+        for k in ("createdInAdmin", "createdAt", "demo", "practice"):
             if k in prev:
                 data[k] = prev[k]   # how the clinic was created, so it still lists before anyone joins
         row.data = _json.dumps(data)
@@ -2206,6 +2227,35 @@ async def admin_set_org_products(request: Request, db: Session = Depends(get_db)
                       detail=f"{key}: {plan_desc}" + (f", Althea {'on' if data.get('althea') else 'off'}" if althea is not None else "")
                               + (f", Manager {'on' if data.get('manager') else 'off'}" if manager is not None else ""))
     return {"ok": True, "org_key": key, "products": chosen, "althea": data.get("althea", "suite" in chosen), "manager": data.get("manager", True)}
+
+
+@router.post("/api/admin/orgs/practice")
+async def admin_set_org_practice(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Switch a clinic between the medical (ER / urgent care) and dental versions of Althais. Its plan, Althea and
+    Manager stay as they are; only what its people see changes (codes, claim form, payer rules, EMR list, sample clinic)."""
+    body = await request.json()
+    key, practice = str(body.get("org_key") or ""), body.get("practice")
+    if not key or practice not in PRACTICES:
+        return JSONResponse({"error": "Send an org_key and a practice: medical or dental."}, status_code=400)
+    if not _clinic_exists(db, key):
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == key, OrgSettings.category == ENTITLEMENTS_CATEGORY))
+    if row:
+        data = _json.loads(row.data or "{}")
+        before = data.get("practice") if data.get("practice") in PRACTICES else "medical"
+        data["practice"] = practice
+        data["rev"] = (data.get("rev") or 0) + 1
+        data["updatedAt"] = dt.datetime.now(timezone.utc).isoformat()
+        row.data = _json.dumps(data)
+    else:
+        # no plan record yet: write one with the plan it has today (the full suite), so nothing else changes
+        before = "medical"
+        db.add(OrgSettings(org_key=key, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(
+            {"rev": 0, "products": ["suite"], "practice": practice, "updatedAt": dt.datetime.now(timezone.utc).isoformat()})))
+    db.commit()
+    if before != practice:
+        log_admin_action(db, "org_practice_changed", target=key, detail=f"{key}: {before} to {practice}")
+    return {"ok": True, "org_key": key, "practice": practice}
 
 # ──────────────────────────────────────────────────────────────────────────
 #  Demo request table + route

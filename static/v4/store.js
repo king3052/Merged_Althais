@@ -3,19 +3,30 @@
    page makes to this server (/api/code-note, /api/althea/extract). */
 (function () {
   var me = window.__ALTHAIS_USER__ || {};
-  var KEY = 'althais.v4.store.v1::' + String(me.organization || me.email || 'local').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');   // one per clinic
-  var pad = function (n) { return String(n).padStart(2, '0'); };
   var D = {};
+  // which version this clinic sees, set per clinic in /admin: "medical" (ER, urgent care, office) or "dental" (static/v4/dental.js)
+  D.DENTAL = me.practice === 'dental' && !!window.DX;
+  var KEY = 'althais.v4.store.v1::' + String(me.organization || me.email || 'local').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_') + (D.DENTAL ? '::dental' : '');   // one per clinic (and version)
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  // words that differ between the versions
+  D.L = D.DENTAL ? { proc: 'CDT', procs: 'Procedures', pcp: 'Dentist', member: 'Subscriber ID', ins: 'Dental plan', form: 'ADA claim form', formShort: 'ADA', provider: 'Dentist', visit: 'Visit', edi: '837D', dxOptional: true }
+                 : { proc: 'CPT', procs: 'CPT codes', pcp: 'PCP', member: 'Member ID', ins: 'Primary ins.', form: 'CMS-1500', formShort: 'CMS-1500', provider: 'Provider', visit: 'Encounter', edi: '837P', dxOptional: false };
+  // a procedure (billed service) code, as opposed to a diagnosis
+  D.isProc = function (type) { return type === 'CPT' || type === 'CDT'; };
+  // a claim line from a code (keeps tooth, surface and quadrant for dental)
+  D.lineOf = function (c) { var l = { code: String(c.code || '').toUpperCase(), mod: c.mod || c.modifier || '', units: +c.units || 1 }; if (c.tooth || c.surface || c.quad) { l.tooth = c.tooth || ''; l.surface = c.surface || ''; l.quad = c.quad || ''; } return l; };
+  D.lineText = function (l) { return D.DENTAL ? DX.lineText(l) : l.code + (l.mod ? '-' + l.mod : '') + (l.units > 1 ? ' \u00d7' + l.units : ''); };
 
-  D.PAYERS = ['Medicare B', 'Medicare Adv.', 'Aetna PPO', 'UHC', 'Cigna', 'BCBS TX', 'TX Medicaid', 'Self-pay'];
+  D.PAYERS = D.DENTAL ? DX.PAYERS : ['Medicare B', 'Medicare Adv.', 'Aetna PPO', 'UHC', 'Cigna', 'BCBS TX', 'TX Medicaid', 'Self-pay'];
+  D.VISIT_TYPES = D.DENTAL ? DX.VISITS : ['Office visit', 'Telehealth', 'New patient', 'Annual wellness', 'Procedure'];
   D.VISITS = ['Scheduled', 'Checked in', 'In room', 'Checked out', 'No show', 'Cancelled'];
-  D.FEES = [['99202', 'New patient, straightforward', 92.35], ['99203', 'New patient, low MDM', 136.58], ['99204', 'New patient, moderate MDM', 211.61], ['99205', 'New patient, high MDM', 273.53],
+  D.FEES = D.DENTAL ? DX.FEES : [['99202', 'New patient, straightforward', 92.35], ['99203', 'New patient, low MDM', 136.58], ['99204', 'New patient, moderate MDM', 211.61], ['99205', 'New patient, high MDM', 273.53],
     ['99212', 'Established, straightforward', 72.14], ['99213', 'Established, low MDM', 118.20], ['99214', 'Established, moderate MDM', 167.09], ['99215', 'Established, high MDM', 224.86],
     ['99395', 'Preventive, 18 to 39', 196.40], ['99396', 'Preventive, 40 to 64', 214.00], ['99397', 'Preventive, 65+', 228.15], ['G0439', 'Annual wellness, subsequent', 174.80],
     ['93000', 'ECG with interpretation', 73.36], ['36415', 'Venipuncture', 12.00], ['81002', 'Urinalysis, non-automated', 6.40], ['73721', 'MRI lower extremity joint', 612.00]];
 
   // Payer rule library. Each rule's check runs on every claim; local rules (added in Payer rules) run the same way.
-  D.RULES = [
+  D.RULES = D.DENTAL ? DX.RULES : [
     { id: 'AET-DM-014', payer: 'Aetna', pub: '2026-10-09', eff: '2026-10-09', as: 'Note check', title: 'Foot exam documentation', applies: '99213 to 99215 with E10.x, E11.x', lvl: 'red',
       req: 'Foot exam documentation required, diabetes E&M 99213 to 99215', text: 'When an E&M visit is billed with a diabetes diagnosis (E10.x, E11.x), the note must document a foot exam: sensation, pulses, and skin.',
       how: ['Checks the note before signing', 'Searches the visit transcript for exam findings', 'Holds the claim as an edit if still missing'], src: 'Aetna Clinical Policy Bulletin, 10/09/2026' },
@@ -42,14 +53,16 @@
   function blank() {
     return {
       v: 1, seq: { mrn: 1000, claim: 10000, n: 1 },
-      clinic: { name: 'My Clinic', user: 'You', userStaff: '', specialty: '', npi: '', ein: '', taxonomy: '', ptan: '', addr: '', city: '', phone: '', payto: 'Same as billing', fax: '', tz: 'Central (America/Chicago)' },
+      clinic: { name: 'My Clinic', user: 'You', userStaff: '', specialty: D.DENTAL ? 'General dentistry' : '', npi: '', ein: '', taxonomy: '', ptan: '', addr: '', city: '', phone: '', payto: 'Same as billing', fax: '', tz: 'Central (America/Chicago)' },
       soap: { consent: 'Required each visit', retention: '30 days', style: 'SOAP, concise', coding: 'On' },
       security: { twofa: 'Required', timeout: '15 minutes', audit: '7 years', baa: 'Not signed' },
       notify: { email: true, sms: false, denials: true, creds: true },
-      templates: ['Office visit, established', 'Annual wellness', 'Telehealth follow-up'], ordersets: ['Diabetes follow-up labs', 'Hypertension follow-up'],
+      templates: D.DENTAL ? ['Recall exam and cleaning', 'Restorative visit', 'Emergency visit'] : ['Office visit, established', 'Annual wellness', 'Telehealth follow-up'],
+      ordersets: D.DENTAL ? ['Post-op extraction care', 'Perio re-evaluation'] : ['Diabetes follow-up labs', 'Hypertension follow-up'],
       patients: [], staff: [], appts: [], encs: [], claims: [], docs: [], requests: [], outgoing: [], messages: [], locations: [],
       localRules: [], fees: D.FEES.map(function (f) { return { code: f[0], desc: f[1], rate: f[2] }; }),
-      integrations: [['Availity', 'Claims, eligibility, ERA', false], ['Quest Diagnostics', 'Lab orders and results', false], ['Surescripts', 'E-prescribing, med history', false], ['Stripe', 'Patient payments', false], ['Labcorp', 'Lab orders and results', false]].map(function (i) { return { name: i[0], use: i[1], on: i[2], sync: '' }; }),
+      integrations: (D.DENTAL ? [['DentalXChange', 'Dental claims, eligibility, ERA', false], ['NEA FastAttach', 'X-ray and narrative attachments', false], ['Surescripts', 'E-prescribing, med history', false], ['Stripe', 'Patient payments', false]]
+        : [['Availity', 'Claims, eligibility, ERA', false], ['Quest Diagnostics', 'Lab orders and results', false], ['Surescripts', 'E-prescribing, med history', false], ['Stripe', 'Patient payments', false], ['Labcorp', 'Lab orders and results', false]]).map(function (i) { return { name: i[0], use: i[1], on: i[2], sync: '' }; }),
       log: [],
     };
   }
@@ -92,7 +105,7 @@
 
   // ---- the note as text (for coding, rule checks and the claim) ----
   D.noteText = function (e) {
-    var v = e.vitals || {};
+    var v = D.DENTAL ? {} : e.vitals || {};
     return ['SUBJECTIVE: ' + (e.s || ''), 'OBJECTIVE: ' + [v.bp && 'BP ' + v.bp, v.hr && 'HR ' + v.hr, v.temp && 'Temp ' + v.temp, v.wt && 'Wt ' + v.wt].filter(Boolean).join(', ') + ' ' + (e.o || ''),
       'ASSESSMENT: ' + (e.a || ''), 'PLAN: ' + (e.p || '')].concat((e.addenda || []).filter(function (x) { return x.signed; }).map(function (x) { return 'ADDENDUM: ' + x.text; })).join('\n');
   };
@@ -100,6 +113,7 @@
   /* ---- claim checks: basic edits plus every payer rule; each edit says what to fix and cites its evidence ---- */
   var sentenceWith = function (lines, re) { for (var i = 0; i < (lines || []).length; i++) if (re.test(lines[i].text)) return lines[i]; return null; };
   D.checkClaim = function (c) {
+    if (D.DENTAL) return D.checkDental(c);
     var e = c._enc || D.enc(c.encId) || { s: '', o: '', a: '', p: '', transcript: [] }, p = D.pt(c.mrn), payer = D.payer(c) || '', note = D.noteText(e), out = [];
     var cpts = (c.lines || []).map(function (l) { return l.code; }), dx = c.dx || [];
     var has = function (re) { return re.test(note); };
@@ -149,12 +163,51 @@
     });
     return out;
   };
+  /* ---- dental: the same basics, then the dental rules (static/v4/dental.js, the same as the server's) ---- */
+  D.dentalInput = function (c, p) {
+    p = p || D.pt(c.mrn) || {};
+    var lines = (c.lines || []).map(function (l) { return { code: l.code, tooth: l.tooth || '', surface: l.surface || '', quad: l.quad || '' }; });
+    return { cpt: lines.map(function (l) { return l.code; }), lines: lines, tooth_column: true, dob: p.dob || '', dos: c.dos || D.today() };
+  };
+  // this patient's other claims (any stage but a deleted draft), for frequency limits
+  D.dentalHistory = function (c) {
+    return S.claims.filter(function (x) { return x !== c && x.id !== c.id && x.mrn === c.mrn && x.dos && x.stage !== 'denied'; })
+      .map(function (x) { return { dos: x.dos, cpt: (x.lines || []).map(function (l) { return l.code; }), lines: (x.lines || []).map(function (l) { return { code: l.code, tooth: l.tooth || '', surface: l.surface || '', quad: l.quad || '' }; }) }; });
+  };
+  D.checkDental = function (c) {
+    var p = D.pt(c.mrn), payer = D.payer(c) || '', out = [], codes = (c.lines || []).map(function (l) { return l.code; });
+    if (!codes.length) out.push({ id: 'BASIC-CPT', lvl: 'red', label: 'No procedure', text: 'A dental claim needs at least one CDT procedure.' });
+    if (!p || !payer || payer === 'Self-pay') { if (payer !== 'Self-pay') out.push({ id: 'BASIC-INS', lvl: 'red', label: 'No dental plan', text: 'Add the patient\u2019s dental plan before sending.' }); }
+    else if (!p.member) out.push({ id: 'BASIC-MEM', lvl: 'amb', label: 'No subscriber ID', text: 'No subscriber ID on file for ' + payer + '. The plan will reject the claim without it.' });
+    if (!(Number(c.amount) > 0) && codes.some(function (x) { return !D.fee(x); })) out.push({ id: 'BASIC-FEE', lvl: 'amb', label: 'No fee', text: 'No fee on file for ' + codes.filter(function (x) { return !D.fee(x); }).join(', ') + ' (Settings \u203a Fee schedules).' });
+    var input = D.dentalInput(c, p), found = DX.check(input), hist = D.dentalHistory(c);
+    if (hist.length) found = found.concat(DX.historyFlags(hist.concat([input]))[hist.length] || []);
+    var used = {};
+    found.forEach(function (f) {
+      if (f.severity === 'info') return;
+      if (f.code === 'attach' && c.attached) return;   // marked sent with the claim
+      var id = 'DEN-' + (DX.GROUP[f.code] || 'CODE') + (f.tooth ? '-' + f.tooth : ''), n = 2;
+      while (used[id]) id = id.replace(/~\d+$/, '') + '~' + n++;
+      used[id] = 1;
+      out.push({ id: id, rule: 'DEN-' + (DX.GROUP[f.code] || 'CODE'), lvl: f.severity === 'error' ? 'red' : 'amb', label: DX.LABEL[f.code] || 'Dental rule', text: f.message, code: f.code, tooth: f.tooth || '' });
+    });
+    var e = c._enc || D.enc(c.encId), note = (e ? D.noteText(e) : String(c.note || '')).toLowerCase();
+    S.localRules.forEach(function (r) {   // the clinic's own rules (Payer rules › Add rule), as in the medical version
+      if (payer.toLowerCase().indexOf(String(r.payer).toLowerCase()) === 0 && codes.some(function (x) { return x.indexOf(r.cpt || '') === 0; }) && r.must && note.indexOf(r.must.toLowerCase()) < 0)
+        out.push({ id: r.id, lvl: 'amb', label: r.title, text: r.text || ('Note must mention "' + r.must + '".') });
+    });
+    var dos = c.dos || D.today(), unsent = ['edits', 'ready'].indexOf(c.stage) >= 0, age = D.daysBetween(dos, D.today());
+    if (unsent && /medicaid/i.test(payer) && age >= 80) out.push({ id: 'DEN-TF', lvl: 'amb', label: 'Filing deadline', text: 'TX Medicaid timely filing ends ' + D.us(D.addDays(dos, 95)) + '. Send this claim now.' });
+    else if (unsent && age >= 330) out.push({ id: 'DEN-TF', lvl: 'amb', label: 'Filing deadline', text: 'Most dental plans need claims within 12 months of the date of service (' + D.us(D.addDays(dos, 365)) + '). Send this claim now.' });
+    return out;
+  };
+
   // re-run checks; a claim before submission lands in Edits or Ready
   D.scrub = function (c) {
     var res = c.resolved || {};
     c.edits = D.checkClaim(c).filter(function (x) { return !res[x.id]; });
     c.passed = 6 + D.allRules().length - c.edits.length;
-    (c.edits).forEach(function (x) { c.ruleHits = c.ruleHits || {}; c.ruleHits[x.id] = true; });
+    (c.edits).forEach(function (x) { c.ruleHits = c.ruleHits || {}; c.ruleHits[x.rule || x.id] = true; });
     if (c.stage === 'edits' || c.stage === 'ready') c.stage = c.edits.length ? 'edits' : 'ready';
     return c;
   };

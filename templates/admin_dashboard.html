@@ -187,11 +187,11 @@
       <div class="p-5">
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <select id="org-filter" class="flt" aria-label="Filter by plan">
-            <option value="all">All Plans</option><option value="suite">Full Suite</option><option value="tools">Single Tools</option><option value="none">No Access</option>
+            <option value="all">All Plans</option><option value="suite">Full Suite</option><option value="tools">Single Tools</option><option value="none">No Access</option><option value="medical">Medical / ER Version</option><option value="dental">Dental Version</option>
           </select>
           <button type="button" id="save-all" class="btn-save ml-auto order-last" disabled>Save All</button>
           <button type="button" id="clinic-add" class="btn-save order-last">+ Add Clinic</button>
-          <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea and Manager work with any plan.</span>
+          <span class="text-[12px] text-ink-500">Switch on what each clinic bought, then Save. The full suite includes every tool. Althea and Manager work with any plan. Version decides what the clinic sees: the medical (ER and urgent care) app or the dental one.</span>
         </div>
         <div class="bg-panel border border-line rounded-sm">
           <div class="px-4 py-2.5 border-b border-line flex items-center justify-between">
@@ -204,7 +204,7 @@
           <div class="overflow-x-auto thin-scroll">
             <table class="w-full">
               <thead><tr class="table-head">
-                <th class="td text-left">Organization</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td text-center" style="border-left:1px solid #e4e6eb">Althea</th><th class="td text-center">Manager</th><th class="td text-right" style="border-left:1px solid #e4e6eb">MRR</th><th class="td"></th>
+                <th class="td text-left">Organization</th><th class="td text-left">Version</th><th class="td text-center">Full Suite</th><th class="td text-center">Scribe</th><th class="td text-center">Coding</th><th class="td text-center">Insurance</th><th class="td text-center">Team</th><th class="td text-center" style="border-left:1px solid #e4e6eb">Althea</th><th class="td text-center">Manager</th><th class="td text-right" style="border-left:1px solid #e4e6eb">MRR</th><th class="td"></th>
               </tr></thead>
               <tbody id="org-rows"></tbody>
             </table>
@@ -219,6 +219,8 @@
           <button type="button" data-clinic-close class="text-ink-400 hover:text-ink-900" aria-label="Close">✕</button></div>
         <div class="p-5 space-y-3">
           <div><label class="lbl" for="clinic-name">Clinic name</label><input id="clinic-name" class="flt w-full" style="font-size:13px;padding:8px 10px" maxlength="120" required placeholder="e.g. MCH Hospital Site 2"></div>
+          <div><label class="lbl" for="clinic-practice">Version</label><select id="clinic-practice" class="flt" style="font-size:13px;padding:7px 10px"><option value="medical">Medical (ER, urgent care, office)</option><option value="dental">Dental</option></select>
+            <div class="text-[11.5px] text-ink-500 mt-1">What the clinic's people see: medical codes, CMS-1500 and medical EMRs, or dental codes with teeth and surfaces, the ADA claim and dental practice software.</div></div>
           <div><div class="lbl">Tools</div><div class="flex flex-wrap gap-3 text-[12.5px]" id="clinic-tools"></div>
             <label class="flex items-center gap-2 text-[12.5px] mt-2"><input type="checkbox" id="clinic-althea" checked> Althea assistant</label></div>
           <div><label class="lbl" for="clinic-start">Start date</label><input id="clinic-start" type="date" class="flt" style="font-size:13px;padding:7px 10px"></div>
@@ -423,6 +425,8 @@
     const draft = {};    // org_key -> products being edited
     const draftA = {};   // org_key -> Althea on/off being edited
     const draftM = {};   // org_key -> Manager on/off being edited
+    const draftP = {};   // org_key -> version (medical or dental) being edited
+    const PRACTICE = { medical: 'Medical / ER', dental: 'Dental' };
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
     function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'; }
@@ -446,7 +450,9 @@
       clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = '0'; }, 2600);
     }
     const PILL = { brand: 'background:var(--brand-100);color:var(--brand-text-strong)', muted: 'background:#eceef2;color:#4a505c', risk: 'background:#ffe1e1;color:#c83838', warn: 'background:#fff0d6;color:#b86a00' };
+    PILL.dental = 'background:#dff3f1;color:#0f6b66';
     const pill = (text, tone) => `<span class="pill" style="${PILL[tone]}">${esc(text)}</span>`;
+    const practicePill = o => o.practice === 'dental' ? pill('Dental', 'dental') : pill('Medical', 'muted');
     function planLabel(products, althea) {
       const extra = althea ? ' ' + pill('Althea', 'brand') : '';
       if (!products || !products.length) return pill('No Access', 'risk') + extra;
@@ -520,7 +526,7 @@
           <div class="initials">${esc(initials(o.name))}</div>
           <div class="min-w-0 flex-1"><div class="text-[12.5px] font-medium text-ink-900 truncate">${esc(o.name)}</div>
             <div class="text-[11px] text-ink-500">${o.users.length} ${o.users.length === 1 ? 'person' : 'people'} · last seen ${fmtRelative(last)}</div></div>
-          <div class="hidden sm:flex gap-1 flex-wrap justify-end">${planLabel(o.products, o.althea)}</div>
+          <div class="hidden sm:flex gap-1 flex-wrap justify-end">${practicePill(o)} ${planLabel(o.products, o.althea)}</div>
           <div class="w-20 text-right"><div class="text-[13px] font-semibold text-ink-900 num">${logins.toLocaleString()}</div><div class="text-[10.5px] text-ink-400">logins</div></div>
         </div>`).join('') : '<div class="px-4 py-8 text-center text-[12px] text-ink-500">No clinics yet.</div>';
     }
@@ -528,7 +534,7 @@
     // ---- Organizations & access ----
     function isDirty(o) {
       const p = draft[o.org_key], a = o.org_key in draftA ? draftA[o.org_key] : o.althea, m = o.org_key in draftM ? draftM[o.org_key] : o.manager;
-      return (p && p.slice().sort().join() !== o.products.slice().sort().join()) || a !== o.althea || m !== o.manager;
+      return (p && p.slice().sort().join() !== o.products.slice().sort().join()) || a !== o.althea || m !== o.manager || (o.org_key in draftP && draftP[o.org_key] !== (o.practice || 'medical'));
     }
     async function saveOrg(o) {
       const key = o.org_key, products = draft[key] || o.products, althea = key in draftA ? draftA[key] : o.althea, manager = key in draftM ? draftM[key] : o.manager;
@@ -537,10 +543,24 @@
       if (res.status === 401) { location.href = '/admin/login'; throw new Error('signed out'); }
       if (!res.ok) throw new Error(data.error || 'Could not save.');
       o.products = data.products; o.althea = data.althea; o.manager = data.manager; delete draft[key]; delete draftA[key]; delete draftM[key];
+      await savePractice(o);
     }
+    // the clinic's version (medical or dental), saved with the rest of its row
+    async function savePractice(o) {
+      const key = o.org_key;
+      if (!(key in draftP) || draftP[key] === (o.practice || 'medical')) { delete draftP[key]; return; }
+      const res = await fetch('/api/admin/orgs/practice', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, practice: draftP[key] }) });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) { location.href = '/admin/login'; throw new Error('signed out'); }
+      if (!res.ok) throw new Error(data.error || 'Could not change the version.');
+      o.practice = data.practice; delete draftP[key];
+    }
+    const switching = list => list.filter(o => o.org_key in draftP && draftP[o.org_key] !== (o.practice || 'medical'));
+    const switchNote = list => `Switch ${list.map(o => `${o.name} to the ${PRACTICE[draftP[o.org_key]]} version`).join(', ')}? Their people see the new version the next time a page loads: its codes, claim form, payer rules, EMR list and sample clinic. Their patients and claims stay.`;
     $('save-all').addEventListener('click', async () => {
       const list = ORGS.filter(isDirty);
       const cut = list.filter(o => !(draft[o.org_key] || o.products).length);
+      if (switching(list).length && !confirm(switchNote(switching(list)))) return;
       if (cut.length && !confirm(`Turn off every Althais tool for ${cut.map(o => o.name).join(', ')}? Their people will see a "no active plan" page.`)) return;
       $('save-all').disabled = true; $('save-all').textContent = 'Saving…';
       let saved = 0, failed = [];
@@ -561,11 +581,13 @@
           aria-label="${esc(o.name)}: Althea" title="Althea, the assistant. Works with any plan."></button></td>`
         + `<td class="td text-center"><button type="button" role="switch" aria-checked="${manager}" class="toggle${manager ? ' on' : ''}" data-org="${esc(o.org_key)}" data-manager
           aria-label="${esc(o.name)}: Manager" title="Manager: the clinic’s admins handle their own employees at /manager"></button></td>`;
+      const practice = o.org_key in draftP ? draftP[o.org_key] : (o.practice || 'medical');
       return `<tr class="row-hover">
         <td class="td"><div class="flex items-center gap-2.5"><div class="initials">${esc(initials(o.name))}</div><div class="min-w-0">
           <button type="button" data-emp="${esc(o.org_key)}" class="font-semibold text-ink-900 hover:text-med-600 text-left" title="See this clinic’s employees">${esc(o.name)}</button>
           <div class="text-[11px] text-ink-500">${o.users.length ? `${o.users.length} ${o.users.length === 1 ? 'person' : 'people'}${o.startDate ? ' · started ' + fmtDate(o.startDate + 'T12:00:00') : ''} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}`
             : `No one has joined yet${o.startDate ? ' · started ' + fmtDate(o.startDate + 'T12:00:00') : ''}`}</div></div></div></td>
+        <td class="td"><select class="flt" data-practice="${esc(o.org_key)}" aria-label="${esc(o.name)}: version" style="font-size:12px;padding:4px 6px${practice === 'dental' ? ';background:#dff3f1;color:#0f6b66;border-color:#9fd6d0' : ''}">${Object.keys(PRACTICE).map(k => `<option value="${k}"${k === practice ? ' selected' : ''}>${PRACTICE[k]}</option>`).join('')}</select></td>
         ${cells}
         <td class="td text-right" style="border-left:1px solid #eceef2">
           <input type="number" min="0" step="1" class="flt" style="width:88px;text-align:right" value="${o.mrr || ''}" placeholder="0" data-mrr="${esc(o.org_key)}" aria-label="${esc(o.name)}: monthly contract value" />
@@ -578,14 +600,18 @@
     }
     function renderOrgs() {
       const f = $('org-filter').value;
-      const list = shownOrgs().filter(o => (f === 'all' || planOf(o) === f) && matches(o.name + ' ' + o.users.join(' ')));
-      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(9, 'No organizations match.');
+      const list = shownOrgs().filter(o => (f === 'all' || planOf(o) === f || (o.practice || 'medical') === f) && matches(o.name + ' ' + o.users.join(' ')));
+      $('org-rows').innerHTML = list.length ? list.map(orgRow).join('') : empty(11, 'No organizations match.');
       $('org-count').textContent = `${list.length} of ${shownOrgs().length}`;
       const pending = ORGS.filter(isDirty).length;
       $('save-all').disabled = !pending; $('save-all').textContent = pending ? `Save All (${pending})` : 'Save All';
       $('n-orgs').textContent = shownOrgs().length || '';
     }
     $('org-filter').addEventListener('change', renderOrgs);
+    $('org-rows').addEventListener('change', e => {
+      const sel = e.target.closest('[data-practice]'); if (!sel) return;
+      draftP[sel.dataset.practice] = sel.value; renderOrgs();
+    });
     $('org-rows').addEventListener('focusout', async e => {
       const input = e.target.closest('[data-mrr]'); if (!input) return;
       const key = input.dataset.mrr, o = ORGS.find(x => x.org_key === key);
@@ -618,13 +644,16 @@
       const key = b.dataset.saveOrg, o = ORGS.find(x => x.org_key === key), products = draft[key] || o.products;
       const althea = key in draftA ? draftA[key] : o.althea, manager = key in draftM ? draftM[key] : o.manager;
       if (!products.length && !confirm(`Turn off every Althais tool for ${o.name}? Their people will see a "no active plan" page.`)) return;
+      if (switching([o]).length && !confirm(switchNote([o]))) return;
       b.disabled = true; b.textContent = 'Saving…';
       const res = await fetch('/api/admin/orgs/products', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, products, althea, manager }) });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) { location.href = '/admin/login'; return; }
       if (!res.ok) { toast(data.error || 'Could not save.', 'error'); renderOrgs(); return; }
-      o.products = data.products; o.althea = data.althea; o.manager = data.manager; delete draft[key]; delete draftA[key]; delete draftM[key]; renderAll();
-      toast(`Saved. ${o.name} now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}${o.althea ? ', with Althea' : ', without Althea'}${o.manager ? '' : ', and Manager off'}.`);
+      o.products = data.products; o.althea = data.althea; o.manager = data.manager; delete draft[key]; delete draftA[key]; delete draftM[key];
+      try { await savePractice(o); } catch (err) { toast(err.message, 'error'); renderAll(); return; }
+      renderAll();
+      toast(`Saved. ${o.name} (${PRACTICE[o.practice || 'medical']} version) now has ${o.products.includes('suite') ? 'the full suite' : o.products.length ? o.products.map(p => PLANS[p].name).join(', ') : 'no access'}${o.althea ? ', with Althea' : ', without Althea'}${o.manager ? '' : ', and Manager off'}.`);
     });
 
     // ---- A clinic's employees (read-only): its managers and the people under them ----
@@ -633,7 +662,7 @@
       const o = ORGS.find(x => x.org_key === key); if (!o) return;
       $('emp-title').textContent = o.name; $('emp-initials').textContent = initials(o.name);
       $('emp-sub').textContent = 'Loading…'; $('emp-managers').innerHTML = ''; $('emp-list').innerHTML = '';
-      $('emp-plan').innerHTML = planLabel(o.products, o.althea) + ' ' + pill(o.manager ? 'Manager On' : 'Manager Off', o.manager ? 'brand' : 'warn');
+      $('emp-plan').innerHTML = practicePill(o) + ' ' + planLabel(o.products, o.althea) + ' ' + pill(o.manager ? 'Manager On' : 'Manager Off', o.manager ? 'brand' : 'warn');
       $('emp-panel').classList.remove('hidden'); $('emp-backdrop').classList.remove('hidden');
       const res = await fetch('/api/admin/org-members?org_key=' + encodeURIComponent(key), { credentials: 'same-origin' });
       if (res.status === 401) { location.href = '/admin/login'; return; }
@@ -912,7 +941,7 @@
         load.opened = true;
         renderAll();
       } catch {
-        $('org-rows').innerHTML = empty(7, 'Could not load. Try Refresh.'); $('rows').innerHTML = empty(8, 'Could not load. Try Refresh.');
+        $('org-rows').innerHTML = empty(11, 'Could not load. Try Refresh.'); $('rows').innerHTML = empty(8, 'Could not load. Try Refresh.');
       }
     }
 
@@ -1005,7 +1034,7 @@
       try {
         const products = [...$('clinic-tools').querySelectorAll('input:checked')].map(x => x.value);
         const r = await fetch('/api/admin/clinics', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: $('clinic-name').value, products, althea: $('clinic-althea').checked }) });
+          body: JSON.stringify({ name: $('clinic-name').value, products, althea: $('clinic-althea').checked, practice: $('clinic-practice').value }) });
         const j = await r.json().catch(() => ({}));
         if (r.status === 401) { location.href = '/admin/login'; return; }
         if (!r.ok) { $('clinic-msg').textContent = j.error || 'Could not add the clinic.'; return; }

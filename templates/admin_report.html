@@ -91,13 +91,14 @@
       <h2>Clinics</h2>
       {% if orgs %}
       <div class="scroll"><table>
-        <thead><tr><th>Clinic</th><th>Started</th><th class="num">People</th><th>Plan</th><th>Althea</th><th>Manager</th><th class="num">MRR</th></tr></thead>
+        <thead><tr><th>Clinic</th><th>Started</th><th class="num">People</th><th>Version</th><th>Plan</th><th>Althea</th><th>Manager</th><th class="num">MRR</th></tr></thead>
         <tbody>
         {% for o in orgs %}
           <tr>
             <td><div class="name">{{ o.name }}</div><div class="muted small">{{ o.users[:3]|join(', ') }}{% if o.users|length > 3 %} +{{ o.users|length - 3 }} more{% endif %}{% if not o.users %}No one has joined yet{% endif %}</div></td>
             <td class="muted" style="white-space:nowrap">{{ o.started }}</td>
             <td class="num">{{ o.users|length }}</td>
+            <td>{% if o.practice == 'dental' %}Dental{% else %}Medical / ER{% endif %}</td>
             <td>{% if o.plan == 'No access' %}<span class="chip warn">No access</span>{% else %}<span class="chip">{{ o.plan }}</span>{% endif %}</td>
             <td>{% if o.althea %}<span class="chip">On</span>{% else %}<span class="chip off">Off</span>{% endif %}</td>
             <td>{% if o.manager %}<span class="chip">On</span>{% else %}<span class="chip off">Off</span>{% endif %}</td>

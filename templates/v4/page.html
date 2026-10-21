@@ -16,12 +16,14 @@
 <body>
   {# Working preview: every page is drawn by static/v4/app*.js from the clinic data in this browser (static/v4/store.js) #}
   <div id="app" data-page="{{ page }}"></div>
+  <script src="/static/v4/dental.js?v={{ asset_v }}"></script>
   <script src="/static/v4/store.js?v={{ asset_v }}"></script>
   <script src="/static/v4/sync.js?v={{ asset_v }}"></script>
   <script src="/static/v4/ui.js?v={{ asset_v }}"></script>
   <script src="/static/v4/app1.js?v={{ asset_v }}"></script>
   <script src="/static/v4/app2.js?v={{ asset_v }}"></script>
   <script src="/static/v4/app4.js?v={{ asset_v }}"></script>
+  <script src="/static/v4/app10.js?v={{ asset_v }}"></script>
   <script src="/static/v4/app5.js?v={{ asset_v }}"></script>
   <script src="/static/v4/app6.js?v={{ asset_v }}"></script>
   <script src="/static/v4/app7.js?v={{ asset_v }}"></script>
