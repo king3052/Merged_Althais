@@ -206,3 +206,4 @@ def test_dental_note_goes_to_the_dental_coder(client, monkeypatch):
     assert by["D2392"]["tooth"] == "14" and by["D2392"]["surface"] == "MO"
     assert "D2393" in by["D2391"]["documentation_gap"] and by["D2391"]["confidence"] <= 55
     assert dental_coding.is_dental_note(note) and not dental_coding.is_dental_note("Sore throat for 3 days, rapid strep positive, amoxicillin.")
+
