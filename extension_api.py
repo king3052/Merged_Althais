@@ -138,7 +138,9 @@ def _clean_claim(b: dict):
     claim = {"claim_id": str(b.get("claim_id") or "")[:40], "patient_name": "On screen (not sent)", "mrn": "", "dob": None,
              "dos": ec._date(str(b.get("dos") or "")[:20]), "dos_raw": str(b.get("dos") or "")[:20], "payer": str(b.get("payer") or "")[:120].strip(),
              "cpt": codes(b.get("cpt"), r"[A-Za-z0-9]{4,6}"), "icd": codes(b.get("icd"), r"[A-Za-z0-9.]{3,9}"), "modifiers": codes(b.get("modifiers"), r"[A-Za-z0-9]{2}", 8),
-             "amount": amount, "provider": "", "pos": "", "rows": []}
+             "amount": amount, "provider": "", "pos": "", "rows": [],
+             # dental screens: each procedure with its tooth, surface and quadrant; tooth_column says whether the screen showed teeth at all
+             "lines": ec._lines(b.get("lines")), "tooth_column": bool(b.get("tooth_column"))}
     if not claim["cpt"] and not claim["icd"] and not claim["payer"]:
         return None, "Nothing to check yet. Read the page or type the codes in first."
     return claim, None
@@ -189,15 +191,19 @@ def _codes(c, flags):
     rows = []
     for typ, codes in (("CPT", c["cpt"]), ("ICD-10", c["icd"])):
         for code in codes:
-            desc = icd10.lookup(code)[2] if typ == "ICD-10" else ""
+            desc = icd10.lookup(code)[2] if typ == "ICD-10" else ""     # CDT text is ADA-licensed, like CPT's
+            if typ == "CPT" and re.fullmatch(r"D\d{4}", code):
+                typ_out = "CDT"
+            else:
+                typ_out = typ
             hits = [f for f in flags if code in f["codes"]]
             worst = max((f["severity"] for f in hits), key=lambda s: rank.get(s, 0), default="ok")
-            rows.append({"code": code, "type": typ, "description": desc, "status": worst, "issues": len(hits)})
+            rows.append({"code": code, "type": typ_out, "description": desc, "status": worst, "issues": len(hits)})
     return rows
 
 
 def _result(c):
-    flags = [{"severity": f["severity"], "code": f["code"], "message": f["message"]} for f in c["flags"] if f["code"] != "no_patient"]
+    flags = [{k: f[k] for k in ("severity", "code", "message", "tooth") if k in f} for f in c["flags"] if f["code"] != "no_patient"]
     flags += _extra_flags(c)
     every = c["cpt"] + c["icd"]
     for f in flags:
@@ -281,6 +287,12 @@ async def code_note(request: Request, authorization: str = Header(default=""), d
     note = str((body or {}).get("note") or "").strip()[:20000]
     if len(note) < 40:
         return JSONResponse({"error": "That's too little text to code. Select the visit note, or open the chart note, and try again."}, status_code=400, headers=NO_STORE)
+    import dental_coding
+    if dental_coding.is_dental_note(note, body.get("specialty")):
+        try:
+            return JSONResponse({"codes": dental_coding.code_note(note, user, db), "dental": True}, headers=NO_STORE)
+        except Exception as e:
+            return _err(e) if hasattr(e, "status_code") else JSONResponse({"error": "Althais couldn't code that note right now."}, status_code=502, headers=NO_STORE)
     import main
     try:
         r = main.code_note({"note": note, "encounter_type": str(body.get("encounter_type") or "emergency")[:20],
@@ -301,11 +313,21 @@ async def code_note(request: Request, authorization: str = Header(default=""), d
     return JSONResponse({"codes": codes}, headers=NO_STORE)
 
 
+def _dental_findings(snap: dict) -> list:
+    """For a dental claim: what the dental rules would flag (surfaces, tooth type, same-tooth conflicts, X-rays to attach...)."""
+    import dental_rules
+    lines = [{"code": x["code"], "tooth": x.get("tooth", ""), "surface": x.get("surface", ""), "quad": x.get("quad", "")} for x in snap["cpts"]]
+    c = {"cpt": [x["code"] for x in snap["cpts"]], "lines": lines, "dob": snap.get("dob") or "", "dos": snap.get("svcDate") or "", "tooth_column": True}
+    if not dental_rules.is_dental(c):
+        return []
+    return [{"severity": f["severity"], "message": f["message"]} for f in dental_rules.check(c) if f["severity"] in ("error", "warn")]
+
+
 def _snapshot(b: dict) -> tuple:
     """The claim in the shape billing_activation sends, trimmed and bounded. Returns (snapshot, problems)."""
     s = lambda k, n=120: re.sub(r"\s+", " ", str(b.get(k) or "")).strip()[:n]
     cpts, icds = [], []
-    for x in (b.get("cpts") if isinstance(b.get("cpts"), list) else [])[:12]:
+    for x in (b.get("cpts") if isinstance(b.get("cpts"), list) else [])[:24]:
         if not isinstance(x, dict):
             continue
         code = re.sub(r"\s", "", str(x.get("code") or "")).upper()[:6]
@@ -319,7 +341,11 @@ def _snapshot(b: dict) -> tuple:
             charge = round(max(0.0, float(str(x.get("charge") or 0).replace("$", "").replace(",", ""))), 2)
         except ValueError:
             charge = 0.0
-        cpts.append({"code": code, "modifier": re.sub(r"[^A-Z0-9]", "", str(x.get("modifier") or "").upper())[:2], "units": units, "charge": charge, "type": "CPT"})
+        line = {"code": code, "modifier": re.sub(r"[^A-Z0-9]", "", str(x.get("modifier") or "").upper())[:2], "units": units, "charge": charge, "type": "CPT"}
+        if re.fullmatch(r"D\d{4}", code):     # dental: the ADA claim needs tooth, surface and quadrant per procedure
+            line.update(type="CDT", tooth=re.sub(r"[^A-Za-z0-9]", "", str(x.get("tooth") or "")).upper()[:4],
+                        surface=re.sub(r"[^A-Za-z]", "", str(x.get("surface") or "")).upper()[:7], quad=re.sub(r"[^A-Za-z]", "", str(x.get("quad") or "")).upper()[:4])
+        cpts.append(line)
     for x in (b.get("icds") if isinstance(b.get("icds"), list) else [])[:12]:
         code = re.sub(r"\s", "", str(x.get("code") if isinstance(x, dict) else x or "")).upper()[:8]
         if code and code not in [i["code"] for i in icds]:
@@ -355,7 +381,7 @@ async def claim(request: Request, authorization: str = Header(default=""), db: S
     except Exception as e:
         return _err(e)
     blockers = [{"title": x.get("title", ""), "reason": x.get("reason", ""), "next": x.get("next", "")} for x in dec["blockers"] if x.get("requirement") != "claim_check"]
-    out = {"claim": snap, "problems": problems, "blockers": blockers}
+    out = {"claim": snap, "problems": problems, "blockers": blockers, "dental": ba.is_dental_claim(snap), "findings": _dental_findings(snap)}
     if action == "check":
         return JSONResponse(out, headers=NO_STORE)
     if action not in ("draft", "queue"):

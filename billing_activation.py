@@ -1214,12 +1214,22 @@ def validate_claim(c: dict) -> list:
         probs.append("The insurance member ID is missing.")
     cpts = [x for x in c.get("cpts") or [] if (x.get("code") or "").strip()]
     icds = [x for x in c.get("icds") or [] if (x.get("code") or "").strip()]
+    dental = is_dental_claim(c)
     if not cpts:
-        probs.append("There's no procedure (CPT) code.")
-    if not icds:
+        probs.append("There's no procedure code." if dental else "There's no procedure (CPT) code.")
+    if not icds and not dental:          # dental claims (ADA form) usually don't need a diagnosis code
         probs.append("There's no diagnosis (ICD-10) code.")
     for x in cpts:
-        if not re.fullmatch(r"\d{4}[0-9A-Z]", x["code"].strip().upper()):
+        code = x["code"].strip().upper()
+        if dental and re.fullmatch(r"D\d{4}", code):
+            import dental_rules
+            if dental_rules.needs_tooth(code) and not str(x.get("tooth") or "").strip():
+                probs.append(f"{code} needs a tooth number.")
+            if code in dental_rules.SURF_COUNT and not str(x.get("surface") or "").strip():
+                probs.append(f"{code} on tooth {x.get('tooth') or '?'} needs its surfaces.")
+            if dental_rules.needs_quad(code) and not str(x.get("quad") or x.get("tooth") or "").strip():
+                probs.append(f"{code} needs a quadrant.")
+        elif not re.fullmatch(r"\d{4}[0-9A-Z]", code):
             probs.append(f"{x['code']} doesn't look like a CPT/HCPCS code.")
     for x in icds:
         if not re.fullmatch(r"[A-Z][0-9][0-9A-Z](\.?[0-9A-Z]{1,4})?", x["code"].strip().upper()):
@@ -1234,9 +1244,16 @@ def validate_claim(c: dict) -> list:
     return probs
 
 
+def is_dental_claim(c: dict) -> bool:
+    """A claim whose procedures are CDT codes (D0000-D9999) goes on the ADA dental claim form (837D), not the CMS-1500."""
+    return any(re.fullmatch(r"D\d{4}", str(x.get("code") or "").strip().upper()) for x in c.get("cpts") or [])
+
+
 def content_hash(c: dict) -> str:
     keep = {k: c.get(k) for k in ("patient", "mrn", "payer", "insuredId", "provider", "svcDate", "totalAmt")}
     keep["cpts"] = sorted([(x.get("code"), x.get("modifier", ""), x.get("units", 1)) for x in c.get("cpts") or []])
+    if is_dental_claim(c):    # tooth and surface are part of a dental claim's identity (medical hashes stay as they were)
+        keep["teeth"] = sorted([(x.get("code"), x.get("tooth", ""), x.get("surface", ""), x.get("quad", "")) for x in c.get("cpts") or []])
     keep["icds"] = sorted([x.get("code") for x in c.get("icds") or []])
     return hashlib.sha256(json.dumps(keep, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -1271,6 +1288,11 @@ def claim_decision(db, org, env, data, user, c: dict, connector=None, by_althais
     payer_key = reg.payer_key(c.get("payer"))
     rd = readiness(db, org, env, data, payer_key, pv["id"] if pv else "", connector)
     blockers += rd["blockers"]
+    if is_dental_claim(c):
+        blockers.append({"requirement": "dental_route", "title": "Dental claim sending",
+                         "reason": "Dental claims go to payers on the ADA dental claim (837D), which Althais doesn't send yet",
+                         "next": "Althais is setting up its dental clearinghouse route; until then, send dental claims from your practice software",
+                         "responsible": "Althais"})
     return {"ready": not blockers, "blockers": blockers, "payer": payer_key, "providerId": pv["id"] if pv else ""}
 
 

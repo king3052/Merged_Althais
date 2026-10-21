@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mock dental practice (synthetic test screens)</title>
+<style>
+:root{--bg:#eef3f3;--card:#fff;--fg:#1b2a2c;--mut:#5b6e70;--line:#d3dfdf;--nav:#0f5b5f;--acc:#138086}
+*{box-sizing:border-box}body{margin:0;font:13px/1.4 "Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+.warn{background:#fff3cd;color:#664d03;padding:6px 14px;font-weight:bold;border-bottom:1px solid #e9d38a}
+.top{display:flex;align-items:center;gap:18px;background:var(--nav);color:#fff;padding:8px 14px}.top b{letter-spacing:.06em}.top span{opacity:.85}
+.wrap{display:flex;height:calc(100vh - 70px)}
+.side{width:300px;min-width:240px;overflow:auto;background:var(--card);border-right:1px solid var(--line)}
+.side h3{margin:0;padding:10px 12px;font-size:12px;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line)}
+.side a{display:block;padding:9px 12px;border-bottom:1px solid var(--line);color:var(--fg);text-decoration:none}.side a.on{background:#e0f0f0;border-left:3px solid var(--acc)}
+.side small{display:block;color:var(--mut)}
+.main{flex:1;display:flex;flex-direction:column}
+.tabs{display:flex;gap:2px;background:var(--bg);padding:6px 10px 0;border-bottom:1px solid var(--line)}
+.tabs button{border:1px solid var(--line);border-bottom:0;background:#dde8e8;padding:6px 14px;font:inherit;cursor:pointer}
+.tabs button.on{background:var(--card);font-weight:bold}
+iframe{flex:1;border:0;background:var(--card)}
+@media (max-width:700px){.wrap{flex-direction:column;height:auto}.side{width:auto}iframe{height:900px}}
+</style></head>
+<body>
+<div class="warn">Synthetic dental test screens for the Althais extension. Fake patients. This is not Dentrix, Eaglesoft, Open Dental or any vendor's software.</div>
+<div class="top"><b>MOCK DENTAL</b><span>Schedule</span><span>Ledger</span><span>Insurance Claims</span></div>
+<div class="wrap">
+  <nav class="side"><h3>Unsent dental claims</h3><div id="list"></div></nav>
+  <div class="main"><div class="tabs"><button type="button" data-v="claim" class="on">Insurance claim</button><button type="button" data-v="chart">Clinical note</button></div>
+  <iframe id="work" title="Claim screen" name="work"></iframe></div>
+</div>
+<script src="data.js"></script>
+<script>
+(function () {
+  var list = document.getElementById('list'), fr = document.getElementById('work');
+  var cur = new URLSearchParams(location.search).get('claimid') || MOCK_DENTAL[0].id, view = 'claim';
+  document.querySelectorAll('.tabs button').forEach(function (b) {
+    b.onclick = function () { view = b.dataset.v; document.querySelectorAll('.tabs button').forEach(function (x) { x.className = x === b ? 'on' : ''; }); show(cur); };
+  });
+  function show(id) {
+    cur = id; fr.src = (view === 'chart' ? 'chart.html' : 'claim.html') + '?claimid=' + encodeURIComponent(id);
+    history.replaceState(null, '', '?claimid=' + encodeURIComponent(id));
+    list.querySelectorAll('a').forEach(function (a) { a.className = a.dataset.id === id ? 'on' : ''; });
+  }
+  MOCK_DENTAL.forEach(function (c) {
+    var a = document.createElement('a'); a.href = '#'; a.dataset.id = c.id;
+    a.innerHTML = 'Claim ' + c.id + '<small></small>'; a.querySelector('small').textContent = c.note + ' · expect: ' + c.expect;
+    a.onclick = function (e) { e.preventDefault(); show(c.id); };
+    list.appendChild(a);
+  });
+  show(cur);
+})();
+</script>
+</body></html>

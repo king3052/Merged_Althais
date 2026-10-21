@@ -60,6 +60,12 @@
     const kind = S.KIND_OF[flag.code];
     if (!kind) return [];
     const live = (els) => (els || []).filter((el) => el.isConnected);
+    if ((kind === "tooth" || kind === "surface" || kind === "quad" || (kind === "cpt" && flag.tooth)) && R.rows && R.rows.length) {
+      const rows = R.rows.filter((r) => flag.tooth ? r.tooth === flag.tooth : (flag.codes || []).includes(r.code) || String(flag.message || "").toUpperCase().includes(r.code));
+      const want = flag.code === "no_tooth" ? rows.filter((r) => !r.tooth) : rows;
+      const hit = live(want.map((r) => r.els[kind] || r.els.cpt).filter(Boolean));
+      if (hit.length) return hit.slice(0, 6);
+    }
     let els = live(R.refs[kind]);
     if (flag.codes && flag.codes.length && els.length) {
       const hit = els.filter((el) => { const t = String(el.value || el.innerText || el.textContent || "").toUpperCase(); return flag.codes.some((c) => t.includes(String(c).toUpperCase())); });
@@ -186,7 +192,7 @@
     out.dob = ctlBy(/date of birth|\bdob\b|birth ?date/i) || rx(/\b(?:DOB|Date of birth)[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2})/i);
     out.sex = ctlBy(/\b(sex|gender)\b/i) || rx(/\b(?:Sex|Gender)[:\s]+(Male|Female|M|F|Other|Unknown)\b/i);
     out.insuredId = ctlBy(/member|subscriber|policy|insured id|insurance id/i) || rx(/\b(?:Member|Subscriber|Policy|Insured)\s*(?:ID|#|No\.?|Number)[:#\s]+([A-Z0-9-]{4,20})/i);
-    out.provider = ctlBy(/rendering|provider|physician|attending/i);
+    out.provider = ctlBy(/rendering|provider|physician|attending|dentist|billing doctor/i);
     out.mrn = rx(/\b(?:MRN|Patient ID|Account(?: #| No\.?)?)[:#\s]+([A-Z0-9-]{3,20})/i);
     return out;
   }
@@ -202,8 +208,24 @@
       el.dispatchEvent(new Event("change", { bubbles: true }));
     };
     let n = 0;
-    codes.forEach((c, i) => { if (slots[i]) { setter(slots[i], c); n++; } });
+    codes.forEach((c, i) => {
+      if (!slots[i]) return;
+      const item = typeof c === "string" ? { code: c } : c;
+      setter(slots[i], item.code); n++;
+      // dental: put the tooth, surfaces and quadrant in the same row as the code
+      ["tooth", "surface", "quad"].forEach((k) => { if (item[k]) { const el = sameRow(slots[i], k); if (el && !el.value) setter(el, item[k]); } });
+    });
     return { n, more: Math.max(0, codes.length - slots.length) };
+  }
+  const COL = { tooth: /^(tooth|tooth number|tooth no|tooth num|th|teeth)$/, surface: /^(surface|surfaces|surf|tooth surface)$/, quad: /^(quad|quadrant|arch)$/ };
+  function sameRow(el, kind) {
+    const tr = el.closest("tr"), tb = tr && tr.closest("table");
+    if (!tb) return null;
+    const head = tb.querySelector("thead tr") || tb.querySelector("tr");
+    const norm = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const i = Array.prototype.findIndex.call(head.children, (h) => COL[kind].test(norm(h.innerText)));
+    const td = i >= 0 ? tr.children[i] : null;
+    return td ? td.querySelector("input, textarea") : null;
   }
 
   // ---------------- messages ----------------
@@ -225,7 +247,12 @@
       try { globalThis.__althaisParse({ keep: true }); } catch (e) {}
       const present = (k) => { const R = globalThis.__althaisRefs; return ((R && R.refs[k]) || []).map((el) => String(el.value || el.innerText || "").toUpperCase()).join(" "); };
       const icd = (m.icd || []).filter((c) => !present("icd").includes(c.toUpperCase()));
-      const cpt = (m.cpt || []).filter((c) => !present("cpt").includes(c.toUpperCase()));
+      const R0 = globalThis.__althaisRefs, rows = (R0 && R0.rows) || [];
+      const cpt = (m.cpt || []).filter((c) => {
+        if (typeof c !== "string" && c.tooth) return !rows.some((r) => r.code === c.code && r.tooth === String(c.tooth).toUpperCase());   // the same procedure can be on several teeth
+        const code = typeof c === "string" ? c : c.code;
+        return !present("cpt").includes(code.toUpperCase());
+      });
       const a = fill("icd", icd), b = fill("cpt", cpt);
       reply({ icd: a.n, cpt: b.n, skipped: (m.icd || []).length - icd.length + (m.cpt || []).length - cpt.length, noRoom: a.more + b.more });
       return;
@@ -351,6 +378,9 @@
       .fg input,.ln input,.fg select{font:13px system-ui,sans-serif;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;text-transform:none;letter-spacing:0}
       .fg input:focus,.ln input:focus{outline:2px solid var(--brand);outline-offset:-1px}
       .ln{display:grid;grid-template-columns:1.3fr .7fr .6fr 1fr auto;gap:6px;align-items:end}
+      .ln.dn{grid-template-columns:1.1fr .65fr .65fr .6fr .9fr auto}
+      .cd .tt{font:600 11.5px ui-monospace,Menlo,monospace;color:var(--brand);margin-left:7px}
+      .svc td.dim{color:var(--red)}
       .ln .x2{border:0;background:none;color:var(--mut);padding:6px 4px}
       .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
       .sec{font-weight:700;font-size:12px;color:var(--fg2);margin:4px 0 -2px}
@@ -539,7 +569,8 @@
           b = '<p class="note2">From the ' + (cs.res.how === "selection" ? "text you selected" : "note on screen") + ". Untick anything you don't want.</p><div>" + codes.map((c, i) => {
             const on = cs.picked[i] !== false;
             return '<label class="cd"><input type="checkbox" data-pick="' + i + '"' + (on ? " checked" : "") + '><span><span class="cc">' + esc(c.code) + "</span>" + (c.modifier ? '<span class="cc">-' + esc(c.modifier) + "</span>" : "") +
-              '<span class="ty">' + esc(c.type === "CPT" ? "CPT" : "ICD-10") + '</span></span><span class="pc">' + (c.confidence != null ? Math.round(c.confidence) + "%" : "") + "</span>" +
+              (c.tooth || c.quad ? '<span class="tt">' + esc(c.tooth ? "#" + c.tooth + (c.surface ? " " + c.surface : "") : c.quad) + "</span>" : "") +
+              '<span class="ty">' + esc(c.type === "CPT" || c.type === "CDT" ? c.type : "ICD-10") + '</span></span><span class="pc">' + (c.confidence != null ? Math.round(c.confidence) + "%" : "") + "</span>" +
               '<span class="ds">' + esc(c.description || "") + "</span>" + (c.justification ? '<span class="why">Because: ' + esc(c.justification) + "</span>" : "") +
               (c.documentation_gap ? '<span class="gap">Missing: ' + esc(c.documentation_gap) + "</span>" : "") + "</label>";
           }).join("") + "</div>" +
@@ -559,7 +590,11 @@
       };
       card.querySelectorAll("[data-pick]").forEach((x) => (x.onchange = () => { cs.picked[x.dataset.pick] = x.checked; }));
       const picked = () => (cs.res ? cs.res.codes.filter((c, i) => cs.picked[i] !== false) : []);
-      const split = () => ({ cpt: picked().filter((c) => c.type === "CPT").map((c) => c.code), icd: picked().filter((c) => c.type !== "CPT").map((c) => c.code) });
+      const isProc = (c) => c.type === "CPT" || c.type === "CDT";
+      // dental procedures carry their tooth, surfaces and quadrant so Fill and Create claim keep them together
+      const split = () => ({ cpt: picked().filter(isProc).map((c) => c.type === "CDT" ? { code: c.code, tooth: c.tooth || "", surface: c.surface || "", quad: c.quad || "" } : c.code),
+        icd: picked().filter((c) => !isProc(c)).map((c) => c.code) });
+      const label = (x) => typeof x === "string" ? x : x.code + (x.tooth ? " #" + x.tooth + (x.surface ? " " + x.surface : "") : x.quad ? " " + x.quad : "");
       const f = root.getElementById("cf");
       if (f) f.onclick = async () => {
         const p = split(); f.disabled = true;
@@ -577,7 +612,7 @@
       };
       const cp = root.getElementById("cc");
       if (cp) cp.onclick = async () => {
-        const p = split(), t = "CPT: " + (p.cpt.join(", ") || "none") + "\nICD-10: " + (p.icd.join(", ") || "none");
+        const p = split(), t = "Procedures: " + (p.cpt.map(label).join(", ") || "none") + "\nICD-10: " + (p.icd.join(", ") || "none");
         try { await navigator.clipboard.writeText(t); cs.done = "Copied."; } catch (e) { cs.err = "Couldn't copy. Select the codes and copy them instead."; }
         render(true);
       };
@@ -596,7 +631,13 @@
       if (!r.ok) { ks.err = r.error; render(true); return; }
       const p = r.v.party || {}, f = r.v.fields || {}, seed = ks.seed || {};
       let lines = (f.lines && f.lines.length ? f.lines : (f.cpt || []).map((c) => ({ code: c, mod: "", units: 1, charge: "" })));
-      (seed.cpt || []).forEach((c) => { if (!lines.some((l) => l.code === c)) lines.push({ code: c, mod: "", units: 1, charge: "" }); });
+      (seed.cpt || []).forEach((c) => {
+        const it = typeof c === "string" ? { code: c } : c;
+        const same = (l) => l.code === it.code && (!it.tooth || String(l.tooth || "").toUpperCase() === String(it.tooth).toUpperCase());
+        const blank = lines.find((l) => l.code === it.code && "tooth" in it && !l.tooth);
+        if (blank) Object.assign(blank, { tooth: it.tooth || "", surface: it.surface || blank.surface || "", quad: it.quad || blank.quad || "" });
+        else if (!lines.some(same)) lines.push(Object.assign({ code: it.code, mod: "", units: 1, charge: "" }, it.tooth != null ? { tooth: it.tooth, surface: it.surface || "", quad: it.quad || "" } : {}));
+      });
       if (!lines.length) lines = [blankLine()];
       const icd = [...new Set([...(f.icd || []), ...(seed.icd || [])])];
       ks.form = { patient: p.patient || "", dob: p.dob || "", sex: p.sex || "", insuredId: p.insuredId || "", mrn: p.mrn || "", payer: f.payer || "", provider: p.provider || "",
@@ -609,31 +650,44 @@
       if (!ks.form || ks.preview) return;
       const v = (id) => { const el = root.getElementById(id); return el ? el.value.trim() : ""; };
       ["patient", "dob", "sex", "insuredId", "payer", "provider", "svcDate", "pos", "claimId", "icd"].forEach((k) => { ks.form[k] = v("k_" + k); });
-      ks.form.lines = [...card.querySelectorAll(".ln[data-i]")].map((row) => ({ code: row.querySelector('[data-f="code"]').value.trim().toUpperCase(),
-        mod: row.querySelector('[data-f="mod"]').value.trim().toUpperCase(), units: row.querySelector('[data-f="units"]').value.trim(), charge: row.querySelector('[data-f="charge"]').value.trim() }));
+      const val = (row, k) => { const el = row.querySelector('[data-f="' + k + '"]'); return el ? el.value.trim() : ""; };
+      ks.form.lines = [...card.querySelectorAll(".ln[data-i]")].map((row) => {
+        const l = { code: val(row, "code").toUpperCase(), mod: val(row, "mod").toUpperCase(), units: val(row, "units"), charge: val(row, "charge") };
+        if (row.querySelector('[data-f="tooth"]')) Object.assign(l, { tooth: val(row, "tooth").toUpperCase(), surface: val(row, "surface").toUpperCase(), quad: val(row, "quad").toUpperCase() });
+        return l;
+      });
     }
     const toClaim = () => ({ claimId: ks.form.claimId, patient: ks.form.patient, dob: ks.form.dob, sex: ks.form.sex, insuredId: ks.form.insuredId, mrn: ks.form.mrn,
       payer: ks.form.payer, provider: ks.form.provider, svcDate: ks.form.svcDate, pos: ks.form.pos,
-      cpts: ks.form.lines.filter((l) => l.code).map((l) => ({ code: l.code, modifier: l.mod, units: l.units || 1, charge: l.charge })),
+      cpts: ks.form.lines.filter((l) => l.code).map((l) => Object.assign({ code: l.code, modifier: l.mod || "", units: l.units || 1, charge: l.charge },
+        isCdt(l.code) ? { tooth: l.tooth || "", surface: l.surface || "", quad: l.quad || "" } : {})),
       icds: ks.form.icd.split(/[\s,;]+/).filter(Boolean) });
+    // CDT ranges that are billed per tooth (restorative, endo, implants, fixed prosthodontics, extractions, sealants)
+    const needsTooth = (code) => { const m = /^D(\d{4})$/.exec(String(code || "").toUpperCase()); if (!m) return false; const n = +m[1];
+      return (n >= 2000 && n <= 3999) || (n >= 6000 && n <= 6999) || (n >= 7111 && n <= 7250) || (n >= 1351 && n <= 1355); };
+    const isCdt = (code) => /^D\d{4}$/.test(String(code || "").toUpperCase());
+    const dentalForm = () => !!ks.form && ks.form.lines.some((l) => isCdt(l.code) || "tooth" in l);
     const usDate = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ""); return m ? m[2] + "/" + m[3] + "/" + m[1] : d; };
     const money = (n) => "$" + (Number(n) || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     // CPT descriptions are licensed, so the preview only names procedures the coder described on this visit.
-    const cptName = (code) => { const c = cs.res && cs.res.codes.find((x) => x.code === code && x.type === "CPT"); return c ? c.description : ""; };
+    const cptName = (code) => { const c = cs.res && cs.res.codes.find((x) => x.code === code && (x.type === "CPT" || x.type === "CDT")); return c ? c.description : ""; };
 
     // What the claim will say, laid out like the paper claim form, before anything is saved or approved.
     function previewHtml() {
-      const P = ks.preview, c = P.out.claim || {}, o = P.out, F = ks.form, ok = !(o.problems || []).length;
+      const P = ks.preview, c = P.out.claim || {}, o = P.out, F = ks.form, ok = !(o.problems || []).length, dent = !!o.dental;
       const kv = (k, v, miss) => '<div class="kv"><span>' + k + "</span><b" + (v ? "" : ' class="miss"') + ">" + esc(v || miss || "Missing") + "</b></div>";
-      let b = '<div class="pv" aria-label="Claim preview"><div class="pvh"><span>' + (P.action === "queue" ? "Claim to approve" : "Draft claim") + '</span><b class="mono">' + esc(F.claimId || "New claim number") + "</b></div>" +
+      let b = '<div class="pv" aria-label="Claim preview"><div class="pvh"><span>' + (dent ? (P.action === "queue" ? "ADA dental claim to approve" : "ADA dental claim draft") : P.action === "queue" ? "Claim to approve" : "Draft claim") + '</span><b class="mono">' + esc(F.claimId || "New claim number") + "</b></div>" +
         '<div class="pvg">' + kv("Patient", c.patient) + kv("Date of birth", usDate(c.dob)) + kv("Sex", c.sex, "Not given") + kv("Payer", c.payer) + kv("Member ID", c.insuredId) +
         kv("Rendering provider", c.provider) + kv("Date of service", usDate(c.svcDate)) + kv("Place of service", c.pos ? c.pos + (POS[c.pos] ? " · " + POS[c.pos] : "") : "") + "</div>" +
-        '<div class="pvs">Diagnoses</div>' + ((c.icds || []).length ? '<ol class="dxl">' + c.icds.map((d, i) => '<li><span class="ltr">' + "ABCDEFGHIJKL"[i] + '</span><b class="mono">' + esc(d.code) + "</b> " + esc(d.description || "") + "</li>").join("") + "</ol>" : '<p class="miss">No diagnoses</p>') +
-        '<div class="pvs">Services</div><table class="svc"><thead><tr><th>CPT</th><th>Mod</th><th>Units</th><th class="r">Charge</th></tr></thead><tbody>' +
-        ((c.cpts || []).length ? c.cpts.map((x) => '<tr><td><b class="mono">' + esc(x.code) + "</b>" + (cptName(x.code) ? '<small>' + esc(cptName(x.code)) + "</small>" : "") + '</td><td class="mono">' + esc(x.modifier || "") + "</td><td>" + esc(x.units) + '</td><td class="r">' + money(x.charge * 1) + "</td></tr>").join("")
-          : '<tr><td colspan="4" class="miss">No services</td></tr>') +
-        '</tbody><tfoot><tr><td colspan="3">Total charge</td><td class="r">' + money(c.totalAmt) + "</td></tr></tfoot></table></div>";
+        '<div class="pvs">Diagnoses' + (dent ? " (optional on dental claims)" : "") + '</div>' + ((c.icds || []).length ? '<ol class="dxl">' + c.icds.map((d, i) => '<li><span class="ltr">' + "ABCDEFGHIJKL"[i] + '</span><b class="mono">' + esc(d.code) + "</b> " + esc(d.description || "") + "</li>").join("") + "</ol>" : dent ? '<p class="note2" style="padding:0 11px 8px">None. Most dental plans don\'t need one.</p>' : '<p class="miss">No diagnoses</p>') +
+        '<div class="pvs">' + (dent ? "Procedures" : "Services") + '</div><table class="svc"><thead><tr><th>' + (dent ? "CDT" : "CPT") + "</th>" + (dent ? "<th>Tooth</th><th>Surf</th>" : "<th>Mod</th>") + '<th>Units</th><th class="r">Charge</th></tr></thead><tbody>' +
+        ((c.cpts || []).length ? c.cpts.map((x) => '<tr><td><b class="mono">' + esc(x.code) + "</b>" + (cptName(x.code) ? '<small>' + esc(cptName(x.code)) + "</small>" : "") + "</td>" +
+          (dent ? '<td class="mono' + (needsTooth(x.code) && !x.tooth ? " dim" : "") + '">' + esc(x.tooth ? "#" + x.tooth : x.quad || "–") + '</td><td class="mono">' + esc(x.surface || "") + "</td>" : '<td class="mono">' + esc(x.modifier || "") + "</td>") +
+          "<td>" + esc(x.units) + '</td><td class="r">' + money(x.charge * 1) + "</td></tr>").join("")
+          : '<tr><td colspan="' + (dent ? 5 : 4) + '" class="miss">No services</td></tr>') +
+        '</tbody><tfoot><tr><td colspan="' + (dent ? 4 : 3) + '">Total charge</td><td class="r">' + money(c.totalAmt) + "</td></tr></tfoot></table></div>";
       if ((o.problems || []).length) b += '<div class="sec">Fix before ' + (P.action === "queue" ? "approving" : "sending") + "</div>" + o.problems.map((p) => '<div class="bl e">' + esc(p) + "</div>").join("");
+      if ((o.findings || []).length) b += '<div class="sec">Dental plans will look at</div>' + o.findings.map((f) => '<div class="bl' + (f.severity === "error" ? " e" : "") + '">' + esc(f.message) + "</div>").join("");
       if ((o.blockers || []).length) b += '<div class="sec">Althais will hold it until</div>' + o.blockers.map((x) => '<div class="bl"><b>' + esc(x.title) + "</b>" + esc(x.reason) + (x.next ? " · " + esc(x.next) : "") + "</div>").join("");
       if (ks.done) b += '<p class="ok2" role="status">' + esc(ks.done) + "</p>";
       if (ks.err) b += '<p class="bad" role="alert">' + esc(ks.err) + "</p>";
@@ -661,11 +715,16 @@
           '<div class="sec">Patient and insurance</div><div class="fg">' + inp("patient", "Patient", "w") + inp("dob", "Date of birth", "", "MM/DD/YYYY") + inp("sex", "Sex", "", "F or M") +
           inp("payer", "Payer", "w") + inp("insuredId", "Member ID", "", "") + inp("claimId", "Claim number", "", "Althais makes one") + "</div>" +
           '<div class="sec">Visit</div><div class="fg">' + inp("provider", "Rendering provider", "w") + inp("svcDate", "Date of service", "", "MM/DD/YYYY") + inp("pos", "Place of service", "", "e.g. 20") + "</div>" +
-          '<div class="sec">Charges</div>' + F.lines.map((l, i) => '<div class="ln" data-i="' + i + '"><label>' + (i ? "" : "CPT") + '<input class="mono" data-f="code" value="' + esc(l.code) + '"></label><label>' + (i ? "" : "Mod") +
+          '<div class="sec">' + (dentalForm() ? "Procedures" : "Charges") + '</div>' + F.lines.map((l, i) => dentalForm()
+            ? '<div class="ln dn" data-i="' + i + '"><label>' + (i ? "" : "CDT") + '<input class="mono" data-f="code" value="' + esc(l.code) + '"></label><label>' + (i ? "" : "Tooth") +
+              '<input class="mono" data-f="tooth" value="' + esc(l.tooth || "") + '" placeholder="#"></label><label>' + (i ? "" : "Surf") + '<input class="mono" data-f="surface" value="' + esc(l.surface || "") + '"></label><label>' + (i ? "" : "Quad") +
+              '<input class="mono" data-f="quad" value="' + esc(l.quad || "") + '"></label><label>' + (i ? "" : "Fee $") + '<input data-f="charge" inputmode="decimal" value="' + esc(l.charge) + '"></label>' +
+              '<input type="hidden" data-f="units" value="' + esc(l.units || 1) + '"><button class="x2" type="button" data-del="' + i + '" aria-label="Remove line">✕</button></div>'
+            : '<div class="ln" data-i="' + i + '"><label>' + (i ? "" : "CPT") + '<input class="mono" data-f="code" value="' + esc(l.code) + '"></label><label>' + (i ? "" : "Mod") +
             '<input class="mono" data-f="mod" value="' + esc(l.mod) + '"></label><label>' + (i ? "" : "Units") + '<input data-f="units" inputmode="numeric" value="' + esc(l.units) + '"></label><label>' + (i ? "" : "Charge $") +
             '<input data-f="charge" inputmode="decimal" value="' + esc(l.charge) + '"></label><button class="x2" type="button" data-del="' + i + '" aria-label="Remove line">✕</button></div>').join("") +
           '<div class="row"><button class="hide" id="kadd" type="button">+ Add a line</button></div>' +
-          '<div class="fg">' + inp("icd", "Diagnoses (ICD-10, in order)", "w", "e.g. J02.9, R50.9") + "</div>" +
+          '<div class="fg">' + inp("icd", dentalForm() ? "Diagnoses (ICD-10, optional for dental)" : "Diagnoses (ICD-10, in order)", "w", dentalForm() ? "Usually left empty" : "e.g. J02.9, R50.9") + "</div>" +
           (ks.err ? '<p class="bad" role="alert">' + esc(ks.err) + "</p>" : "") +
           '<div class="row"><button class="btn" id="kdraft" type="button">Preview and save draft</button><button class="btn pri" id="kq" type="button">Preview and approve</button><span class="sp"></span><button class="hide" id="kre" type="button">Reload from screen</button></div>' +
           '<p class="note2">You\'ll see the whole claim before anything is saved or approved. Approved claims go out with Althais\'s end-of-day batch, and you can follow them in Claim Tracker.</p>';

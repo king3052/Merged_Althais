@@ -13,6 +13,7 @@ Live app: [althais.com](https://althais.com)
 | EMR (classic) | The original clinical workspace and Virtual SOAP | `templates/dashboard.html`, `main.py` |
 | Revenue | Claims, Claim Tracker, Denials, Payer Rules, Code a Note | `main.py`, `ncci_checker.py`, `code_validation.py`, `coding_rules.py`, `icd10.py` |
 | Connect EMR | Bring claims in from an EMR (athenahealth, DrChrono, Tebra, or any CSV/Excel export) and check them | `emr_connect.py`, `athenahealth.py`, `drchrono.py`, `tebra.py`, `static/v4/app8.js` |
+| Dental claims | Dental (CDT) claim checks: tooth, surfaces, quadrant, same-visit conflicts, frequency limits, X-rays and narratives; dental note coding; dental practice systems in Connect EMR | `dental_rules.py`, `dental_coding.py`, test screens in `static/mock-dental/` |
 | Browser extension | Althais on top of the clinic's EMR: claim checks, coding a visit note, creating claims | `extension/` ([README](extension/README.md)), `extension_api.py`, test screens in `static/mock-emr/` |
 | Billing Activation | Gets a clinic ready to send claims; Claim.MD connection | `billing_activation.py`, `billing_registry.py`, `clearinghouse.py`, [docs](docs/BILLING_ACTIVATION.md) |
 | Patient intake | Scan To Autofill for new-patient registration | `patient_intake.py`, `eligibility.py`, [docs](docs/PATIENT_INTAKE.md) |

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Althais Claim Check",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Checks each claim as you open it in your EMR and shows what to fix before you submit. Prototype.",
   "permissions": [
     "activeTab",

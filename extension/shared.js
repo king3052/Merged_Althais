@@ -10,6 +10,10 @@
     no_dos: "dos", future_dos: "dos", stale: "dos", aging: "dos",
     no_charge: "amount",
     dup_in_file: "claim_id", dup_existing: "claim_id",
+    // dental
+    bad_cdt: "cpt", no_tooth: "tooth", bad_tooth: "tooth", tooth_type: "tooth", no_surface: "surface", bad_surface: "surface",
+    surface_count: "surface", no_quad: "quad", no_arch: "quad", same_tooth: "cpt", dup_line: "cpt", two_exams: "cpt",
+    clean_and_maint: "cpt", clean_and_srp: "cpt", fmx_and_bw: "cpt", attach: "cpt", age_limit: "cpt",
   };
 
   // One plain next step per check, shown under the message.
@@ -30,26 +34,45 @@
     no_charge: "Add the charge from your fee schedule.",
     dup_in_file: "Make sure this isn't the same visit billed twice.",
     dup_existing: "This claim number was checked before. Make sure it isn't a duplicate.",
+    bad_cdt: "Retype the code as D followed by four digits, e.g. D2392.",
+    no_tooth: "Add the tooth number (1–32, or A–T for primary teeth) on this procedure.",
+    bad_tooth: "Correct the tooth number: 1–32 for permanent teeth, A–T for primary teeth.",
+    tooth_type: "Check the code against the tooth: front-tooth and back-tooth codes are different.",
+    no_surface: "Add the surfaces that were restored (M, O, D, B/F, L, I).",
+    bad_surface: "Use surfaces that exist on this tooth: I on front teeth, O on back teeth.",
+    surface_count: "Bill the filling code that matches the number of surfaces.",
+    no_quad: "Add the quadrant: UR, UL, LR or LL.",
+    no_arch: "Add the arch: upper or lower.",
+    same_tooth: "Remove the procedure that can't happen on this tooth at the same visit, or move it.",
+    dup_line: "Remove the duplicate line.",
+    two_exams: "Keep the one exam the visit supports.",
+    clean_and_maint: "Bill either the cleaning or periodontal maintenance.",
+    clean_and_srp: "Bill the cleaning on a separate visit, or drop it.",
+    fmx_and_bw: "Drop the bitewings; the full-mouth series includes them.",
+    attach: "Attach the X-ray, chart or narrative before sending (most practice software does this through the clearinghouse).",
+    age_limit: "Check the plan's age limit for this service.",
   };
 
-  const KIND_LABEL = { icd: "Diagnosis", cpt: "Procedure", payer: "Payer", dos: "Date of service", amount: "Charge", claim_id: "Claim number" };
+  const KIND_LABEL = { icd: "Diagnosis", cpt: "Procedure", payer: "Payer", dos: "Date of service", amount: "Charge", claim_id: "Claim number",
+    tooth: "Tooth", surface: "Surface", quad: "Quadrant" };
 
   // Frames with labelled fields beat frames that only guessed from page text.
   function merge(outs) {
-    const f = { claim_id: "", dos: "", payer: "", pos: "", cpt: [], icd: [], modifiers: [], amount: "", lines: [] };
+    const f = { claim_id: "", dos: "", payer: "", pos: "", cpt: [], icd: [], modifiers: [], amount: "", lines: [], tooth_column: false };
     const found = {}, guessed = new Set(), hosts = new Set();
     outs.slice().sort((a, b) => a.guessed.length - b.guessed.length).forEach((o) => {
       hosts.add(o.host);
       for (const k of ["claim_id", "dos", "payer", "pos", "amount"]) if (!f[k] && o.fields[k]) f[k] = o.fields[k];
       for (const k of ["cpt", "icd", "modifiers"]) if (!f[k].length || !o.guessed.includes(k)) o.fields[k].forEach((x) => { if (!f[k].includes(x)) f[k].push(x); });
-      if (!f.lines.length && o.fields.lines && o.fields.lines.length) f.lines = o.fields.lines;
+      if (!f.lines.length && o.fields.lines && o.fields.lines.length) { f.lines = o.fields.lines; f.tooth_column = !!o.fields.tooth_column; }
       o.guessed.forEach((k) => guessed.add(k));
       Object.keys(o.found).forEach((k) => { if (o.found[k]) found[k] = true; });
     });
     return { fields: f, found, guessed: [...guessed], host: [...hosts].filter(Boolean).join(", "), frames: outs.length };
   }
 
-  const fingerprint = (f) => JSON.stringify([f.claim_id, f.dos, f.payer, f.cpt, f.icd, f.modifiers, f.amount]);
+  const fingerprint = (f) => JSON.stringify([f.claim_id, f.dos, f.payer, f.cpt, f.icd, f.modifiers, f.amount,
+    (f.lines || []).filter((l) => "tooth" in l).map((l) => [l.code, l.tooth, l.surface, l.quad])]);
   const sev = (s) => (s === "error" || s === "warn" ? s : "info");
 
   g.AlthaisShared = { DEFAULT_SERVER, KIND_OF, FIX, KIND_LABEL, merge, fingerprint, sev };
