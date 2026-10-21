@@ -19,7 +19,7 @@
     var t = new Date(d); return isNaN(t) ? '' : D.iso(t);
   }
   function personName(n) {   // "Dr. R. Patel" -> "Patel, R." ; "Test, D" stays
-    n = String(n || '').replace(/^dr\.?\s+/i, '').replace(/,\s*(md|do|pa-c|np|rn)$/i, '').trim(); if (!n) return '';
+    n = String(n || '').replace(/^dr\.?\s+/i, '').replace(/,?\s+(md|do|pa-c|pa|np|fnp-c|fnp|rn|dds|dmd)\.?$/i, '').trim(); if (!n) return '';
     if (/,/.test(n)) return n.replace(/\s*,\s*/, ', ');
     var p = n.split(/\s+/); return p.length > 1 ? p[p.length - 1] + ', ' + p.slice(0, -1).join(' ') : n;
   }
@@ -39,7 +39,7 @@
       pcp: o.pcp ? staffFor(o.pcp) : o.provider ? staffFor(o.provider) : '', allergies: lines(o.allergies).replace(/\n/g, '; '), problems: lines(o.problems).replace(/\n/g, '; '),
       meds: lines((o.meds || []).filter ? (o.meds || []).filter(function (m) { return !m.status || /active/i.test(m.status); }) : o.meds), balance: Number(o.balance) || 0, status: 'Active', created: iso(o.created || o.createdAt) || D.today(), imported: true };
   }
-  var STAGE = function (st) { st = String(st || '').toLowerCase(); return /paid/.test(st) ? 'paid' : /denied|appeal/.test(st) ? 'denied' : /submitted|accepted|sent/.test(st) ? 'submitted' : /ready/.test(st) ? 'ready' : 'edits'; };
+  var STAGE = function (st) { st = String(st || '').toLowerCase(); return /paid/.test(st) ? 'paid' : /denied|appeal/.test(st) ? 'denied' : /submitted|accepted|sent/.test(st) ? 'submitted' : /ready|queued|approved/.test(st) ? 'ready' : 'edits'; };
   function ensurePatient(mrn, name, payer) {
     if (!mrn) mrn = D.nextMrn(personName(name));
     if (!D.pt(mrn)) S.patients.push({ mrn: mrn, name: personName(name) || mrn, dob: '', sex: 'X', payer: payer || '', member: '', pcp: '', balance: 0, status: 'Active', created: D.today(), imported: true });
@@ -64,11 +64,16 @@
     var st = snap.structured || {}, sv = st.vitals || {};
     var noteTxt = o.note || snap.note || (snap.structured ? ['CHIEF COMPLAINT: ' + (st.cc || ''), 'HPI: ' + (st.hpi || ''), 'ROS: ' + (st.ros || ''), 'VITALS: ' + [sv.bp && 'BP ' + sv.bp, sv.hr && 'HR ' + sv.hr].filter(Boolean).join(', '), 'EXAM: ' + (st.exam || ''), 'LABS: ' + (st.labs || ''), 'ASSESSMENT: ' + (st.assessment || ''), 'PLAN: ' + (st.plan || '')].join('\n') : '');
     var c = { id: o.claimId || o.id, encId: '', note: noteTxt, mrn: ensurePatient(o.mrn, o.patient || o.patientName, o.payer), dos: dos, prov: staffFor(o.provider || snap.provider), payer: o.payer || '', lines: cpts, dx: dx,
-      stage: stage, resolved: {}, amount: Number(o.amount) || 0, created: o.ts || o.createdAt || '', imported: true, hist: [{ at: new Date().toISOString(), text: 'Brought over from the previous EMR (status: ' + (o.status || 'Draft') + ')' }] };
+      stage: stage, resolved: {}, amount: Number(o.amount) || 0, created: o.ts || o.createdAt || '', imported: true,
+      hist: [{ at: new Date().toISOString(), text: o.source === 'extension' ? 'Created with the Althais browser extension in the EMR (' + (o.status || 'Draft') + ')' : 'Brought over from the previous EMR (status: ' + (o.status || 'Draft') + ')' }] };
     if (stage === 'submitted' || stage === 'paid' || stage === 'denied') { c.submittedOn = dos; c.status = o.status; }
     if (stage === 'paid') { c.paid = Number(o.paid || o.amount) || 0; c.paidOn = iso(o.paidOn) || dos; }
     if (stage === 'denied') { c.carc = o.carc || 'CO-16'; c.reason = o.denialReason || (o.flags || [])[0] || 'Denied (from previous EMR)'; c.dstatus = /appeal/i.test(o.status) ? 'Appealed' : 'Needs review'; c.appealBy = D.addDays(dos, 90); c.everDenied = true; c.letter = o.appealLetter || ''; }
     if (stage === 'edits' || stage === 'ready') D.scrub(c);
+    if (/queued/i.test(o.status || '')) {     // approved in the EMR with the extension: it waits for Althais's end-of-day submission, which checks it again
+      c.stage = 'ready'; c.queuedAt = o.createdAt || new Date().toISOString(); c.submitAt = window.V && V.nextBatch ? V.nextBatch() : '';
+      if (window.V && V.checkKey) c.queueKey = V.checkKey(c);
+    }
     return c;
   }
   function encFromOld(n) {

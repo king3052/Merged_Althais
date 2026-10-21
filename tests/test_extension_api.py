@@ -162,3 +162,13 @@ def test_claim_check_draft_and_queue(real_user):
         tx = db.scalar(select(ba.ClaimTransmission).where(ba.ClaimTransmission.claim_id == claim["claimId"]))
         assert oc.status == "Queued" and oc.source == "extension" and oc.payer == "Cigna"
         assert tx.delivery == "QUEUED" and json.loads(tx.snapshot)["insuredId"] == "CIG123456"
+        # the patient comes with it, so Althais shows the claim with DOB, sex and member ID
+        pt = db.scalar(select(auth.OrgPatient).where(auth.OrgPatient.org_key == oc.org_key, auth.OrgPatient.mrn == "CIG123456"))
+        assert pt and pt.name == "Testpatient, Bravo" and pt.dob == "1975-06-02" and pt.sex == "F" and json.loads(pt.data)["member"] == "CIG123456"
+    # a patient the clinic already has is never overwritten
+    with auth.SessionLocal() as db:
+        pt = db.scalar(select(auth.OrgPatient).where(auth.OrgPatient.mrn == "CIG123456"))
+        pt.name = "Clinic's Own Name"; db.commit()
+    client.post("/api/extension/claim", json={"action": "draft", "claim": dict(claim, patient="Someone Else")}, headers=_hdr(tok))
+    with auth.SessionLocal() as db:
+        assert db.scalar(select(auth.OrgPatient).where(auth.OrgPatient.mrn == "CIG123456")).name == "Clinic's Own Name"
