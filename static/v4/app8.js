@@ -5,7 +5,7 @@
    because the app already pulls the clinic's server-side claims. */
 (function () {
   var app = V.app, E = U.esc, M = U.money;
-  var EMRS = [], SUM = null, WORK = [], PREVIEW = null, SEL = V.q.get('emr') || 'athenahealth', TAB = 'preview', CL = '', ERR = '', BUSY = false;
+  var EMRS = [], SUM = null, WORK = [], PREVIEW = null, SEL = V.q.get('emr') || (D.DENTAL ? 'opendental' : 'athenahealth'), TAB = 'preview', CL = '', ERR = '', BUSY = false;
   var VERDICT = { clean: ['Clean', 'grn'], review: ['Review', 'amb'], fix: ['Fix first', 'red'] };
 
   function api(method, url, body, form) {
@@ -42,7 +42,8 @@
   function howTo() {
     return '<div class="blank"><b>Bring your claims in, two ways.</b><br><br>' +
       '<b>1. Connect your EMR.</b> Pick it on the left. Where a live connection is available, Althais pulls recent claims for you to review.<br><br>' +
-      '<b>2. Upload an export.</b> Press Upload File and choose a CSV or Excel charges report from any EMR. Get Template shows the columns that help most: patient, payer, date of service, CPT, diagnosis, charge.<br><br>' +
+      (D.DENTAL ? '<b>2. Upload an export.</b> Press Upload File and choose a CSV or Excel procedures or claims report from your practice software. Get Template shows the columns that help most: patient, dental plan, date of service, CDT code, tooth, surface, quadrant, fee.<br><br>'
+        : '<b>2. Upload an export.</b> Press Upload File and choose a CSV or Excel charges report from any EMR. Get Template shows the columns that help most: patient, payer, date of service, CPT, diagnosis, charge.<br><br>') +
       'Either way, every claim is checked first and nothing is saved until you press Save. Use test data only until a business associate agreement is in place.</div>';
   }
 
@@ -76,9 +77,9 @@
     var strip = U.strip([['EMR Connection', cur ? E(cur.label) : 'Upload only', cur ? 'live' : 'no live connection yet', cur ? 'grn' : ''], ['Saved Claims', SUM ? SUM.open : '-', 'waiting in the worklist'], ['Flagged', SUM ? SUM.flagged : '-', 'need a fix or review', SUM && SUM.flagged ? 'amb' : ''],
       ['Charges At Risk', SUM ? M(SUM.at_risk) : '-', SUM && SUM.by_payer && SUM.by_payer[0] ? 'most at ' + E(SUM.by_payer[0].payer) : ''], ['In This Preview', s ? s.total : '-', s ? s.clean + ' clean · ' + s.fix + ' fix first' : 'nothing loaded']]);
     var pullable = action(emr(SEL), 'sync');
-    var tb = U.toolbar('Connect EMR', [['Upload File', 'upload', { pri: 1, id: 'cx-upload' }], pullable ? ['Pull Last 30 Days', 'refresh', { id: 'cx-pull' }] : null, '|', ['Get Template', 'download', { id: 'cx-template' }], ['Refresh', 'refresh', { id: 'cx-refresh' }], '|', ['Browser Extension', 'send', { id: 'cx-ext' }], ['Claims', 'send', { href: '/v4/revenue/claims' }]].filter(Boolean),
+    var tb = U.toolbar(D.DENTAL ? 'Connect practice software' : 'Connect EMR', [['Upload File', 'upload', { pri: 1, id: 'cx-upload' }], pullable ? ['Pull Last 30 Days', 'refresh', { id: 'cx-pull' }] : null, '|', ['Get Template', 'download', { id: 'cx-template' }], ['Refresh', 'refresh', { id: 'cx-refresh' }], '|', ['Browser Extension', 'send', { id: 'cx-ext' }], ['Claims', 'send', { href: '/v4/revenue/claims' }]].filter(Boolean),
       '<span class="tc s-mut" title="Claims are checked before anything is saved">Checked Before It Leaves</span>');
-    var left = U.pane('Your EMR', '', '', U.queue([{ h: 'Medical', items: EMRS.filter(function (e) { return e.segment !== 'Dental'; }) }, { h: 'Dental', items: EMRS.filter(function (e) { return e.segment === 'Dental'; }) }]
+    var left = U.pane(D.DENTAL ? 'Your practice software' : 'Your EMR', '', '', U.queue([{ h: D.DENTAL ? 'Dental' : 'Medical', items: EMRS }]
       .map(function (g) { return { h: g.h, items: g.items.map(function (e) { return { key: e.key, label: e.label, n: e.live ? 'Live' : '', color: e.live ? 'grn' : null }; }) }; }), SEL));
     var body, footer = '';
     if (TAB === 'preview') {
@@ -120,7 +121,7 @@
     U.on(app, 'tr[data-wc]', 'click', function (tr) { CL = +tr.dataset.wc; draw(); });
     U.on(app, '#cx-upload, #cx-upload2', 'click', upload);
     U.on(app, '#cx-pull', 'click', function () { pull(30); });
-    U.on(app, '#cx-template', 'click', function () { location.href = '/api/integrations/template.csv' + ((emr(SEL) || {}).segment === 'Dental' ? '?kind=dental' : ''); });
+    U.on(app, '#cx-template', 'click', function () { location.href = '/api/integrations/template.csv' + (D.DENTAL ? '?kind=dental' : '?kind=medical'); });
     U.on(app, '#cx-ext', 'click', function () {
       var has = document.documentElement.getAttribute('data-althais-extension');
       var tokenBtn = ['Create Token', has ? '' : 'pri', function () {
@@ -152,7 +153,7 @@
         '<p class="t2" style="margin:0 0 8px">The extension checks each claim as you open it in your EMR. A small Althais badge on the claim screen shows Ready to submit, Worth a look or Fix first, and outlines the fields to fix. Checks send only codes, payer, date and charge, and nothing is stored. From the same badge, a biller can also code a visit note, fill the codes into the EMR, and create a claim for Althais to send after they approve it.</p>' +
         (has ? '<p class="t2" style="margin:0 0 8px"><b>The extension is installed in this browser.</b> Press Connect This Browser to link it to your Althais account. No copying needed.</p>'
              : '<p class="t2" style="margin:0 0 8px">Install the extension in Chrome or Edge, then reload this page to connect it in one click. Or create a pairing token and paste it into the extension settings. A token is shown once; your last five stay active, and Revoke All stops them all.</p>') +
-        '<p class="t2" style="margin:0 0 8px">Use test data only until your practice has the right agreements in place. To try it with fake patients, open the <a href="/static/mock-emr/index.html" target="_blank" rel="noopener">medical test screens</a> or the <a href="/static/mock-dental/index.html" target="_blank" rel="noopener">dental test screens</a>. Each one has a known problem to catch.</p>' +
+        '<p class="t2" style="margin:0 0 8px">Use test data only until your practice has the right agreements in place. To try it with fake patients, open the ' + (D.DENTAL ? '<a href="/static/mock-dental/index.html" target="_blank" rel="noopener">dental test screens</a>' : '<a href="/static/mock-emr/index.html" target="_blank" rel="noopener">test screens</a>') + '. Each one has a known problem to catch.</p>' +
         '<div id="ext-out"></div>',
         [['Revoke All', '', function () { api('POST', '/api/extension/revoke').then(function () { U.toast('All extension tokens revoked.', 'ok'); }, function (e) { U.toast(e.message, 'warn'); }); return false; }]]
           .concat(has ? [tokenBtn, connectBtn] : [tokenBtn])

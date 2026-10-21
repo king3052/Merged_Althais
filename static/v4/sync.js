@@ -51,8 +51,8 @@
     var snap = o.snap || {}, codes = Array.isArray(o.codes) ? o.codes : [], all = [].concat(snap.cpts || [], snap.icds || [], codes);
     var isDx = function (c) { var k = String(c.code || '').toUpperCase().trim(); return /icd|diag|dx/i.test(c.type || '') || (!/cpt|hcpcs|proc/i.test(c.type || '') && /^[A-TV-Z][0-9][0-9A-Z](\.?[0-9A-Z]{1,4})?$/.test(k) && !/^[A-Z]\d{4}$/.test(k)); };
     var cpts = [], dx = [], seen = {};
-    all.forEach(function (c) { if (!c || !c.code) return; var k = String(c.code).toUpperCase().trim(); if (seen[k]) return; seen[k] = 1;
-      if (isDx(c)) dx.push(k); else cpts.push({ code: k, mod: c.modifier || c.mod || '', units: +c.units || 1 }); });
+    all.forEach(function (c) { if (!c || !c.code) return; var k = String(c.code).toUpperCase().trim(), key = k + '|' + (c.tooth || '') + '|' + (c.surface || '') + '|' + (c.quad || ''); if (seen[key]) return; seen[key] = 1;
+      if (isDx(c)) dx.push(k); else cpts.push(D.lineOf({ code: k, mod: c.modifier || c.mod || '', units: +c.units || 1, tooth: c.tooth, surface: c.surface, quad: c.quad })); });   // dental: each procedure keeps its tooth
     if (!cpts.length && o.cpt) cpts = String(o.cpt).split(/[\s,;]+/).filter(Boolean).map(function (c) { return { code: c.toUpperCase(), mod: '', units: 1 }; });
     if (!dx.length && (o.icd || o.dx || o.diagnosis)) dx = String(o.icd || o.dx || o.diagnosis).split(/[\s,;]+/).filter(function (x) { return /^[A-Z]\d/i.test(x); }).map(function (c) { return c.toUpperCase(); });
     return { cpts: cpts, dx: dx };
@@ -92,7 +92,7 @@
 
   // ---- 2. the old EMR in this browser, every load (anything already here is skipped, so nothing doubles) ----
   var added = { p: 0, c: 0, a: 0, n: 0 };
-  {
+  if (!D.DENTAL) {   // the previous EMR was medical only; a dental clinic starts in this one
     read(OLD.patients).forEach(function (o) { if (o && o.mrn && !D.pt(o.mrn)) { S.patients.push(patientFromOld(o)); added.p++; } });
     read(OLD.claims).forEach(function (o) { if (o && !o.isPlaceholder && (o.claimId || o.id) && !D.claim(o.claimId || o.id)) { S.claims.push(claimFrom(o)); added.c++; } });
     read(OLD.notes).forEach(function (n) { if (n && n.mrn && !D.enc('OLD-' + n.id)) { S.encs.push(encFromOld(n)); added.n++; } });
@@ -147,7 +147,7 @@
   var STATUS = { edits: 'Pending Review', ready: 'Ready to Submit', submitted: 'Submitted', paid: 'Paid', denied: 'Denied' };
   function claimOut(c) {
     return { id: c.id, patientName: D.ptName(c.mrn), mrn: c.mrn, payer: D.payer(c), amount: Math.round(D.charge(c)), status: c.stage === 'denied' && c.dstatus === 'Appealed' ? 'Appealed' : STATUS[c.stage] || 'Draft',
-      codes: c.lines.map(function (l) { return { code: l.code, type: 'CPT', modifier: l.mod || '', units: l.units || 1 }; }).concat(c.dx.map(function (d) { return { code: d, type: 'ICD-10' }; })),
+      codes: c.lines.map(function (l) { var x = { code: l.code, type: /^D\d{4}$/.test(l.code) ? 'CDT' : 'CPT', modifier: l.mod || '', units: l.units || 1 }; if (l.tooth || l.surface || l.quad) { x.tooth = l.tooth || ''; x.surface = l.surface || ''; x.quad = l.quad || ''; } return x; }).concat(c.dx.map(function (d) { return { code: d, type: 'ICD-10' }; })),
       flags: (c.edits || []).map(function (x) { return x.id; }), appealLetter: c.letter || '', createdAt: c.created || '', dos: c.dos || '', provider: (D.staff(c.prov) || {}).name || '' };
   }
   function push() {

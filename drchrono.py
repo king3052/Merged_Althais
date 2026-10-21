@@ -247,7 +247,7 @@ def connect(request: Request, user=Depends(require_biller)):
 
 @router.get("/api/integrations/drchrono/callback")
 def callback(request: Request, code: str = "", state: str = "", error: str = "", user=Depends(require_biller), db: Session = Depends(get_db)):
-    ec._gate(user, db)
+    ec._gate_medical(user, db)
     expected = request.cookies.get("drc_state", "")
     if error or not code or not state or not expected or not secrets.compare_digest(state, expected):
         return RedirectResponse(url="/revenue/connect?drchrono=failed", status_code=302)
@@ -274,7 +274,7 @@ def disconnect(user=Depends(require_biller), db: Session = Depends(get_db)):
 @router.post("/api/integrations/drchrono/sync")
 async def sync(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     """Pull recent billed visits and return them as a preview (same shape as an upload preview). Saves nothing."""
-    ec._gate(user, db)
+    ec._gate_medical(user, db)
     org = _org_namespace(user)
     try:
         days = int((await request.json()).get("days", 30))

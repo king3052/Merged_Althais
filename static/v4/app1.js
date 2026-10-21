@@ -21,13 +21,13 @@
   /* ---------- shared forms ---------- */
   U.on(document.body, '#ptalthea', 'click', function () { U.askAlthea('New patient ', /schedule/.test(location.pathname) ? 'e.g. New patient Maria Rivera, DOB 4/18/1962, Aetna PPO W2840, tomorrow at 10 for knee pain' : 'e.g. New patient Maria Rivera, DOB 4/18/1962, female, Aetna PPO W2840'); });
   V.patientForm = function (p, after, preset) {
-    var isNew = !p; p = p || Object.assign({ sex: 'F', payer: 'Medicare B', status: 'New' }, preset || {});
-    if (isNew && !D.providers().length) U.toast('Tip: add a provider in Staff › Team so patients can have a PCP.');
+    var isNew = !p; p = p || Object.assign({ sex: 'F', payer: D.PAYERS[0], status: 'New' }, preset || {});
+    if (isNew && !D.providers().length) U.toast(D.DENTAL ? 'Tip: add a dentist in Staff › Team so patients can have one.' : 'Tip: add a provider in Staff › Team so patients can have a PCP.');
     U.form(isNew ? 'New patient' : 'Edit patient', [
       { k: 'name', label: 'Name (Last, First)', req: 1, span: 2, ph: 'Garcia, Daniel' }, { k: 'dob', label: 'Date of birth', type: 'date', req: 1 }, { k: 'sex', label: 'Sex', type: 'select', options: ['F', 'M', 'X'] },
       { k: 'phone', label: 'Phone', ph: '(512) 555-0100' }, { k: 'email', label: 'Email', type: 'email' }, { k: 'addr', label: 'Address', span: 2, ph: 'Street, City, ST ZIP' },
-      { k: 'payer', label: 'Primary insurance', type: 'select', options: p.payer && D.PAYERS.indexOf(p.payer) < 0 ? [p.payer].concat(D.PAYERS) : D.PAYERS }, { k: 'member', label: 'Member ID' }, { k: 'pcp', label: 'PCP', type: 'select', options: V.provOptions(), blank: 'None' }, { k: 'balance', label: 'Patient balance', type: 'number', step: '0.01' },
-      { k: 'allergies', label: 'Allergies', span: 2, ph: 'Sulfa (rash); NKDA' }, { k: 'problems', label: 'Problem list', span: 2, ph: 'E11.9 Type 2 diabetes; I10 Hypertension' },
+      { k: 'payer', label: D.DENTAL ? 'Dental plan' : 'Primary insurance', type: 'select', options: p.payer && D.PAYERS.indexOf(p.payer) < 0 ? [p.payer].concat(D.PAYERS) : D.PAYERS }, { k: 'member', label: D.DENTAL ? 'Subscriber ID' : 'Member ID' }, { k: 'pcp', label: D.DENTAL ? 'Dentist' : 'PCP', type: 'select', options: V.provOptions(), blank: 'None' }, { k: 'balance', label: 'Patient balance', type: 'number', step: '0.01' },
+      { k: 'allergies', label: 'Allergies', span: 2, ph: 'Sulfa (rash); NKDA' }, D.DENTAL ? { k: 'problems', label: 'Medical history', span: 2, ph: 'Diabetes; high blood pressure; on blood thinners' } : { k: 'problems', label: 'Problem list', span: 2, ph: 'E11.9 Type 2 diabetes; I10 Hypertension' },
       { k: 'meds', label: 'Current medications', type: 'textarea', rows: 2, span: 4, ph: 'One per line' },
     ], p, function (v) {
       if (v.dob > D.today()) return 'Date of birth is in the future.';
@@ -44,8 +44,8 @@
     var isNew = !a; a = a || Object.assign({ date: V.day || D.today(), time: '09:00', prov: (V.myProvider() || {}).id, visit: 'Scheduled' }, preset || {});
     U.form(isNew ? 'New appointment' : 'Edit appointment', [
       { k: 'mrn', label: 'Patient', type: 'select', options: V.ptOptions(), req: 1, span: 2, blank: 'Choose a patient' }, { k: 'date', label: 'Date', type: 'date', req: 1 }, { k: 'time', label: 'Time', type: 'time', req: 1, step: 900 },
-      { k: 'prov', label: 'Provider', type: 'select', options: V.provOptions(), req: 1 }, { k: 'type', label: 'Visit type', type: 'select', options: ['Office visit', 'Telehealth', 'New patient', 'Annual wellness', 'Procedure'] },
-      { k: 'reason', label: 'Reason for visit', span: 2, req: 1, ph: 'Diabetes follow-up' },
+      { k: 'prov', label: D.L.provider, type: 'select', options: V.provOptions(), req: 1 }, { k: 'type', label: 'Visit type', type: 'select', options: D.VISIT_TYPES },
+      { k: 'reason', label: 'Reason for visit', span: 2, req: 1, ph: D.DENTAL ? 'Recall, cracked tooth #30' : 'Diabetes follow-up' },
     ], a, function (v) {
       var clash = S.appts.filter(function (x) { return x !== a && x.date === v.date && x.time === v.time && x.prov === v.prov && x.visit !== 'Cancelled'; })[0];
       if (clash) return D.provName(v.prov) + ' already has ' + D.ptName(clash.mrn) + ' at ' + V.fmtT(v.time) + '.';
@@ -92,7 +92,7 @@
       var appt = apptId ? S.appts.filter(function (a) { return a.id === apptId; })[0] : S.appts.filter(function (a) { return a.mrn === mrn && a.date === D.today() && a.visit !== 'Cancelled'; })[0];
       var prov = appt ? appt.prov : (V.myProvider() || {}).id;
       if (!prov) { U.toast('Add a provider first (Staff › Team).'); return V.staffForm(null, function () { V.startVisit(mrn, apptId); }, true); }
-      e = { id: D.id('E'), mrn: mrn, apptId: appt ? appt.id : '', date: appt ? appt.date : D.today(), prov: prov, visitType: appt && appt.type === 'Telehealth' ? 'Telehealth' : 'Office visit', reason: appt ? appt.reason : '',
+      e = { id: D.id('E'), mrn: mrn, apptId: appt ? appt.id : '', date: appt ? appt.date : D.today(), prov: prov, visitType: D.DENTAL ? (appt && D.VISIT_TYPES.indexOf(appt.type) >= 0 ? appt.type : D.VISIT_TYPES[0]) : appt && appt.type === 'Telehealth' ? 'Telehealth' : 'Office visit', reason: appt ? appt.reason : '',
         status: 'Draft', s: appt && appt.reason ? 'Chief complaint: ' + appt.reason + '.\n' : '', o: '', a: '', p: '', vitals: {}, transcript: [], orders: [], codes: [], addenda: [], ignored: {}, created: new Date().toISOString() };
       S.encs.push(e);
       if (appt) { appt.encId = e.id; if (appt.visit === 'Scheduled' || appt.visit === 'Checked in') appt.visit = 'In room'; }
@@ -112,9 +112,9 @@
     var p = D.pt(mrn); if (!p) return '';
     var allergies = V.lines(p.allergies).filter(function (x) { return !/^nkda$/i.test(x); });
     return '<div class="pb-ban"><span class="pb-av">' + U.initials2(p.name.split(', ').reverse().join(' ')) + '</span><div><div><span class="pb-name">' + E(p.name) + '</span> <span class="pb-meta">' + p.sex + ', ' + D.age(p.dob) + ', DOB ' + D.us(p.dob) + ', MRN ' + p.mrn + '</span></div>' +
-      '<div class="pb-meta">' + E(p.payer || 'No insurance') + (p.eligChecked ? ', eligibility checked ' + D.us(p.eligChecked, 1) : ', eligibility not checked') + '  |  PCP ' + E(D.provName(p.pcp) || 'none') + '</div></div>' +
+      '<div class="pb-meta">' + E(p.payer || 'No insurance') + (p.eligChecked ? ', eligibility checked ' + D.us(p.eligChecked, 1) : ', eligibility not checked') + '  |  ' + D.L.pcp + ' ' + E(D.provName(p.pcp) || 'none') + '</div></div>' +
       (allergies.length ? '<span class="flag red">Allergy: ' + E(allergies.join(', ')) + '</span>' : '<span class="flag" style="color:var(--t2);border-color:var(--b)">No known allergies</span>') +
-      (!p.member && p.payer !== 'Self-pay' ? '<span class="flag amb">Member ID missing</span>' : '') + '<div class="pb-end">' + (end || '') + '</div></div>';
+      (!p.member && p.payer !== 'Self-pay' ? '<span class="flag amb">' + D.L.member + ' missing</span>' : '') + '<div class="pb-end">' + (end || '') + '</div></div>';
   };
 
   /* ================= Overview ================= */
@@ -132,7 +132,7 @@
       S.encs.forEach(function (e) { (e.addenda || []).forEach(function (a) { if (!a.signed) tasks.push(['Sign addendum', 'amb', D.ptName(e.mrn), a.text.slice(0, 60), null, 'Review', V.encHref(e.id)]); }); });
       D.stage('denied').filter(function (c) { return ['Appealed', 'Resubmitted'].indexOf(c.dstatus) < 0; }).forEach(function (c) { tasks.push(['Appeal due', 'amb', D.ptName(c.mrn), c.carc + ', due ' + D.us(c.appealBy, 1), D.charge(c), 'Open appeal', '/v4/revenue/denials?claim=' + c.id]); });
       S.staff.forEach(function (s) { (s.creds || []).forEach(function (cr) { var d = cr.exp ? D.daysBetween(today, cr.exp) : 999; if (d <= 30) tasks.push(['Credential', d < 0 ? 'red' : 'amb', null, s.name + ': ' + cr.name + (d < 0 ? ' expired ' : ' expires ') + D.us(cr.exp, 1), null, 'Remind', '/v4/staff/team?staff=' + s.id]); }); });
-      appts.forEach(function (a) { var p = D.pt(a.mrn); if (p && p.payer !== 'Self-pay' && !p.member) tasks.push(['Coverage', 'amb', p.name, 'Member ID missing, seen today ' + V.fmtT(a.time), null, 'Fix', V.chartHref(p.mrn)]); });
+      appts.forEach(function (a) { var p = D.pt(a.mrn); if (p && p.payer !== 'Self-pay' && !p.member) tasks.push(['Coverage', 'amb', p.name, D.L.member + ' missing, seen today ' + V.fmtT(a.time), null, 'Fix', V.chartHref(p.mrn)]); });
       var days14 = []; for (var i = 13; i >= 0; i--) days14.push(D.addDays(today, -i));
       var era = days14.map(function (d) { return D.sum(S.claims.filter(function (c) { return c.stage === 'paid' && c.paidOn === d; }), function (c) { return c.paid; }); }), max = Math.max.apply(null, era.concat([1]));
       var month = today.slice(0, 7), paidM = S.claims.filter(function (c) { return c.stage === 'paid' && (c.paidOn || '').slice(0, 7) === month; }), byPayer = {};
@@ -209,7 +209,7 @@
       return '<section class="pane"><div class="ph">Selected: ' + E(p.name || '') + '</div><div class="pbody">' +
         '<div class="dp-sec"><div class="dp-h">Visit</div>' + U.kv([['When', D.us(a.date) + ', ' + V.fmtT(a.time)], ['Provider', E(D.provName(a.prov))], ['Status', V.apptStatus(a)], ['Room', E(a.room || '-')], ['Virtual SOAP', e ? (e.status === 'Signed' ? '<span class="s-grn">Signed</span>' : 'Draft') : 'Not started']]) +
           '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">' + acts.map(function (x) { return '<button class="mini' + (x[1] === 'visit' ? ' pri' : '') + '" data-act="' + x[1] + '">' + x[0] + '</button>'; }).join('') + '</div></div>' +
-        '<div class="dp-sec"><div class="dp-h">Coverage</div>' + U.kv([['Primary', E(p.payer || 'None')], ['Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')], ['Eligibility', p.eligChecked ? 'Checked ' + D.us(p.eligChecked) : U.st('Not checked', 'amb')]]) +
+        '<div class="dp-sec"><div class="dp-h">Coverage</div>' + U.kv([['Primary', E(p.payer || 'None')], [D.DENTAL ? 'Subscriber ID' : 'Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')], ['Eligibility', p.eligChecked ? 'Checked ' + D.us(p.eligChecked) : U.st('Not checked', 'amb')]]) +
           '<div style="margin-top:6px"><button class="mini" data-act="elig">Mark eligibility checked</button> <button class="mini" data-act="editpt">Edit patient</button></div></div>' +
         '<div class="dp-sec"><div class="dp-h">Before checkout</div><div class="ok-list">' + (bal ? '<div class="w">' + U.warn + 'Balance due ' + M(p.balance) + '</div>' : '<div>No balance due</div>') + (e && e.status === 'Signed' ? '<div>Note signed</div>' : '<div class="w">' + U.warn + 'Note not signed</div>') + '</div>' +
           (bal ? '<div style="margin-top:6px"><button class="mini" data-act="collect">Record payment</button></div>' : '') + '</div>' +
@@ -239,7 +239,7 @@
             cl ? (cl.stage === 'edits' ? U.st(acc || 'Edit', (cl.edits[0] || {}).lvl || 'amb') : E(acc)) : acc ? '<span class="s-mut">' + E(acc) + '</span>' : (!p.member && p.payer !== 'Self-pay' ? U.st('Member ID', 'amb') : '')] };
         }), { cb: 1, click: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(10, S.patients.length ? 'No appointments. Use New appointment to book one.' : 'No patients yet. Add one with New patient.') + '</tbody>') +
         U.sect('Unsigned notes', drafts.length + ', claims held until signed', U.grid(['DOS', 'Patient', 'Provider', 'Note', ['Est. charge', 'num']], drafts.map(function (e) {
-          var est = D.sum(e.codes.filter(function (c) { return c.state === 'acc' && c.type === 'CPT'; }), function (c) { return D.fee(c.code); });
+          var est = D.sum(e.codes.filter(function (c) { return c.state === 'acc' && D.isProc(c.type); }), function (c) { return D.fee(c.code); });
           return { attrs: ' data-enc="' + e.id + '"', cells: [D.us(e.date, 1), E(D.ptName(e.mrn)), E(D.provName(e.prov)), V.recording === e.id ? 'Recording in progress' : 'Virtual SOAP draft', M(est)] };
         }), { click: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(5, 'None.') + '</tbody>')) +
         U.sect('Next day, ' + D.us(tmr).slice(0, 5), tom.length + ' appointments', U.grid(['Time', 'Patient', 'Reason', 'Payer', 'Eligibility'], tom.map(function (a) {
@@ -311,11 +311,11 @@
           U.pane('Patient lists', '', '', U.queue([
             { items: [{ key: 'all', label: 'All active', n: n('all'), color: 'blue' }, { key: 'week', label: 'Seen this week', n: n('week') }, { key: 'today', label: 'Scheduled today', n: n('today') }, { key: 'new', label: 'New this month', n: n('new') }] },
             { h: 'Needs attention', items: [{ key: 'balance', label: 'Balance due', n: n('balance'), color: 'amb' }, { key: 'coverage', label: 'Coverage issues', n: n('coverage'), color: 'red' }, { key: 'elig', label: 'Eligibility not checked', n: n('elig'), color: 'amb' }, { key: 'inactive', label: 'Inactive', n: n('inactive') }] },
-            { h: 'By PCP', items: D.providers().map(function (s) { return { key: 'p:' + s.id, label: D.short(s), n: S.patients.filter(function (p) { return p.pcp === s.id; }).length, color: null }; }) },
+            { h: 'By ' + D.L.pcp, items: D.providers().map(function (s) { return { key: 'p:' + s.id, label: D.short(s), n: S.patients.filter(function (p) { return p.pcp === s.id; }).length, color: null }; }) },
           ], Q), { after: U.sum([['Active patients', n('all')], ['Outstanding A/R', M(D.sum(S.patients, function (p) { return p.balance; }))], ['Eligibility checked', n('all') ? Math.round(S.patients.filter(function (p) { return p.eligChecked; }).length / n('all') * 100) + '%' : '-']]) }) +
           '<section class="pane"><div class="ph">' + ({ all: 'All active patients' }[Q] || 'Filtered list') + ' <span class="sub">' + rows.length + '</span></div>' +
             '<div class="fl"><input class="chipf" id="pq" placeholder="Search name, MRN, or DOB" value="' + E(filt) + '">' + U.chip('Payer', 'payer', U.uniq(S.patients.map(function (p) { return p.payer; })), F.payer) + U.chip('PCP', 'pcp', D.providers().map(function (s) { return [s.id, D.short(s)]; }), F.pcp) + U.chip('Status', 'status', ['Active', 'New', 'Balance due', 'Coverage check', 'Self-pay'], F.status) + '<a class="end" href="#" id="clr">Clear filters</a></div>' +
-            '<div class="pbody">' + U.grid(['Patient', 'MRN', 'DOB', 'Age', 'Sex', 'Primary ins.', 'PCP', 'Last visit', 'Next visit', 'Status', ['Balance', 'num']], rows.map(function (p) {
+            '<div class="pbody">' + U.grid(['Patient', 'MRN', 'DOB', 'Age', 'Sex', D.L.ins, D.L.pcp, 'Last visit', 'Next visit', 'Status', ['Balance', 'num']], rows.map(function (p) {
               var st = V.ptStatus(p); if (p.status === 'Inactive') st = ['Inactive', 'mut'];
               return { checked: sel[p.mrn], attrs: ' data-mrn="' + p.mrn + '"', cells: [V.link(p.name, V.chartHref(p.mrn)), '<span class="mono">' + p.mrn + '</span>', D.us(p.dob), D.age(p.dob), p.sex, E(p.payer || ''), E(D.provName(p.pcp)), D.us(lastVisit(p), 1), D.us(nextVisit(p), 1), '<span class="s-' + st[1] + '">' + st[0] + '</span>', M(p.balance)] };
             }), { cb: 1, selChecks: false }).replace('<tbody></tbody>', '<tbody>' + U.empty(12, S.patients.length ? 'No patients match.' : 'No patients yet. Use New patient or Import CSV.') + '</tbody>') +
@@ -340,7 +340,7 @@
       U.toast(ok.length + ' marked checked, ' + (l.length - ok.length) + ' missing a member ID.');
     });
     U.on(app, '#export', 'click', function () {
-      U.download('patients-' + D.today() + '.csv', U.csv([['Name', 'MRN', 'DOB', 'Sex', 'Phone', 'Email', 'Address', 'Payer', 'Member ID', 'PCP', 'Balance', 'Status']].concat(S.patients.map(function (p) { return [p.name, p.mrn, p.dob, p.sex, p.phone, p.email, p.addr, p.payer, p.member, D.provName(p.pcp), p.balance, p.status || 'Active']; }))));
+      U.download('patients-' + D.today() + '.csv', U.csv([['Name', 'MRN', 'DOB', 'Sex', 'Phone', 'Email', 'Address', 'Payer', D.L.member, D.L.pcp, 'Balance', 'Status']].concat(S.patients.map(function (p) { return [p.name, p.mrn, p.dob, p.sex, p.phone, p.email, p.addr, p.payer, p.member, D.provName(p.pcp), p.balance, p.status || 'Active']; }))));
     });
     U.on(app, '#import', 'click', function () { V.importPatients(draw); });
   };
@@ -398,22 +398,23 @@
         '<div class="main" style="grid-template-columns:215px minmax(0,1fr) 330px">' +
           U.pane('Chart', '', '', U.queue([
             { h: 'Patient record', items: [{ key: 'notes', label: 'Clinical notes', n: encs.length, color: 'blue' }, { key: 'demo', label: 'Demographics', color: null }, { key: 'ins', label: 'Insurance', n: p.payer ? 1 : 0, color: null }] },
-            { h: 'Clinical', items: [{ key: 'orders', label: 'Orders', n: orders.length, color: null }, { key: 'meds', label: 'Medications', n: V.lines(p.meds).length, color: null }, { key: 'vitals', label: 'Vitals', n: vit.length, color: null }, { key: 'problems', label: 'Problems', n: V.lines(p.problems).length, color: null }, { key: 'allergies', label: 'Allergies', n: V.lines(p.allergies).length, color: null }] },
+            { h: 'Clinical', items: [{ key: 'orders', label: 'Orders', n: orders.length, color: null }, { key: 'meds', label: 'Medications', n: V.lines(p.meds).length, color: null }, { key: 'vitals', label: D.DENTAL ? 'Tooth chart' : 'Vitals', n: D.DENTAL ? V.teethTreated(mrn).length : vit.length, color: null }, { key: 'problems', label: D.DENTAL ? 'Medical history' : 'Problems', n: V.lines(p.problems).length, color: null }, { key: 'allergies', label: 'Allergies', n: V.lines(p.allergies).length, color: null }] },
             { h: 'Billing', items: [{ key: 'claims', label: 'Claims', n: claims.length, color: null }] },
             { h: 'Other', items: [{ key: 'docs', label: 'Documents', n: docs.length, color: null }, { key: 'msgs', label: 'Messages', n: S.messages.filter(function (m) { return m.mrn === mrn; }).length, color: null }] },
           ], 'notes')) +
           '<section class="pane"><div class="pbody">' +
-            sec('notes', 'Clinical notes', encs.length, ['Date', 'Author', 'Type', 'Summary', 'Status', 'CPT'], encs.map(function (e) { return { attrs: ' data-href="' + V.encHref(e.id) + '"', cells: [D.us(e.date), E(D.provName(e.prov)), E(e.visitType), E((e.a || e.reason || e.s || '').split('\n')[0].slice(0, 60)), '<span class="' + (e.status === 'Signed' ? 's-grn' : 's-amb') + '">' + e.status + '</span>', e.codes.filter(function (c) { return c.state === 'acc' && c.type === 'CPT'; }).map(function (c) { return c.code; }).join(', ')] }; }), 'No visits yet. Start one with Start Visit.', '<a href="#" id="note2">New note</a>') +
-            sec('claims', 'Claims', claims.length + ', ' + M(D.sum(claims, function (c) { return c.paid || 0; })) + ' paid', ['Claim #', 'DOS', 'CPT', 'Dx', 'Payer', 'Status', ['Charges', 'num'], ['Paid', 'num']], claims.map(function (c) { return { attrs: ' data-href="' + V.claimHref(c.id) + '"', cells: [V.link(c.id, V.claimHref(c.id)), D.us(c.dos, 1), c.lines.map(function (l) { return l.code; }).join(', '), c.dx.join(', '), E(D.payer(c)), V.claimStatus(c), M(D.charge(c)), M(c.paid || 0)] }; }), 'No claims yet.') +
+            sec('notes', 'Clinical notes', encs.length, ['Date', 'Author', 'Type', 'Summary', 'Status', D.DENTAL ? 'Procedures' : 'CPT'], encs.map(function (e) { return { attrs: ' data-href="' + V.encHref(e.id) + '"', cells: [D.us(e.date), E(D.provName(e.prov)), E(e.visitType), E((e.a || e.reason || e.s || '').split('\n')[0].slice(0, 60)), '<span class="' + (e.status === 'Signed' ? 's-grn' : 's-amb') + '">' + e.status + '</span>', E(e.codes.filter(function (c) { return c.state === 'acc' && D.isProc(c.type); }).map(function (c) { return D.DENTAL ? DX.lineText(c) : c.code; }).join(', '))] }; }), 'No visits yet. Start one with Start Visit.', '<a href="#" id="note2">New note</a>') +
+            sec('claims', 'Claims', claims.length + ', ' + M(D.sum(claims, function (c) { return c.paid || 0; })) + ' paid', ['Claim #', 'DOS', D.DENTAL ? 'Procedures' : 'CPT', 'Dx', 'Payer', 'Status', ['Charges', 'num'], ['Paid', 'num']], claims.map(function (c) { return { attrs: ' data-href="' + V.claimHref(c.id) + '"', cells: [V.link(c.id, V.claimHref(c.id)), D.us(c.dos, 1), E(c.lines.map(function (l) { return D.DENTAL ? DX.lineText(l) : l.code; }).join(', ')), c.dx.join(', '), E(D.payer(c)), V.claimStatus(c), M(D.charge(c)), M(c.paid || 0)] }; }), 'No claims yet.') +
             sec('orders', 'Orders', orders.length, ['Date', 'Type', 'Order', 'Detail', 'Dx', 'Status'], orders.map(function (x) { return { attrs: ' data-href="' + V.encHref(x[0].id) + '"', cells: [D.us(x[0].date, 1), E(x[1].type), E(x[1].name), E(x[1].detail || ''), E(x[1].dx || ''), '<span class="' + (x[1].status === 'Signed' ? 's-grn' : 's-amb') + '">' + x[1].status + '</span>'] }; }), 'No orders yet.') +
             sec('meds', 'Medications', V.lines(p.meds).length + ' active', ['Medication'], V.lines(p.meds).map(function (m) { return { cells: [E(m)] }; }), 'None on file.', '<a href="#" id="editmeds">Edit</a>') +
-            sec('vitals', 'Vitals trend', '', ['Date', 'BP', 'HR', 'Temp', 'Weight'], vit.map(function (e) { var v = e.vitals; var hi = /(\d+)\/(\d+)/.exec(v.bp || ''); return { cells: [D.us(e.date, 1), '<span class="' + (hi && (+hi[1] >= 140 || +hi[2] >= 90) ? 's-amb' : '') + '">' + E(v.bp || '') + '</span>', E(v.hr || ''), E(v.temp || ''), E(v.wt || '')] }; }), 'No vitals recorded.') +
+            (D.DENTAL ? '<div id="vitals">' + U.sect('Tooth chart', V.teethTreated(mrn).length + ' teeth with procedures', '<div style="padding:10px 12px">' + V.toothChart(mrn) + '</div>') + '</div>' : '') +
+            (D.DENTAL ? '' : sec('vitals', 'Vitals trend', '', ['Date', 'BP', 'HR', 'Temp', 'Weight'], vit.map(function (e) { var v = e.vitals; var hi = /(\d+)\/(\d+)/.exec(v.bp || ''); return { cells: [D.us(e.date, 1), '<span class="' + (hi && (+hi[1] >= 140 || +hi[2] >= 90) ? 's-amb' : '') + '">' + E(v.bp || '') + '</span>', E(v.hr || ''), E(v.temp || ''), E(v.wt || '')] }; }), 'No vitals recorded.')) +
           '</div></section>' +
           U.pane('Summary', '', '<a href="#" id="editpt">Edit</a>', '<div class="dp-sec" id="demo"><div class="dp-h">Demographics</div>' + U.kv([['Phone', E(p.phone || '-')], ['Email', E(p.email || '-')], ['Address', E(p.addr || '-')], ['Created', D.us(p.created)]]) + '</div>' +
-            '<div class="dp-sec" id="ins"><div class="dp-h">Insurance</div>' + U.kv([['Primary', E(p.payer || 'None')], ['Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')], ['Eligibility', p.eligChecked ? 'Checked ' + D.us(p.eligChecked) : U.st('Not checked', 'amb')], ['Balance', M(p.balance)]]) + '</div>' +
-            '<div class="dp-sec" id="problems"><div class="dp-h">Problems</div><div class="lst">' + (V.lines(p.problems).map(function (x) { return '<div>' + E(x) + '</div>'; }).join('') || '<span class="mut">None on file</span>') + '</div></div>' +
+            '<div class="dp-sec" id="ins"><div class="dp-h">Insurance</div>' + U.kv([['Primary', E(p.payer || 'None')], [D.DENTAL ? 'Subscriber ID' : 'Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')], ['Eligibility', p.eligChecked ? 'Checked ' + D.us(p.eligChecked) : U.st('Not checked', 'amb')], ['Balance', M(p.balance)]]) + '</div>' +
+            '<div class="dp-sec" id="problems"><div class="dp-h">' + (D.DENTAL ? 'Medical history' : 'Problems') + '</div><div class="lst">' + (V.lines(p.problems).map(function (x) { return '<div>' + E(x) + '</div>'; }).join('') || '<span class="mut">None on file</span>') + '</div></div>' +
             '<div class="dp-sec" id="allergies"><div class="dp-h">Allergies</div><div class="s-red">' + (V.lines(p.allergies).map(E).join('<br>') || '<span class="mut">None recorded</span>') + '</div></div>' +
-            '<div class="dp-sec"><div class="dp-h">Care team</div>' + U.kv([['PCP', E(D.provName(p.pcp) || 'None')]]) + '</div>' +
+            '<div class="dp-sec"><div class="dp-h">Care team</div>' + U.kv([[D.L.pcp, E(D.provName(p.pcp) || 'None')]]) + '</div>' +
             '<div class="dp-sec"><div class="dp-h">Upcoming</div>' + (up.length ? U.kv(up.map(function (a) { return [D.us(a.date, 1) + ' ' + V.fmtT(a.time), E(a.reason || 'Visit') + ', ' + E(D.provName(a.prov))]; })) : '<span class="mut">Nothing booked</span> · <a href="#" id="book">Book</a>') + '</div>' +
             '<div class="dp-sec" id="docs"><div class="dp-h">Documents <span class="end">' + V.link('Open', '/v4/emr/documents?mrn=' + mrn) + '</span></div>' + (docs.slice(0, 5).map(function (d) { return '<div>' + E(d.name) + ' <span class="mut">' + D.us(d.rec, 1) + '</span></div>'; }).join('') || '<span class="mut">None</span>') + '</div>' +
             '<div class="dp-sec"><div class="dp-h">Scanned At Registration</div><div id="pt-scans" class="lst"><span class="mut">Loading…</span></div></div>' +

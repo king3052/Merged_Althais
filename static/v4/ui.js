@@ -46,6 +46,11 @@
     ['staff', 'Staff', '/v4/staff/team', []],
     ['settings', 'Settings', '/v4/settings', (window.__ALTHAIS_USER__ || {}).role === 'admin' ? [['settings', 'Settings', '/v4/settings'], ['accesslog', 'Access log', '/v4/settings/access-log']] : []],
   ];
+  // only the pages this clinic's plan includes and this person's manager hasn't switched off (v4_preview.allowed_pages)
+  var OK = (window.__ALTHAIS_USER__ || {}).v4_pages;
+  if (OK) NAV = NAV.filter(function (n) { return n[3].length ? n[3].some(function (s) { return OK.indexOf(s[0]) >= 0; }) : OK.indexOf(n[0] === 'staff' ? 'team' : n[0]) >= 0; })
+    .map(function (n) { var subs = n[3].filter(function (s) { return OK.indexOf(s[0]) >= 0; }); return [n[0], n[1], subs.length ? subs[0][2] : n[2], subs]; });
+  if (window.D && D.DENTAL) NAV.forEach(function (n) { n[3].forEach(function (s) { if (s[0] === 'encounter') s[1] = 'Visit'; if (s[0] === 'connect') s[1] = 'Connect practice software'; }); });
   U.header = function (page) {
     return '<header class="hd"><a class="wm" href="/v4/overview">ALTHAIS</a>' + NAV.map(function (n) {
       var on = n[0] === page || n[3].some(function (s) { return s[0] === page; });

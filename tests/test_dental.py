@@ -135,6 +135,19 @@ def test_validate_and_hold_dental_claims():
 
 
 # ── through the extension ────────────────────────────────────────────────────
+def set_practice(db, org, practice):
+    import auth
+    from sqlalchemy import select
+    row = db.scalar(select(auth.OrgSettings).where(auth.OrgSettings.org_key == org, auth.OrgSettings.category == auth.ENTITLEMENTS_CATEGORY))
+    data = json.loads(row.data) if row else {"rev": 0, "products": ["suite"]}
+    data["practice"] = practice
+    if row:
+        row.data = json.dumps(data)
+    else:
+        db.add(auth.OrgSettings(org_key=org, category=auth.ENTITLEMENTS_CATEGORY, data=json.dumps(data)))
+    db.commit()
+
+
 @pytest.fixture()
 def client(monkeypatch):
     from fastapi.testclient import TestClient
@@ -147,6 +160,8 @@ def client(monkeypatch):
             u = auth.User(email="dental-admin@example.test", password_hash=auth.hash_password("x" * 12), full_name="Dental Admin",
                           organization="Dental Test Clinic", role="admin", claims_submitted=0, onboarding_complete=1, active=1)
             db.add(u); db.commit(); db.refresh(u)
+        set_practice(db, u.organization, "dental")     # set up as a dental clinic in /admin
+        db.refresh(u)
         db.expunge(u)
     monkeypatch.setattr(ec, "_gate", lambda a, b: None)
     for d in (auth.require_user, auth.require_biller, auth.current_user):

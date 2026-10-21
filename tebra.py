@@ -244,7 +244,7 @@ def _mask(user: str) -> str:
 
 @router.post("/api/integrations/tebra/connect")
 async def connect(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
-    ec._gate(user, db)
+    ec._gate_medical(user, db)
     try:
         b = await request.json()
     except Exception:
@@ -277,7 +277,7 @@ def disconnect(user=Depends(require_biller), db: Session = Depends(get_db)):
 @router.post("/api/integrations/tebra/sync")
 async def sync(request: Request, user=Depends(require_biller), db: Session = Depends(get_db)):
     """Pull recent charges and return them as a preview (same shape as an upload preview). Saves nothing."""
-    ec._gate(user, db)
+    ec._gate_medical(user, db)
     org = _org_namespace(user)
     _, doc = _load(db, org)
     creds = _creds(doc) if doc.get("secret") else {}

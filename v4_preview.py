@@ -38,12 +38,41 @@ PAGES = {
 }
 
 
+# page key -> the area (auth.AREAS) it belongs to: a page shows only when the clinic's plan has that area's tool and the
+# clinic's manager hasn't switched it off for this person. Pages not listed are open to every signed-in member.
+AREA_OF = {"overview": "overview", "schedule": "schedule", "encounter": "patients", "patients": "patients", "chart": "patients",
+           "documents": "patients", "claims": "claims", "tracker": "claims", "denials": "denials", "rules": "payer_intelligence",
+           "codenote": "code_a_note", "billing": "billing_activation", "connect": "claims", "team": "team",
+           "settings": "settings", "accesslog": "settings"}
+
+
+def allowed_pages(user, products: set) -> list:
+    from auth import AREAS, has_product, member_blocked
+    blocked = member_blocked(user)
+
+    def ok(key):
+        area = AREA_OF.get(key)
+        if not area:
+            return True
+        tool = AREAS[area][1]
+        return area not in blocked and (tool == "*" or has_product(products, tool))
+    return [k for k, _ in PAGES.values() if ok(k)]
+
+
 def _page(key: str, title: str):
     async def view(request: Request, user=Depends(current_user)):
         if not user:
             return RedirectResponse("/login?next=" + quote(str(request.url.path) + ("?" + request.url.query if request.url.query else "")), status_code=302)
-        from main import _app_user_json   # main imports this module, so look it up at request time
-        return _templates.TemplateResponse(request, "v4/page.html", {"page": key, "title": title, "user_json": _app_user_json(user)})
+        import json
+        from main import _app_user_json, _home_for_user, _user_products   # main imports this module, so look them up at request time
+        pages = allowed_pages(user, _user_products(user))
+        if key not in pages:   # not in this clinic's plan, or switched off for this person: their first page instead
+            first = next((path for path, (k, _) in PAGES.items() if k in pages and k not in ("settings", "accesslog")), None)
+            home = _home_for_user(user)
+            return RedirectResponse(first or (home if not home.startswith("/v4") else "/no-access"), status_code=302)
+        me = json.loads(_app_user_json(user))
+        me["v4_pages"] = pages
+        return _templates.TemplateResponse(request, "v4/page.html", {"page": key, "title": title, "user_json": json.dumps(me)})
     return view
 
 

@@ -115,9 +115,12 @@ def revoke_tokens(user=Depends(require_biller), db: Session = Depends(get_db)):
 
 @router.get("/api/extension/ping")
 def ping(authorization: str = Header(default=""), db: Session = Depends(get_db)):
-    if not _auth(db, authorization):
+    who = _auth(db, authorization)
+    if not who:
         return JSONResponse({"error": "That token isn't valid. Create a new one in Althais under Revenue > Connect EMR."}, status_code=401, headers=NO_STORE)
-    return JSONResponse({"ok": True, "version": 1}, headers=NO_STORE)
+    from auth import User, org_practice
+    u = db.get(User, who[2]) if who[2] else None
+    return JSONResponse({"ok": True, "version": 1, "practice": org_practice(u, db) if u else "medical"}, headers=NO_STORE)
 
 
 def _clean_claim(b: dict):
@@ -288,7 +291,8 @@ async def code_note(request: Request, authorization: str = Header(default=""), d
     if len(note) < 40:
         return JSONResponse({"error": "That's too little text to code. Select the visit note, or open the chart note, and try again."}, status_code=400, headers=NO_STORE)
     import dental_coding
-    if dental_coding.is_dental_note(note, body.get("specialty")):
+    from auth import org_practice
+    if org_practice(user, db) == "dental":     # the clinic's version decides (set in /admin): a dental clinic's notes are dental
         try:
             return JSONResponse({"codes": dental_coding.code_note(note, user, db), "dental": True}, headers=NO_STORE)
         except Exception as e:

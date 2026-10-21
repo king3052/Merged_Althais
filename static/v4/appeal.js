@@ -92,17 +92,17 @@
 
       /* ----- services ----- */
       section('4. Services appealed');
-      var cols = [['Line', 0.06], ['CPT / HCPCS', 0.13], ['Modifier', 0.1], ['Description', 0.45], ['Units', 0.08], ['Charge', 0.18]];
+      var cols = [['Line', 0.06], [D.DENTAL ? 'CDT' : 'CPT / HCPCS', 0.13], [D.DENTAL ? 'Tooth / surface' : 'Modifier', 0.1], ['Description', 0.45], ['Units', 0.08], ['Charge', 0.18]];
       room(18); var x = M; font(7, true, mut);
       cols.forEach(function (k) { doc.text(k[0].toUpperCase(), x + 5, y + 12); x += CW * k[1]; });
       y += 16; doc.setDrawColor.apply(doc, line); doc.line(M, y, W - M, y);
       s.cpts.forEach(function (l, i) {
         var desc = doc.splitTextToSize(l.description || '', CW * 0.45 - 10).slice(0, 2), h = 8 + desc.length * 11;
         room(h + 2); x = M; font(9, false, ink);
-        [String(i + 1), l.code, l.modifier || '', desc, String(l.units || 1), money(l.charge)].forEach(function (v, k) { doc.text(v, k === 5 ? x + CW * cols[k][1] - 6 : x + 5, y + 12, k === 5 ? { align: 'right' } : undefined); x += CW * cols[k][1]; });
+        [String(i + 1), l.code, D.DENTAL ? [l.tooth ? '#' + l.tooth : '', l.surface || '', l.quad || ''].filter(Boolean).join(' ') : l.modifier || '', desc, String(l.units || 1), money(l.charge)].forEach(function (v, k) { doc.text(v, k === 5 ? x + CW * cols[k][1] - 6 : x + 5, y + 12, k === 5 ? { align: 'right' } : undefined); x += CW * cols[k][1]; });
         y += h; doc.line(M, y, W - M, y);
       });
-      y += 4; font(7, true, mut); room(14); doc.text('DIAGNOSES (ICD-10-CM)', M + 5, y + 10); y += 14;
+      if (!D.DENTAL || s.icds.length) { y += 4; font(7, true, mut); room(14); doc.text('DIAGNOSES (ICD-10-CM)', M + 5, y + 10); y += 14; }
       s.icds.forEach(function (d, i) { para(String.fromCharCode(65 + i) + '.  ' + d.code + '  ' + (d.description || ''), 9, 0); });
 
       /* ----- reason ----- */

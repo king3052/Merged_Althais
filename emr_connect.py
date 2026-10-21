@@ -183,13 +183,21 @@ EMRS = {
 }
 
 
-def emr_cards(db=None, org=None):
+def for_practice(key: str, practice: str) -> bool:
+    """Dental clinics see dental practice software; medical clinics see medical EMRs. "Other" (any export) is for both."""
+    return key == "other" or (EMRS[key]["segment"] == "Dental") == (practice == "dental")
+
+
+def emr_cards(db=None, org=None, practice=None):
     out = []
     for key, e in EMRS.items():
+        if practice and not for_practice(key, practice):
+            continue
         live = e["live"]
         st = live().status(db, org) if (live and db is not None) else None
         connected = bool(st and st["state"] == "connected")
-        out.append({"key": key, "label": e["label"], "segment": e["segment"], "access": e["access"], "upload": True, "live": connected,
+        label = "Other dental software" if key == "other" and practice == "dental" else e["label"]
+        out.append({"key": key, "label": label, "segment": e["segment"], "access": e["access"], "upload": True, "live": connected,
                     "live_state": st["text"] if st else e["live_state"], "actions": st["actions"] if st else []})
     return out
 
@@ -498,6 +506,13 @@ def _gate(user, db):
     ensure_area(user, "claims")
 
 
+def _gate_medical(user, db):
+    """The live medical EMR connections (athenahealth, Tebra, DrChrono) are for medical clinics only."""
+    from auth import ensure_practice
+    _gate(user, db)
+    ensure_practice(user, db, "medical")
+
+
 def _existing_ids(db, org):
     return {r for (r,) in db.execute(sa_select(OrgClaim.claim_id).where(OrgClaim.org_key == org)).all()}
 
@@ -526,12 +541,15 @@ def _public(c):
 @router.get("/api/integrations/emrs")
 def api_emrs(user=Depends(require_user), db: Session = Depends(get_db)):
     _gate(user, db)
-    return {"emrs": emr_cards(db, _org_namespace(user))}
+    from auth import org_practice
+    practice = org_practice(user, db)
+    return {"emrs": emr_cards(db, _org_namespace(user), practice), "practice": practice}
 
 
 @router.get("/api/integrations/template.csv")
-def api_template(kind: str = "", user=Depends(require_user)):
-    if kind == "dental":
+def api_template(kind: str = "", user=Depends(require_user), db: Session = Depends(get_db)):
+    from auth import org_practice
+    if (kind or org_practice(user, db)) == "dental":
         body = ("claim_id,patient_name,mrn,dob,date_of_service,payer,cdt,tooth,surface,quadrant,charge,provider\n"
                 "SAMPLE-D1,Sample Patient,MRN-0001,1980-01-31,2026-10-01,Sample Dental Plan,D0120,,,,65.00,Dr Example\n"
                 "SAMPLE-D1,Sample Patient,MRN-0001,1980-01-31,2026-10-01,Sample Dental Plan,D2392,14,MO,,210.00,Dr Example\n"
