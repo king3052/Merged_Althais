@@ -103,6 +103,9 @@ app.include_router(extension_api.router)
 import audit   # access log: who viewed or changed patient and billing data (audit.py)
 app.include_router(audit.router)
 app.middleware("http")(audit.middleware)
+import security   # sessions and idle sign-out, two-step login, password rules and account locks (security.py)
+app.include_router(security.router)
+app.middleware("http")(security.middleware)
 
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
@@ -311,26 +314,30 @@ async def admin_report(kind: str, request: Request):
     })
 
 
-def _audit_sign_out(request: Request) -> None:
+def _audit_sign_out(request: Request, idle: bool = False) -> None:
     who, behalf = audit._who_from_request(request)
     if who is not None:
-        audit.record_request(request, user=who, email=who.email, action="sign_out", what="session", on_behalf=behalf)
+        audit.record_request(request, user=who, email=who.email, action="sign_out", what="session", on_behalf=behalf,
+                             detail="automatic, after inactivity" if idle else "")
 
 
 @app.post("/logout")
 async def logout(request: Request):
     """Clear the session cookie and serve the signed-out page."""
     _audit_sign_out(request)
-    resp = templates.TemplateResponse(request, "logout.html", {})
+    security.end_request_session(request)
+    resp = templates.TemplateResponse(request, "logout.html", {"idle": request.query_params.get("idle") == "1"})
     resp.delete_cookie(COOKIE_NAME, path="/")
     return resp
 
 
 @app.get("/logout")
 async def logout_get(request: Request):
-    """Handle direct GET visits to /logout (e.g. typing the URL)."""
-    _audit_sign_out(request)
-    resp = templates.TemplateResponse(request, "logout.html", {})
+    """Handle direct GET visits to /logout (e.g. typing the URL), and the automatic sign-out after inactivity (?idle=1)."""
+    idle = request.query_params.get("idle") == "1"
+    _audit_sign_out(request, idle)
+    security.end_request_session(request, why="idle" if idle else "signed_out")
+    resp = templates.TemplateResponse(request, "logout.html", {"idle": idle})
     resp.delete_cookie(COOKIE_NAME, path="/")
     return resp
 

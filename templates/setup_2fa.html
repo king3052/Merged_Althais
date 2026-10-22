@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Set Up Two-Step Login | Althais</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/althais-tab-32.png" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon/althais-tab.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@600&display=swap" />
+  <script src="/static/js/theme.js"></script>
+  <link rel="stylesheet" href="/static/althais-landing.css" />
+  <link rel="stylesheet" href="/static/althais-auth.css" />
+  <link rel="stylesheet" href="/static/althais-dark.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Inter:wght@600&display=swap" />
+  <link rel="stylesheet" href="/static/auth-rc.css" />
+  <style>
+    #s1,#s2{margin-top:18px}
+    .tf-step{display:flex;gap:10px;margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--ink-2,#4a505c)}
+    .tf-step b.n{flex:0 0 24px;height:24px;border-radius:50%;background:#0f1116;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
+    .tf-qr{display:flex;gap:18px;align-items:center;margin:4px 0 18px;flex-wrap:wrap}
+    .tf-qr img{width:176px;height:176px;background:#fff;border:1px solid #e4e6eb;border-radius:8px;padding:4px}
+    .tf-key{font:500 13px "Geist Mono",monospace;letter-spacing:.04em;background:#f4f5f7;border:1px solid #e4e6eb;border-radius:6px;padding:8px 10px;word-break:break-all;color:#0f1116}
+    .tf-codes{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 18px;font:500 15px "Geist Mono",monospace;background:#f4f5f7;border:1px solid #e4e6eb;border-radius:8px;padding:14px 18px;margin:6px 0 12px;color:#0f1116}
+    .tf-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .tf-row button{padding:8px 12px;border:1px solid #d5d9e0;background:#fff;border-radius:6px;cursor:pointer;font:inherit;font-size:13px;color:#0f1116}
+    #f-code{font:600 22px "Geist Mono",monospace;letter-spacing:.3em;text-align:center}
+    .tf-help{font-size:12.5px;color:#6b7280;margin:8px 0 0}
+  </style>
+</head>
+<body class="login-page rcl rcx">
+<div class="lg-shell">
+  <section class="lg-left">
+
+    <main class="lg-main">
+      <div class="lg-form">
+        <div class="eyebrow">Account Security</div>
+        <h1 class="lg-title">Set up<br /><span class="em">two-step login.</span></h1>
+        <p class="lg-lede">{% if required %}Your clinic asks everyone in your role to sign in with a code from their phone as well as a password. It keeps patient information safe even if a password gets out.{% else %}Sign in with a code from your phone as well as your password. It keeps patient information safe even if a password gets out.{% endif %}</p>
+
+        <div id="msg" class="lg-msg is-plain" role="alert" hidden></div>
+
+        {% if enabled %}
+        <p class="lg-lede">Two-step login is already on for <b>{{ email }}</b>.</p>
+        <a href="{{ next }}" class="btn btn-dark btn-lg lg-submit">Continue</a>
+        {% else %}
+        <div id="s1">
+          <div class="tf-step"><b class="n">1</b><span>Open an authenticator app on your phone: Google Authenticator, Microsoft Authenticator, 1Password or Authy all work. Add an account and scan this code.</span></div>
+          <div class="tf-qr"><img id="qr" alt="QR code for your authenticator app" /><div style="flex:1;min-width:180px"><div class="tf-help" style="margin:0 0 6px">Can't scan? Enter this key in the app instead:</div><div class="tf-key" id="key">Loading…</div></div></div>
+          <div class="tf-step"><b class="n">2</b><span>Type the 6-digit code the app shows for Althais.</span></div>
+          <form id="form" class="lg-plain" novalidate>
+            <div class="field"><label for="f-code">Code from the app</label><input id="f-code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" /></div>
+            <button id="submit" type="submit" class="btn btn-dark btn-lg lg-submit"><span>Turn On Two-Step Login</span></button>
+          </form>
+        </div>
+        <div id="s2" hidden>
+          <div class="tf-step"><b class="n">3</b><span><b>Save your recovery codes.</b> If you lose your phone, each code signs you in once. Keep them somewhere safe, like a password manager. They won't be shown again.</span></div>
+          <div class="tf-codes" id="codes"></div>
+          <div class="tf-row"><button type="button" id="copy">Copy</button><button type="button" id="dl">Download</button><button type="button" id="print">Print</button></div>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;margin:0 0 14px"><input type="checkbox" id="saved" /> I saved my recovery codes</label>
+          <a id="done" href="{{ next }}" class="btn btn-dark btn-lg lg-submit" aria-disabled="true" style="opacity:.5;pointer-events:none">Continue To Althais</a>
+        </div>
+        {% endif %}
+        <p class="tf-help" style="margin-top:18px">Signed in as {{ email }} · <a href="/logout">Sign out</a></p>
+      </div>
+    </main>
+    <footer class="lg-foot">&copy; 2026 Althais Health, Inc.</footer>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    if (!$('s1')) return;
+    function say(text) { var m = $('msg'); m.textContent = text; m.hidden = !text; }
+    var post = function (url, body) {
+      return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; }); });
+    };
+    post('/api/me/2fa/start').then(function (x) {
+      if (!x.ok) return say(x.j.error || x.j.detail || 'Couldn’t start. Reload the page.');
+      $('qr').src = x.j.qr; $('key').textContent = x.j.secret; $('f-code').focus();
+    }).catch(function () { say('Couldn’t reach Althais. Reload the page.'); });
+    $('f-code').addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); if (this.value.length === 6) $('form').requestSubmit(); });
+    var codes = [];
+    $('form').addEventListener('submit', function (e) {
+      e.preventDefault(); say('');
+      var code = $('f-code').value;
+      if (code.length !== 6) { $('f-code').focus(); return say('Type the 6-digit code from the app.'); }
+      $('submit').disabled = true;
+      post('/api/me/2fa/enable', { code: code }).then(function (x) {
+        $('submit').disabled = false;
+        if (!x.ok) { $('f-code').value = ''; $('f-code').focus(); return say(x.j.error || x.j.detail || 'That code didn’t work.'); }
+        codes = x.j.recovery_codes || [];
+        $('codes').innerHTML = codes.map(function (c) { return '<span>' + c + '</span>'; }).join('');
+        $('s1').hidden = true; $('s2').hidden = false;
+      }).catch(function () { $('submit').disabled = false; say('Couldn’t reach Althais. Try again.'); });
+    });
+    var text = function () { return 'Althais recovery codes for ' + {{ email|tojson }} + '\nEach code works once.\n\n' + codes.join('\n') + '\n'; };
+    $('copy').addEventListener('click', function () { navigator.clipboard.writeText(text()).then(function () { $('copy').textContent = 'Copied'; }); });
+    $('dl').addEventListener('click', function () { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text()], { type: 'text/plain' })); a.download = 'althais-recovery-codes.txt'; a.click(); });
+    $('print').addEventListener('click', function () { var w = window.open(''); w.document.write('<pre style="font:16px monospace">' + text() + '</pre>'); w.document.close(); w.print(); });
+    $('saved').addEventListener('change', function () { var d = $('done'); d.style.opacity = this.checked ? 1 : .5; d.style.pointerEvents = this.checked ? 'auto' : 'none'; d.setAttribute('aria-disabled', String(!this.checked)); });
+  })();
+</script>
+</body>
+</html>

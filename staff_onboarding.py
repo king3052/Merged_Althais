@@ -2239,8 +2239,10 @@ async def accept_invitation(request: Request, db: Session = Depends(get_db)):
         full_name = str(body.get("fullName") or "").strip()[:255]
         if not full_name:
             return _err("Add your name.")
-        if len(password) < 8:
-            return _err("Use at least 8 characters for your password.")
+        import security
+        problem = security.password_problem(password, inv.email, full_name)
+        if problem:
+            return _err(problem)
         # opening the emailed link is what verifies the address
         user = User(email=inv.email, password_hash=hash_password(password), full_name=full_name, organization=inv.org_key,
                     role="viewer", email_verified=1, onboarding_complete=1, portal_only=1, active=1)
@@ -2248,7 +2250,7 @@ async def accept_invitation(request: Request, db: Session = Depends(get_db)):
         db.flush()
     _accept(db, inv, user, p, row, doc)
     resp = JSONResponse({"ok": True, "redirect": "/set-password" if user.must_change_password else "/portal"})
-    _set_session_cookie(resp, user.id)
+    _set_session_cookie(resp, user.id, request)
     return resp
 
 

@@ -34,7 +34,7 @@
         <div class="lg-head">
           <div class="eyebrow">Signed Out</div>
           <h1 class="lg-title">You have been<br /><span class="em">signed out.</span></h1>
-          <p class="lg-sub">Your session has ended. If you are on a shared device, close this tab.</p>
+          <p class="lg-sub">{% if idle %}For patient privacy, Althais signs you out after a while without activity. Sign in again to pick up where you left off.{% else %}Your session has ended. If you are on a shared device, close this tab.{% endif %}</p>
         </div>
 
         <div class="lg-actions">
