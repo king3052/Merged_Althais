@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Two-Step Login | Althais</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    :root{--ink:#0f1116;--mut:#5b6170;--line:#e4e6eb;--bg:#f6f7f9}
+    @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#eef0f4;--mut:#a3a9b6;--line:#2a2e37;--bg:#14161b}}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    main{max-width:620px;margin:40px auto;padding:0 16px}
+    h1{font-size:22px;margin:0 0 6px}
+    .card{background:transparent;border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+    .key{font:600 15px ui-monospace,Menlo,monospace;letter-spacing:.05em;word-break:break-all;padding:8px 10px;border:1px solid var(--line);border-radius:6px}
+    img{width:180px;height:180px;background:#fff;border-radius:8px;padding:4px}
+    ol{padding-left:20px}li{margin:6px 0}
+    input{font:600 18px ui-monospace,monospace;letter-spacing:.2em;padding:8px 10px;width:140px;border:1px solid var(--line);border-radius:6px}
+    button{padding:9px 14px;border:0;border-radius:6px;background:#0d5bd7;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+    .ok{color:#17784a;font-weight:600}.bad{color:#c83838;font-weight:600}.mut{color:var(--mut)}
+    a{color:#0d5bd7}
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="/admin">← Back to the admin console</a></p>
+  <h1>Two-step login for the admin console</h1>
+  {% if on %}
+  <p class="ok">On. The admin console asks for a code from an authenticator app at every sign-in.</p>
+  <p class="mut">To move it to a new phone: scan the code below on the new phone, check it, then replace ADMIN_TOTP_SECRET in Railway with the new key.</p>
+  {% else %}
+  <p class="bad">Off. Anyone with the admin password can sign in to the admin console.</p>
+  {% endif %}
+  <div class="card">
+    <ol>
+      <li>Scan this code with an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password). Each founder who signs in to the admin console scans the same code.</li>
+      <li>Type the 6-digit code to check it works.</li>
+      <li>In Railway, open the Althais service, Variables, and add <b>ADMIN_TOTP_SECRET</b> with the key below. Railway redeploys; from then on the admin sign-in asks for the code.</li>
+    </ol>
+    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <img src="{{ qr }}" alt="QR code for the admin console" />
+      <div style="flex:1;min-width:220px"><div class="mut" style="margin-bottom:4px">Key for ADMIN_TOTP_SECRET</div><div class="key" id="key">{{ raw }}</div>
+        <p style="margin:12px 0 4px">Check a code:</p>
+        <form id="f"><input id="code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" /> <button>Check</button></form>
+        <p id="res" class="mut"></p></div>
+    </div>
+    <p class="mut" style="margin-top:12px">This key is shown only on this page and changes each time the page loads. It's never stored by Althais until you put it in Railway.</p>
+  </div>
+</main>
+<script>
+  document.getElementById('f').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var b = new URLSearchParams(); b.set('secret', document.getElementById('key').textContent); b.set('code', document.getElementById('code').value);
+    fetch('/admin/2fa/check', { method: 'POST', credentials: 'same-origin', body: b }).then(function (r) { return r.json(); }).then(function (j) {
+      var r = document.getElementById('res');
+      r.className = j.ok ? 'ok' : 'bad';
+      r.textContent = j.ok ? 'That code matches. Put the key in Railway as ADMIN_TOTP_SECRET.' : 'That code doesn’t match. Check the phone’s clock is set automatically and try the newest code.';
+    });
+  });
+</script>
+</body>
+</html>

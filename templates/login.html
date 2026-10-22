@@ -68,6 +68,15 @@
             <p id="pw-hint" class="lg-hint" hidden>Use at least 8 characters.</p>
           </div>
 
+          <!-- two-step login: shown after a correct password when the account has it on -->
+          <div id="mfa-fields" hidden>
+            <div class="field">
+              <label for="f-code">Code from your authenticator app</label>
+              <input id="f-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="123456" style="font-family:'Geist Mono',monospace;font-size:20px;letter-spacing:.25em;text-align:center" />
+            </div>
+            <p class="lg-hint">Lost your phone? Enter one of your recovery codes instead, or ask your clinic's admin to reset two-step login.</p>
+          </div>
+
           <button id="submit-btn" type="submit" class="btn btn-dark btn-lg lg-submit">
             <span id="submit-label">Sign In</span>
             <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>

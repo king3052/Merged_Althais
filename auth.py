@@ -108,6 +108,15 @@ class User(Base):
     # 1 = signed in with the temporary password from a staff invitation email: they must choose their own
     # password (/set-password) before anything else (main.py's middleware holds them there).
     must_change_password: Mapped[int] = mapped_column(Integer, default=0)
+    # Sign-in security (security.py): two-step login with an authenticator app, and the account lock after
+    # repeated wrong passwords. mfa_secret is encrypted; mfa_recovery holds hashes of the unused recovery codes.
+    mfa_enabled: Mapped[int] = mapped_column(Integer, default=0)
+    mfa_secret: Mapped[str] = mapped_column(Text, nullable=True, default=None)
+    mfa_recovery: Mapped[str] = mapped_column(Text, nullable=True, default=None)
+    mfa_last_step: Mapped[int] = mapped_column(Integer, default=0)
+    failed_logins: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[dt.datetime] = mapped_column(DateTime, nullable=True, default=None)
+    password_changed_at: Mapped[dt.datetime] = mapped_column(DateTime, nullable=True, default=None)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime, default=lambda: dt.datetime.now(timezone.utc)
     )
@@ -282,7 +291,12 @@ except Exception:
 
 for _ddl in ("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1", "ALTER TABLE users ADD COLUMN tools VARCHAR(255) DEFAULT ''",
              "ALTER TABLE users ADD COLUMN blocked VARCHAR(1024) DEFAULT ''", "ALTER TABLE users ADD COLUMN portal_only INTEGER DEFAULT 0",
-             "ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0"):
+             "ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0",
+             # sign-in security (security.py)
+             "ALTER TABLE users ADD COLUMN mfa_enabled INTEGER DEFAULT 0", "ALTER TABLE users ADD COLUMN mfa_secret TEXT",
+             "ALTER TABLE users ADD COLUMN mfa_recovery TEXT", "ALTER TABLE users ADD COLUMN mfa_last_step INTEGER DEFAULT 0",
+             "ALTER TABLE users ADD COLUMN failed_logins INTEGER DEFAULT 0", "ALTER TABLE users ADD COLUMN locked_until TIMESTAMP",
+             "ALTER TABLE users ADD COLUMN password_changed_at TIMESTAMP"):
     try:
         with engine.connect() as _conn:
             _conn.execute(text(_ddl))
@@ -348,9 +362,11 @@ def verify_password(raw: str, hashed: str) -> bool:
 # ──────────────────────────────────────────────────────────────────────────
 #  Session tokens (signed JWT in an HttpOnly cookie)
 # ──────────────────────────────────────────────────────────────────────────
-def create_token(user_id: int) -> str:
+def create_token(user_id: int, sid: str = "") -> str:
+    """A signed session token. `sid` names its row in user_sessions (security.py), which is what makes idle sign-out,
+    sign-out and "sign out everywhere" work on the server: a token whose session is gone is refused."""
     now = dt.datetime.now(timezone.utc)
-    payload = {"sub": str(user_id), "iat": now, "exp": now + timedelta(hours=TOKEN_TTL_HOURS)}
+    payload = {"sub": str(user_id), "iat": now, "exp": now + timedelta(hours=TOKEN_TTL_HOURS), "sid": sid}
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 
@@ -361,10 +377,13 @@ def decode_token(token: str):
         return None
 
 
-def _set_session_cookie(resp: JSONResponse, user_id: int) -> None:
+def _set_session_cookie(resp: JSONResponse, user_id: int, request: Request = None, mfa_setup: bool = None) -> None:
+    """Start a session for this person: a row in user_sessions with the clinic's idle limit, and its cookie."""
+    import security
+    sid = security.start_session(user_id, request, mfa_setup=mfa_setup)
     resp.set_cookie(
         key=COOKIE_NAME,
-        value=create_token(user_id),
+        value=create_token(user_id, sid),
         httponly=True,          # JavaScript can't read it -> protects against XSS theft
         samesite="lax",         # sent on top-level navigations, blocks most CSRF
         secure=COOKIE_SECURE,   # HTTPS-only in production
@@ -391,10 +410,12 @@ def _set_session_cookie(resp: JSONResponse, user_id: int) -> None:
 IMPERSONATION_MINUTES = 30
 
 def create_impersonation_token(user_id: int, admin_username: str, minutes: int = IMPERSONATION_MINUTES) -> str:
+    import security
     now = dt.datetime.now(timezone.utc)
+    sid = security.start_session(user_id, None, kind="view_as", idle_minutes=minutes, ttl_minutes=minutes, mfa_setup=False)
     payload = {
         "sub": str(user_id), "iat": now, "exp": now + timedelta(minutes=minutes),
-        "imp": True, "by": admin_username,
+        "imp": True, "by": admin_username, "sid": sid,
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
@@ -439,6 +460,9 @@ def current_user(request: Request, db: Session = Depends(get_db)):
         return None
     data = decode_token(token)
     if not data:
+        return None
+    import security
+    if not security.session_ok(db, data, request):   # signed out, timed out after inactivity, or replaced
         return None
     try:
         u = db.get(User, int(data["sub"]))
@@ -555,6 +579,7 @@ router = APIRouter()
 
 @router.post("/register")
 def register(
+    request: Request,
     email: str = Form(...),
     password: str = Form(...),
     full_name: str = Form(""),
@@ -567,8 +592,10 @@ def register(
         return JSONResponse({"error": "New sign-ups are paused right now. Contact Althais to get access."}, status_code=403)
     if not email or "@" not in email:
         return JSONResponse({"error": "Enter a valid email address."}, status_code=400)
-    if len(password) < 8:
-        return JSONResponse({"error": "Password must be at least 8 characters."}, status_code=400)
+    import security
+    problem = security.password_problem(password, email, full_name)
+    if problem:
+        return JSONResponse({"error": problem}, status_code=400)
     if db.scalar(select(User).where(User.email == email)):
         return JSONResponse({"error": "An account with that email already exists."}, status_code=400)
 
@@ -618,7 +645,7 @@ def register(
     )
 
     resp = JSONResponse({"ok": True, "redirect": "/onboarding"})   # new accounts land on the welcome page first
-    _set_session_cookie(resp, user.id)
+    _set_session_cookie(resp, user.id, request)
     return resp
 
 
@@ -629,19 +656,39 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    import audit
+    import security
     email = (email or "").strip().lower()
+    if security.ip_blocked(request):
+        return JSONResponse({"error": "Too many sign-in attempts from this network. Try again in 15 minutes."}, status_code=429)
     user = db.scalar(select(User).where(User.email == email))
+    mins = security.locked(user) if user else 0
+    if mins:   # locked after repeated wrong passwords or codes: the right password doesn't help until it ends
+        audit.record_request(request, user=user, email=email, action="sign_in_failed", what="session", status=429, detail="account locked")
+        return JSONResponse({"error": security.lock_message(mins)}, status_code=429)
     # Same generic message whether the email is unknown or the password is wrong,
     # so an attacker can't tell which emails have accounts.
     if not user or not verify_password(password, user.password_hash):
-        import audit
         audit.record_request(request, user=user, email=email, action="sign_in_failed", what="session", status=401,
                              detail="unknown email" if not user else "wrong password")
+        security.failed(db, user, request)
+        mins = security.locked(user) if user else 0
+        if mins:
+            return JSONResponse({"error": security.lock_message(mins)}, status_code=429)
         return JSONResponse({"error": "Invalid email or password."}, status_code=401)
     if getattr(user, "active", 1) == 0:
         if getattr(user, "must_change_password", 0):
             return JSONResponse({"error": "That invitation was cancelled or replaced. Use the newest invitation email from your clinic."}, status_code=403)
         return JSONResponse({"error": "Your clinic’s admin has paused this account. Ask them to turn it back on."}, status_code=403)
+    if user.mfa_enabled:
+        # the password was right: the code from the authenticator app finishes the sign-in (security.login_mfa)
+        return JSONResponse({"ok": False, "mfa": True, "challenge": security.make_challenge(user)})
+    return finish_sign_in(request, db, user)
+
+
+def finish_sign_in(request: Request, db: Session, user: User, detail: str = "") -> JSONResponse:
+    """The password (and the two-step code, when it's on) checked out: start the session."""
+    import audit
     temp_login = bool(getattr(user, "must_change_password", 0))
     if temp_login:
         # the temporary password from a staff invitation: signing in with it accepts the invitation
@@ -650,16 +697,18 @@ def login(
             return JSONResponse({"error": "Your invitation has expired or was cancelled. Ask your clinic to send a new one."}, status_code=403)
 
     # Track login stats
+    user.failed_logins = 0
     user.login_count = (user.login_count or 0) + 1
     user.last_login = dt.datetime.now(timezone.utc)
     record_activity(db, user, "login")
     db.commit()
-    import audit
-    audit.record_request(request, user=user, action="sign_in", what="session", detail="temporary password" if temp_login else "")
+    audit.record_request(request, user=user, action="sign_in", what="session", detail=", ".join(x for x in ("temporary password" if temp_login else "", detail) if x))
 
+    import security
+    setup = security.mfa_required(user, db) and not user.mfa_enabled
     # invited staff whose clinic only gives them the Staff Portal land there; everyone else in the app
-    resp = JSONResponse({"ok": True, "redirect": "/set-password" if temp_login else "/portal" if getattr(user, "portal_only", 0) else "/overview"})
-    _set_session_cookie(resp, user.id)
+    resp = JSONResponse({"ok": True, "redirect": "/set-password" if temp_login else "/setup-2fa" if setup else "/portal" if getattr(user, "portal_only", 0) else "/overview"})
+    _set_session_cookie(resp, user.id, request)
     return resp
 
 
@@ -670,15 +719,20 @@ async def set_own_password(request: Request, user: User = Depends(require_user),
         return JSONResponse({"error": "Your password is already set. Change it from your account settings."}, status_code=400)
     body = await request.json()
     new = str(body.get("password") or "")
-    if len(new) < 8:
-        return JSONResponse({"error": "Use at least 8 characters."}, status_code=400)
+    import security
+    problem = security.password_problem(new, user.email, user.full_name)
+    if problem:
+        return JSONResponse({"error": problem}, status_code=400)
     if verify_password(new, user.password_hash):
         return JSONResponse({"error": "Choose a password that’s different from the temporary one."}, status_code=400)
     user.password_hash = hash_password(new)
     user.must_change_password = 0
     user.email_verified = 1   # they signed in with a password that was only ever sent to this address
     db.commit()
-    return {"ok": True, "redirect": "/portal" if user.portal_only else "/overview"}
+    row, _ = security.session_row(request)
+    security.password_changed(db, user, keep_sid=row.sid if row else "")
+    setup = security.mfa_required(user, db) and not user.mfa_enabled
+    return {"ok": True, "redirect": "/setup-2fa" if setup else "/portal" if user.portal_only else "/overview"}
 
 
 @router.get("/api/me")
@@ -736,6 +790,7 @@ def complete_onboarding(
 
 @router.post("/api/change-password")
 def change_password(
+    request: Request,
     current_password: str = Form(...),
     new_password: str = Form(...),
     user: User = Depends(require_user),
@@ -745,14 +800,18 @@ def change_password(
     if not verify_password(current_password, user.password_hash):
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
-    if len(new_password) < 8:
+    import security
+    problem = security.password_problem(new_password, user.email, user.full_name)
+    if problem:
         from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
+        raise HTTPException(status_code=400, detail=problem)
     if current_password == new_password:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="New password must be different from your current password.")
     user.password_hash = hash_password(new_password)
     db.commit()
+    row, _ = security.session_row(request)
+    security.password_changed(db, user, keep_sid=row.sid if row else "")   # signed out everywhere else
     return {"ok": True}
 
 
@@ -1016,6 +1075,8 @@ def clinic_reset_password(member_id: int, user: User = Depends(require_user), db
     temp = secrets.token_urlsafe(9)
     target.password_hash = hash_password(temp)
     db.commit()
+    import security
+    security.password_changed(db, target)
     emailed = _temp_password_email(target, user, temp, invite=False)
     out = {"ok": True, "emailed": emailed}
     if not emailed:
@@ -1388,8 +1449,7 @@ def reset_password(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    if len(password) < 8:
-        return JSONResponse({"error": "Password must be at least 8 characters."}, status_code=400)
+    import security
     now = dt.datetime.now(timezone.utc)
     prt = db.scalar(select(PasswordResetToken).where(
         PasswordResetToken.token == token,
@@ -1405,9 +1465,13 @@ def reset_password(
     user = db.get(User, prt.user_id)
     if not user:
         return JSONResponse({"error": "Account not found."}, status_code=400)
+    problem = security.password_problem(password, user.email, user.full_name)
+    if problem:
+        return JSONResponse({"error": problem}, status_code=400)
     user.password_hash = hash_password(password)
     prt.used = 1
     db.commit()
+    security.password_changed(db, user)   # clears a lock, signs out every session
     return JSONResponse({"ok": True, "redirect": "/login"})
 
 
@@ -1501,25 +1565,31 @@ ADMIN_COOKIE   = "althais_admin_session"
 ADMIN_TOKEN_TTL_HOURS = 8
 
 
-def create_admin_token(hours: int = ADMIN_TOKEN_TTL_HOURS) -> str:
+def create_admin_token(hours: int = ADMIN_TOKEN_TTL_HOURS, request: Request = None) -> str:
+    import security
     now = dt.datetime.now(timezone.utc)
-    payload = {"sub": "admin", "iat": now, "exp": now + timedelta(hours=hours)}
+    sid = security.start_session(0, request, kind="admin", idle_minutes=security.ADMIN_IDLE_MINUTES, ttl_minutes=hours * 60, mfa_setup=False)
+    payload = {"sub": "admin", "iat": now, "exp": now + timedelta(hours=hours), "sid": sid}
     return jwt.encode(payload, SECRET_KEY + "_admin", algorithm="HS256")
 
 
-def verify_admin_token(token: str) -> bool:
+def verify_admin_token(token: str, request: Request = None) -> bool:
     try:
         data = jwt.decode(token, SECRET_KEY + "_admin", algorithms=["HS256"])
-        return data.get("sub") == "admin"
     except jwt.PyJWTError:
         return False
+    if data.get("sub") != "admin":
+        return False
+    import security
+    with SessionLocal() as db:
+        return security.session_ok(db, data, request)
 
 
 def current_admin(request: Request) -> bool:
     token = request.cookies.get(ADMIN_COOKIE)
     if not token:
         return False
-    return verify_admin_token(token)
+    return verify_admin_token(token, request)
 
 
 def require_admin(request: Request):
@@ -1530,15 +1600,29 @@ def require_admin(request: Request):
 
 
 @router.post("/admin/login")
-def admin_login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+def admin_login(request: Request, username: str = Form(...), password: str = Form(...), code: str = Form(""), db: Session = Depends(get_db)):
+    import hmac as _hmac
+    import security
     if not ADMIN_PASSWORD:
         return JSONResponse({"error": "Admin not configured."}, status_code=503)
-    if username != ADMIN_USERNAME or password != ADMIN_PASSWORD:
+    if security.admin_blocked(request):
+        return JSONResponse({"error": "Too many sign-in attempts. Try again in 15 minutes."}, status_code=429)
+    if not (_hmac.compare_digest(username.encode(), ADMIN_USERNAME.encode()) and _hmac.compare_digest(password.encode(), ADMIN_PASSWORD.encode())):
+        security.admin_failed(request)
+        log_admin_action(db, "admin_sign_in_failed", target=security._client_ip(request), detail="wrong username or password")
         return JSONResponse({"error": "Invalid admin credentials."}, status_code=401)
+    if security.admin_secret():
+        if not code:
+            return JSONResponse({"ok": False, "mfa": True})   # ask for the code from the authenticator app
+        if not security.admin_code_ok(code):
+            security.admin_failed(request)
+            log_admin_action(db, "admin_sign_in_failed", target=security._client_ip(request), detail="wrong two-step code")
+            return JSONResponse({"error": "That code didn't work. Use the newest code from your authenticator app.", "mfa": True}, status_code=401)
+    log_admin_action(db, "admin_sign_in", target=security._client_ip(request), detail="with two-step code" if security.admin_secret() else "password only")
     hours = admin_settings(db)["session_hours"]   # admin console > Settings
     resp = JSONResponse({"ok": True, "redirect": "/admin"})
     resp.set_cookie(
-        key=ADMIN_COOKIE, value=create_admin_token(hours),
+        key=ADMIN_COOKIE, value=create_admin_token(hours, request),
         httponly=True, samesite="lax", secure=COOKIE_SECURE,
         max_age=hours * 3600, path="/"
     )
@@ -1546,7 +1630,9 @@ def admin_login(username: str = Form(...), password: str = Form(...), db: Sessio
 
 
 @router.post("/admin/logout")
-def admin_logout():
+def admin_logout(request: Request):
+    import security
+    security.end_request_session(request, admin=True)
     resp = JSONResponse({"ok": True, "redirect": "/admin/login"})
     resp.delete_cookie(ADMIN_COOKIE, path="/")
     return resp
@@ -1878,6 +1964,7 @@ def admin_org_members(org_key: str, db: Session = Depends(get_db), _: bool = Dep
                          "provider_name": u.provider_name or "", "active": bool(getattr(u, "active", 1)),
                          "tools": sorted(member_tools(u)), "blocked": sorted(member_blocked(u)),
                          "login_count": u.login_count or 0, "claims_submitted": u.claims_submitted or 0,
+                         "mfa": bool(getattr(u, "mfa_enabled", 0)), "locked": __import__("security").locked(u),
                          "last_login": u.last_login.isoformat() if u.last_login else None,
                          "created_at": u.created_at.isoformat() if u.created_at else None} for u in members],
             "startDate": _clinic_start(db, org_key, members)}
