@@ -23,13 +23,11 @@ What is verified and what is not (read before relying on this):
       the diagnoses couldn't be read, and the claim shows as missing a diagnosis rather than being guessed.
   So a pull only ever produces a *preview* for a person to review: nothing is saved until they press Save.
 
-The clinic's Tebra login and Customer Key are stored encrypted (Fernet; key from TEBRA_ENC_KEY, else SECRET_KEY) and are never
+The clinic's Tebra login and Customer Key are stored encrypted (AES-256-GCM; key from TEBRA_ENC_KEY, else SECRET_KEY) and are never
 sent back to the browser. Tebra recommends, and Althais asks for, a separate Tebra user for the API with only the permissions it needs.
 """
 
-import base64
 import datetime as dt
-import hashlib
 import json
 import os
 import re
@@ -71,10 +69,14 @@ class TebraError(Exception):
 
 
 # ---- the clinic's stored connection (encrypted) ----
-def _fernet():
-    from cryptography.fernet import Fernet
-    secret = (os.environ.get("TEBRA_ENC_KEY") or os.environ.get("SECRET_KEY") or "dev-only-insecure-change-me").encode()
-    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"althais-tebra|" + secret).digest()))
+def _seal(text: str) -> str:
+    import crypto_box
+    return crypto_box.seal_text(text, "tebra", "TEBRA_ENC_KEY")
+
+
+def _unseal(token: str) -> str:
+    import crypto_box
+    return crypto_box.open_text(token, "tebra", "TEBRA_ENC_KEY", b"althais-tebra|")
 
 
 def _load(db, org):
@@ -97,7 +99,7 @@ def _save(db, org, doc):
 
 def _creds(doc) -> dict:
     try:
-        return json.loads(_fernet().decrypt(doc["secret"].encode()).decode())
+        return json.loads(_unseal(doc["secret"]))
     except Exception:
         return {}
 
@@ -259,7 +261,7 @@ async def connect(request: Request, user=Depends(require_biller), db: Session = 
         get_charges(creds, today - dt.timedelta(days=1), today)          # proves the key, login and permissions work
     except TebraError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
-    _save(db, _org_namespace(user), {"secret": _fernet().encrypt(json.dumps(creds).encode()).decode(), "user_hint": _mask(creds["user"]),
+    _save(db, _org_namespace(user), {"secret": _seal(json.dumps(creds)), "user_hint": _mask(creds["user"]),
                                      "practice": creds["practice"], "connected_at": dt.datetime.now(timezone.utc).isoformat()})
     return {"ok": True}
 

@@ -1153,7 +1153,9 @@ def set_clinic_name(payload: dict = Body(...), user=Depends(require_user), db: S
     except Exception as e:
         db.rollback()
         return JSONResponse({"error": "Could not save the clinic name. Nothing was changed."}, status_code=500)
-    return {"ok": True, "organization": name}
+    import crypto_box
+    # this browser's records move to the clinic's name, and are encrypted with that clinic's key (static/v4/store.js)
+    return {"ok": True, "organization": name, "browser_key": crypto_box.browser_key(crypto_box.store_slug(name))}
 
 
 @app.get("/api/claims")

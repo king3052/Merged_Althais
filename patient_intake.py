@@ -7,7 +7,7 @@ person checks and edits everything and clicks Confirm & Create Patient. Only the
 through /api/patients, exactly like a manual registration), and the documents are attached to that patient.
 
 PHI rules followed here:
-  - documents and extraction results are stored encrypted (Fernet, key derived from PHI_ENC_KEY or SECRET_KEY)
+  - documents and extraction results are stored encrypted (AES-256-GCM, key derived from PHI_ENC_KEY or SECRET_KEY)
   - nothing logs PHI: the audit log records who did what to which document/patient, never field values
   - every endpoint checks the user's role and that the document belongs to their clinic
   - the AI provider is Anthropic (Claude), which signs a BAA; set ANTHROPIC_API_KEY (and INTAKE_MODEL to override)
@@ -98,18 +98,15 @@ class IntakeResult(Base):
 Base.metadata.create_all(engine)
 
 
-def _fernet():
-    from cryptography.fernet import Fernet
-    secret = (os.environ.get("PHI_ENC_KEY") or os.environ.get("SECRET_KEY") or "dev-only-insecure-change-me").encode()
-    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"althais-phi|" + secret).digest()))
-
-
+# AES-256-GCM (crypto_box.py). Files saved before that (Fernet) still open, and are upgraded by `python crypto_box.py reencrypt`.
 def seal(b: bytes) -> bytes:
-    return _fernet().encrypt(b)
+    import crypto_box
+    return crypto_box.seal_bytes(b, "phi", "PHI_ENC_KEY")
 
 
 def unseal(b: bytes) -> bytes:
-    return _fernet().decrypt(b)
+    import crypto_box
+    return crypto_box.open_bytes(b, "phi", "PHI_ENC_KEY", b"althais-phi|")
 
 
 def seal_text(s: str) -> str:

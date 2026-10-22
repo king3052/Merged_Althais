@@ -1,4 +1,6 @@
-/* Althais v4 working preview: the clinic's data, kept in this browser (localStorage). Starts blank.
+/* Althais v4 working preview: the clinic's data, kept in this browser (localStorage), encrypted with AES-256-GCM. Starts blank.
+   The key is made per clinic by the server (crypto_box.browser_key) and is only in the signed-in page, which browsers
+   don't keep, so what's stored can't be read after sign-out or off another copy of the computer's files.
    Every page reads and writes through window.D. Nothing here is sent anywhere except the two AI calls the encounter
    page makes to this server (/api/code-note, /api/althea/extract). */
 (function () {
@@ -66,12 +68,97 @@
       log: [],
     };
   }
-  var S;
-  try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; }
+  // ---- encryption of this browser's copy: AES-256-GCM (static/v4/vendor/althais-crypto.min.js) ----
+  // Stored as "A2u:<bytes>:" + the 12-byte nonce, ciphertext and 16-byte tag, packed 15 bits to a character
+  // (U+1000 to U+8FFF, so never a broken surrogate): about half the room base64 would take.
+  var BOX = (function () {
+    var C = window.AltCrypto, enc = window.TextEncoder ? new TextEncoder() : null, AAD = enc ? enc.encode('althais-browser-store') : null;
+    function b64(s) { try { var b = atob(s || ''), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u.length === 32 ? u : null; } catch (e) { return null; } }
+    var key = C && enc && window.crypto && crypto.getRandomValues ? b64(window.__ALTHAIS_BK__) : null;
+    function pack(u) {
+      var n = Math.ceil(u.length * 8 / 15), out = new Uint16Array(n), acc = 0, bits = 0, j = 0, s = '';
+      for (var i = 0; i < u.length; i++) { acc = (acc << 8) | u[i]; bits += 8; if (bits >= 15) { bits -= 15; out[j++] = 0x1000 + ((acc >> bits) & 0x7fff); acc &= (1 << bits) - 1; } }
+      if (bits) out[j++] = 0x1000 + ((acc << (15 - bits)) & 0x7fff);
+      for (var k = 0; k < n; k += 8192) s += String.fromCharCode.apply(null, out.subarray(k, Math.min(n, k + 8192)));
+      return s;
+    }
+    function unpack(s, n) {
+      var u = new Uint8Array(n), acc = 0, bits = 0, j = 0;
+      for (var i = 0; i < s.length && j < n; i++) {
+        var c = s.charCodeAt(i) - 0x1000; if (c < 0 || c > 0x7fff) throw new Error('bad data');
+        acc = (acc << 15) | c; bits += 15;
+        while (bits >= 8 && j < n) { bits -= 8; u[j++] = (acc >> bits) & 0xff; }
+        acc &= (1 << bits) - 1;
+      }
+      if (j < n) throw new Error('short data');
+      return u;
+    }
+    return {
+      on: !!key,
+      is: function (v) { return typeof v === 'string' && v.slice(0, 4) === 'A2u:'; },
+      seal: function (text, k64) {
+        var k = k64 ? b64(k64) : key; if (!k) return text;   // no key (should not happen): stored as before
+        var nonce = crypto.getRandomValues(new Uint8Array(12)), ct = C.gcm(k, nonce, AAD).encrypt(enc.encode(text)), all = new Uint8Array(12 + ct.length);
+        all.set(nonce); all.set(ct, 12);
+        return 'A2u:' + all.length + ':' + pack(all);
+      },
+      open: function (v) {
+        var m = /^A2u:(\d+):/.exec(v); if (!m || !key) throw new Error('no key');
+        var all = unpack(v.slice(m[0].length), +m[1]);
+        return new TextDecoder().decode(C.gcm(key, all.subarray(0, 12), AAD).decrypt(all.subarray(12)));
+      },
+      hash: function (text) {
+        if (!C || !enc) return text;
+        var h = C.sha256(enc.encode(text)), s = ''; for (var i = 0; i < h.length; i++) s += (h[i] < 16 ? '0' : '') + h[i].toString(16); return s;
+      },
+    };
+  })();
+  D.crypto = { on: BOX.on, hash: BOX.hash };
+
+  var S, raw = null, lost = false, migrate = false;
+  try { raw = localStorage.getItem(KEY); } catch (e) { raw = null; }
+  if (raw && BOX.is(raw)) {
+    try { S = JSON.parse(BOX.open(raw)); } catch (e) { S = null; lost = true; }
+  } else if (raw) {   // saved before encryption: read it, and save it encrypted straight away
+    try { S = JSON.parse(raw); migrate = true; } catch (e) { S = null; }
+  }
+  if (lost) {
+    // the clinic's key changed (or the data is damaged): keep the unreadable copy aside, start again here, and let the
+    // server bring patients and claims back (sync.js). Appointments and visit notes kept only in this browser can't be.
+    try { if (!localStorage.getItem(KEY + '::undecryptable')) localStorage.setItem(KEY + '::undecryptable', raw); } catch (e) {}
+    try { localStorage.removeItem(KEY + '::sent'); } catch (e) {}
+    window.addEventListener('load', function () { setTimeout(function () { if (window.U && U.toast) U.toast('The records saved in this browser couldn’t be opened with this clinic’s key. Patients and claims are being brought back from the server.', 'warn'); }, 600); });
+  }
   if (!S || S.v !== 1) { S = blank(); if (me.organization) S.clinic.name = me.organization; }
   D.S = S; D.KEY = KEY;
-  D.save = function () { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { (window.U && U.toast ? U.toast : alert)('This browser could not save. Storage may be full (large uploads).'); } };
-  D.reset = function () { localStorage.removeItem(KEY); };
+
+  // Saving encrypts the whole store, so changes made together are written once, a moment later, and always before
+  // the page is left or hidden.
+  var dirty = false, wt = null, gone = false;
+  function write() {
+    clearTimeout(wt); wt = null;
+    if (!dirty || gone) return;
+    dirty = false;
+    try { localStorage.setItem(KEY, BOX.seal(JSON.stringify(S))); }
+    catch (e) { (window.U && U.toast ? U.toast : alert)('This browser could not save. Storage may be full (large uploads).'); }
+  }
+  D.save = function () { dirty = true; if (!wt) wt = setTimeout(write, 200); };
+  D.flush = function () { dirty = true; write(); };
+  window.addEventListener('pagehide', write);
+  window.addEventListener('beforeunload', write);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) write(); });
+  D.reset = function () {
+    gone = true; dirty = false; clearTimeout(wt);
+    [KEY, KEY + '::sent', KEY + '::undecryptable'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+  };
+  // replace everything here with a backup (the backup file's text: plain JSON the clinic downloaded)
+  D.restore = function (text) { gone = true; dirty = false; clearTimeout(wt); localStorage.setItem(KEY, BOX.seal(text)); try { localStorage.removeItem(KEY + '::sent'); } catch (e) {} };
+  // the clinic was given a name: this browser's records move to it, encrypted with that clinic's key (from the server)
+  D.moveTo = function (org, key64) {
+    var to = 'althais.v4.store.v1::' + String(org || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_') + (D.DENTAL ? '::dental' : '');
+    try { localStorage.setItem(to, key64 ? BOX.seal(JSON.stringify(S), key64) : JSON.stringify(S)); } catch (e) {}
+  };
+  if (migrate) D.flush();
   D.id = function (p) { S.seq.n++; D.save(); return p + S.seq.n; };
   D.log = function (text) { S.log.unshift({ at: new Date().toISOString(), text: text }); S.log = S.log.slice(0, 200); D.save(); };
 

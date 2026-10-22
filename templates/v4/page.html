@@ -11,11 +11,12 @@
   <script src="/static/js/theme.js?v={{ asset_v }}"></script>
   <script src="/static/js/brand.js?v={{ asset_v }}"></script>
   <link rel="stylesheet" href="/static/css/althea.css?v={{ asset_v }}">
-  <script>var __ALTHAIS_USER__ = {{ user_json|safe }};</script>
+  <script>var __ALTHAIS_USER__ = {{ user_json|safe }}; var __ALTHAIS_BK__ = "{{ browser_key }}";</script>
 </head>
 <body>
   {# Working preview: every page is drawn by static/v4/app*.js from the clinic data in this browser (static/v4/store.js) #}
   <div id="app" data-page="{{ page }}"></div>
+  <script src="/static/v4/vendor/althais-crypto.min.js?v={{ asset_v }}"></script>
   <script src="/static/v4/dental.js?v={{ asset_v }}"></script>
   <script src="/static/v4/store.js?v={{ asset_v }}"></script>
   <script src="/static/v4/sync.js?v={{ asset_v }}"></script>

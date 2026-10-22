@@ -50,7 +50,7 @@
       </div>
     </main>
 
-    <footer class="lg-foot">&copy; 2026 Althais Health, Inc.</footer>
+    <footer class="lg-foot">&copy; 2026 Althais Inc.</footer>
   </section>
 </div>
 
@@ -63,6 +63,14 @@
       // old un-namespaced keys (from before data isolation)
       // (the light/dark choices and the admin console's color are preferences of this browser, not data: they stay)
       if (k === 'althais.theme.v1' || k === 'althais.admin_theme.v1' || k === 'althais.admin_brand.v1') return;
+      // each clinic's records in the new app are encrypted (static/v4/store.js), and the key is only in a signed-in
+      // page: they stay for the next sign-in (appointments and visit notes are kept only here). Anything still in the
+      // old unencrypted form is removed.
+      if (k.indexOf('althais.v4.store.v1::') === 0) {
+        var v = localStorage.getItem(k) || '';
+        if (v.slice(0, 4) === 'A2u:') return;
+        if (/::sent$/.test(k)) { try { var m = JSON.parse(v); if (Object.keys(m).every(function (x) { return m[x] === 'server' || /^[0-9a-f]{64}$/.test(m[x]); })) return; } catch (e) {} }
+      }
       if (k.indexOf('althais.') === 0 || k === 'althais_active') localStorage.removeItem(k);
       // local:: fallback keys (used when there was no auth)
       if (k.indexOf('local::') === 0) localStorage.removeItem(k);
