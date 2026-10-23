@@ -35,7 +35,7 @@ documents fail, review opens with what the others returned and the failed ones a
 | `ANTHROPIC_API_KEY` | (none) | Required for extraction. Without it, Scan To Autofill goes straight to the manual form. |
 | `INTAKE_MODEL` | `claude-opus-5-5` | The Claude model used to read the documents. |
 | `INTAKE_TIMEOUT_SECONDS` | `75` | The time limit for reading all of an intake's documents. |
-| `PHI_ENC_KEY` | falls back to `SECRET_KEY` | The key used to encrypt stored documents, file names and extraction results. Set it in production and don't rotate it without re-encrypting. |
+| `PHI_ENC_KEY` | falls back to `SECRET_KEY` | The key used to encrypt (AES-256-GCM) stored documents, file names and extraction results. Set it in production. To change it, decrypt with the old value first; files saved with the older Fernet format are upgraded by `python crypto_box.py reencrypt`. |
 
 HEIC photos need `pillow-heif` (in requirements.txt). To run the tests: `pip install -r requirements-dev.txt && python -m pytest tests -q`.
 

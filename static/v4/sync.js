@@ -135,7 +135,13 @@
 
   // ---- 4. write patients and claims back to the server after changes ----
   var sent = {}, ready = false, timer = null;
+  // what was last sent, as SHA-256 fingerprints (never the records themselves); older copies kept the full text
   try { sent = JSON.parse(localStorage.getItem(D.KEY + '::sent')) || {}; } catch (e) { sent = {}; }
+  (function () {
+    var old = 0;
+    Object.keys(sent).forEach(function (k) { var v = sent[k]; if (v !== 'server' && !/^[0-9a-f]{64}$/.test(v)) { sent[k] = D.crypto.hash(String(v)); old++; } });
+    if (old) try { localStorage.setItem(D.KEY + '::sent', JSON.stringify(sent)); } catch (e) {}
+  })();
   function patientOut(p) {
     var pcp = D.staff(p.pcp);
     return Object.assign({}, p, { insPrimary: p.payer, insPrimaryMeta: p.member ? 'Mbr ' + p.member : '', pcp: pcp ? pcp.name : '', provider: pcp ? pcp.name : '',
@@ -153,13 +159,13 @@
   function push() {
     if (!ready) return;
     var jobs = [];
-    if (has('suite')) S.patients.filter(function (p) { return !p.sample; }).forEach(function (p) { var body = JSON.stringify(patientOut(p)); if (sent['p:' + p.mrn] !== body && !(sent['p:' + p.mrn] === 'server' && p.imported && !p.edited)) jobs.push(['/api/patients', body, 'p:' + p.mrn]); });
-    if (has('insurance')) S.claims.filter(function (c) { return !c.sample; }).forEach(function (c) { var body = JSON.stringify(claimOut(c)); if (sent['c:' + c.id] !== body) jobs.push(['/api/claims', body, 'c:' + c.id]); });
+    if (has('suite')) S.patients.filter(function (p) { return !p.sample; }).forEach(function (p) { var body = JSON.stringify(patientOut(p)), h = D.crypto.hash(body); if (sent['p:' + p.mrn] !== h && !(sent['p:' + p.mrn] === 'server' && p.imported && !p.edited)) jobs.push(['/api/patients', body, 'p:' + p.mrn, h]); });
+    if (has('insurance')) S.claims.filter(function (c) { return !c.sample; }).forEach(function (c) { var body = JSON.stringify(claimOut(c)), h = D.crypto.hash(body); if (sent['c:' + c.id] !== h) jobs.push(['/api/claims', body, 'c:' + c.id, h]); });
     (function next(i) {
       if (i >= jobs.length) { try { localStorage.setItem(D.KEY + '::sent', JSON.stringify(sent)); } catch (e) {} return; }
       var j = jobs[i];
       fetch(j[0], { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: j[1] })
-        .then(function (r) { if (r.ok) sent[j[2]] = j[1]; }).catch(function () {}).then(function () { next(i + 1); });
+        .then(function (r) { if (r.ok) sent[j[2]] = j[3]; }).catch(function () {}).then(function () { next(i + 1); });
     })(0);
   }
   var save = D.save;
@@ -173,7 +179,7 @@
     fetch('/api/clinic/name', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) })
       .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         if (!j || !j.organization || j.unchanged) return;
-        try { localStorage.setItem('althais.v4.store.v1::' + String(j.organization).trim().toLowerCase().replace(/[^a-z0-9]+/g, '_'), localStorage.getItem(D.KEY) || JSON.stringify(S)); } catch (e) {}
+        D.moveTo(j.organization, j.browser_key);
         location.reload();
       }).catch(function () {});
   })();

@@ -72,7 +72,13 @@ def _page(key: str, title: str):
             return RedirectResponse(first or (home if not home.startswith("/v4") else "/no-access"), status_code=302)
         me = json.loads(_app_user_json(user))
         me["v4_pages"] = pages
-        return _templates.TemplateResponse(request, "v4/page.html", {"page": key, "title": title, "user_json": json.dumps(me)})
+        import crypto_box
+        bk = crypto_box.browser_key(crypto_box.store_slug(user.organization, user.email))
+        resp = _templates.TemplateResponse(request, "v4/page.html", {"page": key, "title": title, "user_json": json.dumps(me), "browser_key": bk})
+        # the page carries the key to this clinic's data in the browser: never keep it in the browser's cache
+        resp.headers["Cache-Control"] = "no-store"
+        resp.headers["Pragma"] = "no-cache"
+        return resp
     return view
 
 

@@ -306,13 +306,6 @@ def build_837p(c: dict, payer_id: str, payer_name: str) -> str:
 
 
 # ---- the clinic's own clearinghouse connection (stored encrypted in org_settings, category "clearinghouse") ----
-def _fernet():
-    import base64
-    from cryptography.fernet import Fernet
-    secret = (os.environ.get("CLEARINGHOUSE_ENC_KEY") or os.environ.get("SECRET_KEY") or "dev-only-insecure-change-me").encode()
-    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"althais-clearinghouse|" + secret).digest()))
-
-
 PLATFORM = "__althais_platform__"   # Althais's own clearinghouse account: clinics never connect one themselves
 
 
@@ -340,11 +333,14 @@ def save_connection(db, org_key: str, doc: dict):
 
 
 def seal(text: str) -> str:
-    return _fernet().encrypt(text.encode()).decode()
+    """AES-256-GCM (crypto_box.py), key from CLEARINGHOUSE_ENC_KEY or SECRET_KEY. Also used for DrChrono tokens."""
+    import crypto_box
+    return crypto_box.seal_text(text, "clearinghouse", "CLEARINGHOUSE_ENC_KEY")
 
 
 def unseal(token: str) -> str:
-    return _fernet().decrypt(token.encode()).decode()
+    import crypto_box
+    return crypto_box.open_text(token, "clearinghouse", "CLEARINGHOUSE_ENC_KEY", b"althais-clearinghouse|")
 
 
 # Real partners go here once their API documentation and credentials exist. Each value is (label, connector class or None).

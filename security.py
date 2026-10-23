@@ -348,21 +348,27 @@ def lock_message(minutes):
 
 
 # ── two-step login (TOTP) ───────────────────────────────────────────────────
-def _fernet():
-    from cryptography.fernet import Fernet
-    secret = (os.environ.get("MFA_ENC_KEY") or SECRET_KEY).encode()
-    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"althais-mfa|" + secret).digest()))
-
-
 def _seal(s: str) -> str:
-    return _fernet().encrypt(s.encode()).decode()
+    """Authenticator secrets: AES-256-GCM (crypto_box.py), key from MFA_ENC_KEY or SECRET_KEY."""
+    import crypto_box
+    return crypto_box.seal_text(s, "mfa", "MFA_ENC_KEY")
 
 
 def _open(s: str) -> str:
+    import crypto_box
     try:
-        return _fernet().decrypt((s or "").encode()).decode()
+        return crypto_box.open_text(s or "", "mfa", "MFA_ENC_KEY", b"althais-mfa|")
     except Exception:
         return ""
+
+
+def _upgrade(user):
+    """A secret saved before AES-256-GCM is re-sealed the first time it's used."""
+    import crypto_box
+    if user.mfa_secret and not crypto_box.is_current(user.mfa_secret):
+        s = _open(user.mfa_secret)
+        if s:
+            user.mfa_secret = _seal(s)
 
 
 def new_secret() -> str:
@@ -424,6 +430,7 @@ def use_code(db, user, code: str) -> str:
     step = check_code(_open(user.mfa_secret), code, user.mfa_last_step or 0)
     if step:
         user.mfa_last_step = step
+        _upgrade(user)
         db.commit()
         return "totp"
     try:
