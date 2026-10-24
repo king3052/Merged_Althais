@@ -57,8 +57,8 @@
     return '<div class="dp-sec"><div class="dp-h">Procedures' + (ed ? '<span class="end"><a href="#" id="addline">Add procedure</a></span>' : '') + '</div>' +
       U.grid(['Ln', 'CDT', 'Tooth', 'Surface', 'Quad', ['Fee', 'num'], ''], rows, { tight: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(7, 'No procedures yet.') + '</tbody>') +
       '<div style="margin-top:8px">' + V.odontogram(c.lines, { small: 1, quiet: 1 }) + '</div>' +
-      '<div class="mut" style="margin-top:6px;font-size:12px">' + (c.attached ? U.I.check + ' X-rays and narrative marked as attached. <a href="#" data-unattach="' + E(c.id) + '">Undo</a>' : 'Attachments: none marked. ' + (ed ? '<a href="#" data-attach="' + E(c.id) + '">Mark X-rays and narrative as attached</a>' : '')) + '</div>' +
-      (c.dx.length ? '<div class="mut" style="margin-top:5px">Diagnoses: ' + E(c.dx.join(', ')) + '</div>' : '') + '</div>';
+      (c.dx.length ? '<div class="mut" style="margin-top:5px">Diagnoses: ' + E(c.dx.join(', ')) + '</div>' : '') + '</div>' +
+      (V.claimDocs ? V.claimDocs(c) : '');
   };
   var changed = function (c, text) { D.scrub(c); D.history(c, text); D.log(text + ': ' + c.id); D.save(); V.refresh(); };
   U.on(document.body, '[data-dlf]', 'change', function (el) {
@@ -68,8 +68,6 @@
     changed(c, 'Procedure ' + (+el.dataset.dli + 1) + ' edited: ' + DX.lineText(l));
   });
   U.on(document.body, '[data-dldel]', 'click', function (b) { var c = D.claim(b.dataset.dlc); if (!c) return; var l = c.lines.splice(+b.dataset.dldel, 1)[0]; changed(c, 'Procedure removed: ' + DX.lineText(l)); });
-  U.on(document.body, '[data-attach]', 'click', function (a, ev) { ev.preventDefault(); var c = D.claim(a.dataset.attach); if (!c) return; c.attached = true; changed(c, 'X-rays and narrative marked as attached'); });
-  U.on(document.body, '[data-unattach]', 'click', function (a, ev) { ev.preventDefault(); var c = D.claim(a.dataset.unattach); if (!c) return; c.attached = false; changed(c, 'Attachment mark removed'); });
   V.addDentalLine = function (c, done) {
     U.form('Add Procedure', [{ k: 'code', label: 'CDT code', req: 1, ph: 'D2392', list: 'cdt-list' }, { k: 'tooth', label: 'Tooth', ph: '14 (or A to T)' }, { k: 'surface', label: 'Surfaces', ph: 'MO' }, { k: 'quad', label: 'Quadrant or arch', type: 'select', options: ['', 'UR', 'UL', 'LR', 'LL', 'UA', 'LA'] }], {}, function (v) {
       var code = v.code.toUpperCase().replace(/\s/g, ''), tooth = DX.normTooth(v.tooth);

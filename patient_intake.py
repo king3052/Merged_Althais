@@ -533,7 +533,7 @@ async def confirm(intake_id: str, body: dict = Body(...), user=Depends(_user), d
         req = elig.EligibilityRequest(payer=ins.get("payer", ""), member_id=ins.get("member_id", ""), patient_dob=ins.get("patient_dob", ""),
                                       subscriber_first=ins.get("subscriber_first", ""), subscriber_last=ins.get("subscriber_last", ""),
                                       subscriber_dob=ins.get("subscriber_dob", ""), relationship=ins.get("relationship", "self"), payer_id=ins.get("payer_id", ""),
-                                      **_billing_ids(db, user))
+                                      service_code=elig.service_code_for(user, db), **_billing_ids(db, user))
         result = (await run_in_threadpool(elig.check_eligibility, req)).as_dict()
         audit(db, org, intake_id, user, "eligibility", f"status {result['status']} via {result['source'] or 'none'}", mrn=mrn)
         db.commit()

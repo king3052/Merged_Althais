@@ -327,37 +327,102 @@ async def import_commit(request: Request, c: C = Depends(need("admin"))):
     b = await request.json()
     source, kind = b.get("source", "csv"), b.get("kind", "patients")
     res = parse_import(source, kind, b.get("text", ""))
+    summary = commit_rows(c, source, kind, res["rows"])
+    job = c.add(m.ImportJob(source=source, kind=kind, status="imported", rows=len(res["rows"]), by=c.email, summary=dict(summary, errors=len(res["errors"]))))
+    c.db.commit()
+    return job.as_dict()
+
+
+def commit_rows(c: C, source: str, kind: str, rows: list) -> dict:
+    """Saves imported patients (with their plan) or procedure history. Shared by export uploads and the live Open
+    Dental pull, so both give a patient the same MRN (prefix + the other system's ID). Doesn't commit."""
     prefix = SOURCES[source]
     added = updated = skipped = 0
     existing = {r.mrn: r for r in c.db.scalars(select(auth.OrgPatient).where(auth.OrgPatient.org_key == c.org))}
     if kind == "patients":
-        for r in res["rows"]:
+        for r in rows:
             mrn = f"{prefix}{r['src_id']}"
-            data = {k: r[k] for k in ("name", "dob", "sex", "phone", "email", "addr", "payer", "member")}
-            data.update({"mrn": mrn, "imported_from": source, "status": "Active", "created": today()})
+            data = {k: r.get(k, "") for k in ("name", "dob", "sex", "phone", "email", "addr", "payer", "member")}
+            data.update({"mrn": mrn, "imported_from": source, "status": "Active"})
+            if mrn not in existing:
+                data["created"] = today()
             save_patient(c, data, existing.get(mrn))
-            if r.get("payer") and not c.db.scalar(select(m.Coverage.id).where(m.Coverage.org_key == c.org, m.Coverage.mrn == mrn)):
-                c.add(m.Coverage(mrn=mrn, payer=r["payer"], member_id=r.get("member", "")))
+            if r.get("payer"):
+                cov = c.q(m.Coverage, m.Coverage.mrn == mrn, m.Coverage.rank == "primary").first()
+                if not cov:
+                    c.add(m.Coverage(mrn=mrn, payer=r["payer"], payer_id=r.get("payer_id", ""), member_id=r.get("member", ""), group=r.get("group", "")))
+                else:      # fill in what's missing; a plan the office already verified here isn't overwritten
+                    for k, v in (("payer_id", r.get("payer_id")), ("member_id", r.get("member")), ("group", r.get("group"))):
+                        if v and not getattr(cov, k):
+                            setattr(cov, k, v)
             updated += 1 if mrn in existing else 0
             added += 0 if mrn in existing else 1
     else:
         seen = {(p.mrn, p.date, p.code, p.tooth, p.surface) for p in c.q(m.Procedure, m.Procedure.source == "import")}
-        for r in res["rows"]:
+        for r in rows:
             mrn = f"{prefix}{r['src_id']}"
             if mrn not in existing:
                 skipped += 1
                 continue
-            key = (mrn, r["date"], r["code"], r["tooth"], r["surface"])
+            tooth, surf = dental_rules.norm_tooth(r.get("tooth")), dental_rules.norm_surface(r.get("surface"))
+            key = (mrn, r["date"], r["code"], tooth, surf)
             if key in seen:
                 skipped += 1
                 continue
             seen.add(key)
-            c.add(m.Procedure(mrn=mrn, date=r["date"], code=r["code"], tooth=r["tooth"], surface=r["surface"], fee=r["fee"], source="import"))
+            c.add(m.Procedure(mrn=mrn, date=r["date"], code=r["code"], tooth=tooth, surface=surf, quad=r.get("quad", "") or "", fee=r.get("fee") or 0, source="import"))
             added += 1
-    job = c.add(m.ImportJob(source=source, kind=kind, status="imported", rows=len(res["rows"]), by=c.email,
-                            summary={"added": added, "updated": updated, "skipped": skipped, "errors": len(res["errors"])}))
+    return {"added": added, "updated": updated, "skipped": skipped}
+
+
+# ── Open Dental, live (opendental.py) ───────────────────────────────────────────────────────────────────────────
+@router.get("/import/opendental")
+def opendental_status(c: C = Depends(need("admin"))):
+    import opendental as od
+    return od.connection(c.db, c.org)
+
+
+@router.post("/import/opendental/connect")
+async def opendental_connect(request: Request, c: C = Depends(need("admin"))):
+    import opendental as od
+    b = await request.json()
+    try:
+        od.connect(c.db, c.org, b.get("customer_key"), b.get("clinic_num"))
+    except od.OpenDentalError as e:
+        raise HTTPException(400, str(e))
+    return od.connection(c.db, c.org)
+
+
+@router.post("/import/opendental/disconnect")
+def opendental_disconnect(c: C = Depends(need("admin"))):
+    import opendental as od
+    od.disconnect(c.db, c.org)
+    return od.connection(c.db, c.org)
+
+
+@router.post("/import/opendental/pull")
+async def opendental_pull(request: Request, c: C = Depends(need("admin"))):
+    """Patients, their dental plans and completed procedures from Open Dental, straight into the chart and history."""
+    import opendental as od
+    from starlette.concurrency import run_in_threadpool
+    b = await request.json()
+    try:
+        days = max(1, min(od.MAX_DAYS, int(b.get("days") or 30)))
+        key, clinic = od.stored_key(c.db, c.org)
+        pts, procs, notes = await run_in_threadpool(od.pull, key, clinic, days)
+    except od.OpenDentalError as e:
+        raise HTTPException(400, str(e))
+    except ValueError:
+        raise HTTPException(400, "Days must be a number")
+    sp = commit_rows(c, "opendental", "patients", pts)
+    c.db.flush()
+    sr = commit_rows(c, "opendental", "procedures", procs)
+    summary = {"patients": sp, "procedures": sr, "notes": notes, "days": days}
+    c.add(m.ImportJob(source="opendental", kind="live pull", status="imported", rows=len(pts) + len(procs), by=c.email,
+                      summary={"added": sp["added"] + sr["added"], "updated": sp["updated"], "skipped": sr["skipped"], "errors": 0}))
+    od.record_pull(c.db, c.org, {"patients": len(pts), "procedures": sr["added"], "notes": notes})
     c.db.commit()
-    return job.as_dict()
+    return summary
 
 
 @router.get("/import/jobs")

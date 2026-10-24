@@ -194,7 +194,7 @@ def test_extension_dental_claim_preview_and_hold(client):
     assert j["dental"] is True and j["problems"] == []
     line = j["claim"]["cpts"][1]
     assert line["type"] == "CDT" and line["tooth"] == "14" and line["surface"] == "MO"
-    assert any(b["title"] == "Dental claim sending" for b in j["blockers"])        # held until the dental route exists
+    assert not any(b.get("requirement") == "dental_route" for b in j["blockers"])   # dental claims go out as 837D now
     bad = dict(claim, cpts=[{"code": "D2392", "tooth": "14", "surface": "MOD", "charge": 210}])
     j2 = c.post("/api/extension/claim", json={"action": "check", "claim": bad}, headers=h).json()
     assert any("D2393" in f["message"] for f in j2["findings"])

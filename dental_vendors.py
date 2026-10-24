@@ -12,8 +12,12 @@ everything can be built and tested before a contract is signed.
   imaging         ImagingBridge         MockImagingBridge       Dexis/Carestream/Planmeca bridges, VDDS, TWAIN
   reviews         ReviewPlatform        MockReviews             Google Business Profile
 
-vendor(kind) returns the one configured with DENTAL_VENDOR_<KIND> (e.g. DENTAL_VENDOR_SMS=mock). Only mocks exist today,
-and every mock result says environment="mock" so nothing it produces can be mistaken for a real transmission or payment.
+vendor(kind) returns the one configured with DENTAL_VENDOR_<KIND> (e.g. DENTAL_VENDOR_SMS=mock). Every mock result says
+environment="mock" so nothing it produces can be mistaken for a real transmission or payment.
+
+Real implementations so far: Claim.MD for the clearinghouse and for attachments (dental_claimmd.py; set
+DENTAL_VENDOR_CLEARINGHOUSE=claimmd and DENTAL_VENDOR_ATTACHMENTS=claimmd). They use Althais's Claim.MD account
+(connected in /admin) and refuse synthetic patients.
 Mocks are deterministic (seeded from their input), never call the network and never see real patient data.
 """
 import datetime as dt
@@ -30,6 +34,10 @@ MOCK = "mock"
 
 def _rng(*parts) -> random.Random:
     return random.Random(int(hashlib.sha256("|".join(str(p) for p in parts).encode()).hexdigest()[:12], 16))
+
+
+class VendorError(RuntimeError):
+    """A real vendor couldn't do it (not connected, refused, unreachable). The message is safe to show staff."""
 
 
 @dataclass
@@ -56,8 +64,9 @@ class DentalClearinghouse:
     def submit_claim(self, x837: str, claim: dict) -> VendorResult:
         raise NotImplementedError
 
-    def fetch_remittances(self, since: str) -> list:
-        """New 835 files since a date, as raw X12 strings."""
+    def fetch_remittances(self, since: str, npi: str = "", tin: str = "") -> list:
+        """New 835 files since a date, as raw X12 strings. A shared clearinghouse account is filtered to this clinic's
+        billing NPI and Tax ID, so one clinic never sees another's remittances."""
         raise NotImplementedError
 
     def preauth(self, x837: str, claim: dict) -> VendorResult:
@@ -110,7 +119,7 @@ class MockClearinghouse(DentalClearinghouse):
         MockClearinghouse._remits.append(mock_835_for(claim, ref))
         return VendorResult(True, "accepted", "999 accepted, 277CA accepted by payer (mock)", ref=ref)
 
-    def fetch_remittances(self, since):
+    def fetch_remittances(self, since, npi="", tin=""):
         out, MockClearinghouse._remits = list(MockClearinghouse._remits), []
         return out
 
@@ -155,8 +164,17 @@ def mock_835_for(claim: dict, payer_claim_id: str) -> str:
 
 # ── attachments (radiographs, perio charts, narratives) ─────────────────────────────────────────────────────────
 class AttachmentService:
+    """Two steps around the claim: prepare() before it's built (the control number goes in its PWK segments), deliver()
+    after the clearinghouse accepted it (the documents themselves, as one PDF)."""
+
     def send(self, claim_id: str, files: list) -> VendorResult:
         raise NotImplementedError
+
+    def prepare(self, claim_id: str, files: list) -> VendorResult:
+        return self.send(claim_id, files)
+
+    def deliver(self, claim_id: str, files: list, ref: str, pdf: bytes) -> VendorResult:
+        return VendorResult(True, "sent", "Delivered with the control number", ref=ref)
 
 
 class MockAttachments(AttachmentService):
@@ -305,6 +323,8 @@ _REGISTRY = {
 
 def vendor(kind: str):
     choice = os.environ.get("DENTAL_VENDOR_" + kind.upper(), MOCK).strip().lower() or MOCK
+    if choice == "claimmd":
+        import dental_claimmd  # noqa: F401  (registers itself)
     impl = _REGISTRY[kind].get(choice)
     if impl is None:
         raise RuntimeError(f"No {kind} vendor called {choice!r} is implemented yet. Set DENTAL_VENDOR_{kind.upper()}=mock.")
@@ -313,6 +333,7 @@ def vendor(kind: str):
 
 def status() -> list:
     """For Settings › Integrations: what each service is set to, and whether it's a mock."""
+    import dental_claimmd  # noqa: F401  (so the real ones are listed)
     out = []
     for kind in _REGISTRY:
         choice = os.environ.get("DENTAL_VENDOR_" + kind.upper(), MOCK).strip().lower() or MOCK

@@ -42,7 +42,10 @@ def check_eligibility(c: C, mrn: str) -> dict:
     req = {"payer": cov.payer, "payer_id": cov.payer_id, "member_id": cov.member_id, "last": last, "first": first, "dob": p.get("dob"), "sex": p.get("sex"),
            "provider_name": loc.name if loc else "", "npi": loc.npi if loc else "", "trace": f"E{mrn}"}
     x270 = x12.build_270(req)
-    x271 = vendors.vendor("clearinghouse").eligibility(x270, req)
+    try:
+        x271 = vendors.vendor("clearinghouse").eligibility(x270, req)
+    except vendors.VendorError as e:
+        raise HTTPException(502, str(e))
     b = x12.parse_271(x271)
     cov.benefits, cov.raw_271, cov.active, cov.checked_at = b, x271, 1 if b["active"] else 0, dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
     if b.get("group"):
@@ -366,6 +369,39 @@ def _x837(c: C, claim: m.Claim, predetermination=False) -> str:
     return x12.build_837d(data, practice, ctrl=claim.id, predetermination=predetermination), data
 
 
+def _attachments_pdf(c: C, claim: m.Claim) -> bytes:
+    """Every attachment on the claim (radiographs, the perio chart, the narrative) as one PDF, in the order attached."""
+    import io
+    from pypdf import PdfReader, PdfWriter
+    import claim_attachments as ca
+    p = patient_dict(patient(c, claim.mrn))
+    sub = " · ".join(x for x in (f"Claim {claim.claim_no}", p.get("name", ""), f"DOS {claim.dos}" if claim.dos else "") if x)
+    w = PdfWriter()
+    for a in claim.attachments or []:
+        try:
+            if a.get("image_id"):
+                img = c.get(m.Image, a["image_id"])
+                if img.synthetic:      # the synthetic practice's drawn X-rays: a labeled stand-in page (real vendors refuse synthetic patients)
+                    pdf, _ = ca.narrative_to_pdf(f"SYNTHETIC {img.kind} from the sample practice. Not a real radiograph.", f"Radiograph: {img.kind} {img.taken}", sub)
+                    w.append(PdfReader(io.BytesIO(pdf)))
+                    continue
+                pdf, _ = ca.data_url_image(img.data, f"Radiograph: {img.kind} {img.taken}" + (f", teeth {', '.join(map(str, img.teeth))}" if img.teeth else ""), sub)
+            elif a.get("perio_id"):
+                ex = c.get(m.PerioExam, a["perio_id"])
+                pdf, _ = ca.perio_to_pdf(ex.readings or {}, f"Periodontal chart {ex.date}", sub)
+            else:
+                continue
+        except ca.BadFile as e:
+            raise ValueError(f"{a.get('label') or a.get('kind')}: {e}")
+        w.append(PdfReader(io.BytesIO(pdf)))
+    if claim.narrative:
+        pdf, _ = ca.narrative_to_pdf(claim.narrative, "Narrative", sub)
+        w.append(PdfReader(io.BytesIO(pdf)))
+    out = io.BytesIO()
+    w.write(out)
+    return out.getvalue()
+
+
 @router.post("/claims/{cid}/submit")
 def claim_submit(cid: int, c: C = Depends(need("billing"))):
     claim = c.get(m.Claim, cid)
@@ -375,16 +411,31 @@ def claim_submit(cid: int, c: C = Depends(need("billing"))):
     reds = [e["msg"] for e in chk["edits"] if e["lvl"] == "red"]
     if reds:
         raise HTTPException(422, "Fix first: " + "; ".join(reds))
+    av = vendors.vendor("attachments")
+    docs = None
     if claim.attachments and any(not a.get("ref") for a in claim.attachments):
-        res = vendors.vendor("attachments").send(claim.claim_no, claim.attachments)
-        if res.ok:
-            claim.attachments = [dict(a, ref=res.ref, sent=today()) for a in claim.attachments]
+        try:     # render the documents first, so a file that can't be sent stops the claim instead of going out without it
+            docs = _attachments_pdf(c, claim)
+        except ValueError as e:
+            raise HTTPException(422, f"The attachments can't be sent: {e}")
+        prep = av.prepare(claim.claim_no, claim.attachments)
+        if not prep.ok:
+            raise HTTPException(502, "Attachments: " + prep.message)
+        claim.attachments = [dict(a, ref=prep.ref) for a in claim.attachments]
     x, data = _x837(c, claim)
     res = vendors.vendor("clearinghouse").submit_claim(x, data)
     claim.x837 = x
     if res.ok:
         claim.status, claim.submitted_at, claim.payer_claim_id = "submitted", dt.datetime.now(dt.timezone.utc).replace(tzinfo=None), res.ref
         _hist_add(claim, res.message)
+        if docs is not None:
+            ref = claim.attachments[0]["ref"]
+            dr = av.deliver(claim.claim_no, claim.attachments, ref, docs)
+            claim.attachments = [dict(a, sent=today() if dr.ok else "", failed="" if dr.ok else dr.message[:200]) for a in claim.attachments]
+            _hist_add(claim, f"Attachments ({len(claim.attachments)}): " + dr.message)
+            if not dr.ok:
+                c.add(m.WorkItem(kind="attachment", mrn=claim.mrn, claim_id=claim.id, title=f"{claim.claim_no}: attachments weren't sent", how=dr.message[:300],
+                                 action="attach", amount=claim.total))
     else:
         claim.status = "rejected"
         _hist_add(claim, res.message)
@@ -480,9 +531,11 @@ def preauth_send(pid: int, c: C = Depends(need("front"))):
         raise HTTPException(422, "Fix first: " + "; ".join(errs[:3]))
     res = vendors.vendor("clearinghouse").preauth(x, data)
     claim.x837 = x
-    if res.ok:
-        pa.status, pa.ref, pa.submitted_at = "submitted", res.ref, dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
-        claim.status = "submitted"
+    if not res.ok:
+        c.db.commit()
+        raise HTTPException(502, res.message)
+    pa.status, pa.ref, pa.submitted_at = "submitted", res.ref, dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+    claim.status = "submitted"
     c.db.commit()
     return pa.as_dict()
 
@@ -580,7 +633,14 @@ def post_835(c: C, raw: str) -> dict:
 @router.post("/era/fetch")
 def era_fetch(c: C = Depends(need("billing"))):
     out = []
-    for raw in vendors.vendor("clearinghouse").fetch_remittances(""):
+    raws = []
+    ids = {(l.npi, l.tin) for l in c.q(m.Location).all() if l.npi or l.tin}    # each office's NPI and Tax ID: a shared account never mixes clinics
+    for npi, tin in sorted(ids) or [("", "")]:
+        try:
+            raws += vendors.vendor("clearinghouse").fetch_remittances("", npi=npi, tin=tin)
+        except vendors.VendorError as e:
+            raise HTTPException(502, str(e))
+    for raw in list(dict.fromkeys(raws)):
         try:
             out.append(post_835(c, raw))
         except HTTPException as e:

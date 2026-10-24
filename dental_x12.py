@@ -25,7 +25,7 @@ SEG, EL, COMP, REP = "~", "*", ":", "^"
 STC = {"dental": "35", "diagnostic": "23", "preventive": "41", "basic": "25", "endo": "26", "perio": "24", "major": "36",
        "prosth": "39", "oral_surgery": "40", "ortho": "38"}
 STC_NAME = {v: k for k, v in STC.items()}
-QUAD_CODE = {"UR": "10", "UL": "20", "LL": "30", "LR": "40", "UA": "01", "LA": "02"}
+QUAD_CODE = {"UR": "10", "UL": "20", "LL": "30", "LR": "40", "UA": "01", "LA": "02", "FM": "00"}   # FM: the whole mouth
 CODE_QUAD = {v: k for k, v in QUAD_CODE.items()}
 
 
@@ -235,14 +235,15 @@ def parse_271(x: str) -> dict:
 
 
 # ── 837D ────────────────────────────────────────────────────────────────────────────────────────────────────────
-PWK_TYPE = {"radiograph": "RB", "perio_chart": "P6", "narrative": "OZ", "photo": "OZ", "model": "DA"}
+PWK_TYPE = {"radiograph": "RB", "perio_chart": "P6", "narrative": "OZ", "photo": "OZ", "model": "DA", "report": "DG"}
 
 
 def build_837d(claim: dict, practice: dict, ctrl: int = 1, predetermination: bool = False) -> str:
     """claim: id, dos, payer, payer_id, group, frequency ("1" original, "7" replacement, "8" void), original_ref,
-       preauth_ref, narrative, attachments [{kind, ref}], provider {last, first, npi},
+       preauth_ref, narrative, attachments [{kind, ref}], provider {last, first, npi, taxonomy},
        patient {last, first, dob, sex, member_id, addr, city, state, zip},
-       lines [{code, tooth, surface, quad, fee, units, dos}]
+       diagnoses [ICD-10 codes, up to 4; most dental claims have none],
+       lines [{code, tooth, surface, quad, fee, units, dos, prosthesis ("I" initial placement / "R" replacement)}]
     practice: name, npi, tin, addr, city, state, zip, phone, taxonomy"""
     pt, prov = claim.get("patient") or {}, claim.get("provider") or {}
     taxonomy = practice.get("taxonomy") or "1223G0001X"   # general practice dentistry
@@ -256,7 +257,7 @@ def build_837d(claim: dict, practice: dict, ctrl: int = 1, predetermination: boo
         _seg("NM1", "85", 2, _clean(practice.get("name")), "", "", "", "", "XX", practice.get("npi") or ""),
         _seg("N3", _clean(practice.get("addr"), 55)), _seg("N4", _clean(practice.get("city"), 30), _clean(practice.get("state"), 2), re.sub(r"\D", "", practice.get("zip") or "")),
         _seg("REF", "EI", re.sub(r"\D", "", practice.get("tin") or "")),
-        _seg("HL", 2, 1, 22, 0), _seg("SBR", "P", "18", _clean(claim.get("group"), 30), "", "", "", "", "", "CI"),
+        _seg("HL", 2, 1, 22, 0), _seg("SBR", "P", "18", _clean(claim.get("group"), 30), "", "", "", "", "", claim.get("filing_code") or ("MC" if "MEDICAID" in _clean(claim.get("payer"), 120) else "CI")),
         _seg("NM1", "IL", 1, _clean(pt.get("last")), _clean(pt.get("first")), "", "", "", "MI", _clean(pt.get("member_id"))),
         _seg("N3", _clean(pt.get("addr") or "UNKNOWN", 55)), _seg("N4", _clean(pt.get("city") or "UNKNOWN", 30), _clean(pt.get("state") or "TX", 2), re.sub(r"\D", "", pt.get("zip") or "") or "00000"),
         _seg("DMG", "D8", _d8(pt.get("dob")), (pt.get("sex") or "U")[:1].upper()),
@@ -264,21 +265,31 @@ def build_837d(claim: dict, practice: dict, ctrl: int = 1, predetermination: boo
         _seg("CLM", _clean(claim.get("id"), 38), _money(total), "", "", COMP.join(["11", "B", str(claim.get("frequency") or "1")]), "Y", "A", "Y", "Y",
              "", "", "", "", "", "", "", "", "", "PB" if predetermination else ""),
     ]
+    # loop 2300 order (005010X224A2): PWK, REF, NTE, HI
+    seen_pwk = set()
+    for a in claim.get("attachments") or []:
+        pwk = (PWK_TYPE.get(a.get("kind"), "OZ"), _clean(a.get("ref") or claim.get("id"), 50))
+        if pwk not in seen_pwk:          # one PWK per report type and control number (up to 10)
+            seen_pwk.add(pwk)
+            body.append(_seg("PWK", pwk[0], "EL", "", "", "AC", pwk[1]))
     if claim.get("original_ref") and str(claim.get("frequency")) in ("7", "8"):
         body.append(_seg("REF", "F8", _clean(claim["original_ref"], 50)))
     if claim.get("preauth_ref") and not predetermination:
         body.append(_seg("REF", "G3", _clean(claim["preauth_ref"], 50)))
-    for a in claim.get("attachments") or []:
-        body.append(_seg("PWK", PWK_TYPE.get(a.get("kind"), "OZ"), "EL", "", "", "AC", _clean(a.get("ref") or claim.get("id"), 50)))
     if claim.get("narrative"):
         body.append(_seg("NTE", "ADD", _clean(claim["narrative"], 80)))
+    dx = [re.sub(r"[^A-Z0-9]", "", str(d).upper()) for d in (claim.get("diagnoses") or []) if str(d).strip()][:4]
+    if dx:
+        body.append(_seg("HI", *[("ABK" if i == 0 else "ABF") + COMP + d for i, d in enumerate(dx)]))
     body += [_seg("NM1", "82", 1, _clean(prov.get("last")), _clean(prov.get("first")), "", "", "", "XX", prov.get("npi") or ""),
-             _seg("PRV", "PE", "PXC", taxonomy)]
+             _seg("PRV", "PE", "PXC", prov.get("taxonomy") or taxonomy)]
     for i, l in enumerate(claim.get("lines", []), 1):
         code = (l.get("code") or "").upper()
         area = QUAD_CODE.get((l.get("quad") or "").upper(), "")
         body.append(_seg("LX", i))
-        body.append(_seg("SV3", COMP.join(["AD", code]), _money(float(l.get("fee") or 0) * int(l.get("units") or 1)), "", area, "", int(l.get("units") or 1)))
+        pros = str(l.get("prosthesis") or "").upper()
+        body.append(_seg("SV3", COMP.join(["AD", code]), _money(float(l.get("fee") or 0) * int(l.get("units") or 1)), "", area, pros if pros in ("I", "R") else "",
+                         int(l.get("units") or 1), "", "", "", "", COMP.join(str(k + 1) for k in range(len(dx))) if dx else ""))
         tooth = dental_rules.norm_tooth(l.get("tooth"))
         if tooth:
             surf = dental_rules.norm_surface(l.get("surface"))
@@ -287,6 +298,26 @@ def build_837d(claim: dict, practice: dict, ctrl: int = 1, predetermination: boo
             body.append(_seg("DTP", "472", "D8", _d8(l.get("dos") or claim.get("dos"))))
         body.append(_seg("REF", "6R", f"{_clean(claim.get('id'), 20)}-{i}"))
     return _envelope("HC", "005010X224A2", body, ctrl)
+
+
+def for_receiver(x: str, receiver_id: str, receiver_name: str, production: bool, payer_id: str = "") -> str:
+    """Address an interchange built here to a real clearinghouse: ISA08 and GS03 (receiver), ISA15 (P for production,
+    T for test), the 837's receiver name (NM1*40), and the payer ID where it was left empty. Fixed-width ISA is kept."""
+    out = []
+    for raw in x.split(SEG):
+        if not raw.strip():
+            continue
+        f = raw.strip("\r\n").split(EL)
+        if f[0] == "ISA":
+            f[8], f[15] = receiver_id.ljust(15)[:15], "P" if production else "T"
+        elif f[0] == "GS":
+            f[3] = receiver_id
+        elif f[0] == "NM1" and len(f) > 9 and f[1] == "40":
+            f[3], f[9] = _clean(receiver_name), receiver_id
+        elif f[0] == "NM1" and len(f) > 9 and f[1] == "PR" and payer_id and f[9] in ("", "MOCK"):
+            f[9] = _clean(payer_id)
+        out.append(EL.join(f))
+    return SEG.join(out) + SEG
 
 
 def validate_837d(x: str) -> list:

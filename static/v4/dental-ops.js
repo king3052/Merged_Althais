@@ -172,10 +172,10 @@
 
   /* ================= Practice setup ================= */
   V.pages.dsetup = function () {
-    var app = V.app, sec = V.q.get('sec') || 'locations', S = null, imp = { source: 'opendental', kind: 'patients', text: '', preview: null }, jobs = [];
+    var app = V.app, sec = V.q.get('sec') || 'locations', S = null, imp = { source: 'opendental', kind: 'patients', text: '', preview: null }, jobs = [], OD = null;
     var SECS = [['locations', 'Offices'], ['operatories', 'Chairs'], ['providers', 'Providers'], ['hours', 'Provider hours'], ['fees', 'Fee schedule'], ['membership-plans', 'Membership plans'], ['integrations', 'Integrations'], ['import', 'Import data'], ['sample', 'Synthetic practice']];
     var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    function load() { DA._setup = null; Promise.all([DA.loadSetup(), sec === 'import' ? DA.get('/import/jobs').catch(function () { return []; }) : []]).then(function (r) { S = r[0]; jobs = r[1]; draw(); }, function (e) { stop(app, 'dsetup', 'Practice setup', e); }); }
+    function load() { DA._setup = null; Promise.all([DA.loadSetup(), sec === 'import' ? DA.get('/import/jobs').catch(function () { return []; }) : [], sec === 'import' ? DA.get('/import/opendental').catch(function () { return null; }) : null]).then(function (r) { S = r[0]; jobs = r[1]; OD = r[2]; draw(); }, function (e) { stop(app, 'dsetup', 'Practice setup', e); }); }
     var admin = function () { return S.role === 'admin'; };
     function grid(cols, rows, kind, fields) {
       return U.grid(cols.concat(admin() ? [''] : []), rows.map(function (r) { return { cells: r.cells.concat(admin() ? ['<button class="mini" data-edit="' + kind + '" data-id="' + r.id + '">Edit</button> <button class="mini" data-delk="' + kind + '" data-id="' + r.id + '">' + U.I.x + '</button>'] : []) }; }), { tight: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(cols.length + 1, 'None yet.') + '</tbody>') +
@@ -199,12 +199,12 @@
       if (sec === 'fees') return grid(['Code', 'Description', ['Fee', 'num'], ['Minutes', 'num']], S.fees.map(function (f) { return { id: f.id, cells: ['<span class="mono">' + E(f.code) + '</span>', E(f.desc), M(f.fee), f.minutes] }; }), 'fees');
       if (sec === 'membership-plans') return grid(['Plan', ['Monthly', 'num'], ['Annual', 'num'], 'Included per year', 'Discount'], S.membership_plans.map(function (p) { return { id: p.id, cells: [E(p.name), M(p.monthly), M(p.annual), E(Object.keys(p.included || {}).map(function (k) { return k + ' x' + p.included[k]; }).join(', ')), p.discount_pct + '%'] }; }), 'membership-plans');
       if (sec === 'integrations') return U.grid(['Service', 'Set to', 'Status', 'What a real one needs'], S.vendors.map(function (v) {
-        var need = { clearinghouse: 'DentalXChange, Vyne or Claim.MD account and API keys; payer enrollment for ERA', attachments: 'Vyne FastAttach (NEA) or DentalXChange attachments account', sms: 'Twilio or Bandwidth number, 10DLC registration, BAA', payments: 'Stripe or Rectangle Health merchant account; card form tokenizes in the browser', radiograph_ai: 'Overjet, Pearl or VideaHealth contract and BAA (FDA-cleared)', transcriber: 'Deepgram / AssemblyAI / AWS Transcribe Medical with a BAA', erx: 'DoseSpot or DrFirst; EPCS identity proofing for each prescriber', imaging: 'Bridge software for each sensor/pano/CBCT/scanner brand', reviews: 'Google Business Profile link per office' }[v.kind];
+        var need = { clearinghouse: 'Claim.MD is built (eligibility, 837D, predeterminations, ERAs): set DENTAL_VENDOR_CLEARINGHOUSE=claimmd with Althais’s Claim.MD account connected in Admin. Payer enrollment for ERA.', attachments: 'Claim.MD is built (X-rays, perio charts and narratives as one PDF with the claim): DENTAL_VENDOR_ATTACHMENTS=claimmd.', sms: 'Twilio or Bandwidth number, 10DLC registration, BAA', payments: 'Stripe or Rectangle Health merchant account; card form tokenizes in the browser', radiograph_ai: 'Overjet, Pearl or VideaHealth contract and BAA (FDA-cleared)', transcriber: 'Deepgram / AssemblyAI / AWS Transcribe Medical with a BAA', erx: 'DoseSpot or DrFirst; EPCS identity proofing for each prescriber', imaging: 'Bridge software for each sensor/pano/CBCT/scanner brand', reviews: 'Google Business Profile link per office' }[v.kind];
         return { cells: [E(v.kind.replace('_', ' ')), E(v.vendor), v.mock ? '<span class="mockflag">MOCK</span>' : '<span class="s-grn">Live</span>', '<span class="wrap mut" style="font-size:12px">' + E(need) + '</span>'] };
-      }), { tight: 1 }) + '<div class="dpad mut" style="font-size:12px">Each service sits behind an interface (dental_vendors.py). Switch with DENTAL_VENDOR_&lt;KIND&gt; once a real implementation is written; until then nothing leaves Althais.</div>';
+      }), { tight: 1 }) + '<div class="dpad mut" style="font-size:12px">Each service sits behind an interface (dental_vendors.py). Switch with DENTAL_VENDOR_&lt;KIND&gt;. Mocks never send anything; the real ones refuse synthetic patients.</div>';
       if (sec === 'import') {
         var p = imp.preview;
-        return '<div class="dpad"><div class="form" style="padding:0;grid-template-columns:repeat(4,minmax(0,1fr))"><div><label>From</label><select id="isrc">' + [['opendental', 'Open Dental'], ['dentrix', 'Dentrix'], ['eaglesoft', 'Eaglesoft'], ['csv', 'Other (CSV)']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === imp.source ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div><label>What</label><select id="ikind"><option value="patients"' + (imp.kind === 'patients' ? ' selected' : '') + '>Patients</option><option value="procedures"' + (imp.kind === 'procedures' ? ' selected' : '') + '>Procedure history</option></select></div><div style="grid-column:span 2;display:flex;align-items:flex-end;gap:6px"><button class="btn" id="ifile">' + U.I.upload + 'Choose export file</button><button class="btn" id="iprev">Preview</button>' + (p && p.count ? '<button class="btn pri" id="icommit">Import ' + p.count + ' rows</button>' : '') + '</div></div>' +
+        return odPanel() + '<div class="dpad"><div class="form" style="padding:0;grid-template-columns:repeat(4,minmax(0,1fr))"><div><label>From</label><select id="isrc">' + [['opendental', 'Open Dental'], ['dentrix', 'Dentrix'], ['eaglesoft', 'Eaglesoft'], ['csv', 'Other (CSV)']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === imp.source ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div><label>What</label><select id="ikind"><option value="patients"' + (imp.kind === 'patients' ? ' selected' : '') + '>Patients</option><option value="procedures"' + (imp.kind === 'procedures' ? ' selected' : '') + '>Procedure history</option></select></div><div style="grid-column:span 2;display:flex;align-items:flex-end;gap:6px"><button class="btn" id="ifile">' + U.I.upload + 'Choose export file</button><button class="btn" id="iprev">Preview</button>' + (p && p.count ? '<button class="btn pri" id="icommit">Import ' + p.count + ' rows</button>' : '') + '</div></div>' +
           '<textarea class="ed" id="itext" rows="6" style="width:100%;margin-top:8px;font-family:var(--mono);font-size:11.5px" placeholder="Or paste the CSV export here. Import patients first, then their procedure history.">' + E(imp.text) + '</textarea>' +
           '<div class="mut" style="font-size:12px;margin-top:4px">Open Dental: patient and procedurelog exports (PatNum, LName, FName, Birthdate, ProcDate, ProcCode, ToothNum, Surf, ProcFee, ProcStatus). Dentrix and Eaglesoft: their patient list and procedure history CSV reports. Headers are matched by name; anything not recognized is listed, not guessed.</div></div>' +
           (p ? U.sect('Preview', p.count + ' rows, ' + p.errors.length + ' problems', '<div class="dpad">' + U.kv([['Matched columns', E(Object.keys(p.mapping).map(function (k) { return k + ' ← ' + p.mapping[k]; }).join(', '))], ['Not used', E(p.unmapped.join(', ') || 'none')]]) + (p.errors.length ? '<div class="s-amb" style="margin-top:6px">' + p.errors.slice(0, 8).map(E).join('<br>') + '</div>' : '') + '</div>' +
@@ -213,6 +213,22 @@
       }
       if (sec === 'sample') return '<div class="dpad" style="max-width:640px;line-height:1.6">The synthetic practice is made-up data for trying every screen and for demos: two offices, four providers, 48 patients with two years of history, perio charts, treatment plans, a full schedule this week and next, and claims that went through eligibility, the 837D, the mock clearinghouse and ERA posting. Names, phone numbers (555-01xx) and IDs are fictional; images say SYNTHETIC.<div style="display:flex;gap:8px;margin-top:12px"><button class="btn pri" id="ld-sample">Load synthetic practice</button><button class="btn" id="rm-sample">Remove synthetic data</button></div></div>';
       return '';
+    }
+    // Open Dental, live: patients, their plans and completed procedures straight from the office's database (opendental.py)
+    function odPanel() {
+      if (!OD) return '';
+      var head = '<div class="dp-h" style="margin-bottom:6px">Open Dental, live ' + (OD.connected ? '<span class="s-grn" style="font-weight:500">· Connected' + (OD.clinic_num ? ', clinic ' + E(OD.clinic_num) : '') + '</span>' : '') + '</div>';
+      var body;
+      if (!OD.available) body = '<div class="mut">Built. It switches on once Althais’s Open Dental developer key is set up; until then, use exports below. Open Dental charges the office a monthly API fee per location.</div>';
+      else if (!OD.connected) body = '<div class="mut" style="margin-bottom:8px">Reads patients, their primary dental plan and completed procedures (with teeth and surfaces). Nothing in Open Dental is changed. Althais generates a Customer Key for your office; add it in Open Dental (Setup › Advanced Setup › API › Add Key), then here.</div>' +
+        (admin() ? '<button class="btn pri sm" id="od-connect">Connect Open Dental</button>' : '');
+      else {
+        var ls = OD.last_summary || {};
+        body = '<div class="mut" style="margin-bottom:8px">' + (OD.last_pull ? 'Last pull ' + DA.us(OD.last_pull.slice(0, 10)) + ': ' + (ls.patients || 0) + ' patients, ' + (ls.procedures || 0) + ' new procedures.' : 'Connected. Pull to bring patients and procedure history in.') +
+          ' Patients come in as MRN OD + their Open Dental number, the same as an export, so pulling again updates them.</div>' +
+          (admin() ? '<button class="btn pri sm" data-odpull="30">Pull Last 30 Days</button> <button class="btn sm" data-odpull="120">Pull Last 120 Days</button> <button class="btn sm" id="od-off">Disconnect</button>' : '');
+      }
+      return '<div class="dpad" style="border-bottom:1px solid var(--b2)">' + head + body + '</div>';
     }
     function draw() {
       app.innerHTML = DA.frame('dsetup', 'Practice setup', [], admin() ? '' : '<span class="mut">Only admins can change setup</span>') +
@@ -238,6 +254,22 @@
     U.on(app, '[data-edit]', 'click', function (b) { edit(b.dataset.edit, (S[LIST[b.dataset.edit]] || []).filter(function (r) { return r.id === +b.dataset.id; })[0]); });
     U.on(app, '[data-delk]', 'click', function (b) { U.confirm('Delete', '<p class="cf">Delete this?</p>', 'Delete', function () { DA.del('/setup/' + b.dataset.delk + '/' + b.dataset.id).then(load, DA.fail); }, { danger: 1 }); });
     U.on(app, '#rm-sample', 'click', function () { U.confirm('Remove synthetic data', '<p class="cf">Delete every synthetic patient, appointment, claim and setting? Your own records stay.</p>', 'Remove', function () { DA.del('/sample').then(function (r) { U.toast('Removed ' + r.removed + ' synthetic records.', 'ok'); load(); }, DA.fail); }, { danger: 1 }); });
+    U.on(app, '#od-connect', 'click', function () {
+      U.form('Connect Open Dental', [{ k: 'customer_key', label: 'Customer Key', req: 1, span: 2, help: 'From Althais. Add it in Open Dental first (Setup > Advanced Setup > API > Add Key) and enable it.' },
+        { k: 'clinic_num', label: 'Clinic number (optional)', span: 2, help: 'Only if your Open Dental database has several clinics.' }], {}, function (v) {
+        var busy = U.toast('Checking the key with Open Dental…', 'busy');
+        DA.post('/import/opendental/connect', v).then(function (r) { busy.remove(); OD = r; U.toast('Open Dental connected.', 'ok'); draw(); }, function (e) { busy.remove(); DA.fail(e); });
+      }, { save: 'Connect', width: 520, intro: 'The key is stored encrypted and never shown again.' });
+    });
+    U.on(app, '[data-odpull]', 'click', function (b) {
+      b.disabled = true; var busy = U.toast('Pulling from Open Dental…', 'busy');
+      DA.post('/import/opendental/pull', { days: +b.dataset.odpull }).then(function (r) { busy.remove();
+        U.toast('From Open Dental: ' + r.patients.added + ' new and ' + r.patients.updated + ' updated patients, ' + r.procedures.added + ' procedures' + (r.procedures.skipped ? ' (' + r.procedures.skipped + ' already here)' : '') + '.', 'ok');
+        if (r.notes && r.notes.length) setTimeout(function () { U.toast(r.notes.join(' '), 'info'); }, 1200);
+        load();
+      }, function (e) { busy.remove(); b.disabled = false; DA.fail(e); });
+    });
+    U.on(app, '#od-off', 'click', function () { U.confirm('Disconnect Open Dental', '<p class="cf">Althais stops reading from Open Dental. Patients and history already brought in stay.</p>', 'Disconnect', function () { DA.post('/import/opendental/disconnect').then(function (r) { OD = r; draw(); }, DA.fail); }, { danger: 1 }); });
     U.on(app, '#isrc', 'change', function (s) { imp.source = s.value; imp.preview = null; });
     U.on(app, '#ikind', 'change', function (s) { imp.kind = s.value; imp.preview = null; });
     U.on(app, '#ifile', 'click', function () { U.pickFile('.csv,.txt,text/csv', false, function (f) { U.readFile(f[0], true).then(function (t) { imp.text = t; imp.preview = null; draw(); }); }); });
