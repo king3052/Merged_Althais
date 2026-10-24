@@ -79,6 +79,39 @@ def _mark_sample(session, ctx, instances):
                 o.sample = 1
 
 
+STARTER = 2   # `sample` value for the starter setup a new real clinic gets (dental_api.ready)
+
+
+def starter(c) -> dict:
+    """A real clinic's first setup, to edit in Practice setup: no patients, nothing invented about the practice beyond
+    common defaults."""
+    name = (getattr(c.user, "organization", "") or "").strip() or "My dental office"
+    loc = c.add(m.Location(name=name, sample=STARTER))
+    c.db.flush()
+    ops = [c.add(m.Operatory(location_id=loc.id, name=n, kind=k, sort=i, sample=STARTER)) for i, (n, k) in enumerate([("Op 1", "restorative"), ("Op 2", "restorative"), ("Hyg 1", "hygiene")])]
+    who = (getattr(c.user, "provider_name", "") or getattr(c.user, "full_name", "") or c.email.split("@")[0]).strip()
+    parts = who.replace("Dr.", "").replace("Dr ", "").split()
+    prov = c.add(m.Provider(name=who, first=parts[0] if parts else "", last=parts[-1] if len(parts) > 1 else "",
+                            cred="DDS", kind="dentist", color="#1d5bb8", user_email=c.email, sample=STARTER))
+    c.db.flush()
+    for wd in range(5):
+        c.add(m.ProviderHours(provider_id=prov.id, location_id=loc.id, operatory_id=ops[0].id, weekday=wd, start="08:00", end="17:00", sample=STARTER))
+    if not c.db.scalar(select(m.FeeSchedule.id).where(m.FeeSchedule.org_key == c.org)):
+        for code, desc, fee, mins in FEES:
+            c.add(m.FeeSchedule(code=code, desc=desc, fee=fee, minutes=mins, sample=STARTER))
+    c.db.commit()
+    return {"ok": True, "location": loc.id}
+
+
+def _drop_starter(c) -> None:
+    """The synthetic practice replaces an untouched starter setup (nothing booked, no patients)."""
+    if c.db.scalar(select(m.Appointment.id).where(m.Appointment.org_key == c.org)) or c.db.scalar(select(m.Procedure.id).where(m.Procedure.org_key == c.org)):
+        return
+    for t in (m.ProviderHours, m.Operatory, m.Provider, m.Location):
+        c.db.execute(delete(t).where(t.org_key == c.org, t.sample == STARTER))
+    c.db.commit()
+
+
 def remove(c) -> dict:
     n = 0
     for t in m.TABLES:
@@ -98,6 +131,7 @@ def load(c) -> dict:
     import dental_vendors as vendors
     if c.db.scalar(select(m.Location.id).where(m.Location.org_key == c.org, m.Location.sample == 1)):
         raise HTTPException(409, "The sample practice is already loaded. Remove it first to reload with today's dates.")
+    _drop_starter(c)
     rnd = random.Random(20261023)
     today = dt.date.today()
     c.db.info["dental_sample"] = True

@@ -293,3 +293,27 @@ def test_remove_sample(practice):
     a.post("/api/dental/sample")
     assert a.delete("/api/dental/sample").json()["removed"] > 100
     assert a.get("/api/dental/patients").json() == []
+
+
+def test_a_new_real_clinic_starts_with_a_starter_setup():
+    a = _login(_clinic())
+    s = a.get("/api/dental/setup").json()
+    assert len(s["locations"]) == 1 and [o["name"] for o in s["operatories"]] == ["Op 1", "Op 2", "Hyg 1"]
+    assert s["providers"][0]["user_email"] == a.email and s["providers"][0]["kind"] == "dentist"
+    assert len(s["hours"]) == 5 and len(s["fees"]) > 50
+    assert a.get("/api/dental/patients").json() == []                 # no invented patients in a real clinic
+    sched = a.get("/api/dental/schedule").json()
+    assert sched["operatories"] and sched["location"]
+    a.post("/api/dental/sample")                                       # trying the sample later replaces the untouched starter
+    assert len(a.get("/api/dental/setup").json()["locations"]) == 2
+
+
+def test_a_new_test_clinic_starts_with_the_synthetic_practice():
+    import auth
+    org = _clinic()
+    with auth.SessionLocal() as db:
+        row = db.scalar(select(auth.OrgSettings).where(auth.OrgSettings.org_key == org, auth.OrgSettings.category == auth.ENTITLEMENTS_CATEGORY))
+        d = json.loads(row.data); d["test_clinic"] = True; row.data = json.dumps(d); db.commit()
+    a = _login(org)
+    assert len(a.get("/api/dental/patients").json()) == 48
+    assert len(a.get("/api/dental/setup").json()["locations"]) == 2

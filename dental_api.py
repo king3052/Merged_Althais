@@ -18,6 +18,7 @@ import datetime as dt
 import json
 import re
 import secrets
+import threading
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, delete, or_
@@ -97,8 +98,36 @@ def need(perm: str):
             raise HTTPException(403, f"Your role ({user.role}) can't do this.")
         if auth.org_practice(user, db) != "dental":
             raise HTTPException(403, "This is part of the dental version of Althais.")
-        return C(user, db)
+        c = C(user, db)
+        ready(c)
+        return c
     return dep
+
+
+_ready: set = set()
+_ready_lock = threading.Lock()
+
+
+def ready(c: C) -> None:
+    """A dental clinic is never an empty shell. The first time anyone in it opens the dental app: a test clinic (/admin)
+    gets the synthetic practice to try; a real clinic gets a starter setup to edit (its office, three chairs, the person
+    signing in as its dentist, weekday hours and a fee schedule) and no patients. Starter rows have sample=2 so the
+    synthetic practice can replace them while nothing has been booked on them."""
+    if c.org in _ready:
+        return
+    with _ready_lock:
+        if c.org in _ready or c.db.scalar(select(m.Location.id).where(m.Location.org_key == c.org)):
+            _ready.add(c.org)
+            return
+        import dental_synth
+        if auth.org_test_clinic(c.user, c.db):
+            try:
+                dental_synth.load(c)
+            except HTTPException:
+                pass
+        else:
+            dental_synth.starter(c)
+        _ready.add(c.org)
 
 
 def today() -> str:
