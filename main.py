@@ -98,6 +98,12 @@ import athenahealth   # athenahealth connection (2-legged OAuth + pull), see ath
 app.include_router(athenahealth.router)
 import tebra   # Tebra (Kareo) PM connection, see tebra.py
 app.include_router(tebra.router)
+import claim_attachments   # X-rays, perio charts and narratives sent with a claim (PWK + PDF), see claim_attachments.py
+app.include_router(claim_attachments.router)
+import eligibility   # insurance checks from the app; dental plans get maximums, coverage by category and limits
+app.include_router(eligibility.router)
+import clinic_records   # appointments and visit notes kept on the server (encrypted), shared by the clinic's browsers
+app.include_router(clinic_records.router)
 import extension_api   # browser extension: pairing, claim checks, coding a note, creating claims (extension_api.py)
 app.include_router(extension_api.router)
 import dental_api, dental_api_rcm, dental_engage, dental_ops   # the dental EMR's server side (dental_api.py says what's where)

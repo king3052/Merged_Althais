@@ -28,8 +28,8 @@ Patients are the existing `org_patients` rows, joined by `(org_key, mrn)`, so th
 
 ## Before going live: decisions and contracts
 
-1. **Clearinghouse** (DentalXChange, Vyne/Tesia, or Claim.MD): write a `DentalClearinghouse` subclass for 270/271, 837D, 835, predeterminations and 276/277. The X12 is already built and parsed here; the subclass only moves files. ERA enrollment is per payer.
-2. **Attachments** (Vyne FastAttach/NEA or DentalXChange): `AttachmentService`.
+1. **Clearinghouse**: Claim.MD is written (`dental_claimmd.py`): 270/271, 837D, predeterminations and 835s, using Althais's Claim.MD account. Before switching `DENTAL_VENDOR_CLEARINGHOUSE=claimmd`: connect the account in /admin, run it with `CLAIMMD_TEST=1` against a Claim.MD test account, and enroll each payer for ERA. 276/277 claim status is still to do. DentalXChange or Vyne would be another subclass.
+2. **Attachments**: Claim.MD's automated PDF attachments are written (`DENTAL_VENDOR_ATTACHMENTS=claimmd`): the claim carries one control number, then the X-rays, perio chart and narrative go as one PDF. Check the payer list for which payers take electronic attachments. NEA FastAttach would be another `AttachmentService`.
 3. **SMS** (Twilio or Bandwidth): 10DLC registration, a BAA, and the inbound webhook signed with `DENTAL_SMS_WEBHOOK_SECRET`.
 4. **Payments** (Stripe or Rectangle Health): a hosted card field that returns a token. We never handle card numbers (keeps PCI scope at SAQ A).
 5. **Radiograph AI** (Overjet, Pearl or VideaHealth): their FDA-cleared output, displayed as theirs.

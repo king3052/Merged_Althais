@@ -11,7 +11,8 @@ Two separate things, on purpose:
                                  requirement from billing_registry.py, tracked per scope (clinic, entity, provider,
                                  location, payer, transaction). Done once for the clinic and reused by every biller.
 
-Readiness is computed by rules in readiness(), never from AI confidence. A route (payer + rendering provider, 837P) is
+Readiness is computed by rules in readiness(), never from AI confidence. A route (payer + rendering provider, 837P, or 837D
+for a dental clinic) is
 ready only when every blocking requirement is APPROVED/VERIFIED/NOT_REQUIRED, backed by evidence, effective today or
 earlier, not expired, and recorded in the clinic's own environment (test results never count in production). Unknown,
 pending, expired and future-effective all count as not ready.
@@ -276,6 +277,16 @@ def org_of(user: User) -> str:
     return so._doc_org_key(user)
 
 
+def claim_txn(db, org: str) -> str:
+    """The claim transaction a clinic sends: 837D for a dental clinic (set in /admin), else 837P."""
+    from auth import ENTITLEMENTS_CATEGORY, OrgSettings
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == org, OrgSettings.category == ENTITLEMENTS_CATEGORY))
+    try:
+        return "837D" if row and json.loads(row.data or "{}").get("practice") == "dental" else "837P"
+    except Exception:
+        return "837P"
+
+
 def claims_namespace(user: User) -> str:
     """The claim store's key for a clinic (same derivation as main._org_namespace)."""
     base = (user.organization or user.email or "unknown").strip().lower()
@@ -463,7 +474,7 @@ def sync_items(db, org, env, data) -> int:
             mk(r, provider=pv["id"])
     for py in data["payers"]:
         for r in reg.for_payer(py["type"]):
-            txn = "837P" if r["track"] == "edi" else ("835" if r["track"] == "era" else "")
+            txn = claim_txn(db, org) if r["track"] == "edi" else ("835" if r["track"] == "era" else "")
             if r["scope"] == "provider":
                 for pv in data["providers"]:
                     mk(r, provider=pv["id"], payer=py["key"], txn=txn)
@@ -1288,10 +1299,10 @@ def claim_decision(db, org, env, data, user, c: dict, connector=None, by_althais
     payer_key = reg.payer_key(c.get("payer"))
     rd = readiness(db, org, env, data, payer_key, pv["id"] if pv else "", connector)
     blockers += rd["blockers"]
-    if is_dental_claim(c):
-        blockers.append({"requirement": "dental_route", "title": "Dental claim sending",
-                         "reason": "Dental claims go to payers on the ADA dental claim (837D), which Althais doesn't send yet",
-                         "next": "Althais is setting up its dental clearinghouse route; until then, send dental claims from your practice software",
+    import claim_attachments as ca
+    if ca.rows_for(db, org, c.get("claimId") or "") and not connector.capabilities.get("attachments"):
+        blockers.append({"requirement": "attachments", "title": "Sending the claim's X-rays and documents",
+                         "reason": f"{connector.label} can't take attachments yet", "next": "Althais is setting up attachments; until then, remove the documents and mail them",
                          "responsible": "Althais"})
     return {"ready": not blockers, "blockers": blockers, "payer": payer_key, "providerId": pv["id"] if pv else ""}
 
@@ -1324,17 +1335,33 @@ def transmit(db, org, env, data, user, c: dict, release=False, by_althais=False)
     if not hold:
         db.add(tx)
     pv = provider_for(data, c.get("provider")) or {}
-    sendable = dict(c, billingProfile=data, npi=c.get("npi") or pv.get("npi") or "")   # the 837 needs the clinic's billing profile and the provider's NPI
+    sendable = dict(c, billingProfile=data, npi=c.get("npi") or pv.get("npi") or "", providerTaxonomy=pv.get("taxonomy") or "")   # the 837 needs the clinic's billing profile and the provider's NPI
+    import claim_attachments as ca
+    docs = ca.bundle(db, org, cid)
+    if docs:     # the claim carries the documents' control number (PWK); the documents follow right after it's accepted
+        sendable["attachmentAcn"], sendable["attachmentType"] = docs[0], docs[1]
     res = connector.submit_claim(sendable, idempotency_key=key)
     if not res.ok:
         tx.delivery, tx.held, tx.blockers = "FAILED", 1, json.dumps([{"title": "Clearinghouse", "reason": res.message, "next": "Try again later", "responsible": "Althais"}])
         return {"status": "failed", "message": res.message}
+    att = None
+    if docs:
+        ar = connector.send_attachment(docs[0], docs[2])
+        ca.mark(docs[3], ar.ok, ar.message)
+        att = {"ok": ar.ok, "count": len(docs[3]), "message": ar.message}
+        db.add(BillingEvent(org_key=org, claim_id=cid, kind="attachments_sent" if ar.ok else "attachments_failed", to_status="SENT" if ar.ok else "FAILED",
+                            source="clearinghouse", environment=ar.environment, reference=docs[0], raw_digest=ar.raw_digest, actor=user.email))
     tx.idempotency_key, tx.held, tx.blockers, tx.delivery, tx.reference, tx.sent_at = key, 0, "[]", "SENT", res.reference, _now()
     tx.ack, tx.payer_status, tx.environment, tx.snapshot = "PENDING", "PENDING", res.environment, json.dumps(c)
     db.add(BillingEvent(org_key=org, claim_id=cid, kind="claim_sent", to_status="SENT", source="clearinghouse", environment=res.environment,
                         reference=res.reference, raw_digest=res.raw_digest, actor=user.email))
-    return {"status": "sent", "reference": res.reference, "environment": res.environment, "message": res.message,
-            "test": res.environment == "sandbox"}
+    out = {"status": "sent", "reference": res.reference, "environment": res.environment, "message": res.message,
+           "test": res.environment == "sandbox"}
+    if att:
+        out["attachments"] = att
+        if not att["ok"]:
+            out["message"] += f" The claim was sent, but its {att['count']} document(s) weren't: {att['message']} Use Send Again on the claim's documents."
+    return out
 
 
 def _release_held(db, org, env, data):
@@ -1526,7 +1553,7 @@ def overview(c: Ctx = Depends(ctx)):
     for py in data["payers"]:
         for pv in data["providers"] or [{"id": "", "name": ""}]:
             rd = readiness(db, org, c.env, data, py["key"], pv["id"], connector)
-            routes.append({"payer": py["name"], "payerKey": py["key"], "provider": pv.get("name", ""), "providerId": pv["id"], "transaction": "837P",
+            routes.append({"payer": py["name"], "payerKey": py["key"], "provider": pv.get("name", ""), "providerId": pv["id"], "transaction": claim_txn(c.db, org),
                            "ready": rd["ready"], "blockers": rd["blockers"] if (c.owner or view == "biller") else []})
     out["routes"] = routes
     if view == "provider":

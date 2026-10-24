@@ -210,7 +210,7 @@
         '<div class="dp-sec"><div class="dp-h">Visit</div>' + U.kv([['When', D.us(a.date) + ', ' + V.fmtT(a.time)], ['Provider', E(D.provName(a.prov))], ['Status', V.apptStatus(a)], ['Room', E(a.room || '-')], ['Virtual SOAP', e ? (e.status === 'Signed' ? '<span class="s-grn">Signed</span>' : 'Draft') : 'Not started']]) +
           '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">' + acts.map(function (x) { return '<button class="mini' + (x[1] === 'visit' ? ' pri' : '') + '" data-act="' + x[1] + '">' + x[0] + '</button>'; }).join('') + '</div></div>' +
         '<div class="dp-sec"><div class="dp-h">Coverage</div>' + U.kv([['Primary', E(p.payer || 'None')], [D.DENTAL ? 'Subscriber ID' : 'Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')], ['Eligibility', p.eligChecked ? 'Checked ' + D.us(p.eligChecked) : U.st('Not checked', 'amb')]]) +
-          '<div style="margin-top:6px"><button class="mini" data-act="elig">Mark eligibility checked</button> <button class="mini" data-act="editpt">Edit patient</button></div></div>' +
+          (V.eligHtml ? V.eligHtml(p) : '') + '<div style="margin-top:6px"><button class="mini" data-elig="' + E(p.mrn || '') + '">Check eligibility</button> <button class="mini" data-act="editpt">Edit patient</button></div></div>' +
         '<div class="dp-sec"><div class="dp-h">Before checkout</div><div class="ok-list">' + (bal ? '<div class="w">' + U.warn + 'Balance due ' + M(p.balance) + '</div>' : '<div>No balance due</div>') + (e && e.status === 'Signed' ? '<div>Note signed</div>' : '<div class="w">' + U.warn + 'Note not signed</div>') + '</div>' +
           (bal ? '<div style="margin-top:6px"><button class="mini" data-act="collect">Record payment</button></div>' : '') + '</div>' +
         '<div class="dp-sec"><div class="dp-h">Reason for visit</div>' + E(a.reason || '-') + '</div>' +
@@ -335,9 +335,8 @@
     U.on(app, '#deact', 'click', function (a, e) { e.preventDefault(); Object.keys(sel).forEach(function (k) { if (sel[k]) D.pt(k).status = 'Inactive'; }); sel = {}; D.save(); draw(); });
     U.on(app, '#react', 'click', function (a, e) { e.preventDefault(); Object.keys(sel).forEach(function (k) { if (sel[k]) D.pt(k).status = 'Active'; }); sel = {}; D.save(); draw(); });
     U.on(app, '#elig', 'click', function () {
-      var l = S.patients.filter(function (p) { return p.status !== 'Inactive' && p.payer && p.payer !== 'Self-pay'; }), ok = l.filter(function (p) { return p.member; });
-      ok.forEach(function (p) { p.eligChecked = D.today(); }); D.log('Eligibility run: ' + ok.length + ' patients'); D.save(); draw();
-      U.toast(ok.length + ' marked checked, ' + (l.length - ok.length) + ' missing a member ID.');
+      var l = S.patients.filter(function (p) { return p.status !== 'Inactive' && p.payer && p.payer !== 'Self-pay' && !p.sample; });
+      V.runEligibility(l, draw);
     });
     U.on(app, '#export', 'click', function () {
       U.download('patients-' + D.today() + '.csv', U.csv([['Name', 'MRN', 'DOB', 'Sex', 'Phone', 'Email', 'Address', 'Payer', D.L.member, D.L.pcp, 'Balance', 'Status']].concat(S.patients.map(function (p) { return [p.name, p.mrn, p.dob, p.sex, p.phone, p.email, p.addr, p.payer, p.member, D.provName(p.pcp), p.balance, p.status || 'Active']; }))));
@@ -411,7 +410,8 @@
             (D.DENTAL ? '' : sec('vitals', 'Vitals trend', '', ['Date', 'BP', 'HR', 'Temp', 'Weight'], vit.map(function (e) { var v = e.vitals; var hi = /(\d+)\/(\d+)/.exec(v.bp || ''); return { cells: [D.us(e.date, 1), '<span class="' + (hi && (+hi[1] >= 140 || +hi[2] >= 90) ? 's-amb' : '') + '">' + E(v.bp || '') + '</span>', E(v.hr || ''), E(v.temp || ''), E(v.wt || '')] }; }), 'No vitals recorded.')) +
           '</div></section>' +
           U.pane('Summary', '', '<a href="#" id="editpt">Edit</a>', '<div class="dp-sec" id="demo"><div class="dp-h">Demographics</div>' + U.kv([['Phone', E(p.phone || '-')], ['Email', E(p.email || '-')], ['Address', E(p.addr || '-')], ['Created', D.us(p.created)]]) + '</div>' +
-            '<div class="dp-sec" id="ins"><div class="dp-h">Insurance</div>' + U.kv([['Primary', E(p.payer || 'None')], [D.DENTAL ? 'Subscriber ID' : 'Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')], ['Eligibility', p.eligChecked ? 'Checked ' + D.us(p.eligChecked) : U.st('Not checked', 'amb')], ['Balance', M(p.balance)]]) + '</div>' +
+            '<div class="dp-sec" id="ins"><div class="dp-h">Insurance</div>' + U.kv([['Primary', E(p.payer || 'None')], [D.DENTAL ? 'Subscriber ID' : 'Member ID', p.member ? '<span class="mono">' + E(p.member) + '</span>' : U.st('Missing', 'amb')], ['Eligibility', p.eligChecked ? 'Checked ' + D.us(p.eligChecked) : U.st('Not checked', 'amb')], ['Balance', M(p.balance)]]) +
+              (V.eligHtml ? V.eligHtml(p) : '') + '<div style="margin-top:6px"><button class="mini" data-elig="' + E(p.mrn) + '">Check eligibility</button></div></div>' +
             '<div class="dp-sec" id="problems"><div class="dp-h">' + (D.DENTAL ? 'Medical history' : 'Problems') + '</div><div class="lst">' + (V.lines(p.problems).map(function (x) { return '<div>' + E(x) + '</div>'; }).join('') || '<span class="mut">None on file</span>') + '</div></div>' +
             '<div class="dp-sec" id="allergies"><div class="dp-h">Allergies</div><div class="s-red">' + (V.lines(p.allergies).map(E).join('<br>') || '<span class="mut">None recorded</span>') + '</div></div>' +
             '<div class="dp-sec"><div class="dp-h">Care team</div>' + U.kv([[D.L.pcp, E(D.provName(p.pcp) || 'None')]]) + '</div>' +

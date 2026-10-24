@@ -5,8 +5,9 @@ What's built, what's partly built, and what's stubbed behind a mock until a vend
 **Done**: works end to end against the server, with tests where there's billing logic.
 **Partial**: works, with a known gap listed.
 **Mock**: the screen and logic are real, but the third-party call goes to a mock in `dental_vendors.py` (nothing leaves Althais).
+**Claim.MD**: a real implementation is built (`dental_claimmd.py`) and is switched on with `DENTAL_VENDOR_<KIND>=claimmd`; the mock stays the default until the switch.
 
-Last updated: 2026-10-23.
+Last updated: 2026-10-24.
 
 ## Foundation
 
@@ -17,10 +18,11 @@ Last updated: 2026-10-23.
 | Role-based access: read, front desk, clinical read and write, billing, admin | Done | `dental_api.ROLES`, `need()` |
 | Access log of every chart, claim, plan and image read or change, plus patient-link actions | Done | `audit.py` middleware, `dental_api` path labels, `audit.record` on public routes |
 | Vendor interfaces with mocks (clearinghouse, attachments, SMS, payments, AI radiographs, transcription, eRx, imaging, reviews) | Done | `dental_vendors.py`; switch with `DENTAL_VENDOR_<KIND>` |
+| Claim.MD as the real clearinghouse and attachment service (270/271, 837D, predeterminations, 835 per clinic NPI and Tax ID, PDF attachments); synthetic patients refused | Claim.MD | `dental_claimmd.py`; Althais's Claim.MD account is connected in /admin |
 | Synthetic practice (2 offices, 4 providers, 48 patients, 2 years of history), removable | Done | `dental_synth.py`, Practice setup > Synthetic practice |
 | Dental navigation; old pages redirect to their dental versions | Done | `static/v4/ui.js`, `v4_preview.DENTAL_INSTEAD` |
 | Database migrations (Alembic) | Not started | Tables are created at startup, like the rest of the app |
-| Appointments and visit notes in the *older* v4 encounter screens still live in the browser | Partial | The dental screens don't use them; retire them for dental clinics |
+| Appointments and visit notes in the older v4 encounter screens (medical clinics) are saved on the server, encrypted, and shared between the clinic's browsers | Done | `clinic_records.py`, `static/v4/sync.js` section 5 |
 
 ## Core clinical
 
@@ -42,18 +44,18 @@ Last updated: 2026-10-23.
 
 | Feature | State | Where |
 |---|---|---|
-| Eligibility and benefits: 270 out, 271 in; remaining max, deductible, coinsurance by category, waiting periods | Mock | `dental_x12.build_270/parse_271`, Insurance tab, Verify benefits |
+| Eligibility and benefits: 270 out, 271 in; remaining max, deductible, coinsurance by category, waiting periods | Mock / Claim.MD | `dental_x12.build_270/parse_271`, Insurance tab, Verify benefits; Claim.MD `/services/elig/` returns the payer's 271 |
 | Frequency limits per patient (shared groups, per tooth, per quadrant, age limits, next covered date) | Done | `dental_rcm.frequency_check` |
 | Night-before batch verification | Mock | `/eligibility/batch`, Schedule and Verify benefits |
 | Treatment estimates against remaining max, deductible and coinsurance | Done | `dental_rcm.estimate` |
 | CDT suggestions from the note: missed and undercoded procedures; a dentist approves each | Done (rules) / Partial (AI) | `dental_rcm.find_missed`; AI suggestions use the existing Groq coder when `GROQ_API_KEY` is set |
 | Claim scrubbing before sending (tooth, surfaces, quadrant, frequency, attachments, NPI, subscriber) | Done | `dental_api_rcm.run_check` |
 | Auto-generated narratives from the chart (perio depths for SRP, conditions for crowns, and more) | Done | `dental_rcm.narrative` |
-| Radiographs and perio charts attached to claims (PWK segments) | Mock | `/claims/{id}/attach`, attachment vendor |
-| 837D claims and predeterminations, with validation that mirrors a 999 | Mock (sending) / Done (building) | `dental_x12.build_837d`, `validate_837d` |
+| Radiographs, perio charts and the narrative attached to claims (PWK segments, then one PDF after the claim is accepted) | Mock / Claim.MD | `/claims/{id}/attach`, `dental_api_rcm._attachments_pdf`, attachment vendor |
+| 837D claims and predeterminations, with validation that mirrors a 999 | Done (building) / Mock or Claim.MD (sending) | `dental_x12.build_837d`, `validate_837d`, `for_receiver`; the browser extension's dental claims use the same builder (`clearinghouse.build_837d`) |
 | Corrected claims (frequency 7) | Done | `/claims/{id}/corrected` |
 | Pre-authorization tracking (sent, pending, approved, denied, expiry, days waiting) | Mock | `V.pages.dpreauths` |
-| ERA 835 auto-posting: payments, CO-45 write-offs, patient portions, idempotent per check | Done (posting) / Mock (fetching) | `dental_rcm.post_remittance`, `dental_api_rcm.post_835` |
+| ERA 835 auto-posting: payments, CO-45 write-offs, patient portions, idempotent per check | Done (posting) / Mock or Claim.MD (fetching, filtered to the clinic's NPI and Tax ID) | `dental_rcm.post_remittance`, `dental_api_rcm.post_835` |
 | Denial and follow-up queue (CARC to next step, corrected claim, appeal letter, bill patient, write off, 30-day no-response) | Done | `V.pages.ddenials` |
 | Patient billing: ledger, desk payments, text-to-pay, payment plans with autopay, adjustments | Mock (card and SMS) | Account tab, Patient billing |
 | In-house membership plans for uninsured patients (included care, member discount, estimates use them) | Done | `dental_rcm.membership_price` |
@@ -91,6 +93,7 @@ Last updated: 2026-10-23.
 | Production and collections dashboard: gross, net, collections, case acceptance, clean claim rate, days to pay, hygiene reappointment, by provider with goals, by office, by category | Done | `V.pages.dreports` |
 | Multi-location (DSO): location on schedule, procedures, claims and ledger; office filter; regions | Done / Partial | No per-location user permissions yet |
 | Import from Open Dental, Dentrix and Eaglesoft exports (patients, procedure history) with preview | Done | Practice setup > Import data, `dental_ops.parse_import` |
+| Live Open Dental connection: patients, primary dental plan (payer, subscriber ID, group, payer ID) and completed procedures, pulled again without duplicates | Built, off until `OPENDENTAL_DEVELOPER_KEY` is set | `opendental.py`, Practice setup > Import data; not yet run against Open Dental's test database |
 | Import of appointments, insurance plans, ledgers and images from those systems | Not started | |
 
 ## Tests

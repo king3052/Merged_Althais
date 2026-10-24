@@ -168,8 +168,78 @@
         .then(function (r) { if (r.ok) sent[j[2]] = j[3]; }).catch(function () {}).then(function () { next(i + 1); });
     })(0);
   }
+  // ---- 5. appointments and visit notes, kept on the server too (clinic_records.py) ----
+  // What this browser last agreed with the server on is kept as a SHA-256 fingerprint per record (D.KEY + '::recs').
+  // Pulling: a record this browser doesn't have is added; one it hasn't changed since is replaced by the server's copy;
+  // one it changed is kept and sent. Deletions travel as markers. The first time a browser syncs, any record whose id is
+  // already on the server with different content is renamed here (the old per-browser numbering could repeat), so
+  // nothing is overwritten.
+  var REC = { appt: { list: function () { return S.appts; }, pre: 'a:' }, enc: { list: function () { return S.encs; }, pre: 'e:' } };
+  var recs = { h: {}, since: '', init: false }, recBusy = false, recTimer = null;
+  try { var rs = JSON.parse(localStorage.getItem(D.KEY + '::recs')); if (rs && rs.h) recs = rs; } catch (e) {}
+  var recSave = function () { try { localStorage.setItem(D.KEY + '::recs', JSON.stringify(recs)); } catch (e) {} };
+  var fp = function (x) { return D.crypto.hash(JSON.stringify(x)); };
+  var shared = function (x) { return x && x.id && !x.sample; };
+  function rename(kind, x) {
+    var old = x.id, nu = D.id(kind === 'appt' ? 'A' : 'E');
+    x.id = nu;
+    if (kind === 'appt') { S.encs.forEach(function (e) { if (e.apptId === old) e.apptId = nu; }); }
+    else { S.appts.forEach(function (a) { if (a.encId === old) a.encId = nu; }); S.claims.forEach(function (c) { if (c.encId === old) c.encId = nu; }); }
+  }
+  function pullRecords() {
+    if (!has('suite') || recBusy) return Promise.resolve();
+    recBusy = true;
+    return fetch('/api/records' + (recs.since && recs.init ? '?since=' + encodeURIComponent(recs.since) : ''), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (j) {
+        recBusy = false;
+        if (!j || !Array.isArray(j.records)) return;
+        var changed = 0, first = !recs.init;
+        j.records.forEach(function (r) {
+          var R = REC[r.kind]; if (!R) return;
+          var list = R.list(), key = R.pre + r.id, mine = list.filter(function (x) { return x.id === r.id; })[0];
+          if (r.deleted) {
+            if (mine && recs.h[key] && fp(mine) === recs.h[key]) { list.splice(list.indexOf(mine), 1); changed++; }
+            delete recs.h[key]; return;
+          }
+          var theirs = fp(r.data);
+          if (!mine) { list.push(r.data); recs.h[key] = theirs; changed++; return; }
+          var now = fp(mine);
+          if (now === theirs) { recs.h[key] = theirs; return; }
+          if (first && !recs.h[key]) { rename(r.kind, mine); list.push(r.data); recs.h[key] = theirs; changed++; return; }   // same id, different record
+          if (recs.h[key] === now) { Object.keys(mine).forEach(function (k) { delete mine[k]; }); Object.assign(mine, r.data); recs.h[key] = theirs; changed++; }
+          // otherwise this browser changed it since: keep it, it's sent next
+        });
+        recs.since = j.server_time || recs.since; recs.init = true; recSave();
+        if (changed) { D.save(); if (window.V && V.refresh) V.refresh(); }
+        pushRecords();
+      });
+  }
+  function pushRecords() {
+    if (!has('suite') || !recs.init) return;
+    var out = [], live = {};
+    Object.keys(REC).forEach(function (kind) {
+      REC[kind].list().filter(shared).forEach(function (x) { var key = REC[kind].pre + x.id, h = fp(x); live[key] = 1; if (recs.h[key] !== h) out.push({ kind: kind, id: x.id, data: x, _k: key, _h: h }); });
+    });
+    Object.keys(recs.h).forEach(function (key) { if (!live[key]) { var kind = key.slice(0, 2) === 'a:' ? 'appt' : 'enc'; out.push({ kind: kind, id: key.slice(2), deleted: true, _k: key }); } });
+    if (!out.length) return;
+    (function next(i) {
+      var batch = out.slice(i, i + 50); if (!batch.length) { recSave(); return; }
+      fetch('/api/records', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: batch.map(function (b) { return b.deleted ? { kind: b.kind, id: b.id, deleted: true } : { kind: b.kind, id: b.id, data: b.data }; }) }) })
+        .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (j) {
+          if (!j) return recSave();      // offline or refused: try again on the next change or pull
+          var ok = {}; (j.saved || []).forEach(function (s) { ok[REC[s.kind].pre + s.id] = 1; });
+          batch.forEach(function (b) { if (!ok[b._k]) return; if (b.deleted) delete recs.h[b._k]; else recs.h[b._k] = b._h; });
+          next(i + 50);
+        });
+    })(0);
+  }
+  D.syncRecords = function () { return pullRecords(); };
+  pullRecords();
+  setInterval(function () { if (!document.hidden) pullRecords(); }, 30000);
+
   var save = D.save;
-  D.save = function () { save(); clearTimeout(timer); timer = setTimeout(push, 1500); };
+  D.save = function () { save(); clearTimeout(timer); timer = setTimeout(push, 1500); clearTimeout(recTimer); recTimer = setTimeout(pushRecords, 1500); };
   // an account created without a clinic name, whose Practice details already name the clinic: give the account that name,
   // so billing setup and claim sending work (server: /api/clinic/name moves the account's records to the clinic)
   (function () {

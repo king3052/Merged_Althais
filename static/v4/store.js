@@ -149,17 +149,24 @@
   document.addEventListener('visibilitychange', function () { if (document.hidden) write(); });
   D.reset = function () {
     gone = true; dirty = false; clearTimeout(wt);
-    [KEY, KEY + '::sent', KEY + '::undecryptable'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+    [KEY, KEY + '::sent', KEY + '::recs', KEY + '::undecryptable'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
   };
   // replace everything here with a backup (the backup file's text: plain JSON the clinic downloaded)
-  D.restore = function (text) { gone = true; dirty = false; clearTimeout(wt); localStorage.setItem(KEY, BOX.seal(text)); try { localStorage.removeItem(KEY + '::sent'); } catch (e) {} };
+  D.restore = function (text) { gone = true; dirty = false; clearTimeout(wt); localStorage.setItem(KEY, BOX.seal(text)); try { localStorage.removeItem(KEY + '::sent'); localStorage.removeItem(KEY + '::recs'); } catch (e) {} };
   // the clinic was given a name: this browser's records move to it, encrypted with that clinic's key (from the server)
   D.moveTo = function (org, key64) {
     var to = 'althais.v4.store.v1::' + String(org || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_') + (D.DENTAL ? '::dental' : '');
     try { localStorage.setItem(to, key64 ? BOX.seal(JSON.stringify(S), key64) : JSON.stringify(S)); } catch (e) {}
   };
   if (migrate) D.flush();
-  D.id = function (p) { S.seq.n++; D.save(); return p + S.seq.n; };
+  // appointments and visit notes are shared through the server (sync.js), so their ids also carry this browser's tag:
+  // two browsers numbering from the same start can't make the same id
+  D.id = function (p) {
+    S.seq.n++; D.save();
+    if (p !== 'A' && p !== 'E') return p + S.seq.n;
+    if (!S.seq.tag) { var r = ''; try { var b = crypto.getRandomValues(new Uint8Array(4)); for (var i = 0; i < 4; i++) r += 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b[i] % 32]; } catch (e) { r = Math.random().toString(36).slice(2, 6).toUpperCase(); } S.seq.tag = r; }
+    return p + S.seq.n + '-' + S.seq.tag;
+  };
   D.log = function (text) { S.log.unshift({ at: new Date().toISOString(), text: text }); S.log = S.log.slice(0, 200); D.save(); };
 
   // ---- dates: stored as YYYY-MM-DD, shown as MM/DD/YYYY ----
