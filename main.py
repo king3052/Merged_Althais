@@ -100,6 +100,12 @@ import tebra   # Tebra (Kareo) PM connection, see tebra.py
 app.include_router(tebra.router)
 import extension_api   # browser extension: pairing, claim checks, coding a note, creating claims (extension_api.py)
 app.include_router(extension_api.router)
+import dental_api, dental_api_rcm, dental_engage, dental_ops   # the dental EMR's server side (dental_api.py says what's where)
+app.include_router(dental_api.router)
+app.include_router(dental_api.public)
+import dental_pages   # the pages patients open from a link: booking, forms, treatment plan, text-to-pay, reviews
+dental_pages._templates = templates
+app.include_router(dental_pages.router)
 import audit   # access log: who viewed or changed patient and billing data (audit.py)
 app.include_router(audit.router)
 app.middleware("http")(audit.middleware)
@@ -186,6 +192,23 @@ async def _billing_jobs():
             except Exception as e:
                 print(f"[BILLING JOBS] {type(e).__name__}")      # no details: they could include clinic data
             await asyncio.sleep(60)
+    asyncio.get_event_loop().create_task(loop())
+
+
+@app.on_event("startup")
+async def _dental_reminders_job():
+    """Dental appointment reminders (72 and 24 hours ahead), every 15 minutes. Off with DENTAL_JOBS_DISABLED."""
+    import asyncio, os
+    if os.environ.get("DENTAL_JOBS_DISABLED") or os.environ.get("BILLING_JOBS_DISABLED"):
+        return
+
+    async def loop():
+        while True:
+            try:
+                await asyncio.to_thread(dental_engage.run_all_reminders)
+            except Exception as e:
+                print(f"[DENTAL REMINDERS] {type(e).__name__}")
+            await asyncio.sleep(900)
     asyncio.get_event_loop().create_task(loop())
 
 

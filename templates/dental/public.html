@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #f4f6f8; --card: #ffffff; --t: #18222d; --t2: #4b5866; --m: #75818e; --b: #dde2e8; --brand: #1d5bb8; --brand-bg: #e9f0fb; --red: #b42318; --red-bg: #fdf1f0; --grn: #17784a; --grn-bg: #eef8f2; --amb: #a15c07; --tooth: #ffffff; --tooth-line: #b9c1ca; --plan: #d6452c; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0e1116; --card: #171b22; --t: #e8ebf0; --t2: #b4bcc8; --m: #8a94a3; --b: #2b313b; --brand: #7fa8f0; --brand-bg: #1a2638; --red: #f08a7e; --red-bg: #2b1715; --grn: #5fc48f; --grn-bg: #13241b; --amb: #e7ad5c; --tooth: #232934; --tooth-line: #4b5563; --plan: #ff7a63; } }
+    :root[data-theme="dark"] { --bg: #0e1116; --card: #171b22; --t: #e8ebf0; --t2: #b4bcc8; --m: #8a94a3; --b: #2b313b; --brand: #7fa8f0; --brand-bg: #1a2638; --red: #f08a7e; --red-bg: #2b1715; --grn: #5fc48f; --grn-bg: #13241b; --amb: #e7ad5c; --tooth: #232934; --tooth-line: #4b5563; --plan: #ff7a63; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--t); font: 15px/1.5 "IBM Plex Sans", system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrap { max-width: 620px; margin: 0 auto; padding: 18px 16px 48px; }
+    .top { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .logo { width: 34px; height: 34px; border-radius: 9px; background: var(--brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo svg { width: 20px; height: 20px; }
+    .practice { font-weight: 600; font-size: 15px; }
+    .sub { color: var(--m); font-size: 13px; }
+    h1 { font-size: 23px; line-height: 1.25; margin: 4px 0 6px; letter-spacing: -.01em; }
+    .card { background: var(--card); border: 1px solid var(--b); border-radius: 12px; padding: 16px; margin: 12px 0; }
+    label.f { display: block; font-size: 13px; color: var(--t2); margin: 12px 0 4px; font-weight: 500; }
+    input, select, textarea { width: 100%; font: inherit; color: var(--t); background: var(--card); border: 1px solid var(--b); border-radius: 8px; padding: 10px 12px; min-height: 44px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: var(--brand); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 420px) { .row2 { grid-template-columns: 1fr; } }
+    button.pri, a.pri { display: block; width: 100%; background: var(--brand); color: #fff; border: 0; border-radius: 10px; min-height: 48px; font: 600 16px "IBM Plex Sans", sans-serif; cursor: pointer; margin-top: 16px; text-align: center; text-decoration: none; line-height: 48px; }
+    button.pri:disabled { opacity: .55; cursor: default; }
+    .opts { display: grid; gap: 8px; }
+    .opt { display: flex; align-items: center; gap: 12px; border: 1px solid var(--b); border-radius: 10px; padding: 12px 14px; cursor: pointer; background: var(--card); min-height: 52px; }
+    .opt.on { border-color: var(--brand); background: var(--brand-bg); box-shadow: inset 0 0 0 1px var(--brand); }
+    .opt b { display: block; font-weight: 600; }
+    .opt span { color: var(--m); font-size: 13px; }
+    .days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+    .day { flex: 0 0 auto; border: 1px solid var(--b); border-radius: 10px; padding: 8px 12px; text-align: center; cursor: pointer; background: var(--card); min-width: 64px; }
+    .day.on { border-color: var(--brand); background: var(--brand-bg); }
+    .day small { display: block; color: var(--m); font-size: 12px; }
+    .times { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 10px; }
+    .time { border: 1px solid var(--b); border-radius: 8px; padding: 10px 6px; text-align: center; cursor: pointer; background: var(--card); font-weight: 500; min-height: 44px; }
+    .time.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .time small { display: block; font-weight: 400; font-size: 11px; opacity: .75; }
+    .ok { text-align: center; padding: 26px 10px; }
+    .ok .ic { width: 56px; height: 56px; border-radius: 50%; background: var(--grn-bg); color: var(--grn); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .err { color: var(--red); background: var(--red-bg); border-radius: 8px; padding: 10px 12px; margin-top: 12px; font-size: 14px; display: none; }
+    .yn { display: flex; gap: 8px; }
+    .yn button { flex: 1; min-height: 44px; border: 1px solid var(--b); background: var(--card); border-radius: 8px; font: inherit; color: var(--t); cursor: pointer; }
+    .yn button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .chk { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+    .chk input { width: 22px; min-height: 22px; height: 22px; margin-top: 2px; flex-shrink: 0; accent-color: var(--brand); }
+    .money { font-size: 34px; font-weight: 600; letter-spacing: -.02em; }
+    .item { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--b); align-items: flex-start; }
+    .item:first-child { border-top: 0; }
+    .item .nm { font-weight: 600; }
+    .item .ds { color: var(--m); font-size: 13px; }
+    .item .pr { margin-left: auto; text-align: right; white-space: nowrap; }
+    .item .pr b { display: block; }
+    .item input { width: 22px; height: 22px; min-height: 22px; margin-top: 2px; accent-color: var(--brand); flex-shrink: 0; }
+    .phase { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--m); margin: 18px 0 4px; }
+    .tot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+    .tot div { background: var(--bg); border-radius: 10px; padding: 10px 6px; }
+    .tot span { display: block; font-size: 12px; color: var(--m); }
+    .tot b { font-size: 18px; }
+    .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--red-bg); color: var(--red); margin-left: 6px; vertical-align: 1px; }
+    .tag.n { background: var(--brand-bg); color: var(--brand); }
+    .smile { display: block; width: 100%; height: auto; margin: 4px 0 8px; }
+    .stars { display: flex; gap: 6px; justify-content: center; margin: 12px 0; }
+    .stars button { font-size: 40px; line-height: 1; background: none; border: 0; cursor: pointer; color: var(--b); padding: 4px; min-width: 48px; min-height: 48px; }
+    .stars button.on { color: #e0a000; }
+    .foot { text-align: center; color: var(--m); font-size: 12px; margin-top: 22px; }
+    .note { font-size: 13px; color: var(--t2); background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+    .skel { color: var(--m); padding: 30px 0; text-align: center; }
+  </style>
+</head>
+<body>
+<div class="wrap" id="app" data-kind="{{ kind }}" data-key="{{ key }}"><div class="skel">Loading…</div></div>
+<script>
+(function () {
+  var app = document.getElementById('app'), kind = app.dataset.kind, key = app.dataset.key;
+  var E = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var $ = function (s) { return app.querySelector(s); };
+  var money = function (n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var api = function (method, path, body) { return fetch('/api/public/dental' + path, { method: method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : 'Something went wrong. Please call the office.'); return j; }); }); };
+  var logo = '<span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5c-2.6 0-4 2-4 4.6 0 2.4.9 4.3 1.6 6.4.6 1.9.9 4.6 2.4 6.1.9.9 1.7-.4 2-1.6.4-1.6.9-4 3-4s2.6 2.4 3 4c.3 1.2 1.1 2.5 2 1.6 1.5-1.5 1.8-4.2 2.4-6.1.7-2.1 1.6-4 1.6-6.4 0-2.6-1.4-4.6-4-4.6-2 0-3 1.2-5 1.2S9 3.5 7 3.5z"/></svg></span>';
+  var head = function (practice, sub) { return '<div class="top">' + logo + '<div><div class="practice">' + E(practice || 'Your dental office') + '</div>' + (sub ? '<div class="sub">' + E(sub) + '</div>' : '') + '</div></div>'; };
+  var fail = function (msg) { app.innerHTML = head('', '') + '<div class="card"><h1>That link didn’t work</h1><p>' + E(msg) + '</p></div>'; };
+  var showErr = function (msg) { var e = $('.err'); if (e) { e.textContent = msg; e.style.display = 'block'; } };
+  var done = function (practice, title, text) { app.innerHTML = head(practice) + '<div class="card ok"><span class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h1>' + E(title) + '</h1><p class="sub" style="font-size:15px">' + text + '</p></div>'; };
+
+  /* ---------- online booking ---------- */
+  function book() {
+    var st = { kind: '', loc: 0, slots: [], day: '', pick: null, recall: /recall=1/.test(location.search) };
+    api('GET', '/book/' + key).then(function (info) {
+      st.info = info; st.loc = info.locations[0].id;
+      if (st.recall) st.kind = 'cleaning';
+      draw();
+      if (st.kind) loadSlots();
+    }, function (e) { fail(e.message); });
+    function loadSlots() { st.slots = null; draw(); api('GET', '/book/' + key + '/slots?location_id=' + st.loc + '&kind=' + st.kind).then(function (s) { st.slots = s; st.day = s[0] ? s[0].start.slice(0, 10) : ''; st.pick = null; draw(); }, function (e) { st.slots = []; draw(); showErr(e.message); }); }
+    function draw() {
+      var info = st.info, loc = info.locations.filter(function (l) { return l.id === st.loc; })[0];
+      var days = {}; (st.slots || []).forEach(function (s) { (days[s.start.slice(0, 10)] = days[s.start.slice(0, 10)] || []).push(s); });
+      var dlabel = function (d) { var x = new Date(d + 'T12:00:00'); return '<b>' + x.toLocaleDateString('en-US', { weekday: 'short' }) + '</b><small>' + x.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</small>'; };
+      var tl = function (iso) { var d = new Date(iso); var h = d.getHours(), m = d.getMinutes(); return (h % 12 || 12) + ':' + ('0' + m).slice(-2) + (h < 12 ? ' am' : ' pm'); };
+      app.innerHTML = head(loc.name, loc.addr) + '<h1>' + (st.recall ? 'Time for your cleaning' : 'Book a visit') + '</h1><p class="sub">Pick a visit type and a time that works. You’ll get a text to confirm.</p>' +
+        (info.locations.length > 1 ? '<div class="card"><label class="f" style="margin-top:0">Office</label><select id="loc">' + info.locations.map(function (l) { return '<option value="' + l.id + '"' + (l.id === st.loc ? ' selected' : '') + '>' + E(l.name) + '</option>'; }).join('') + '</select></div>' : '') +
+        '<div class="card"><div class="opts">' + info.kinds.map(function (k) { return '<div class="opt' + (k.key === st.kind ? ' on' : '') + '" data-k="' + k.key + '" role="button" tabindex="0"><div><b>' + E(k.label) + '</b><span>About ' + k.minutes + ' minutes</span></div></div>'; }).join('') + '</div></div>' +
+        (st.kind ? '<div class="card"><div style="font-weight:600;margin-bottom:8px">Choose a time</div>' + (st.slots === null ? '<div class="skel">Finding open times…</div>' : !st.slots.length ? '<p class="sub">No open times online in the next three weeks. Please call ' + E(loc.phone) + '.</p>' :
+          '<div class="days">' + Object.keys(days).map(function (d) { return '<div class="day' + (d === st.day ? ' on' : '') + '" data-d="' + d + '" role="button" tabindex="0">' + dlabel(d) + '</div>'; }).join('') + '</div>' +
+          '<div class="times">' + (days[st.day] || []).map(function (s, i) { return '<div class="time' + (st.pick === s ? ' on' : '') + '" data-i="' + i + '" role="button" tabindex="0">' + tl(s.start) + '<small>' + E(s.provider.replace(/,? ?RDH$/, '')) + '</small></div>'; }).join('') + '</div>') + '</div>' : '') +
+        (st.pick ? '<div class="card"><div style="font-weight:600">Your details</div><div class="row2"><div><label class="f">First name</label><input id="first" autocomplete="given-name"></div><div><label class="f">Last name</label><input id="last" autocomplete="family-name"></div></div>' +
+          '<div class="row2"><div><label class="f">Date of birth</label><input id="dob" type="date"></div><div><label class="f">Mobile phone</label><input id="phone" type="tel" autocomplete="tel" placeholder="(512) 555-0100"></div></div><label class="f">Email (optional)</label><input id="email" type="email" autocomplete="email">' +
+          '<div class="row2"><div><label class="f">Dental insurance (optional)</label><input id="ins" placeholder="Delta Dental, MetLife…"></div><div><label class="f">Member ID (optional)</label><input id="member"></div></div><label class="f">Anything we should know? (optional)</label><textarea id="note" rows="2"></textarea>' +
+          '<button class="pri" id="go">Book ' + tl(st.pick.start) + ', ' + new Date(st.pick.start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) + '</button><div class="err"></div><div class="note">By booking you agree to appointment texts. Reply STOP anytime. Please don’t include medical details here; we’ll go over everything at your visit.</div></div>' : '') +
+        '<div class="foot">Secure booking by Althais</div>';
+    }
+    app.addEventListener('click', function (e) {
+      var k = e.target.closest('[data-k]'), d = e.target.closest('[data-d]'), t = e.target.closest('[data-i]');
+      if (k) { st.kind = k.dataset.k; loadSlots(); }
+      else if (d) { st.day = d.dataset.d; st.pick = null; draw(); }
+      else if (t) { var list = st.slots.filter(function (s) { return s.start.slice(0, 10) === st.day; }); st.pick = list[+t.dataset.i]; draw(); setTimeout(function () { var f = $('#first'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 30); }
+      else if (e.target.id === 'go') {
+        var b = e.target; b.disabled = true;
+        api('POST', '/book/' + key, { kind: st.kind, location_id: st.loc, start: st.pick.start, token: st.pick.token, first: $('#first').value, last: $('#last').value, dob: $('#dob').value, phone: $('#phone').value, email: $('#email').value, insurance: $('#ins').value, member: $('#member').value, note: $('#note').value, recall: st.recall })
+          .then(function (r) { done(r.office, 'You’re booked', new Date(r.when).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '<br>We texted you a confirmation.'); }, function (er) { b.disabled = false; showErr(er.message); if (/taken/.test(er.message)) loadSlots(); });
+      }
+    });
+    app.addEventListener('change', function (e) { if (e.target.id === 'loc') { st.loc = +e.target.value; if (st.kind) loadSlots(); else draw(); } });
+    app.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.matches('[role=button]')) e.target.click(); });
+  }
+
+  /* ---------- intake and medical history forms ---------- */
+  function form() {
+    api('GET', '/form/' + key).then(function (f) {
+      if (f.status !== 'sent') return done(f.practice, 'Already done', 'Thanks, we have this form.' + (f.next.length ? '<br><a href="' + E(f.next[0]) + '">Next form</a>' : ''));
+      var ans = {};
+      app.innerHTML = head(f.practice) + '<h1>' + E(f.form) + '</h1><p class="sub">Hi ' + E(f.first_name || 'there') + '. This goes straight into your chart so your dentist has it at your visit.</p><div class="card">' + f.fields.map(function (x) {
+        if (x.type === 'yesno') return '<label class="f">' + E(x.label) + '</label><div class="yn" data-yn="' + x.k + '"><button type="button" data-v="no">No</button><button type="button" data-v="yes">Yes</button></div>';
+        if (x.type === 'check') return '<label class="chk"><input type="checkbox" id="f_' + x.k + '"><span>' + E(x.label) + '</span></label>';
+        if (x.type === 'textarea') return '<label class="f" for="f_' + x.k + '">' + E(x.label) + '</label><textarea id="f_' + x.k + '" rows="3"></textarea>';
+        if (x.type === 'signature') return '<label class="f" for="f_' + x.k + '">' + E(x.label) + '</label><input id="f_' + x.k + '" autocomplete="name" style="font-style:italic">';
+        return '<label class="f" for="f_' + x.k + '">' + E(x.label) + '</label><input id="f_' + x.k + '" type="' + (x.type === 'tel' || x.type === 'email' ? x.type : 'text') + '">';
+      }).join('') + '<button class="pri" id="go">Submit</button><div class="err"></div></div><div class="foot">Your answers are encrypted and only your dental office can see them.</div>';
+      app.addEventListener('click', function (e) {
+        var yn = e.target.closest('[data-yn] button');
+        if (yn) { var g = yn.parentElement; g.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b === yn); }); ans[g.dataset.yn] = yn.dataset.v; return; }
+        if (e.target.id !== 'go') return;
+        f.fields.forEach(function (x) { if (x.type === 'yesno') return; var el = $('#f_' + x.k); if (el) ans[x.k] = x.type === 'check' ? el.checked : el.value.trim(); });
+        e.target.disabled = true;
+        api('POST', '/form/' + key, ans).then(function () { done(f.practice, 'Thank you', f.next.length ? 'Saved. <a href="' + E(f.next[0]) + '">Continue to the next form</a>.' : 'Saved to your chart. See you soon.'); }, function (er) { e.target.disabled = false; showErr(er.message); });
+      });
+    }, function (e) { fail(e.message); });
+  }
+
+  /* ---------- the treatment plan, explained ---------- */
+  function smile(items, conds) {
+    var planned = {}; items.forEach(function (i) { if (i.tooth) planned[i.tooth] = 1; });
+    var missing = {}; conds.forEach(function (c) { if ((c.condition === 'missing' || c.condition === 'extracted') && c.status !== 'planned') missing[c.tooth] = 1; });
+    var out = '<svg class="smile" viewBox="0 0 340 190" role="img" aria-label="Your teeth, with the ones in your plan highlighted">';
+    // two gentle curves, patient's right on the left: upper 1-16 bowing up, lower 32-17 bowing down
+    var arch = function (teeth, up) {
+      teeth.forEach(function (t, i) {
+        var x = 18 + i * 19.6, u = (x - 170) / 152, y = up ? 30 + 46 * u * u : 160 - 46 * u * u;
+        var big = /^(1|2|3|14|15|16|17|18|19|30|31|32)$/.test(t), w = big ? 17 : 14, h = big ? 18 : 22;
+        var cls = planned[t] ? 'fill:var(--plan);stroke:var(--plan)' : missing[t] ? 'fill:none;stroke:var(--tooth-line);stroke-dasharray:2 2' : 'fill:var(--tooth);stroke:var(--tooth-line)';
+        out += '<rect x="' + (x - w / 2).toFixed(1) + '" y="' + (y - h / 2).toFixed(1) + '" width="' + w + '" height="' + h + '" rx="5" style="' + cls + ';stroke-width:1.3"/>';
+        if (planned[t]) out += '<text x="' + x.toFixed(1) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff">' + t + '</text>';
+      });
+    };
+    var up = [], lo = []; for (var t = 1; t <= 16; t++) up.push(String(t)); for (var u = 32; u >= 17; u--) lo.push(String(u));
+    arch(up, true); arch(lo, false);
+    out += '<text x="170" y="62" text-anchor="middle" font-size="10" fill="var(--m)">UPPER</text><text x="170" y="134" text-anchor="middle" font-size="10" fill="var(--m)">LOWER</text><text x="6" y="98" font-size="9" fill="var(--m)">RIGHT</text><text x="334" y="98" text-anchor="end" font-size="9" fill="var(--m)">LEFT</text>';
+    return out + '</svg>';
+  }
+  function plan() {
+    api('GET', '/plan/' + key).then(function (p) {
+      var open = p.items.filter(function (i) { return i.status !== 'completed' && i.status !== 'declined'; });
+      var phases = {}; open.forEach(function (i) { (phases[i.phase] = phases[i.phase] || []).push(i); });
+      var why = { urgent: 'Needs attention soon', needed: 'Recommended', elective: 'Optional' };
+      var tot = function (sel) { var f = 0, ins = 0, pt = 0; open.forEach(function (i) { if (!sel || sel[i.id]) { f += i.fee; ins += i.insurance; pt += i.patient; } }); return [f, ins, pt]; };
+      var picked = {}; open.forEach(function (i) { picked[i.id] = i.status !== 'declined'; });
+      var draw = function () {
+        var t = tot(picked);
+        app.innerHTML = head(p.practice, 'Treatment plan') + '<h1>' + E(p.first_name ? p.first_name + ', here’s your plan' : 'Your treatment plan') + '</h1><p class="sub">' + E(p.name) + '. The teeth in your plan are highlighted.</p>' +
+          '<div class="card">' + smile(open, p.conditions) + '<div class="tot"><div><span>Total</span><b>' + money(t[0]) + '</b></div><div><span>Insurance estimate</span><b style="color:var(--grn)">' + money(t[1]) + '</b></div><div><span>Your estimate</span><b>' + money(t[2]) + '</b></div></div></div>' +
+          '<div class="card">' + Object.keys(phases).sort().map(function (ph) { return '<div class="phase">' + (Object.keys(phases).length > 1 ? 'Step ' + ph : 'Your visits') + '</div>' + phases[ph].map(function (i) { return '<label class="item">' + (p.signed ? '' : '<input type="checkbox" data-it="' + i.id + '"' + (picked[i.id] ? ' checked' : '') + '>') + '<div><div class="nm">' + E(i.label) + (i.tooth ? ' <span class="tag n">tooth ' + E(i.tooth) + '</span>' : i.quad ? ' <span class="tag n">' + E({ UR: 'upper right', UL: 'upper left', LL: 'lower left', LR: 'lower right' }[i.quad] || i.quad) + '</span>' : '') + (i.priority === 'urgent' ? '<span class="tag">' + why.urgent + '</span>' : '') + '</div><div class="ds">' + E(why[i.priority] || '') + ' · insurance est. ' + money(i.insurance) + '</div></div><div class="pr"><b>' + money(i.patient) + '</b><span class="ds">of ' + money(i.fee) + '</span></div></label>'; }).join(''); }).join('') + '</div>' +
+          (p.signed ? '<div class="card ok"><h1 style="font-size:19px">Thanks, you signed this plan</h1><p class="sub">The office will help you schedule.</p></div>' :
+            '<div class="card"><div style="font-weight:600">Approve your plan</div><p class="sub" style="margin:4px 0 0">Untick anything you’d like to skip for now. Estimates depend on your insurance’s final answer. Ask about spreading the cost with a payment plan.</p><label class="f">Type your full name to sign</label><input id="sig" autocomplete="name" style="font-style:italic"><button class="pri" id="go">Approve ' + money(tot(picked)[2]) + ' estimate</button><div class="err"></div></div>') +
+          '<div class="foot">Estimates, not a bill. Your dental office will confirm the final amounts.</div>';
+      };
+      draw();
+      app.addEventListener('change', function (e) { var it = e.target.closest('[data-it]'); if (it) { picked[+it.dataset.it] = it.checked; var y = window.scrollY; draw(); window.scrollTo(0, y); } });
+      app.addEventListener('click', function (e) {
+        if (e.target.id !== 'go') return;
+        e.target.disabled = true;
+        api('POST', '/plan/' + key + '/accept', { signature: $('#sig').value, accepted: Object.keys(picked).filter(function (k) { return picked[k]; }).map(Number) }).then(function (r) { done(p.practice, r.status === 'declined' ? 'Got it' : 'Thank you', r.status === 'declined' ? 'We noted that you’d like to wait. Call us anytime.' : 'Your plan is approved. The office will help you schedule.'); }, function (er) { e.target.disabled = false; showErr(er.message); });
+      });
+    }, function (e) { fail(e.message); });
+  }
+
+  /* ---------- text-to-pay ---------- */
+  function pay() {
+    api('GET', '/pay/' + key).then(function (p) {
+      if (p.status === 'paid') return done(p.practice, 'Paid', 'This balance is paid. Thank you!');
+      app.innerHTML = head(p.practice, p.phone) + '<h1>Pay your balance</h1><div class="card" style="text-align:center"><div class="sub">Amount due</div><div class="money">' + money(p.amount) + '</div></div>' +
+        '<div class="card"><label class="f" style="margin-top:0">Card</label><select id="card"><option value="tok_visa">Test card: Visa ending 4242 (approves)</option><option value="tok_declined">Test card: declines</option></select>' +
+        '<div class="note">This is a test payment page: the card form is a stand-in for the payment processor’s secure field, and no money moves. In production the processor collects the card; your dental office never sees the number.</div><button class="pri" id="go">Pay ' + money(p.amount) + '</button><div class="err"></div></div><div class="foot">Questions about your bill? Call ' + E(p.phone) + '.</div>';
+      app.addEventListener('click', function (e) {
+        if (e.target.id !== 'go') return;
+        e.target.disabled = true;
+        api('POST', '/pay/' + key, { token: $('#card').value }).then(function (r) { done(p.practice, 'Payment received', money(p.amount) + ' · confirmation ' + E(r.ref)); }, function (er) { e.target.disabled = false; showErr(er.message); });
+      });
+    }, function (e) { fail(e.message); });
+  }
+
+  /* ---------- review ---------- */
+  function review() {
+    api('GET', '/review/' + key).then(function (r) {
+      var rating = 0;
+      var draw = function () {
+        app.innerHTML = head(r.practice) + '<h1>How was your visit?</h1><div class="card"><div class="stars">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-s="' + n + '" class="' + (n <= rating ? 'on' : '') + '" aria-label="' + n + ' star' + (n > 1 ? 's' : '') + '">★</button>'; }).join('') + '</div>' +
+          '<label class="f">Anything to tell us? (optional)</label><textarea id="c" rows="3"></textarea><button class="pri" id="go"' + (rating ? '' : ' disabled') + '>Send</button><div class="err"></div></div>';
+      };
+      draw();
+      app.addEventListener('click', function (e) {
+        var s = e.target.closest('[data-s]'); if (s) { var c = $('#c') ? $('#c').value : ''; rating = +s.dataset.s; draw(); $('#c').value = c; return; }
+        if (e.target.id !== 'go') return;
+        api('POST', '/review/' + key, { rating: rating, comment: $('#c').value }).then(function (x) { done(r.practice, 'Thank you!', 'We read every response.<br><br>Would you share it publicly too? It helps neighbors find a dentist.<a class="pri" href="' + E(x.public_link) + '" target="_blank" rel="noopener">Leave a public review</a>'); }, function (er) { showErr(er.message); });
+      });
+    }, function (e) { fail(e.message); });
+  }
+
+  ({ book: book, form: form, plan: plan, pay: pay, review: review })[kind]();
+})();
+</script>
+</body>
+</html>

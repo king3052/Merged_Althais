@@ -46,6 +46,16 @@
     ['staff', 'Staff', '/v4/staff/team', []],
     ['settings', 'Settings', '/v4/settings', (window.__ALTHAIS_USER__ || {}).role === 'admin' ? [['settings', 'Settings', '/v4/settings'], ['accesslog', 'Access log', '/v4/settings/access-log']] : []],
   ];
+  // a dental clinic's own sections (v4_preview.DENTAL_PAGES, static/v4/dental-*.js)
+  if (window.D && D.DENTAL) NAV = [
+    ['dtoday', 'Today', '/v4/dental/today', []],
+    ['dschedule', 'Schedule', '/v4/dental/schedule', [['dschedule', 'Schedule', '/v4/dental/schedule'], ['drecall', 'Recall', '/v4/dental/recall'], ['dmessages', 'Messages', '/v4/dental/messages']]],
+    ['dpatients', 'Patients', '/v4/dental/patients', [['dpatients', 'Patients', '/v4/dental/patients'], ['dchart', 'Chart', '/v4/dental/chart'], ['dforms', 'Forms', '/v4/dental/forms'], ['dlabs', 'Lab cases', '/v4/dental/labs'], ['documents', 'Documents', '/v4/emr/documents']]],
+    ['dins', 'Insurance', '/v4/dental/claims', [['dbenefits', 'Verify benefits', '/v4/dental/benefits'], ['dclaims', 'Claims', '/v4/dental/claims'], ['dpreauths', 'Pre-auths', '/v4/dental/preauths'], ['dera', 'ERA posting', '/v4/dental/era'], ['ddenials', 'Denials', '/v4/dental/denials'], ['billing', 'Billing activation', '/v4/revenue/billing-activation']]],
+    ['dmoney', 'Billing', '/v4/dental/billing', [['dbilling', 'Patient billing', '/v4/dental/billing'], ['dreports', 'Production & collections', '/v4/dental/reports'], ['dreviews', 'Reviews', '/v4/dental/reviews']]],
+    ['staff', 'Staff', '/v4/staff/team', []],
+    ['settings', 'Settings', '/v4/dental/setup', [['dsetup', 'Practice setup', '/v4/dental/setup'], ['settings', 'Settings', '/v4/settings']].concat((window.__ALTHAIS_USER__ || {}).role === 'admin' ? [['accesslog', 'Access log', '/v4/settings/access-log']] : [])],
+  ];
   // only the pages this clinic's plan includes and this person's manager hasn't switched off (v4_preview.allowed_pages)
   var OK = (window.__ALTHAIS_USER__ || {}).v4_pages;
   if (OK) NAV = NAV.filter(function (n) { return n[3].length ? n[3].some(function (s) { return OK.indexOf(s[0]) >= 0; }) : OK.indexOf(n[0] === 'staff' ? 'team' : n[0]) >= 0; })

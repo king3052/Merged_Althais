@@ -35,7 +35,29 @@ PAGES = {
     "/v4/staff/team": ("team", "Team"),
     "/v4/settings": ("settings", "Settings"),
     "/v4/settings/access-log": ("accesslog", "Access Log"),
+    # the dental EMR (static/v4/dental-*.js, server: dental_api.py). Only dental clinics get these.
+    "/v4/dental/today": ("dtoday", "Today"),
+    "/v4/dental/schedule": ("dschedule", "Schedule"),
+    "/v4/dental/patients": ("dpatients", "Patients"),
+    "/v4/dental/chart": ("dchart", "Chart"),
+    "/v4/dental/benefits": ("dbenefits", "Insurance Verification"),
+    "/v4/dental/claims": ("dclaims", "Claims"),
+    "/v4/dental/preauths": ("dpreauths", "Pre-Authorizations"),
+    "/v4/dental/era": ("dera", "ERA Posting"),
+    "/v4/dental/denials": ("ddenials", "Denials & Follow-Up"),
+    "/v4/dental/billing": ("dbilling", "Patient Billing"),
+    "/v4/dental/messages": ("dmessages", "Messages"),
+    "/v4/dental/recall": ("drecall", "Recall"),
+    "/v4/dental/forms": ("dforms", "Forms"),
+    "/v4/dental/reviews": ("dreviews", "Reviews"),
+    "/v4/dental/reports": ("dreports", "Production & Collections"),
+    "/v4/dental/labs": ("dlabs", "Lab Cases"),
+    "/v4/dental/setup": ("dsetup", "Practice Setup"),
 }
+DENTAL_PAGES = {k for k, _ in PAGES.values() if k.startswith("d") and k not in ("documents", "denials")}
+# a dental clinic opening one of the shared pages gets the dental one instead
+DENTAL_INSTEAD = {"overview": "/v4/dental/today", "schedule": "/v4/dental/schedule", "patients": "/v4/dental/patients", "chart": "/v4/dental/chart",
+                  "claims": "/v4/dental/claims", "denials": "/v4/dental/denials", "tracker": "/v4/dental/claims"}
 
 
 # page key -> the area (auth.AREAS) it belongs to: a page shows only when the clinic's plan has that area's tool and the
@@ -43,7 +65,10 @@ PAGES = {
 AREA_OF = {"overview": "overview", "schedule": "schedule", "encounter": "patients", "patients": "patients", "chart": "patients",
            "documents": "patients", "claims": "claims", "tracker": "claims", "denials": "denials", "rules": "payer_intelligence",
            "codenote": "code_a_note", "billing": "billing_activation", "connect": "claims", "team": "team",
-           "settings": "settings", "accesslog": "settings"}
+           "settings": "settings", "accesslog": "settings",
+           "dtoday": "overview", "dschedule": "schedule", "dpatients": "patients", "dchart": "patients", "dbenefits": "claims", "dclaims": "claims",
+           "dpreauths": "claims", "dera": "claims", "ddenials": "denials", "dbilling": "claims", "dmessages": "patients", "drecall": "schedule",
+           "dforms": "patients", "dreviews": "overview", "dreports": "overview", "dlabs": "patients", "dsetup": "settings"}
 
 
 def allowed_pages(user, products: set) -> list:
@@ -66,8 +91,15 @@ def _page(key: str, title: str):
         import json
         from main import _app_user_json, _home_for_user, _user_products   # main imports this module, so look them up at request time
         pages = allowed_pages(user, _user_products(user))
+        from main import _user_practice
+        dental = _user_practice(user) == "dental"
+        if not dental:
+            pages = [k for k in pages if k not in DENTAL_PAGES]
+        elif key in DENTAL_INSTEAD and request.query_params.get("classic") != "1":
+            qs = request.url.query
+            return RedirectResponse(DENTAL_INSTEAD[key] + ("?" + qs if qs else ""), status_code=302)
         if key not in pages:   # not in this clinic's plan, or switched off for this person: their first page instead
-            first = next((path for path, (k, _) in PAGES.items() if k in pages and k not in ("settings", "accesslog")), None)
+            first = next((path for path, (k, _) in PAGES.items() if k in pages and k not in ("settings", "accesslog") and (not dental or k in DENTAL_PAGES)), None)
             home = _home_for_user(user)
             return RedirectResponse(first or (home if not home.startswith("/v4") else "/no-access"), status_code=302)
         me = json.loads(_app_user_json(user))
