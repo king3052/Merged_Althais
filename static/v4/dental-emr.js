@@ -6,6 +6,7 @@
   if (!window.V) return;
   var E = U.esc, M = U.money, M0 = U.money0;
   var DA = window.DA = {};
+  if (window.D && D.DENTAL) document.body.classList.add('dental');   // dental-emr.css fits these screens to laptop widths
 
   // ---- server ----
   DA.api = function (method, path, body) {
@@ -303,10 +304,11 @@
       hours.forEach(function (h) { var s = +h.start.split(':')[0] * 60 + +h.start.split(':')[1], e = +h.end.split(':')[0] * 60 + +h.end.split(':')[1]; dayStart = Math.min(dayStart, s); dayEnd = Math.max(dayEnd, e); });
       data.appointments.forEach(function (a) { dayStart = Math.min(dayStart, mins(a.start)); dayEnd = Math.max(dayEnd, mins(a.start) + a.minutes); });
       dayStart = Math.floor(dayStart / 60) * 60; dayEnd = Math.ceil(dayEnd / 60) * 60;
-      var H = (dayEnd - dayStart) * PPM, cols = '62px repeat(' + ops.length + ', minmax(150px, 1fr))';
+      var H = (dayEnd - dayStart) * PPM, cols = '54px repeat(' + ops.length + ', minmax(0, 1fr))';
       var head = '<div class="ops-head" style="grid-template-columns:' + cols + '"><div></div>' + ops.map(function (o) {
         var hs = hours.filter(function (h) { return h.operatory_id === o.id; }), p = hs[0] && provs[hs[0].provider_id];
-        return '<div><span class="kind">' + E(o.kind) + '</span> ' + E(o.name) + (p ? ' <small>· <span style="color:' + p.color + '">●</span> ' + E(p.name.replace(/^Dr\. /, 'Dr. ').replace(/, RDH$/, '')) + '</small>' : ' <small>· open</small>') + '</div>';
+        return '<div title="' + E(o.name + ' (' + o.kind + ')' + (p ? ', ' + p.name : '')) + '"><div class="op-n">' + E(o.name) + ' <span class="kind">' + E(o.kind) + '</span></div>' +
+          '<small class="op-p">' + (p ? '<span style="color:' + p.color + '">●</span> ' + E(p.name.replace(/, RDH$/, '')) : 'Open') + '</small></div>';
       }).join('') + '</div>';
       var times = '';
       for (var m = dayStart; m <= dayEnd; m += 60) times += '<div style="top:' + ((m - dayStart) * PPM) + 'px">' + hm(m) + '</div>';
@@ -322,7 +324,7 @@
         return '<div class="ops-col' + (hs.length ? '' : ' off') + '" data-op="' + o.id + '" style="background-size:100% ' + (10 * PPM) + 'px">' + col + '</div>';
       }).join('');
       var now = new Date();
-      if (day === DA.today()) { var nm = now.getHours() * 60 + now.getMinutes(); if (nm >= dayStart && nm <= dayEnd) body += '<div class="nowline" style="top:' + ((nm - dayStart) * PPM) + 'px;left:62px"></div>'; }
+      if (day === DA.today()) { var nm = now.getHours() * 60 + now.getMinutes(); if (nm >= dayStart && nm <= dayEnd) body += '<div class="nowline" style="top:' + ((nm - dayStart) * PPM) + 'px;left:54px"></div>'; }
       body += '</div>';
       var unassigned = data.appointments.filter(function (a) { return !a.operatory_id; });
       var dlong = new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -330,7 +332,7 @@
       app.innerHTML = DA.frame('dschedule', 'Schedule', [['New appointment', 'plus', { pri: 1, id: 'newap' }], ['New patient', 'user', { id: 'newpt' }], '|', ['Verify benefits', 'check', { id: 'verify-day2' }], ['Send reminders', 'send', { id: 'remind2' }], ['Print day sheet', 'print', { id: 'print' }]],
         (data.locations.length > 1 ? '<select class="mini" id="loc" style="height:24px">' + data.locations.map(function (l) { return '<option value="' + l.id + '"' + (l.id === loc ? ' selected' : '') + '>' + E(l.name) + '</option>'; }).join('') + '</select> ' : '') +
         '<button class="mini" data-nav="-1">‹</button> <button class="mini" data-nav="0">Today</button> <button class="mini" data-nav="1">›</button> <input type="date" class="mini" id="goday" value="' + day + '">' + DA.mock()) +
-        '<div class="main" style="grid-template-columns:200px minmax(0,1fr) 320px">' +
+        '<div class="main dsched">' +
           U.pane(dlong.split(',')[0], DA.short(day), '', U.queue([{ h: 'Providers', items: [{ key: '0', label: 'Everyone', n: data.appointments.filter(function (a) { return a.status !== 'cancelled'; }).length, color: 'blue' }].concat(data.providers.filter(function (p) { return cnt[p.id] || data.hours.some(function (h) { return h.provider_id === p.id; }); }).map(function (p) { return { key: String(p.id), label: p.name, n: cnt[p.id] || 0, color: p.color }; })) },
             { h: 'Status', items: [['scheduled', 'Unconfirmed', 'gray'], ['confirmed', 'Confirmed', 'grn'], ['arrived', 'Arrived', 'blue'], ['seated', 'In chair', 'blue'], ['complete', 'Done', 'gray'], ['no_show', 'No show', 'amb']].map(function (s) { return { key: 's:' + s[0], label: s[1], n: data.appointments.filter(function (a) { return a.status === s[0]; }).length, color: s[2] }; }) }], String(provFilter)) +
             '<div class="sum"><div><span>Legend</span><b></b></div><div><span><b class="mockflag" style="color:var(--grn);border-color:var(--grn-line);background:var(--grn-bg)">INS</b> verified</span></div><div><span><b class="mockflag">INS?</b> not verified</span></div><div><span><b class="mockflag" style="color:var(--red);background:var(--red-bg);border-color:var(--red-line)">$</b> balance</span></div><div><span><b class="mockflag" style="color:#fff;background:var(--red);border-color:var(--red)">⚕ A</b> medical / allergy</span></div></div>', { cls: '' }) +

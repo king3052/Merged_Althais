@@ -68,7 +68,7 @@
         (n[3].length ? '<div class="hd-menu">' + n[3].map(function (s) { return '<a href="' + s[2] + '" class="' + (s[0] === page ? 'on' : '') + '">' + s[1] + '</a>'; }).join('') + '</div>' : '') + '</div>';
     }).join('') +
       '<div class="hd-end"><label class="hd-search">' + U.I.search + '<input id="hd-q" placeholder="Search patient, MRN, claim #" aria-label="Search" autocomplete="off"><div class="hd-res" id="hd-res"></div></label>' +
-      '<span class="hd-user">' + U.esc(D.S.clinic.name) + ' <span class="hd-av">' + U.esc(U.initials2(D.S.clinic.user)) + '</span> ' + U.esc(D.S.clinic.user) + '</span>' +
+      '<span class="hd-user"><span class="hd-clinic" title="' + U.esc(D.S.clinic.name) + '">' + U.esc(D.S.clinic.name) + '</span> <span class="hd-av">' + U.esc(U.initials2(D.S.clinic.user)) + '</span> <span class="hd-name">' + U.esc(D.S.clinic.user) + '</span></span>' +
       '<a class="hd-out" href="/logout" id="signout">' + U.I.out + 'Sign Out</a></div></header>' +
       // the active section's pages as tabs, always visible (Patients, Schedule… one click away)
       (function () { var sec = NAV.filter(function (n) { return n[0] === page || n[3].some(function (s) { return s[0] === page; }); })[0];
@@ -86,7 +86,7 @@
     actions.forEach(function (a) {
       if (a === '|') { html += '<span class="tb-sep"></span>'; return; }
       var o = a[2] || {}, tag = o.href ? 'a' : 'button';
-      var btn = '<' + tag + (o.href ? ' href="' + o.href + '"' : ' type="button"') + ' class="act' + (o.pri ? ' pri' : '') + '"' + (o.id ? ' id="' + o.id + '"' : '') + '>' + (U.I[a[1]] || '') + U.esc(a[0]) + '</' + tag + '>';
+      var btn = '<' + tag + (o.href ? ' href="' + o.href + '"' : ' type="button"') + ' class="act' + (o.pri ? ' pri' : '') + '"' + (o.id ? ' id="' + o.id + '"' : '') + ' title="' + U.esc(a[0]) + '">' + (U.I[a[1]] || '') + U.esc(a[0]) + '</' + tag + '>';
       // {menu: [[label, id, icon]]}: more choices on hover, under the button
       html += o.menu ? '<span class="tb-dd">' + btn + '<span class="tb-menu">' + o.menu.map(function (m) { return '<button type="button" id="' + m[1] + '">' + (U.I[m[2]] || m[2] || '') + U.esc(m[0]) + '</button>'; }).join('') + '</span></span>' : btn;
     });

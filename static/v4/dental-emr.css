@@ -106,8 +106,9 @@ html[data-theme-resolved="dark"] {
 /* ---- operatory schedule ---- */
 .ops { display: grid; position: relative; background: var(--op-bg); min-width: 0; }
 .ops-head { display: grid; position: sticky; top: 0; z-index: 3; background: var(--ph); border-bottom: 1px solid var(--b); }
-.ops-head > div { padding: 6px 8px; border-right: 1px solid var(--b2); font-weight: 600; font-size: 12.5px; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
-.ops-head > div small { font-weight: 400; color: var(--m); }
+.ops-head > div { padding: 5px 8px; border-right: 1px solid var(--b2); font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.ops-head .op-n, .ops-head .op-p { display: block; overflow: hidden; text-overflow: ellipsis; }
+.ops-head .op-p { font-weight: 400; color: var(--m); font-size: 11.5px; }
 .ops-head .kind { font-size: 10.5px; font-weight: 500; color: var(--m); text-transform: uppercase; letter-spacing: .06em; }
 .ops-body { display: grid; position: relative; }
 .ops-time { position: relative; border-right: 1px solid var(--b); background: var(--ph); }
@@ -246,3 +247,34 @@ html[data-theme-resolved="dark"] {
 /* the coverage form sits in a narrow pane: two columns */
 #covform .form { grid-template-columns: 1fr 1fr; padding: 0; }
 #covform .form > div:first-child { grid-column: span 2; }
+
+/* ---- fit laptop screens (1180px and up) ---- */
+.main.dsched { grid-template-columns: 200px minmax(0, 1fr) 320px; }
+body.dental .hd-user, body.dental .hd-out, body.dental .hd-tab > a { white-space: nowrap; }
+body.dental .hd-clinic { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.dental:has(.snav) .tb { padding-right: 12px; }            /* Althea is up in the section tabs on these pages */
+body.dental .tb { overflow: hidden; }
+body.dental .tb .act, body.dental .tb .tb-title { flex-shrink: 0; }
+body.dental .tb-end { min-width: 0; flex-shrink: 1; overflow: hidden; }
+body.dental .snav { padding-right: 130px; }                      /* room for Althea */
+@media (max-width: 1500px) {
+  body.dental .hd-search { width: 220px; }
+  body.dental .hd-tab > a { padding: 0 12px; }
+  .main.dsched { grid-template-columns: 180px minmax(0, 1fr) 290px; }
+}
+@media (max-width: 1440px) {   /* secondary toolbar buttons become icons (their name is the tooltip) */
+  body.dental .tb .act:not(.pri) { font-size: 0; padding: 0 7px; }
+  body.dental .tb .act:not(.pri) svg { margin-right: 0; width: 14px; height: 14px; }
+  body.dental .tb .mockflag { display: none; }
+}
+@media (max-width: 1380px) {
+  body.dental .hd-clinic { display: none; }
+  body.dental .hd-search { width: 180px; }
+  .main.dsched { grid-template-columns: 160px minmax(0, 1fr) 260px; }
+}
+@media (max-width: 1260px) {
+  body.dental .hd-name { display: none; }
+  body.dental .wm { padding: 0 12px; margin-right: 6px; letter-spacing: .2em; }
+  body.dental .hd-tab > a { padding: 0 9px; }
+  .main.dsched { grid-template-columns: 150px minmax(0, 1fr) 250px; }
+}
