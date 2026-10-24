@@ -109,25 +109,52 @@ _ready_lock = threading.Lock()
 
 
 def ready(c: C) -> None:
-    """A dental clinic is never an empty shell. The first time anyone in it opens the dental app: a test clinic (/admin)
-    gets the synthetic practice to try; a real clinic gets a starter setup to edit (its office, three chairs, the person
-    signing in as its dentist, weekday hours and a fee schedule) and no patients. Starter rows have sample=2 so the
-    synthetic practice can replace them while nothing has been booked on them."""
+    """A dental clinic is never an empty shell. The first time anyone in it opens the dental app it gets a starter setup
+    to edit (its office, three chairs, the person signing in as its dentist, weekday hours and a fee schedule) and no
+    patients; a test clinic (/admin) also gets the synthetic practice, built in the background. Starter rows have
+    sample=2 so the synthetic practice replaces them. Never fails the request it runs in."""
     if c.org in _ready:
         return
-    with _ready_lock:
-        if c.org in _ready or c.db.scalar(select(m.Location.id).where(m.Location.org_key == c.org)):
-            _ready.add(c.org)
-            return
-        import dental_synth
-        if auth.org_test_clinic(c.user, c.db):
-            try:
-                dental_synth.load(c)
-            except HTTPException:
-                pass
-        else:
+    try:
+        with _ready_lock:
+            if c.org in _ready or c.db.scalar(select(m.Location.id).where(m.Location.org_key == c.org)):
+                _ready.add(c.org)
+                return
+            import dental_synth
             dental_synth.starter(c)
-        _ready.add(c.org)
+            _ready.add(c.org)
+        if auth.org_test_clinic(c.user, c.db):
+            build_sample(c)
+    except Exception as e:
+        c.db.rollback()
+        print(f"[DENTAL SETUP] {c.org}: {type(e).__name__}: {e}"[:300])
+
+
+# the synthetic practice is thousands of rows: built on a background thread with its own database session, so no
+# request waits on it (over a remote database it takes minutes, and waiting requests used up the connection pool)
+_building: dict = {}
+
+
+def build_sample(c: C) -> bool:
+    org, uid = c.org, c.user.id
+    with _ready_lock:
+        if _building.get(org) == "building":
+            return False
+        _building[org] = "building"
+
+    def run():
+        try:
+            import dental_synth
+            with auth.SessionLocal() as db:
+                dental_synth.load(C(db.get(auth.User, uid), db))
+            _building[org] = "done"
+        except HTTPException as e:
+            _building[org] = "done" if e.status_code == 409 else f"failed: {e.detail}"
+        except Exception as e:
+            _building[org] = "failed"
+            print(f"[DENTAL SAMPLE] {org}: {type(e).__name__}: {e}"[:300])
+    threading.Thread(target=run, daemon=True, name="dental-sample").start()
+    return True
 
 
 def today() -> str:
@@ -909,8 +936,17 @@ def appt_delete(aid: int, c: C = Depends(need("front"))):
 # ── synthetic practice ──────────────────────────────────────────────────────────────────────────────────────────
 @router.post("/sample")
 def sample_load(c: C = Depends(need("admin"))):
-    import dental_synth
-    return dental_synth.load(c)
+    """Starts building the synthetic practice; poll /sample/status. 409 when it's already there."""
+    if c.db.scalar(select(m.Location.id).where(m.Location.org_key == c.org, m.Location.sample == 1)):
+        raise HTTPException(409, "The sample practice is already loaded. Remove it first to reload with today's dates.")
+    started = build_sample(c)
+    return {"ok": True, "status": "building", "started": started}
+
+
+@router.get("/sample/status")
+def sample_status(c: C = Depends(need("read"))):
+    st = _building.get(c.org) or ("done" if c.db.scalar(select(m.Location.id).where(m.Location.org_key == c.org, m.Location.sample == 1)) else "none")
+    return {"status": st, "patients": c.db.query(auth.OrgPatient).filter(auth.OrgPatient.org_key == c.org).count()}
 
 
 @router.delete("/sample")

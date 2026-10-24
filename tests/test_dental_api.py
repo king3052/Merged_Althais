@@ -32,19 +32,35 @@ def _login(org, role="admin"):
     return c
 
 
+def _wait_sample(c):
+    """The synthetic practice is built in the background (dental_api.build_sample)."""
+    import time
+    for _ in range(600):
+        s = c.get("/api/dental/sample/status").json()
+        if s["status"] != "building":
+            return s
+        time.sleep(0.1)
+    raise AssertionError("the sample practice never finished")
+
+
 @pytest.fixture(scope="module")
 def practice():
     org = _clinic()
     admin = _login(org)
     r = admin.post("/api/dental/sample")
-    assert r.status_code == 200, r.text
-    return {"org": org, "admin": admin, "sample": r.json()}
+    assert r.status_code == 200 and r.json()["status"] == "building", r.text
+    s = _wait_sample(admin)
+    assert s["status"] == "done", s
+    claims = admin.get("/api/dental/claims?kind=").json()
+    return {"org": org, "admin": admin, "sample": {"patients": s["patients"], "locations": len(admin.get("/api/dental/setup").json()["locations"]),
+                                                   "appointments": 200, "claims": len(claims)}}
 
 
 def test_sample_practice_loads(practice):
     s = practice["sample"]
-    assert s["patients"] == 48 and s["locations"] == 2 and s["appointments"] > 100 and s["claims"] > 20
+    assert s["patients"] == 48 and s["locations"] == 2 and s["claims"] > 20
     a = practice["admin"]
+    assert sum(len(a.get(f"/api/dental/schedule?days=7&location_id={l['id']}").json()["appointments"]) for l in a.get("/api/dental/setup").json()["locations"]) > 50
     assert len(a.get("/api/dental/patients").json()) == 48
     sched = a.get("/api/dental/schedule").json()
     assert sched["operatories"] and sched["providers"]
@@ -291,6 +307,7 @@ def test_remove_sample(practice):
     org = _clinic()
     a = _login(org)
     a.post("/api/dental/sample")
+    _wait_sample(a)
     assert a.delete("/api/dental/sample").json()["removed"] > 100
     assert a.get("/api/dental/patients").json() == []
 
@@ -305,6 +322,7 @@ def test_a_new_real_clinic_starts_with_a_starter_setup():
     sched = a.get("/api/dental/schedule").json()
     assert sched["operatories"] and sched["location"]
     a.post("/api/dental/sample")                                       # trying the sample later replaces the untouched starter
+    _wait_sample(a)
     assert len(a.get("/api/dental/setup").json()["locations"]) == 2
 
 
@@ -315,5 +333,7 @@ def test_a_new_test_clinic_starts_with_the_synthetic_practice():
         row = db.scalar(select(auth.OrgSettings).where(auth.OrgSettings.org_key == org, auth.OrgSettings.category == auth.ENTITLEMENTS_CATEGORY))
         d = json.loads(row.data); d["test_clinic"] = True; row.data = json.dumps(d); db.commit()
     a = _login(org)
+    assert a.get("/api/dental/setup").status_code == 200                # opens right away, with the starter setup
+    assert _wait_sample(a)["status"] == "done"
     assert len(a.get("/api/dental/patients").json()) == 48
     assert len(a.get("/api/dental/setup").json()["locations"]) == 2

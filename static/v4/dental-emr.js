@@ -43,7 +43,20 @@
   DA.needSample = function (page) {
     return '<div class="emptyst"><b>No practice set up yet</b>Add your offices, chairs and providers in Practice setup, or load the synthetic practice to try every screen.<div style="margin-top:12px;display:flex;gap:8px;justify-content:center"><a class="btn" href="/v4/dental/setup">Practice setup</a><button class="btn pri" id="ld-sample">Load synthetic practice</button></div></div>';
   };
-  U.on(document.body, '#ld-sample', 'click', function (b) { b.disabled = true; U.toast('Building the synthetic practice…', 'busy'); DA.post('/sample').then(function (r) { U.toast('Sample practice loaded: ' + r.patients + ' patients, ' + r.appointments + ' appointments, ' + r.claims + ' claims.', 'ok'); setTimeout(function () { location.reload(); }, 700); }, function (e) { b.disabled = false; DA.fail(e); }); });
+  // the synthetic practice is built on the server in the background: start it, then wait until it's there
+  DA.waitForSample = function (then) {
+    var t = U.toast('Building the synthetic practice. This can take a minute or two…', 'busy');
+    var poll = function () { DA.get('/sample/status').then(function (s) {
+      if (s.status === 'building') return setTimeout(poll, 3000);
+      if (t) t.remove();
+      if (s.status === 'done') { U.toast('Sample practice ready: ' + s.patients + ' patients.', 'ok'); setTimeout(then || function () { location.reload(); }, 600); }
+      else U.toast('The sample practice couldn\u2019t be built (' + s.status + '). Try again from Practice setup.', 'warn');
+    }, function () { setTimeout(poll, 5000); }); };
+    poll();
+  };
+  U.on(document.body, '#ld-sample', 'click', function (b) { b.disabled = true; DA.post('/sample').then(function () { DA.waitForSample(); }, function (e) { b.disabled = false; DA.fail(e); }); });
+  // a test clinic's sample practice starts building on its first visit: tell the person and refresh when it's ready
+  setTimeout(function () { if (window.D && D.DENTAL) DA.get('/sample/status').then(function (s) { if (s.status === 'building') DA.waitForSample(); }, function () {}); }, 400);
 
   // patient picker against the server's patient list
   DA.pickPatient = function (title, cb) {

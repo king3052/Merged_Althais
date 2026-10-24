@@ -234,7 +234,9 @@
   };
   // sizes the pane area to the window under whatever chrome the page has (header, toolbar, banner, strip)
   U.fit = function () {
-    var tb = document.querySelector('.tb'); if (tb) document.documentElement.style.setProperty('--tb-top', Math.round(tb.getBoundingClientRect().top + window.scrollY + 4) + 'px');   // Althea sits in the toolbar
+    // Althea sits in the toolbar; in the dental app, up in the section tabs row (level with Schedule, Recall…) when there is one
+    var snav = window.D && D.DENTAL && document.querySelector('.snav'), tb = snav || document.querySelector('.tb');
+    if (tb) document.documentElement.style.setProperty('--tb-top', Math.round(tb.getBoundingClientRect().top + window.scrollY + (snav ? Math.max(0, (tb.offsetHeight - 30) / 2) : 4)) + 'px');
     var m = document.querySelector('.main'); if (!m) return;
     document.documentElement.style.setProperty('--chrome', Math.round(m.getBoundingClientRect().top + window.scrollY) + 'px');
   };
