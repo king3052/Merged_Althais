@@ -61,3 +61,21 @@ def test_only_althais_admins_can_set_it():
     import main
     org, _ = _clinic_admin()
     assert TestClient(main.app).post("/api/admin/orgs/test-clinic", json={"org_key": org, "on": True}).status_code in (401, 403)
+
+
+def test_test_clinic_skips_the_code_for_people_who_turned_it_on(monkeypatch):
+    import auth, main
+    monkeypatch.setenv("MFA_ENFORCE", "1")
+    org, email = _clinic_admin()
+    with auth.SessionLocal() as db:
+        u = db.scalar(select(auth.User).where(auth.User.email == email))
+        u.mfa_enabled = 1
+        db.commit()
+    asks = lambda: TestClient(main.app).post("/login", data={"email": email, "password": "correct horse 1"}).json().get("mfa") is True
+    assert asks()                                                    # a normal clinic: the code from the app
+    main.app.dependency_overrides[auth.require_admin] = lambda: True
+    try:
+        TestClient(main.app).post("/api/admin/orgs/test-clinic", json={"org_key": org, "on": True})
+    finally:
+        main.app.dependency_overrides.clear()
+    assert not asks() and _signs_in_straight_to_the_app(email)       # a test clinic: password only

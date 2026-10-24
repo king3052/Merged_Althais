@@ -680,8 +680,9 @@ def login(
         if getattr(user, "must_change_password", 0):
             return JSONResponse({"error": "That invitation was cancelled or replaced. Use the newest invitation email from your clinic."}, status_code=403)
         return JSONResponse({"error": "Your clinic’s admin has paused this account. Ask them to turn it back on."}, status_code=403)
-    if user.mfa_enabled:
-        # the password was right: the code from the authenticator app finishes the sign-in (security.login_mfa)
+    if user.mfa_enabled and not org_test_clinic(user, db):
+        # the password was right: the code from the authenticator app finishes the sign-in (security.login_mfa).
+        # A test clinic (set in /admin) skips it, even for people who turned two-step login on.
         return JSONResponse({"ok": False, "mfa": True, "challenge": security.make_challenge(user)})
     return finish_sign_in(request, db, user)
 
@@ -1315,7 +1316,8 @@ def org_practice(user: User, db: Session) -> str:
 
 
 def org_test_clinic(user: User, db: Session) -> bool:
-    """A clinic Althais marked as a test clinic in /admin: two-step login is optional there (security.policy_for).
+    """A clinic Althais marked as a test clinic in /admin: no two-step login there, neither the setup screen
+    (security.policy_for) nor the code at sign-in (login), even for people who had turned it on.
     For trying the product, never for a clinic with real patients."""
     row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
     return bool(row and doc.get("test_clinic"))
@@ -2376,12 +2378,12 @@ async def admin_set_test_clinic(request: Request, db: Session = Depends(get_db),
     db.commit()
     # people with a session open now: no setup screen once it's optional, the setup screen again once it isn't
     import security
-    for m in db.scalars(select(User).where(User.organization == key)).all():
+    for m in [u for u in db.scalars(select(User)).all() if _doc_org_key(u) == key]:   # clinics and one-person accounts ("user:...")
         db.execute(sa_update(security.UserSession).where(security.UserSession.user_id == m.id, security.UserSession.revoked == 0, security.UserSession.kind == "user")
                    .values(mfa_setup=1 if (security.mfa_required(m, db) and not m.mfa_enabled) else 0))
     db.commit()
     if before != on:
-        log_admin_action(db, "org_test_clinic_changed", target=key, detail=f"{key}: test clinic {'on (two-step login optional)' if on else 'off'}")
+        log_admin_action(db, "org_test_clinic_changed", target=key, detail=f"{key}: test clinic {'on (no two-step login)' if on else 'off'}")
     return {"ok": True, "org_key": key, "test_clinic": on}
 
 # ──────────────────────────────────────────────────────────────────────────
