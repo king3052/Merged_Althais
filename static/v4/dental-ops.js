@@ -246,3 +246,20 @@
     U.on(app, '#icommit', 'click', function () { DA.post('/import/commit', { source: imp.source, kind: imp.kind, text: txt() }).then(function (j) { U.toast('Imported: ' + j.summary.added + ' added, ' + j.summary.updated + ' updated, ' + j.summary.skipped + ' skipped.', 'ok'); imp.preview = null; imp.text = ''; load(); }, DA.fail); });
   };
 })();
+
+/* Every dental page draws its header and a loading line at once, then fills in when the server answers, so the screen
+   is never blank while the data loads (over the hosted database that can take a few seconds). */
+(function () {
+  if (!window.V || !window.DA) return;
+  var TITLES = { dtoday: 'Today', dschedule: 'Schedule', dpatients: 'Patients', dchart: 'Chart', dbenefits: 'Verify benefits', dclaims: 'Claims', dpreauths: 'Pre-authorizations',
+    dera: 'ERA posting', ddenials: 'Denials & follow-up', dbilling: 'Patient billing', dmessages: 'Messages', drecall: 'Hygiene recall', dforms: 'Forms', dreviews: 'Reviews',
+    dreports: 'Production & collections', dlabs: 'Lab cases', dsetup: 'Practice setup' };
+  Object.keys(TITLES).forEach(function (k) {
+    var page = V.pages[k]; if (!page) return;
+    V.pages[k] = function () {
+      V.app.innerHTML = DA.frame(k, TITLES[k]) + '<div class="emptyst"><span class="toast-spin" aria-hidden="true" style="display:inline-block;vertical-align:-2px;margin-right:8px"></span>Loading ' + U.esc(TITLES[k].toLowerCase()) + '…</div>';
+      U.fit();
+      return page.apply(this, arguments);
+    };
+  });
+})();
