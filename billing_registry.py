@@ -137,6 +137,24 @@ def payer_key(name: str) -> str:
     return KNOWN_PAYERS.get(n.lower(), (n, ""))[0].lower().replace(" ", "_") or "unknown"
 
 
+# the short names the EMR's insurance lists use for payers billing setup knows by their full name
+PAYER_ALIASES = {"uhc": "UnitedHealthcare", "united healthcare": "UnitedHealthcare", "united health care": "UnitedHealthcare",
+                 "aetna ppo": "Aetna", "aetna hmo": "Aetna", "cigna ppo": "Cigna", "bcbs tx": "BCBS", "medicare b": "Medicare",
+                 "medicare part b": "Medicare", "tx medicaid": "Medicaid", "texas medicaid": "Medicaid"}
+
+
+def payer_key_for(name: str, configured) -> str:
+    """The billing payer a claim's payer name means: its own key when the clinic set that payer up, otherwise the key of
+    its common full name (a claim for "UHC" goes to the clinic's UnitedHealthcare setup), otherwise its own key."""
+    k = payer_key(name)
+    if k in configured:
+        return k
+    alias = PAYER_ALIASES.get((name or "").strip().lower())
+    if alias and payer_key(alias) in configured:
+        return payer_key(alias)
+    return k
+
+
 def for_payer(ptype: str) -> list:
     return [r for r in REQUIREMENTS if ptype in r["payerTypes"] and r["scope"] in ("entity", "provider") and r["track"] not in ("identity",)
             and r["id"] not in ("entity_w9",)]

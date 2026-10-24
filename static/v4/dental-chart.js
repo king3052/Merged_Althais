@@ -1,7 +1,8 @@
 /* Althais v4, the dental EMR, part 2: the patient's Chart (V.pages.dchart). One page, tabbed the way a dental office works:
    Chart (tooth chart and procedure list), Perio (six-point charting by keyboard or voice), Treatment plans (phases, insurance
    estimates, pre-auths, presenting to the patient), Imaging (mount, viewer, AI findings from an FDA-cleared vendor),
-   Notes & coding (ambient drafting, CDT suggestions to approve, posting procedures and the claim), Insurance (eligibility and
+   Notes & coding (the note codes itself as it's written, like the medical encounter: CDT codes with teeth and surfaces,
+   On claim / Not used, a live claim check and estimate; signing posts the procedures and makes the claim), Insurance (eligibility and
    benefits), Account (ledger, payments, text-to-pay, payment plans, membership), Rx & labs, Forms & history.
    Server: /api/dental/patients/<mrn> and friends (dental_api.py). */
 (function () {
@@ -24,7 +25,7 @@
   V.pages.dchart = function () {
     var app = V.app, q = V.q, mrn = q.get('mrn'), tab = q.get('tab') || 'chart', X = null, sel = [], picks = [], mode = 'plan', activePlan = 0;
     var perio = { exam: null, readings: null, prev: null, pos: 0, dirty: false }, ben = null, rec = null, me = window.__ALTHAIS_USER__ || {};
-    var visit = { lines: [], note: '', noteId: null, transcript: '', sugs: [], appt: +q.get('appt') || 0 };
+    var visit = { note: '', noteId: null, transcript: '', appt: +q.get('appt') || 0 };
     if (!mrn) {
       app.innerHTML = DA.frame('dchart', 'Chart') + '<div class="main" style="grid-template-columns:minmax(0,1fr)">' + U.pane('Choose a patient', '', '', '<div class="emptyst"><b>Open a chart</b><button class="btn pri" id="pick">Find a patient</button></div>') + '</div>';
       U.fit(); U.search();
@@ -58,7 +59,7 @@
     }
     function tabs() {
       var open = X.plans.reduce(function (n, p) { return n + p.items.filter(function (i) { return ['proposed', 'accepted', 'scheduled'].indexOf(i.status) >= 0; }).length; }, 0);
-      var T = [['chart', 'Chart'], ['perio', 'Perio', X.perio.length || ''], ['plans', 'Treatment plans', open || ''], ['imaging', 'Imaging', X.images.length || ''], ['notes', 'Notes & coding', X.suggestions.length ? X.suggestions.length + ' to review' : ''], ['insurance', 'Insurance'], ['account', 'Account'], ['rx', 'Rx & labs'], ['forms', 'Forms & history']];
+      var T = [['chart', 'Chart'], ['perio', 'Perio', X.perio.length || ''], ['plans', 'Treatment plans', open || ''], ['imaging', 'Imaging', X.images.length || ''], ['notes', 'Notes & coding'], ['insurance', 'Insurance'], ['account', 'Account'], ['rx', 'Rx & labs'], ['forms', 'Forms & history']];
       return '<div class="dtabs">' + T.map(function (t) { return '<button data-tab="' + t[0] + '" class="' + (t[0] === tab ? 'on' : '') + '">' + t[1] + (t[2] ? '<span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
     }
     function draw() {
@@ -263,24 +264,69 @@
       DA.get('/images/' + id).then(function (x) { imgCache[id] = x; show(x); }, DA.fail);
     }
 
-    /* ---------------- Notes & coding ---------------- */
+    /* ---------------- Notes & coding: like the medical encounter, the note codes itself as it's written ---------------- */
+    function seedVisit() {
+      if (visit.codes) return;
+      visit.codes = [];
+      var ap = visit.appt && X.appointments.filter(function (a) { return a.id === visit.appt; })[0];
+      (ap && ap.procedures || []).filter(function (p) { return p.code; }).forEach(function (p) {
+        visit.codes.push({ code: p.code, tooth: p.tooth || '', surface: p.surface || '', quad: p.quad || '', desc: DA.desc(p.code), conf: 0, why: 'Booked for this visit', source: 'booked', state: 'acc', manual: true });
+      });
+    }
+    var codeKey = function (c) { return c.code + '|' + (c.tooth || '') + '|' + (c.quad || ''); };
+    var onClaim = function () { return (visit.codes || []).filter(function (c) { return c.state === 'acc' && /^D\d{4}$/.test(c.code); }); };
+    function codingPane() {
+      var cs = visit.codes || [], k = visit.check || {}, used = onClaim(), red = (k.edits || []).filter(function (e) { return e.lvl === 'red'; }).length;
+      var status = visit.busy ? 'Althea is coding the note…' : !cs.length ? 'Codes appear as you write the note' : used.length + ' of ' + cs.length + ' on the claim' + (visit.ai === false ? ' · rules only (AI coder unavailable)' : '');
+      var rows = cs.map(function (c, n) {
+        return '<tr class="' + (c.state === 'rej' ? 'mut' : '') + '"><td><b class="mono">' + E(c.code) + '</b>' + (c.tooth || c.surface || c.quad ? '<div class="mono" style="font-size:11.5px">' + E((c.tooth ? '#' + c.tooth : '') + (c.surface ? ' ' + c.surface : '') + (c.quad ? ' ' + c.quad : '')) + '</div>' : '') + '</td>' +
+          '<td class="wrap"><div>' + E(c.desc || DA.desc(c.code) || 'Procedure') + '</div>' + (c.why ? '<div class="mut" style="font-size:11.5px">' + E(c.why) + '</div>' : '') + '</td>' +
+          '<td class="num">' + (c.conf ? '<b class="' + (c.conf < 80 ? 's-amb' : 's-grn') + '">' + c.conf + '%</b>' : '<span class="mut" style="font-size:11px">' + (c.manual ? 'added' : '') + '</span>') + '</td>' +
+          '<td style="white-space:nowrap"><button class="mini' + (c.state === 'acc' ? ' pri' : '') + '" data-acc="' + n + '" title="' + (c.state === 'acc' ? 'On the claim. Click to take it off.' : 'Not on the claim. Click to add it.') + '">' + (c.state === 'acc' ? '✓ On claim' : 'Not used') + '</button>' + (c.manual ? ' <button class="mini" data-rmcode="' + n + '" title="Remove">' + U.I.x + '</button>' : '') + '</td></tr>';
+      }).join('');
+      var check = !used.length ? '' : '<div class="dp-sec"><div class="dp-h">Claim check' + (k.score != null ? ' <span class="end"><b class="' + (k.score >= 85 ? 's-grn' : k.score >= 65 ? 's-amb' : 's-red') + '">' + k.score + '</b> / 100</span>' : '') + '</div>' +
+        ((k.edits || []).map(function (e) { return '<div class="' + (e.lvl === 'red' ? 's-red' : 's-amb') + '" style="padding:2px 0;font-size:12px">' + (e.lvl === 'red' ? U.err : U.warn) + E(e.msg) + '</div>'; }).join('') || (k.total != null ? '<div class="s-grn" style="font-size:12px">' + U.I.check + 'Clean: nothing a payer would deny on.</div>' : '')) +
+        '<div style="margin-top:8px">' + U.kv([['Fees', M(k.total || 0)]].concat(k.insured ? [['Insurance estimate', k.insurance == null ? '<span class="mut">verify benefits</span>' : '<span class="s-grn">' + M(k.insurance) + '</span>'], ['Patient estimate', k.patient == null ? '' : '<b>' + M(k.patient) + '</b>']] : [['Patient pays', '<b>' + M(k.total || 0) + '</b>']])) + '</div></div>';
+      return '<section class="pane" id="codepane"><div class="ph">Coding <span class="sub">' + E(status) + '</span><span class="end"><button class="mini" id="getcodes"' + (visit.busy ? ' disabled' : '') + ' title="Re-run the coder on the note now">Rebuild</button></span></div><div class="pbody">' +
+        '<table class="g tight"><thead><tr><th>Code</th><th>Procedure</th><th class="num">Conf.</th><th></th></tr></thead><tbody>' + (rows || U.empty(4, visit.busy ? 'Reading the note…' : 'Write or record the note: the CDT codes, teeth and surfaces come from it.')) + '</tbody></table>' +
+        '<div class="dp-sec" style="display:flex;gap:5px;align-items:center"><input class="mini mono" id="addcode" placeholder="D2392" style="width:70px"><input class="mini" id="addtooth" placeholder="Tooth" style="width:52px"><input class="mini" id="addsurf" placeholder="Surf / quad" style="width:78px"><button class="mini" id="addcodebtn">' + U.I.plus + 'Add code</button></div>' +
+        check + '<div class="dp-sec mut" style="font-size:11.5px">Suggestions from the note; the dentist decides what’s billed by signing.</div></div>' +
+        '<div class="dp-f"><button class="btn" id="nsave">Save draft</button><button class="btn pri" id="nsign"' + (red ? ' title="The claim check found problems; you can still sign and fix the claim before it goes out"' : '') + '>Sign' + (used.length ? ' and post ' + used.length + ' procedure' + (used.length === 1 ? '' : 's') : ' note') + '</button></div></section>';
+    }
     function notesTab() {
-      if (!visit.lines.length && visit.appt) {
-        var ap = X.appointments.filter(function (a) { return a.id === visit.appt; })[0];
-        if (ap) visit.lines = (ap.procedures || []).filter(function (p) { return p.code; }).map(function (p) { return { code: p.code, tooth: p.tooth || '', surface: p.surface || '', quad: p.quad || '' }; });
-      }
-      var sugs = X.suggestions;
+      seedVisit();
       var notes = X.notes.map(function (n) { return '<div class="hrow" data-note="' + n.id + '"><div><div><b>' + DA.us(n.date) + '</b> ' + E(n.kind === 'medical_history' ? 'Medical history' : n.kind === 'ambient_draft' ? 'Draft from recording' : 'Progress note') + '</div><div class="s">' + E((n.text || '').split('\n')[0].slice(0, 70)) + '</div></div><div class="r">' + (n.status === 'signed' ? '<span class="s-grn">Signed</span>' : '<span class="s-amb">Draft</span>') + '</div></div>'; }).join('');
-      var lineRows = visit.lines.map(function (l, k) { return '<tr><td><input class="mini mono" data-vl="' + k + '" data-f="code" value="' + E(l.code) + '" style="width:64px"></td><td><input class="mini" data-vl="' + k + '" data-f="tooth" value="' + E(l.tooth) + '" style="width:44px"></td><td><input class="mini" data-vl="' + k + '" data-f="surface" value="' + E(l.surface) + '" style="width:54px"></td><td><input class="mini" data-vl="' + k + '" data-f="quad" value="' + E(l.quad) + '" style="width:40px"></td><td class="wrap">' + E(DA.desc(l.code)) + '</td><td class="num">' + M(DA.fee(l.code)) + '</td><td><button class="mini" data-vl-rm="' + k + '">' + U.I.x + '</button></td></tr>'; }).join('');
-      return '<div class="main" style="grid-template-columns:260px minmax(0,1fr) 340px;height:calc(100vh - var(--chrome, 82px))">' +
+      if (!visit.ran && (visit.note || '').trim().length > 15) setTimeout(function () { runCodes(); }, 50);
+      return '<div class="main" style="grid-template-columns:230px minmax(0,1fr) minmax(360px,420px);height:calc(100vh - var(--chrome, 82px))">' +
         U.pane('Notes', X.notes.length + '', '<a href="#" id="newnote">New</a>', notes || '<div class="emptyst">No notes yet.</div>') +
         '<section class="pane"><div class="chartbar"><b>Visit note</b><select class="mini" id="ntpl" style="height:25px"><option value="">Template…</option>' + Object.keys(NOTE_TPL).map(function (k) { return '<option>' + E(k) + '</option>'; }).join('') + '</select>' +
-          '<button class="cbtn" id="nrec">' + U.I.mic + (rec && rec.ambient ? 'Stop recording' : 'Record visit') + '</button><button class="cbtn" id="ndraft">Draft note from recording</button><button class="cbtn" id="ncheck">Check coding</button>' +
-          '<span class="sel-info">' + (visit.transcript ? visit.transcript.split(' ').length + ' words recorded' : 'Recording drafts the note; the dentist reviews and signs') + '</span></div>' +
-          '<div class="pbody" style="display:flex;flex-direction:column"><textarea class="ed" id="ntext" style="flex:1;min-height:260px;border:0;border-bottom:1px solid var(--b);padding:10px 12px;resize:none;font-size:13px;line-height:1.55" placeholder="Findings by tooth and surface, anesthetic, what was done, next visit">' + E(visit.note) + '</textarea>' +
-          U.sect('Procedures to post today', visit.lines.length + '', '<table class="g tight"><thead><tr><th>Code</th><th>Tooth</th><th>Surf</th><th>Quad</th><th>Procedure</th><th class="num">Fee</th><th></th></tr></thead><tbody>' + (lineRows || U.empty(7, 'Add procedures, or approve the coding suggestions.')) + '</tbody></table><div style="padding:8px 10px;display:flex;gap:6px"><button class="mini" id="vladd">' + U.I.plus + 'Add line</button><span style="margin-left:auto"></span><button class="btn" id="nsave">Save draft</button><button class="btn pri" id="nsign">Sign note and post procedures</button></div>') + '</div></section>' +
-        U.pane('Coding review', sugs.length ? sugs.length + ' to review' : '', '', '<div class="dp-sec mut" style="font-size:12px">Compares the note with the procedures: what’s documented but not billed, and what’s billed lower than documented. Suggestions only; a dentist approves each one.</div><div class="dpad">' +
-          (sugs.map(function (s) { return '<div class="sug ' + s.kind + '"><div><span class="c">' + E(s.code) + '</span>' + (s.tooth ? ' #' + E(s.tooth) : '') + (s.surface ? ' ' + E(s.surface) : '') + (s.quad ? ' ' + E(s.quad) : '') + ' <span class="chip ' + (s.kind === 'undercoded' ? 'red' : s.kind === 'missed' ? 'amb' : 'blue') + '">' + E(s.kind === 'missed' ? 'Missed' : s.kind === 'undercoded' ? 'Undercoded' : 'AI suggestion') + '</span></div><div>' + E(s.message) + '</div>' + (s.evidence ? '<div class="ev">“' + E(s.evidence) + '”</div>' : '') + '<div class="acts"><button class="mini pri" data-sug="' + s.id + '" data-d="approved">Approve</button><button class="mini" data-sug="' + s.id + '" data-d="rejected">Reject</button><span class="mut" style="margin-left:auto;font-size:11px">' + E(s.source) + '</span></div></div>'; }).join('') || '<div class="mut">Nothing to review. Write or record the note, then Check coding.</div>') + '</div>') + '</div>';
+          '<button class="cbtn" id="nrec">' + U.I.mic + (rec && rec.ambient ? 'Stop recording' : 'Record visit') + '</button><button class="cbtn" id="ndraft">Write note from recording</button>' +
+          '<span class="sel-info">' + (visit.transcript ? visit.transcript.split(' ').length + ' words recorded' : 'Codes update as you write') + '</span></div>' +
+          '<div class="pbody" style="display:flex;flex-direction:column"><textarea class="ed" id="ntext" style="flex:1;min-height:300px;border:0;padding:12px 14px;resize:none;font-size:13px;line-height:1.6" placeholder="S: what the patient reports&#10;O: findings by tooth and surface, X-rays taken, perio&#10;Treatment: anesthetic, what was done on which teeth and surfaces&#10;P: next visit">' + E(visit.note) + '</textarea></div></section>' +
+        codingPane() + '</div>';
+    }
+    function redrawCoding() { var p = document.getElementById('codepane'); if (p) p.outerHTML = codingPane(); else if (tab === 'notes') draw(); }
+    var codeTimer = null, checkTimer = null;
+    function scheduleCodes(ms) { clearTimeout(codeTimer); codeTimer = setTimeout(runCodes, ms || 1800); }
+    function runCodes() {
+      var note = noteText().trim();
+      if (note.length < 15) return;
+      visit.busy = true; visit.ran = true; redrawCoding();
+      DA.post(P('/code-note'), { note: note }).then(function (r) {
+        var old = {}; (visit.codes || []).forEach(function (c) { old[codeKey(c)] = c; });
+        var fresh = r.codes.map(function (c) { var o = old[codeKey(c)]; return Object.assign({}, c, { state: o ? o.state : 'acc' }); });
+        var keep = (visit.codes || []).filter(function (c) { return c.manual && !fresh.some(function (f) { return codeKey(f) === codeKey(c); }); });
+        visit.codes = fresh.concat(keep); visit.ai = r.ai; visit.busy = false;
+        refreshCheck(0);
+      }, function (e) { visit.busy = false; redrawCoding(); DA.fail(e); });
+    }
+    function refreshCheck(ms) {
+      clearTimeout(checkTimer);
+      checkTimer = setTimeout(function () {
+        DA.post(P('/claim-preview'), { lines: onClaim().map(function (c) { return { code: c.code, tooth: c.tooth, surface: c.surface, quad: c.quad }; }) })
+          .then(function (k) { visit.check = k; redrawCoding(); }, function () { redrawCoding(); });
+      }, ms == null ? 300 : ms);
+      redrawCoding();
     }
     function noteText() { var t = document.getElementById('ntext'); if (t) visit.note = t.value; return visit.note; }
     function ambient() {
@@ -296,17 +342,10 @@
       noteText();
       if (rec && rec.ambient) { rec.stop(); rec = null; }
       DA.post(P('/notes/ambient'), { transcript: visit.transcript || undefined, appt_id: visit.appt || undefined, provider_id: myProv().id }).then(function (d) {
-        visit.note = d.note; visit.noteId = d.note_id; visit.transcript = d.transcript;
-        var have = visit.lines.map(function (l) { return l.code + '|' + l.tooth; });
-        d.procedures.forEach(function (p) { if (have.indexOf(p.code + '|' + p.tooth) < 0) visit.lines.push({ code: p.code, tooth: p.tooth, surface: p.surface, quad: p.quad }); });
-        U.toast('Draft note ready. Review every line before signing.', 'ok'); load();
+        visit.note = d.note; visit.noteId = d.note_id; visit.transcript = d.transcript; visit.ran = false;
+        U.toast('Draft note ready; coding it now. Review every line before signing.', 'ok'); load();
       }, DA.fail);
     }
-    function codeCheck() {
-      noteText();
-      DA.post(P('/code-check'), { note: visit.note, lines: visit.lines, note_id: visit.noteId }).then(function (r) { U.toast(r.suggestions.length ? r.suggestions.length + ' coding suggestion' + (r.suggestions.length === 1 ? '' : 's') + ' to review' + (r.ai ? '' : ' (rules only; the AI coder isn’t configured)') + '.' : 'The procedures match the note.', r.suggestions.length ? 'info' : 'ok'); load(); }, DA.fail);
-    }
-
     /* ---------------- Insurance ---------------- */
     function insuranceTab() {
       var c = cov() || {}, b = ben;
@@ -435,28 +474,30 @@
     U.on(app, '#iupload', 'click', function () { U.pickFile('image/png,image/jpeg,image/webp', false, function (f) { U.readFile(f[0]).then(function (d) { DA.post(P('/images'), { data: d, kind: 'photo' }).then(function () { U.toast('Uploaded.', 'ok'); load(); }, DA.fail); }); }); });
     // notes
     U.on(app, '#ntpl', 'change', function (s) { if (!s.value) return; noteText(); visit.note = (visit.note ? visit.note + '\n\n' : '') + NOTE_TPL[s.value]; draw(); });
-    U.on(app, '#newnote', 'click', function (a, e) { e.preventDefault(); visit = { lines: [], note: '', noteId: null, transcript: '', appt: visit.appt }; draw(); });
-    U.on(app, '[data-note]', 'click', function (el) { var n = X.notes.filter(function (x) { return x.id === +el.dataset.note; })[0]; if (!n) return; if (n.status === 'signed') return U.modal('Note ' + DA.us(n.date), '<pre style="white-space:pre-wrap;font:inherit;margin:0">' + E(n.text) + '</pre><div class="mut" style="margin-top:8px">Signed by ' + E(n.signed_by) + '</div>', [['Close', '', function () {}]]); visit.note = n.text; visit.noteId = n.id; draw(); });
+    U.on(app, '#newnote', 'click', function (a, e) { e.preventDefault(); visit = { note: '', noteId: null, transcript: '', appt: visit.appt }; draw(); });
+    U.on(app, '[data-note]', 'click', function (el) { var n = X.notes.filter(function (x) { return x.id === +el.dataset.note; })[0]; if (!n) return; if (n.status === 'signed') return U.modal('Note ' + DA.us(n.date), '<pre style="white-space:pre-wrap;font:inherit;margin:0">' + E(n.text) + '</pre><div class="mut" style="margin-top:8px">Signed by ' + E(n.signed_by) + '</div>', [['Close', '', function () {}]]); visit.note = n.text; visit.noteId = n.id; visit.ran = false; draw(); });
     U.on(app, '#nrec', 'click', ambient);
     U.on(app, '#ndraft', 'click', draftNote);
-    U.on(app, '#ncheck', 'click', codeCheck);
-    U.on(app, '[data-sug]', 'click', function (b) {
-      var s = X.suggestions.filter(function (x) { return x.id === +b.dataset.sug; })[0], d = b.dataset.d;
-      DA.post('/suggestions/' + s.id, { decision: d }).then(function () {
-        if (d === 'approved') { visit.lines = visit.lines.filter(function (l) { return !(s.billed && l.code === s.billed && (!s.tooth || l.tooth === s.tooth)); }); visit.lines.push({ code: s.code, tooth: s.tooth, surface: s.surface, quad: s.quad }); }
-        noteText(); U.toast(d === 'approved' ? s.code + ' added to today’s procedures.' : 'Rejected.', 'ok'); load();
-      }, DA.fail);
-    });
-    U.on(app, '[data-vl]', 'change', function (i) { visit.lines[+i.dataset.vl][i.dataset.f] = i.value.trim().toUpperCase(); noteText(); draw(); });
-    U.on(app, '[data-vl-rm]', 'click', function (b) { visit.lines.splice(+b.dataset.vlRm, 1); noteText(); draw(); });
-    U.on(app, '#vladd', 'click', function () { noteText(); visit.lines.push({ code: 'D', tooth: '', surface: '', quad: '' }); draw(); });
+    U.on(app, '#ntext', 'input', function () { visit.note = document.getElementById('ntext').value; scheduleCodes(); });
+    U.on(app, '#getcodes', 'click', function () { runCodes(); });
+    U.on(app, '[data-acc]', 'click', function (b) { var c = visit.codes[+b.dataset.acc]; c.state = c.state === 'acc' ? 'rej' : 'acc'; refreshCheck(); });
+    U.on(app, '[data-rmcode]', 'click', function (b) { visit.codes.splice(+b.dataset.rmcode, 1); refreshCheck(); });
+    var addCode = function () {
+      var code = (document.getElementById('addcode').value || '').trim().toUpperCase().replace(/^(\d{4})$/, 'D$1'), tooth = (document.getElementById('addtooth').value || '').trim().replace('#', ''), sq = (document.getElementById('addsurf').value || '').trim().toUpperCase();
+      if (!/^D\d{4}$/.test(code)) return U.toast('Enter a CDT code like D2392.', 'warn');
+      var quad = /^(UR|UL|LL|LR|UA|LA)$/.test(sq) ? sq : '', surf = quad ? '' : sq.replace(/[^MODBLIF]/g, '');
+      seedVisit(); visit.codes.push({ code: code, tooth: tooth, surface: surf, quad: quad, desc: DA.desc(code), conf: 0, why: 'Added by ' + (me.full_name || me.email || 'you'), state: 'acc', manual: true });
+      refreshCheck(0);
+    };
+    U.on(app, '#addcodebtn', 'click', addCode);
+    U.on(app, '#addcode, #addtooth, #addsurf', 'keydown', function (i, e) { if (e.key === 'Enter') addCode(); });
     var saveNote = function (sign) { noteText(); return DA.post(P('/notes'), { id: visit.noteId || undefined, text: visit.note, kind: 'progress', appt_id: visit.appt || undefined, provider_id: myProv().id, sign: sign, transcript: visit.transcript || undefined }).then(function (n) { visit.noteId = n.id; return n; }); };
     U.on(app, '#nsave', 'click', function () { saveNote(false).then(function () { U.toast('Draft saved.', 'ok'); load(); }, DA.fail); });
     U.on(app, '#nsign', 'click', function () {
       if (!noteText().trim()) return U.toast('Write the note first.', 'warn');
-      var lines = visit.lines.filter(function (l) { return /^D\d{4}$/.test(l.code); });
+      var lines = onClaim().map(function (c) { return { code: c.code, tooth: c.tooth, surface: c.surface, quad: c.quad }; });
       saveNote(true).then(function () { return lines.length ? DA.post(P('/procedures'), { lines: lines, provider_id: myProv().id, date: DA.today(), claim: !!(cov() && cov().payer) }) : null; })
-        .then(function (r) { U.toast('Note signed' + (lines.length ? ', ' + lines.length + ' procedure' + (lines.length === 1 ? '' : 's') + ' posted' + (r && r.claim ? ', claim ' + r.claim.claim_no + ' ' + (r.claim.status === 'ready' ? 'ready to send' : 'needs a look') : '') : '') + '.', 'ok'); visit = { lines: [], note: '', noteId: null, transcript: '', appt: 0 }; load(); }, DA.fail);
+        .then(function (r) { U.toast('Note signed' + (lines.length ? ', ' + lines.length + ' procedure' + (lines.length === 1 ? '' : 's') + ' posted' + (r && r.claim ? ', claim ' + r.claim.claim_no + ' ' + (r.claim.status === 'ready' ? 'ready to send' : 'needs a look') : '') : '') + '.', 'ok'); visit = { note: '', noteId: null, transcript: '', appt: 0 }; load(); }, DA.fail);
     });
     // insurance
     U.on(app, '#covsave', 'click', function () { DA.post(P('/coverage'), U.values(document.getElementById('covform'))).then(function () { ben = null; U.toast('Saved. Verify benefits again for the new details.', 'ok'); load(); }, DA.fail); });

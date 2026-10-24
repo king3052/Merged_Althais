@@ -61,7 +61,12 @@ def _today():
 
 
 def _iso(d):
-    return d.isoformat() if d else ""
+    """Times are stored in UTC without a zone: say so, or browsers show them in local time as if they were local."""
+    if not d:
+        return ""
+    if isinstance(d, dt.datetime) and d.tzinfo is None:
+        return d.isoformat() + "Z"
+    return d.isoformat()
 
 
 def _date(s):
@@ -1269,11 +1274,27 @@ def content_hash(c: dict) -> str:
     return hashlib.sha256(json.dumps(keep, sort_keys=True, default=str).encode()).hexdigest()
 
 
-def provider_for(data, name: str):
-    n = re.sub(r"[^a-z]", "", (name or "").lower().replace("dr.", "").replace("dr ", ""))
+def provider_for(data, name: str, npi: str = ""):
+    """The billing provider a claim names: by NPI when the claim has one, else by name in either order ("Lee, Jordan"
+    in the EMR is "Jordan Lee" in billing), ignoring titles and credentials."""
+    npi = re.sub(r"\D", "", npi or "")
+    if npi:
+        hit = next((pv for pv in data["providers"] if pv.get("npi") == npi), None)
+        if hit:
+            return hit
+
+    def forms(x):
+        x = re.sub(r"\b(dr|md|do|np|pa|fnp|rn|dds|dmd|c)\b\.?", " ", (x or "").lower().replace("-", " "))
+        if "," in x:
+            last, first = x.split(",", 1)
+            x2 = first + " " + last
+        else:
+            x2 = x
+        return {re.sub(r"[^a-z]", "", x), re.sub(r"[^a-z]", "", x2)} - {""}
+    want = forms(name)
     for pv in data["providers"]:
-        pn = re.sub(r"[^a-z]", "", (pv.get("name") or "").lower())
-        if n and pn and (n == pn or n in pn or pn in n):
+        have = forms(pv.get("name"))
+        if want and have and any(a == b or a in b or b in a for a in want for b in have):
             return pv
     return None
 
@@ -1295,8 +1316,8 @@ def claim_decision(db, org, env, data, user, c: dict, connector=None, by_althais
         blockers.append({"requirement": "biller_access", "title": "Your claim submission access",
                          "reason": "You don't have claim submission access yet" if not a or a.status == "PENDING" else "Your claim submission access was turned off",
                          "next": "Finish your billing checklist; a clinic owner then approves access", "responsible": "owner"})
-    pv = provider_for(data, c.get("provider"))
-    payer_key = reg.payer_key(c.get("payer"))
+    pv = provider_for(data, c.get("provider"), c.get("npi") or "")
+    payer_key = reg.payer_key_for(c.get("payer"), {p["key"] for p in data.get("payers") or []})
     rd = readiness(db, org, env, data, payer_key, pv["id"] if pv else "", connector)
     blockers += rd["blockers"]
     import claim_attachments as ca
@@ -1334,7 +1355,7 @@ def transmit(db, org, env, data, user, c: dict, release=False, by_althais=False)
                                    environment=env, user_id=user.id)
     if not hold:
         db.add(tx)
-    pv = provider_for(data, c.get("provider")) or {}
+    pv = provider_for(data, c.get("provider"), c.get("npi") or "") or {}
     sendable = dict(c, billingProfile=data, npi=c.get("npi") or pv.get("npi") or "", providerTaxonomy=pv.get("taxonomy") or "")   # the 837 needs the clinic's billing profile and the provider's NPI
     import claim_attachments as ca
     docs = ca.bundle(db, org, cid)
@@ -2208,7 +2229,7 @@ _STEPS = [("signed", "Signed"), ("queued", "Queued"), ("submitted", "Submitted")
 
 def _track_json(t, events):
     snap = json.loads(t.snapshot or "{}")
-    iso = lambda d: d.isoformat() if d else ""
+    iso = _iso   # UTC, labeled as such
     rejected = t.ack == "REJECTED" or t.payer_status == "REJECTED"
     reached = {"signed": snap.get("signedAt") or iso(t.created_at), "queued": iso(t.created_at),
                "submitted": iso(t.sent_at) if t.delivery == "SENT" else "",

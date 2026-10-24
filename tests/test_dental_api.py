@@ -337,3 +337,17 @@ def test_a_new_test_clinic_starts_with_the_synthetic_practice():
     assert _wait_sample(a)["status"] == "done"
     assert len(a.get("/api/dental/patients").json()) == 48
     assert len(a.get("/api/dental/setup").json()["locations"]) == 2
+
+
+def test_coding_a_visit_note_like_the_medical_encounter(practice):
+    a = practice["admin"]
+    mrn = a.get("/api/dental/patients").json()[12]["mrn"]
+    note = "Periodic exam. #30 MOD composite restoration placed. Four bitewings taken today. Adult prophylaxis completed."
+    r = a.post(f"/api/dental/patients/{mrn}/code-note", json={"note": note}).json()
+    got = {(c["code"], c["tooth"]) for c in r["codes"]}
+    assert {("D2393", "30"), ("D0274", ""), ("D1110", ""), ("D0120", "")} <= got
+    assert all(c["why"] and c["conf"] for c in r["codes"])
+    assert r["check"]["total"] > 0 and isinstance(r["check"]["edits"], list)
+    k = a.post(f"/api/dental/patients/{mrn}/claim-preview", json={"lines": [{"code": "D2392", "tooth": "8", "surface": "MO"}]}).json()
+    assert any(e["lvl"] == "red" for e in k["edits"])                 # a back-tooth filling code on a front tooth
+    assert a.post(f"/api/dental/patients/{mrn}/code-note", json={"note": "short"}).json()["codes"] == []

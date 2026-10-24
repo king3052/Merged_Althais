@@ -138,6 +138,88 @@ async def estimate(mrn: str, request: Request, c: C = Depends(need("front"))):
     return rcm.estimate((cov.benefits or {}) if cov else {}, lines, history(c, mrn), today(), _age(p.get("dob")))
 
 
+# ── coding a visit, the way the medical encounter does ─────────────────────────────────────────────────────────
+@router.post("/patients/{mrn}/code-note")
+async def code_visit(mrn: str, request: Request, c: C = Depends(need("clinical_read"))):
+    """CDT codes for a visit note: the AI coder (dental_coding) reads the note, and the dental rules add anything it
+    missed or billed low. Each code comes with its tooth, surfaces, confidence and the reason. Nothing is billed here;
+    the dentist keeps or drops each code and signs."""
+    p = patient_dict(patient(c, mrn))
+    b = await request.json()
+    note = (b.get("note") or "").strip()
+    if len(note) < 15:
+        return {"codes": [], "ai": False, "check": check_lines(c, mrn, [])}
+    ai_codes, ai = [], False
+    try:
+        import dental_coding
+        import main
+        key, hit = main._ai_cache_get("dental_code", {"note": note})
+        ai_codes = hit if hit is not None else dental_coding.clean(dental_coding._ask_ai(note))
+        if hit is None:
+            main._ai_cache_put(key, ai_codes)
+        ai = True
+    except HTTPException as e:
+        if e.status_code == 429:
+            raise
+    except Exception as e:
+        print(f"[DENTAL CODING] {type(e).__name__}")   # no AI key or the service is down: the rules still code the note
+    fees = {f.code: f for f in c.q(m.FeeSchedule, m.FeeSchedule.payer == "")}
+    out = []
+    for x in ai_codes:
+        if x.get("type") != "CDT":
+            continue
+        out.append({"code": x["code"], "tooth": x.get("tooth", ""), "surface": x.get("surface", ""), "quad": x.get("quad", ""),
+                    "desc": fees[x["code"]].desc if x["code"] in fees else x.get("description", ""), "conf": x.get("confidence", 0),
+                    "why": (x.get("justification", "") + (" " + x["documentation_gap"] if x.get("documentation_gap") else "")).strip(), "source": "ai"})
+    # the rules: what the note documents that the AI left out, and codes it billed lower than documented
+    for f in rcm.find_missed(note, [{"code": o["code"], "tooth": o["tooth"], "surface": o["surface"], "quad": o["quad"]} for o in out], _age(p.get("dob"))):
+        row = {"code": f["code"], "tooth": f["tooth"], "surface": f["surface"], "quad": f["quad"], "desc": fees[f["code"]].desc if f["code"] in fees else "",
+               "conf": 85 if f["kind"] == "missed" else 80, "source": "rules",
+               "why": f"From the note: \u201c{f['evidence'].strip()}\u201d" if f["kind"] == "missed" and f.get("evidence") else f["message"]}
+        if f["kind"] == "undercoded" and f.get("billed"):
+            low = next((o for o in out if o["code"] == f["billed"] and (not f["tooth"] or o["tooth"] == f["tooth"])), None)
+            if low:
+                low.update(row, why=f"{f['message']} (was {f['billed']})")
+                continue
+        out.append(row)
+    return {"codes": out, "ai": ai, "check": check_lines(c, mrn, out)}
+
+
+@router.post("/patients/{mrn}/claim-preview")
+async def claim_preview(mrn: str, request: Request, c: C = Depends(need("clinical_read"))):
+    b = await request.json()
+    return check_lines(c, mrn, b.get("lines") or [])
+
+
+def check_lines(c: C, mrn: str, lines: list) -> dict:
+    """The claim check for codes that aren't a claim yet: dental_rules, the plan's frequency limits, what the payer will
+    want attached, and the insurance estimate."""
+    p = patient_dict(patient(c, mrn))
+    lines = [dict(l, code=(l.get("code") or "").upper(), fee=l.get("fee") if l.get("fee") not in (None, "") else fee_for(c, (l.get("code") or "").upper())) for l in lines if l.get("code")]
+    edits = [{"lvl": "red" if f["severity"] == "error" else "amb", "msg": f["message"]} for f in dental_rules.check({"lines": lines, "dos": today(), "dob": p.get("dob")})] if lines else []
+    cov = coverage(c, mrn)
+    est = None
+    if cov and cov.benefits and lines:
+        prior = [h for h in history(c, mrn) if h["date"] != today()]
+        for f in rcm.frequency_check(cov.benefits, prior, lines, today(), _age(p.get("dob"))):
+            if not f["ok"]:
+                edits.append({"lvl": "amb", "msg": f"{f['code']}: {f['reason']}" + (f"; covered again {f['next_eligible']}" if f["next_eligible"] else "")})
+        est = rcm.estimate(cov.benefits, lines, prior, today(), _age(p.get("dob")))
+    elif lines and cov and cov.payer:
+        edits.append({"lvl": "amb", "msg": "Benefits haven't been verified for this patient"})
+    for n in rcm.attachments_needed(lines):
+        if n["kind"] != "narrative":
+            edits.append({"lvl": "amb", "msg": f"{n['code']}{(' #' + n['tooth']) if n.get('tooth') else ''}: the payer will want a {n['why']} (attach it on the claim)"})
+    seen, uniq = set(), []
+    for e in edits:
+        if e["msg"] not in seen:
+            seen.add(e["msg"])
+            uniq.append(e)
+    red = sum(e["lvl"] == "red" for e in uniq)
+    return {"edits": uniq, "score": max(5, 98 - 25 * red - 7 * (len(uniq) - red)) if lines else None, "total": round(sum(float(l["fee"] or 0) for l in lines), 2),
+            "insurance": est["insurance"] if est else None, "patient": est["patient"] if est else None, "insured": bool(cov and cov.payer and cov.payer != "Self-pay")}
+
+
 # ── claims ──────────────────────────────────────────────────────────────────────────────────────────────────────
 def _claim_no(c: C) -> str:
     n = c.db.scalar(select(func.count(m.Claim.id)).where(m.Claim.org_key == c.org)) or 0
