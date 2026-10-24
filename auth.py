@@ -22,7 +22,7 @@ from datetime import timezone, timedelta
 
 from fastapi import APIRouter, Depends, Request, Form, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import create_engine, String, Integer, DateTime, Text, UniqueConstraint, select, text, func
+from sqlalchemy import update as sa_update, create_engine, String, Integer, DateTime, Text, UniqueConstraint, select, text, func
 from sqlalchemy.orm import declarative_base, sessionmaker, Mapped, mapped_column, Session
 import bcrypt
 import jwt  # PyJWT
@@ -1314,6 +1314,13 @@ def org_practice(user: User, db: Session) -> str:
     return doc.get("practice") if row and doc.get("practice") in PRACTICES else "medical"
 
 
+def org_test_clinic(user: User, db: Session) -> bool:
+    """A clinic Althais marked as a test clinic in /admin: two-step login is optional there (security.policy_for).
+    For trying the product, never for a clinic with real patients."""
+    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    return bool(row and doc.get("test_clinic"))
+
+
 def ensure_practice(user: User, db: Session, practice: str) -> None:
     """For API handlers that belong to one version: 403 for a clinic on the other one."""
     if org_practice(user, db) != practice:
@@ -1989,7 +1996,7 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
             except Exception:
                 mrr = 0
         out.append({"org_key": o["org_key"], "name": o["name"], "users": o["users"],
-                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "practice": org_practice(o["sample"], db), "custom": bool(row),
+                    "products": sorted(clinic_products(o["sample"], db)), "althea": org_althea(o["sample"], db), "manager": org_manager(o["sample"], db), "practice": org_practice(o["sample"], db), "test_clinic": org_test_clinic(o["sample"], db), "custom": bool(row),
                     "mrr": mrr, "startDate": _clinic_start(db, o["org_key"])})
     # clinics added in this console that nobody has joined yet
     for row in db.scalars(select(OrgSettings).where(OrgSettings.category == ENTITLEMENTS_CATEGORY)):
@@ -2001,7 +2008,7 @@ def admin_orgs(request: Request, db: Session = Depends(get_db), _: bool = Depend
         products = sorted(p for p in data.get("products") or [] if p in PRODUCTS)
         out.append({"org_key": row.org_key, "name": row.org_key, "users": [], "products": products,
                     "althea": data["althea"] if isinstance(data.get("althea"), bool) else "suite" in products,
-                    "manager": data.get("manager") is not False, "practice": data.get("practice") if data.get("practice") in PRACTICES else "medical",
+                    "manager": data.get("manager") is not False, "practice": data.get("practice") if data.get("practice") in PRACTICES else "medical", "test_clinic": bool(data.get("test_clinic")),
                     "custom": True, "mrr": mrr, "createdInAdmin": True,
                     "createdAt": data.get("createdAt", ""), "startDate": _clinic_start(db, row.org_key, [])})
     return sorted(out, key=lambda o: o["name"].lower())
@@ -2302,7 +2309,7 @@ async def admin_set_org_products(request: Request, db: Session = Depends(get_db)
         for k in ("althea", "manager"):
             if k not in data and isinstance(prev.get(k), bool):
                 data[k] = prev[k]   # not sent: keep what it was
-        for k in ("createdInAdmin", "createdAt", "demo", "practice"):
+        for k in ("createdInAdmin", "createdAt", "demo", "practice", "test_clinic"):
             if k in prev:
                 data[k] = prev[k]   # how the clinic was created, so it still lists before anyone joins
         row.data = _json.dumps(data)
@@ -2343,6 +2350,39 @@ async def admin_set_org_practice(request: Request, db: Session = Depends(get_db)
     if before != practice:
         log_admin_action(db, "org_practice_changed", target=key, detail=f"{key}: {before} to {practice}")
     return {"ok": True, "org_key": key, "practice": practice}
+
+@router.post("/api/admin/orgs/test-clinic")
+async def admin_set_test_clinic(request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    """Mark a clinic as a test clinic (two-step login optional for its people) or back to a normal one. For trying the
+    product only: a clinic with real patient data must not be a test clinic. Every change is in the admin audit log."""
+    body = await request.json()
+    key, on = str(body.get("org_key") or ""), body.get("on")
+    if not key or not isinstance(on, bool):
+        return JSONResponse({"error": "Send an org_key and on: true or false."}, status_code=400)
+    if not _clinic_exists(db, key):
+        return JSONResponse({"error": "Not found."}, status_code=404)
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == key, OrgSettings.category == ENTITLEMENTS_CATEGORY))
+    if row:
+        data = _json.loads(row.data or "{}")
+        before = bool(data.get("test_clinic"))
+        data["test_clinic"] = on
+        data["rev"] = (data.get("rev") or 0) + 1
+        data["updatedAt"] = dt.datetime.now(timezone.utc).isoformat()
+        row.data = _json.dumps(data)
+    else:
+        before = False
+        db.add(OrgSettings(org_key=key, category=ENTITLEMENTS_CATEGORY, data=_json.dumps(
+            {"rev": 0, "products": ["suite"], "test_clinic": on, "updatedAt": dt.datetime.now(timezone.utc).isoformat()})))
+    db.commit()
+    # people with a session open now: no setup screen once it's optional, the setup screen again once it isn't
+    import security
+    for m in db.scalars(select(User).where(User.organization == key)).all():
+        db.execute(sa_update(security.UserSession).where(security.UserSession.user_id == m.id, security.UserSession.revoked == 0, security.UserSession.kind == "user")
+                   .values(mfa_setup=1 if (security.mfa_required(m, db) and not m.mfa_enabled) else 0))
+    db.commit()
+    if before != on:
+        log_admin_action(db, "org_test_clinic_changed", target=key, detail=f"{key}: test clinic {'on (two-step login optional)' if on else 'off'}")
+    return {"ok": True, "org_key": key, "test_clinic": on}
 
 # ──────────────────────────────────────────────────────────────────────────
 #  Demo request table + route

@@ -589,7 +589,8 @@
           <button type="button" data-emp="${esc(o.org_key)}" class="font-semibold text-ink-900 hover:text-med-600 text-left" title="See this clinic’s employees">${esc(o.name)}</button>
           <div class="text-[11px] text-ink-500">${o.users.length ? `${o.users.length} ${o.users.length === 1 ? 'person' : 'people'}${o.startDate ? ' · started ' + fmtDate(o.startDate + 'T12:00:00') : ''} · ${esc(o.users.slice(0, 2).join(', '))}${o.users.length > 2 ? '…' : ''}`
             : `No one has joined yet${o.startDate ? ' · started ' + fmtDate(o.startDate + 'T12:00:00') : ''}`}</div></div></div></td>
-        <td class="td"><select class="flt" data-practice="${esc(o.org_key)}" aria-label="${esc(o.name)}: version" style="font-size:12px;padding:4px 6px${practice === 'dental' ? ';background:#dff3f1;color:#0f6b66;border-color:#9fd6d0' : ''}">${Object.keys(PRACTICE).map(k => `<option value="${k}"${k === practice ? ' selected' : ''}>${PRACTICE[k]}</option>`).join('')}</select></td>
+        <td class="td"><select class="flt" data-practice="${esc(o.org_key)}" aria-label="${esc(o.name)}: version" style="font-size:12px;padding:4px 6px${practice === 'dental' ? ';background:#dff3f1;color:#0f6b66;border-color:#9fd6d0' : ''}">${Object.keys(PRACTICE).map(k => `<option value="${k}"${k === practice ? ' selected' : ''}>${PRACTICE[k]}</option>`).join('')}</select>
+          <label class="flex items-center gap-1 mt-1 text-[11px] ${o.test_clinic ? 'font-semibold' : 'text-ink-500'}" style="${o.test_clinic ? 'color:#a15c07' : ''}" title="Test clinic: two-step login is optional for its people. Only for trying Althais, never for a clinic with real patients."><input type="checkbox" data-test-clinic="${esc(o.org_key)}"${o.test_clinic ? ' checked' : ''}> Test clinic${o.test_clinic ? ' (2FA optional)' : ''}</label></td>
         ${cells}
         <td class="td text-right" style="border-left:1px solid #eceef2">
           <input type="number" min="0" step="1" class="flt" style="width:88px;text-align:right" value="${o.mrr || ''}" placeholder="0" data-mrr="${esc(o.org_key)}" aria-label="${esc(o.name)}: monthly contract value" />
@@ -610,7 +611,19 @@
       $('n-orgs').textContent = shownOrgs().length || '';
     }
     $('org-filter').addEventListener('change', renderOrgs);
-    $('org-rows').addEventListener('change', e => {
+    $('org-rows').addEventListener('change', async e => {
+      const tc = e.target.closest('[data-test-clinic]');
+      if (tc) {
+        const key = tc.dataset.testClinic, o = ORGS.find(x => x.org_key === key), on = tc.checked;
+        if (on && !confirm(`Make ${o ? o.name : key} a test clinic? Two-step login becomes optional for everyone in it. Only do this for a clinic with no real patient data.`)) { tc.checked = false; return; }
+        const res = await fetch('/api/admin/orgs/test-clinic', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_key: key, on }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { tc.checked = !on; toast(data.error || 'Could not save.'); return; }
+        if (o) o.test_clinic = data.test_clinic;
+        renderOrgs();
+        toast(on ? `${o ? o.name : key} is a test clinic. Two-step login is optional there; people already asked to set it up should sign out and back in.` : `${o ? o.name : key} is a normal clinic again. Two-step login follows its own setting.`);
+        return;
+      }
       const sel = e.target.closest('[data-practice]'); if (!sel) return;
       draftP[sel.dataset.practice] = sel.value; renderOrgs();
     });

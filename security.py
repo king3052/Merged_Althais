@@ -235,6 +235,8 @@ def policy_for(user, db) -> dict:
     _, ent = _load_doc(user, db, "entitlements")
     idle = doc.get("idle_minutes") if row else None
     mfa = doc.get("mfa") if row else None
+    if ent.get("test_clinic"):
+        mfa = "optional"   # marked as a test clinic in /admin: overrides the clinic's own choice
     return {"idle_minutes": idle if idle in IDLE_CHOICES else DEFAULT_IDLE,
             "mfa": mfa if mfa in MFA_POLICIES else ("optional" if ent.get("demo") else "admins_billers")}
 

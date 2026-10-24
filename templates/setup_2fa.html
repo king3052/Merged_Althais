@@ -28,6 +28,22 @@
     .tf-row button{padding:8px 12px;border:1px solid #d5d9e0;background:#fff;border-radius:6px;cursor:pointer;font:inherit;font-size:13px;color:#0f1116}
     #f-code{font:600 22px "Geist Mono",monospace;letter-spacing:.3em;text-align:center}
     .tf-help{font-size:12.5px;color:#6b7280;margin:8px 0 0}
+    /* fit the whole setup on one laptop screen: tighter card, QR beside the key, smaller heading */
+    body.rcx .lg-main{padding:20px 0}
+    body.rcx .lg-form{padding-top:26px;padding-bottom:22px}
+    .lg-form .lg-title{font-size:clamp(28px,3vw,34px);line-height:1.1;margin-top:6px}
+    .lg-form .lg-title br{display:none}
+    .lg-form .lg-title .em{margin-left:.25em}
+    .lg-form .lg-lede{font-size:14px;margin-top:8px}
+    #s1,#s2{margin-top:14px}
+    .tf-step{margin-bottom:10px}
+    .tf-qr{flex-wrap:nowrap;gap:14px;margin:2px 0 12px}
+    .tf-qr img{width:132px;height:132px;flex-shrink:0}
+    .tf-qr > div{min-width:0 !important}
+    .tf-key{word-break:normal;overflow-wrap:anywhere}
+    .tf-codes{padding:10px 14px}
+    #s1 .field{margin-bottom:10px}
+    @media (max-width:420px){.tf-qr{flex-wrap:wrap}.tf-qr img{width:160px;height:160px}}
   </style>
 </head>
 <body class="login-page rcl rcx">
