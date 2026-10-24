@@ -91,6 +91,8 @@
   var wave = $("althea-wave"), ring = $("althea-ring"), bars = wave.querySelectorAll(".althea-wave-bar");
   var IDLE = "Ask anything or tap the mic";
   var SR = AltheaUI.SR, recognition = null, listening = false, conversation = false, finalTranscript = "", silenceTimer = null, clearOnSpeech = false;
+  /* listening to a visit: everything the clinician and patient say is charted, until "Althea, end the visit" */
+  var visit = false, VISIT_END = /^(?:althea[,.!]?\s+)?(?:(?:stop|end|finish|pause)\s+(?:the\s+)?(?:listening|visit|recording|scribing)|(?:that'?s|this is)\s+the\s+end\s+of\s+the\s+visit|we'?re\s+done)\b|\balthea[,.!]?\s+(?:stop listening|end the visit|we'?re done|that'?s (?:all|it))\b/i;
   var history = [], abortCtl = null;
   var audioSession = 0, audioCtx = null, micStream = null, levelRAF = null;
 
@@ -170,9 +172,9 @@
       transcriptEl.textContent = '"' + (finalTranscript + interim).trim() + '"';
       /* on a visit, the words go into the note as they're said, in the section they belong in */
       var ENC0 = window.AlthaisEncounter, heard = (finalTranscript + interim).trim();
-      if (ENC0 && ENC0.live && heard && (heard.split(/\s+/).length < 2 || (ENC0.wantsChart && ENC0.wantsChart(heard)))) ENC0.live(heard);
+      if (ENC0 && ENC0.live && heard && (visit ? !VISIT_END.test(heard) : !localIntent(heard) && (heard.split(/\s+/).length < 2 || (ENC0.wantsChart && ENC0.wantsChart(heard))))) ENC0.live(heard);
       if (silenceTimer) clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(function () { stopListening(true); }, 2000);   /* submit after ~2s of silence */
+      silenceTimer = setTimeout(function () { stopListening(true); }, visit ? 1200 : 2000);   /* submit after a pause: each turn of a visit, or ~2s for a request */
     };
     recognition.onerror = function (ev) { if (ev.error === "no-speech") return; statusEl.textContent = "Didn’t catch that, try again or type below"; };
     recognition.onend = function () { if (listening) { try { recognition.start(); } catch (e) {} } };
@@ -187,6 +189,20 @@
     if (submit && text) { voiceTurn = true; run(text); }
   }
   /* after an answer (and after Althea has finished speaking it), listen again while the conversation is on */
+  /* a turn of the visit: chart it (the note is rewritten from the whole conversation) and keep listening; Althea stays quiet */
+  function heardInVisit(transcript) {
+    var ENC = window.AlthaisEncounter;
+    if (!ENC || !ENC.heard) { visit = false; run(transcript); return; }
+    if (VISIT_END.test(transcript)) {
+      visit = false; statusEl.textContent = "Finishing the note…"; responseEl.textContent = "Writing up the rest of the visit…";
+      ENC.log(transcript, "command");
+      ENC.listen(false).then(function (r) { responseEl.textContent = r.text; statusEl.textContent = IDLE; speak(r.spoken || ""); maybeResume(); });
+      return;
+    }
+    statusEl.textContent = "Listening to the visit";
+    ENC.heard(transcript).then(function (r) { if (visit && r && r.text) responseEl.textContent = r.text; });
+    if (conversation && !listening) startListening(true);
+  }
   function maybeResume() {
     if (!conversation || panel.classList.contains("hidden")) return;
     var tries = 0, t = setInterval(function () {
@@ -197,13 +213,13 @@
   }
   micBtn.addEventListener("click", function () {
     voiceTurn = true;                                                  /* using the mic means you are talking to her */
-    if (listening) { conversation = false; stopListening(true); }      /* end the conversation, sending anything already heard */
+    if (listening) { conversation = false; stopListening(true); if (visit) heardInVisit("end the visit"); }   /* end the conversation (and the visit), sending anything already heard */
     else { conversation = true; startListening(false); }
   });
 
   /* ---------- open / close ---------- */
   function openPanel() { panel.classList.remove("hidden"); btn.setAttribute("aria-expanded", "true"); }
-  function closePanel() { conversation = false; stopListening(false); stopAll(); panel.classList.add("hidden"); btn.setAttribute("aria-expanded", "false"); }
+  function closePanel() { conversation = false; stopListening(false); if (visit) { visit = false; if (window.AlthaisEncounter) window.AlthaisEncounter.listen(false); } stopAll(); panel.classList.add("hidden"); btn.setAttribute("aria-expanded", "false"); }
   btn.addEventListener("click", function () { openPanel(); if (window.matchMedia && window.matchMedia("(pointer: fine)").matches) textInput.focus(); });
   closeBtn.addEventListener("click", function () { closePanel(); btn.focus(); });
   stopBtn.addEventListener("click", stopAll);
@@ -216,6 +232,7 @@
   /* the everyday commands, recognized here so they work instantly and even when the AI is busy */
   function localIntent(t) {
     t = String(t || "").trim(); var m;
+    if (/^(?:althea[,.!]?\s+)?(?:please\s+)?listen(?:\s+in)?\s+(?:to|on)\s+(?:the|this|my)\s+(?:visit|appointment|encounter)\b/i.test(t)) return { intent: "scribe_visit", params: {}, spoken_ack: "" };
     if ((m = t.match(/^(?:please\s+)?(?:scribe|record|transcribe|dictate)(?:\s+(?:a|the|this|my))?\s+(?:visit|note|encounter|appointment)(?:\s+(?:for|with)\s+(.+?))?[.!]?$/i)) || /^(?:start|begin)\s+(?:recording|scribing|the visit|a visit|visit)\b/i.test(t))
       return { intent: "scribe_visit", params: { patient_name: m && m[1] ? m[1] : "" }, spoken_ack: "" };
     if (/^(?:stop|end|finish|pause)\s+(?:the\s+)?(?:recording|scribing|visit|scribe)\b/i.test(t)) return { intent: "stop_visit_timer", params: {}, spoken_ack: "" };
@@ -226,12 +243,13 @@
   /* ---------- ask the backend which request this is, then answer from local data ---------- */
   function run(transcript) {
     openPanel();
+    if (visit) { heardInVisit(transcript); return; }
     /* on the encounter workspace, anything that isn't a question or a command is charted into the open note */
     if (HOST && HOST.local) {   /* the page handles this one itself (the v4 preview: "build the claim") */
       var lr = HOST.local(transcript);
       if (lr) { if (window.AlthaisEncounter && window.AlthaisEncounter.log) window.AlthaisEncounter.log(transcript, "command"); responseEl.textContent = lr.text || ""; statusEl.textContent = IDLE; speak(lr.spoken || ""); maybeResume(); return; }
     }
-    var ENC = window.AlthaisEncounter, chart = ENC && ENC.wantsChart && ENC.wantsChart(transcript);
+    var li = localIntent(transcript), ENC = window.AlthaisEncounter, chart = !li && ENC && ENC.wantsChart && ENC.wantsChart(transcript);
     if (ENC && ENC.live && !chart) ENC.live("");   /* a question or command, not dictation: take it back out of the note */
     if (ENC && ENC.log) ENC.log(transcript, chart ? (voiceTurn ? "althea_spoken" : "althea_typed") : "command");   /* everything said to Althea goes in the visit's transcript */
     if (chart) {
@@ -239,7 +257,6 @@
       ENC.chart(transcript).then(function (r) { responseEl.textContent = r.text; statusEl.textContent = IDLE; speak(r.spoken || ""); maybeResume(); });
       return;
     }
-    var li = localIntent(transcript);
     if (li) { history.push({ transcript: transcript, intent: li.intent }); execute(li, transcript); return; }
     statusEl.textContent = "Thinking…"; showStop(true);
     abortCtl = window.AbortController ? new AbortController() : null;
@@ -301,6 +318,10 @@
     var ENC = window.AlthaisEncounter;
     if (ENC && ENC.handles(intent)) {
       var r = ENC.run(intent, params) || {};
+      if (r.visit) {   /* listen to the visit here, in Althea's own microphone */
+        visit = true; conversation = true; responseEl.textContent = r.text || ""; statusEl.textContent = "Listening to the visit";
+        speak(r.spoken || ""); maybeResume(); return;
+      }
       if (r.quiet) { conversation = false; stopListening(false); }   /* free the microphone for the visit recording */
       responseEl.textContent = r.text || ""; statusEl.textContent = r.quiet ? "Recording the visit" : IDLE;
       speak(r.spoken || "");

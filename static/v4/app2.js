@@ -96,7 +96,7 @@
     if (V.seen) V.seen('visit', e.id, e.mrn);
     var chk = { busy: false, err: '' };
     var auto = { busy: false, err: '', timer: null, again: false };
-    var LIVE = { k: '', text: '' }, SECTIONS = [['s', 'Subjective'], ['o', 'Objective'], ['a', 'Assessment'], ['p', 'Plan']];   // what Althea is hearing now; the note's sections
+    var AMB = { on: false, busy: null, again: false, pend: [], wrote: {} }, LIVE = { k: '', text: '' }, SECTIONS = [['s', 'Subjective'], ['o', 'Objective'], ['a', 'Assessment'], ['p', 'Plan']];   // what Althea is hearing now; the note's sections
     var tab = V.q.get('tab') || 'note', REC = { on: false, rec: null, start: 0, consent: false }, codeMsg = '', busy = false;
     var signed = function () { return e.status === 'Signed'; };
     var save = function () { e.updated = new Date().toISOString(); D.save(); };
@@ -151,8 +151,8 @@
     function right() {
       var ed = edits(), acc = e.codes.filter(function (c) { return c.state === 'acc'; }), cpt = acc.filter(function (c) { return D.isProc(c.type); }), dx = acc.filter(function (c) { return !D.isProc(c.type); });
       var claim = S.claims.filter(function (c) { return c.encId === e.id; })[0], k = e.check, adds = e.pendingAdds || [];
-      var waiting = !signed() && !D.DENTAL && !noteComplete() && !e.codes.some(function (c) { return c.manual; });
-      var status = waiting ? (LIVE.k ? 'listening…' : 'waits for the full note') : auto.busy ? 'Althea is building the claim…' : busy ? 'reading the note…' : e.autoAt ? 'built by Althea · ' + new Date(e.autoAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'builds as you write';
+      var waiting = !signed() && !D.DENTAL && (AMB.on || !noteComplete()) && !e.codes.some(function (c) { return c.manual; });
+      var status = waiting ? (AMB.on ? 'listening to the visit…' : LIVE.k ? 'listening…' : 'waits for the full note') : auto.busy ? 'Althea is building the claim…' : busy ? 'reading the note…' : e.autoAt ? 'built by Althea · ' + new Date(e.autoAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'builds as you write';
       var callouts = ed.filter(function (x) { return !/^BASIC/.test(x.id); }).map(function (x) {
         return '<div class="dp-sec"><div class="edit' + (x.lvl === 'amb' ? ' amb' : '') + '"><div class="edit-h">' + U.mark(x.lvl) + E(x.id) + ' ' + E(x.label) + '</div><div class="edit-b"><p>' + E(x.text) + '</p>' +
           (x.evidence ? '' : '<div class="mut" style="font-size:12px;margin-bottom:6px">Nothing in the note or transcript supports this yet. Document it if it was done.</div>') +
@@ -162,7 +162,7 @@
       return '<section class="pane"><div class="ph">Coding <span class="sub">' + status + '</span>' + (signed() ? '' : '<span class="end"><button class="mini" id="getcodes"' + (busy || auto.busy ? ' disabled' : '') + ' title="Althea rebuilds the claim on her own as the note changes; this re-runs it now">Rebuild</button></span>') + '</div><div class="pbody">' +
         '<div class="ms" style="border-bottom:1px solid var(--b2)"><div><span>Claim check</span><b class="s-' + (k ? V.scoreColor(k.score) : 'mut') + '">' + (auto.busy && !k ? '…' : k ? k.score + '%' : '-') + '</b></div><div><span>Est. charge</span><b>' + M(D.sum(cpt, function (c) { return D.fee(c.code) * (c.units || 1); })) + '</b></div><div><span>Edits</span><b class="' + (waiting ? 's-mut' : ed.length ? 's-amb' : 's-grn') + '">' + (waiting ? '-' :  ed.length) + '</b></div><div style="flex:1.5"><span>Payer</span><b title="' + E(p.payer || 'None') + '"' + (String(p.payer || '').length > 12 ? ' style="font-size:13.5px"' : '') + '>' + E(p.payer || 'None') + '</b></div></div>' +
         (codeMsg ? '<div class="banner-note">' + E(codeMsg) + '</div>' : '') +
-        (waiting ? '<div class="dp-sec code-wait"><div class="dp-h">Coding starts when the note is complete</div><div class="cw-list">' + SECTIONS.map(function (x) { var miss = missingSections().indexOf(x[1]) >= 0; return '<span class="' + (miss ? 'cw-miss' : 'cw-ok') + '">' + (miss ? '' : U.I.check) + x[1] + '</span>'; }).join('') + '</div><div class="mut" style="font-size:12px;margin-top:6px">Althais codes the visit once it knows what the patient reported, what was found, the diagnosis and the plan, so the codes match the whole visit.</div></div>' : '') +
+        (waiting ? '<div class="dp-sec code-wait"><div class="dp-h">' + (AMB.on ? 'Coding starts when the visit ends' : 'Coding starts when the note is complete') + '</div><div class="cw-list">' + SECTIONS.map(function (x) { var miss = missingSections().indexOf(x[1]) >= 0; return '<span class="' + (miss ? 'cw-miss' : 'cw-ok') + '">' + (miss ? '' : U.I.check) + x[1] + '</span>'; }).join('') + '</div><div class="mut" style="font-size:12px;margin-top:6px">Althais codes the visit once it knows what the patient reported, what was found, the diagnosis and the plan, so the codes match the whole visit.</div></div>' : '') +
         V.checkHtml({ id: '__enc', check: k }, auto.busy || chk.busy || auto.retrying || (!k && !auto.err && !waiting && noteHasText()), chk.err || auto.err).replace('data-runcheck="__enc"', 'id="enccheck"') +
         '<div class="dp-sec cp-open" id="openclaim" title="Open the claim"><div class="dp-h">Claim preview <span class="end"><a href="#" id="openclaim2">Open Claim</a></span> <span class="sub">' + (claim ? V.link(claim.id, V.claimHref(claim.id)) : cpt.length ? 'built by Althea, sent when you sign' : 'builds as you write') + '</span></div>' +
           (D.DENTAL ? U.grid(['Ln', 'CDT', 'Tooth', 'Surface', 'Quad', ['Charge', 'num']], cpt.map(function (c, i) { return { cells: [i + 1, '<b>' + E(c.code) + '</b>', E(c.tooth || ''), E(c.surface || ''), E(c.quad || ''), M(D.fee(c.code) * (c.units || 1))] }; }), { tight: 1 }) :
@@ -184,7 +184,7 @@
         '</div></section>';
     }
     function draw() {
-      var rec = REC.on ? '<span class="rec"><span class="dot"></span>Virtual SOAP <span id="clock">0:00</span></span>' : signed() ? '<span class="s-grn">' + I.check + 'Note signed</span>' : '<span class="mut">Draft</span>';
+      var rec = AMB.on ? '<span class="rec"><span class="dot"></span>Althea is listening to the visit</span>' : REC.on ? '<span class="rec"><span class="dot"></span>Virtual SOAP <span id="clock">0:00</span></span>' : signed() ? '<span class="s-grn">' + I.check + 'Note signed</span>' : '<span class="mut">Draft</span>';
       app.innerHTML = U.header('encounter') + V.banner(e.mrn, rec + '<button class="btn" id="switch">Switch patient</button>') +
         U.toolbar(D.L.visit + ' ' + D.us(e.date), [['Edit note', 'pencil', { id: 'editnote' }], ['Orders', 'clip', { id: 'toorders' }], ['Message patient', 'chat', { id: 'msg' }], '|', ['Print', 'print', { id: 'print' }], ['Import CSV', 'upload', { id: 'importcsv' }]],
           '<select class="mini" id="vtype"' + (signed() ? ' disabled' : '') + '>' + D.VISIT_TYPES.concat(D.VISIT_TYPES.indexOf(e.visitType) < 0 && e.visitType ? [e.visitType] : []).map(function (t) { return '<option' + (t === e.visitType ? ' selected' : '') + '>' + E(t) + '</option>'; }).join('') + '</select>' +
@@ -263,7 +263,7 @@
     function autoKey() { return D.noteText(e) + '|' + e.visitType + '|' + (p.payer || '') + '|' + e.codes.map(function (c) { return c.code + (c.manual ? c.state : ''); }).join(','); }
     function scheduleAuto(force) {
       if (D.DENTAL) return dentalCheck(force);
-      clearTimeout(auto.timer); if (signed() || LIVE.k || (!e.codes.some(function (c) { return c.manual; }) && !noteComplete())) return;
+      clearTimeout(auto.timer); if (signed() || LIVE.k || AMB.on || (!e.codes.some(function (c) { return c.manual; }) && !noteComplete())) return;
       auto.timer = setTimeout(function () {
         if (auto.busy) { auto.again = true; return; }
         var key = autoKey(); if (!force && e.autoKey === key && e.check && e.autoVer === 3) return;   // v3: one-call coding (claim-auto)
@@ -309,7 +309,7 @@
     // plan (the pre-filled chief complaint alone isn't a subjective), and nobody is mid-sentence dictating
     function missingSections() { return SECTIONS.filter(function (x) { var t = String(e[x[0]] || ''); if (x[0] === 's') t = t.replace(/Chief complaint:[^\n]*/gi, ''); return t.trim().length < 3; }).map(function (x) { return x[1]; }); }
     function noteComplete() { return !missingSections().length; }
-    function scheduleCodes(ms) { clearTimeout(codeTimer); if (signed() || LIVE.k || !noteComplete()) { redrawRight(); return; } codeTimer = setTimeout(function () { runCodes(false); }, ms == null ? 2000 : ms); }
+    function scheduleCodes(ms) { clearTimeout(codeTimer); if (signed() || LIVE.k || AMB.on || !noteComplete()) { redrawRight(); return; } codeTimer = setTimeout(function () { runCodes(false); }, ms == null ? 2000 : ms); }
     function runCodes(force) {
       if (signed()) return;
       if (!(e.s + e.o + e.a + e.p).trim()) return U.toast('Write the note first.');
@@ -396,15 +396,46 @@
     // sentence is finished; this is so words land in the right place while they're being said)
     function sectionOf(t) {
       var x = String(t || '').toLowerCase().trim();
-      if (/^(assessment|impression|diagnos[ie]s|dx)\b/.test(x)) return 'a';
+      if (/^(assessment|impression|diagnos[ie]s|dx)\b/.test(x) || /^(so,?\s+)?(i think|this (is|looks|sounds) like|it (looks|sounds) like|these (are|sound|look)|what you'?re describing|your blood pressure (is ?n[o']t|isn'?t) (controlled|under control))/.test(x)) return 'a';
+      if (/^(so,?\s+)?(let'?s|here'?s (the|what)|we'?re going to|i'?m going to (increase|start|add|order|send|bump|raise|have)|i want (you|to see)|i'?d like (you|to see)|come back|see you)/.test(x)) return 'p';
+      if (/^(let me (listen|check|take|look|feel|examine)|your (blood pressure|heart rate|pulse|temperature) (today )?(is|was)|(your )?(lungs|heart) (sound|are|is))/.test(x)) return 'o';
       if (/^(plan|we'?ll|we will|i'?ll|i will|increase|decrease|start|stop|continue|recheck|follow[- ]?up|refer|order|schedule|return)\b/.test(x)) return 'p';
       if (/^(exam|on exam|physical exam|vitals?|objective)\b/.test(x) || /\b(blood pressure|bp)\s*(is\s*|of\s*)?\d|\bheart rate\b|\blungs? (are )?clear|\bheart (is )?regular|\bno (leg |pedal |peripheral )?(swelling|edema)\b|\bon (physical )?exam/.test(x)) return 'o';
       return 's';
     }
+    // the words being said (and turns of a visit Althea is still writing up) shown in the section they belong in
     function liveShow(k, text) {
-      SECTIONS.forEach(function (x) { var ta = app.querySelector('textarea[data-n="' + x[0] + '"]'); if (!ta) return; ta.classList.toggle('live', x[0] === k && !!text); if (x[0] !== k || !text) ta.value = e[x[0]] || ''; });
-      var ta = k && app.querySelector('textarea[data-n="' + k + '"]'); if (!ta || !text) return;
-      ta.value = (e[k] ? String(e[k]).replace(/\s+$/, '') + '\n' : '') + text; ta.scrollTop = ta.scrollHeight;
+      SECTIONS.forEach(function (x) {
+        var ta = app.querySelector('textarea[data-n="' + x[0] + '"]'); if (!ta) return;
+        var extra = AMB.pend.filter(function (q) { return q.k === x[0]; }).map(function (q) { return q.text; }); if (x[0] === k && text) extra.push(text);
+        ta.classList.toggle('live', extra.length > 0); ta.value = [String(e[x[0]] || '').replace(/\s+$/, '')].concat(extra).filter(Boolean).join('\n');
+        if (extra.length) ta.scrollTop = ta.scrollHeight;
+      });
+    }
+    // the visit so far, written up as a note. Sections only Althea has written are replaced; a section the clinician edited
+    // keeps their words and gets the new lines added
+    function redraft() {
+      if (AMB.busy) { AMB.again = true; return AMB.busy; }
+      AMB.again = false;
+      var n = AMB.pend.length, said = e.transcript.filter(function (l) { return l.src === 'visit'; }).map(function (l) { return l.text; }).join('\n');
+      AMB.busy = fetch('/api/althea/extract', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'soap_scribe', text: said }) })
+        .then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (j) {
+          var f = j.fields; if (!f) return { text: 'Still listening. I’ll catch up on the next thing said.' };
+          var put = [], was = AMB.wrote, now = {
+            s: [f.chief_complaint && 'Chief complaint: ' + f.chief_complaint, f.hpi, f.ros && 'ROS: ' + f.ros, f.pmh && 'PMH: ' + f.pmh, f.medications && 'Medications: ' + f.medications, f.allergies && 'Allergies: ' + f.allergies].filter(Boolean).join('\n'),
+            o: [f.exam, f.labs && 'Results: ' + f.labs].filter(Boolean).join('\n'), a: f.assessment || '', p: f.plan || '' };
+          SECTIONS.forEach(function (x) {
+            var k = x[0], v = String(now[k] || '').trim(), cur = String(e[k] || '').trim(); if (!v || v === cur) return;
+            if (!cur || cur === String(was[k] || '').trim()) e[k] = v;
+            else e[k] = cur + '\n' + v.split('\n').filter(function (l) { return cur.toLowerCase().indexOf(l.trim().toLowerCase()) < 0; }).join('\n');
+            put.push(x[1]);
+          });
+          ['bp', 'hr', 'temp', 'spo2'].forEach(function (k) { if (f[k] && e.vitals[k] !== f[k]) { e.vitals[k] = f[k]; if (put.indexOf('Vitals') < 0) put.push('Vitals'); } });
+          AMB.wrote = { s: e.s, o: e.o, a: e.a, p: e.p }; AMB.pend.splice(0, n); save();
+          if (tab === 'note') { draw(); liveShow(LIVE.k, LIVE.text); } else redrawRight();
+          return { text: put.length ? 'Updated ' + put.join(', ') + '.' : 'Listening…' };
+        }).then(function (r) { AMB.busy = null; return AMB.again ? redraft() : r; });
+      return AMB.busy;
     }
     window.AlthaisEncounter = {
       live: function (text) {
@@ -419,11 +450,29 @@
       run: function (intent) {
         if (intent === 'stop_visit_timer') { if (!REC.on) return { text: 'Nothing is being recorded right now.', spoken: 'Nothing is being recorded.' }; app.querySelector('#rec').click(); return { text: 'Stopped. Use Write note from transcript, then Get codes.', spoken: 'Stopped.' }; }
         if (REC.on) return { text: 'Already recording ' + p.name + '’s visit.', spoken: '', quiet: true };
+        if (window.AlthaisEncounter.heard && intent !== 'start_visit_timer') { REC.consent = true; AMB.on = true; tab = 'note'; D.log('Althea listening: ' + p.name); draw(); return { visit: true, spoken: 'I’m listening.', text: 'Listening to ' + p.name + '’s visit. I’ll chart as you talk. Say “Althea, end the visit” when you’re done.' }; }
         if (!SR) return { text: 'This browser can’t record speech. Use Chrome or Edge, or paste the transcript in the Transcript tab.', spoken: '' };
         REC.consent = true; tab = 'note'; draw(); app.querySelector('#rec').click();
         return { quiet: true, spoken: '', text: 'Recording ' + p.name + '’s visit into this note. Make sure the patient agreed to be recorded. Tap Stop recording when it’s over.' };
       },
       wantsChart: function (t) { t = String(t).trim(); return !signed() && (CHART.test(t) || (!QUESTION.test(t) && !COMMAND.test(t) && t.split(/\s+/).length >= 2)); },
+      // a turn of the visit conversation: the note is rewritten from everything said so far, so each answer is read with its question
+      heard: function (text) {
+        if (signed()) return Promise.resolve({});
+        e.transcript.push({ t: stamp(), text: String(text).trim(), src: 'visit' }); save();
+        AMB.pend.push({ k: LIVE.k || sectionOf(text), text: String(text).trim() }); LIVE.k = ''; LIVE.text = ''; liveShow('', '');
+        return redraft();
+      },
+      listen: function (on) {
+        AMB.on = !!on; if (on) { draw(); return Promise.resolve({}); }
+        D.log('Althea stopped listening: ' + p.name);
+        return (AMB.busy || Promise.resolve()).then(function () { return AMB.again ? redraft() : null; }).then(function () {
+          LIVE.k = ''; LIVE.text = ''; AMB.pend = []; draw(); scheduleCodes(300); scheduleAuto();
+          var miss = missingSections();
+          return miss.length ? { text: 'Visit charted. Still missing: ' + miss.join(', ') + ', so I’ll code it once that’s in the note.', spoken: 'Visit charted. The note still needs ' + miss.join(' and ') + '.' }
+            : { text: 'Visit charted. Coding it now.', spoken: 'Visit charted. Coding it now.' };
+        });
+      },
       log: function (text, kind) { if (signed()) return; e.transcript.push({ t: stamp(), text: String(text).trim(), src: kind }); save(); if (tab === 'transcript') draw(); },
       chart: function (raw) {
         var text = String(raw).replace(CHART, '').trim();

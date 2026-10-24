@@ -28,3 +28,19 @@ def test_a_note_with_only_a_subjective_cannot_score_high(monkeypatch):
     r = main._claim_check("", codes, full)
     assert r["score"] == 95 and not any("incomplete" in m.lower() for m in r["missing"])
     assert main._note_gaps("Free-text note with no headings") == []
+
+
+def test_intractable_headache_codes_need_the_note_to_say_so():
+    """ICD-10 codes a headache or migraine as not intractable unless the note documents it."""
+    import icd10
+    codes = [{"code": "G44.211", "type": "ICD-10"}, {"code": "G43.919", "type": "ICD-10"}]
+    out, notes = icd10.supported(codes, "Assessment: Episodic tension-type headaches, not migraine. Not intractable.")
+    assert [c["code"] for c in out] == ["G44.219", "G43.909"] and len(notes) == 2
+    out, _ = icd10.supported(codes, "Intractable episodic tension-type headache despite two preventives")
+    assert [c["code"] for c in out] == ["G44.211", "G43.919"]
+    # a vague code made more specific keeps "not intractable"
+    out, _ = icd10.specify([{"code": "G44.209", "type": "ICD-10"}], "Assessment: Episodic tension-type headaches, not migraines")
+    assert out[0]["code"] == "G44.219"
+    # episodic and chronic tension headaches follow the note
+    out, _ = icd10.supported([{"code": "G44.229", "type": "ICD-10"}], "Assessment: Episodic tension-type headaches, not migraines")
+    assert out[0]["code"] == "G44.219"

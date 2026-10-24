@@ -173,6 +173,8 @@ def specify(codes, note):
             sd = sdesc.lower()
             if "unspecified" in sd or "without complication" in sd:
                 continue
+            if "not intractable" in d and "not intractable" not in sd:   # more specific, never more severe
+                continue
             extra = [t for t in set(re.sub(r"[^a-z0-9]+", " ", sd).split()) - base if t not in _EXTRA_STOP and len(t) > 3]
             if extra and all(_present(t, text) for t in extra) and len(extra) > best_n:
                 best, best_n = (dotted(k), sdesc), len(extra)
@@ -200,6 +202,34 @@ _NEEDS = [
     (r"^N18", r"ckd|chronic kidney|kidney disease|renal|egfr|esrd|dialysis"),
 ]
 
+_INTRACTABLE = r"intractable|refractory|pharmacoresistant|treatment[- ]resistant|medically resistant"
+
+def _not_intractable(code, text):
+    """The 'not intractable' sibling of an intractable migraine or headache code (G43.919 -> G43.909, G44.211 -> G44.219)
+    when the note doesn't say intractable, else None."""
+    desc = lookup(code)[2].lower()
+    if not code.startswith(("G43", "G44")) or "intractable" not in desc or "not intractable" in desc:
+        return None
+    if any(_present(m.group(0), text) for m in re.finditer(_INTRACTABLE, text)):
+        return None
+    r = _raw(code)
+    for alt in ((r[:4] + "0" + r[5:]) if r.startswith("G43") and len(r) > 4 and r[4] == "1" else "", (r[:-1] + "9") if r.startswith("G44") and r.endswith("1") else ""):
+        if alt and lookup(alt)[1] and "not intractable" in lookup(alt)[2].lower():
+            return dotted(alt)
+    return None
+
+
+def _course(code, text):
+    """G44.01x/G44.21x (episodic) and G44.02x/G44.22x (chronic): the sibling the note documents, when it says the other one."""
+    r = _raw(code)
+    if not re.match(r"G44[02][12]", r):
+        return None
+    epi, chron = _present("episodic", text), _present("chronic", text)
+    want = "1" if epi and not chron else "2" if chron and not epi else r[4]
+    alt = r[:4] + want + r[5:]
+    return dotted(alt) if alt != r and lookup(alt)[1] else None
+
+
 def supported(codes, note):
     """Drop a combination code the note doesn't support, falling back to the plain code for the main condition
     (E11.22 with no kidney disease documented -> E11.9). Returns (codes, notes)."""
@@ -211,6 +241,15 @@ def supported(codes, note):
             out.append(c)
             continue
         bad = next((need for pat, need in _NEEDS if re.search(pat, code) and not any(_present(m.group(0), text) for m in re.finditer(need, text))), None)
+        course = _course(code, text)
+        if course:   # episodic and chronic headaches are different codes: use the one the note says
+            notes.append(code + " → " + course + ": the note says " + ("episodic" if course[5] == "1" else "chronic"))
+            code = course; c = dict(c, code=course, description=lookup(course)[2], reason="The note documents " + lookup(course)[2].lower())
+        calm = _not_intractable(code, text)
+        if calm:   # "intractable" has to be documented; by default a headache or migraine is coded not intractable
+            out.append(dict(c, code=calm, description=lookup(calm)[2], reason="The note documents " + lookup(calm)[2].lower()))
+            notes.append(code + " → " + calm + ": the note doesn't say the headache is intractable")
+            continue
         if not bad:
             out.append(c)
             continue
