@@ -96,6 +96,7 @@
     if (V.seen) V.seen('visit', e.id, e.mrn);
     var chk = { busy: false, err: '' };
     var auto = { busy: false, err: '', timer: null, again: false };
+    var LIVE = { k: '', text: '' }, SECTIONS = [['s', 'Subjective'], ['o', 'Objective'], ['a', 'Assessment'], ['p', 'Plan']];   // what Althea is hearing now; the note's sections
     var tab = V.q.get('tab') || 'note', REC = { on: false, rec: null, start: 0, consent: false }, codeMsg = '', busy = false;
     var signed = function () { return e.status === 'Signed'; };
     var save = function () { e.updated = new Date().toISOString(); D.save(); };
@@ -150,7 +151,8 @@
     function right() {
       var ed = edits(), acc = e.codes.filter(function (c) { return c.state === 'acc'; }), cpt = acc.filter(function (c) { return D.isProc(c.type); }), dx = acc.filter(function (c) { return !D.isProc(c.type); });
       var claim = S.claims.filter(function (c) { return c.encId === e.id; })[0], k = e.check, adds = e.pendingAdds || [];
-      var status = auto.busy ? 'Althea is building the claim…' : busy ? 'reading the note…' : e.autoAt ? 'built by Althea · ' + new Date(e.autoAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'builds as you write';
+      var waiting = !signed() && !D.DENTAL && !noteComplete() && !e.codes.some(function (c) { return c.manual; });
+      var status = waiting ? (LIVE.k ? 'listening…' : 'waits for the full note') : auto.busy ? 'Althea is building the claim…' : busy ? 'reading the note…' : e.autoAt ? 'built by Althea · ' + new Date(e.autoAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'builds as you write';
       var callouts = ed.filter(function (x) { return !/^BASIC/.test(x.id); }).map(function (x) {
         return '<div class="dp-sec"><div class="edit' + (x.lvl === 'amb' ? ' amb' : '') + '"><div class="edit-h">' + U.mark(x.lvl) + E(x.id) + ' ' + E(x.label) + '</div><div class="edit-b"><p>' + E(x.text) + '</p>' +
           (x.evidence ? '' : '<div class="mut" style="font-size:12px;margin-bottom:6px">Nothing in the note or transcript supports this yet. Document it if it was done.</div>') +
@@ -158,9 +160,10 @@
       }).join('');
       var used = e.codes.filter(function (c) { return c.state === 'acc'; }).length;
       return '<section class="pane"><div class="ph">Coding <span class="sub">' + status + '</span>' + (signed() ? '' : '<span class="end"><button class="mini" id="getcodes"' + (busy || auto.busy ? ' disabled' : '') + ' title="Althea rebuilds the claim on her own as the note changes; this re-runs it now">Rebuild</button></span>') + '</div><div class="pbody">' +
-        '<div class="ms" style="border-bottom:1px solid var(--b2)"><div><span>Claim check</span><b class="s-' + (k ? V.scoreColor(k.score) : 'mut') + '">' + (auto.busy && !k ? '…' : k ? k.score + '%' : '-') + '</b></div><div><span>Est. charge</span><b>' + M(D.sum(cpt, function (c) { return D.fee(c.code) * (c.units || 1); })) + '</b></div><div><span>Edits</span><b class="' + (ed.length ? 's-amb' : 's-grn') + '">' + ed.length + '</b></div><div style="flex:1.5"><span>Payer</span><b title="' + E(p.payer || 'None') + '"' + (String(p.payer || '').length > 12 ? ' style="font-size:13.5px"' : '') + '>' + E(p.payer || 'None') + '</b></div></div>' +
+        '<div class="ms" style="border-bottom:1px solid var(--b2)"><div><span>Claim check</span><b class="s-' + (k ? V.scoreColor(k.score) : 'mut') + '">' + (auto.busy && !k ? '…' : k ? k.score + '%' : '-') + '</b></div><div><span>Est. charge</span><b>' + M(D.sum(cpt, function (c) { return D.fee(c.code) * (c.units || 1); })) + '</b></div><div><span>Edits</span><b class="' + (waiting ? 's-mut' : ed.length ? 's-amb' : 's-grn') + '">' + (waiting ? '-' :  ed.length) + '</b></div><div style="flex:1.5"><span>Payer</span><b title="' + E(p.payer || 'None') + '"' + (String(p.payer || '').length > 12 ? ' style="font-size:13.5px"' : '') + '>' + E(p.payer || 'None') + '</b></div></div>' +
         (codeMsg ? '<div class="banner-note">' + E(codeMsg) + '</div>' : '') +
-        V.checkHtml({ id: '__enc', check: k }, auto.busy || chk.busy || auto.retrying || (!k && !auto.err && noteHasText()), chk.err || auto.err).replace('data-runcheck="__enc"', 'id="enccheck"') +
+        (waiting ? '<div class="dp-sec code-wait"><div class="dp-h">Coding starts when the note is complete</div><div class="cw-list">' + SECTIONS.map(function (x) { var miss = missingSections().indexOf(x[1]) >= 0; return '<span class="' + (miss ? 'cw-miss' : 'cw-ok') + '">' + (miss ? '' : U.I.check) + x[1] + '</span>'; }).join('') + '</div><div class="mut" style="font-size:12px;margin-top:6px">Althais codes the visit once it knows what the patient reported, what was found, the diagnosis and the plan, so the codes match the whole visit.</div></div>' : '') +
+        V.checkHtml({ id: '__enc', check: k }, auto.busy || chk.busy || auto.retrying || (!k && !auto.err && !waiting && noteHasText()), chk.err || auto.err).replace('data-runcheck="__enc"', 'id="enccheck"') +
         '<div class="dp-sec cp-open" id="openclaim" title="Open the claim"><div class="dp-h">Claim preview <span class="end"><a href="#" id="openclaim2">Open Claim</a></span> <span class="sub">' + (claim ? V.link(claim.id, V.claimHref(claim.id)) : cpt.length ? 'built by Althea, sent when you sign' : 'builds as you write') + '</span></div>' +
           (D.DENTAL ? U.grid(['Ln', 'CDT', 'Tooth', 'Surface', 'Quad', ['Charge', 'num']], cpt.map(function (c, i) { return { cells: [i + 1, '<b>' + E(c.code) + '</b>', E(c.tooth || ''), E(c.surface || ''), E(c.quad || ''), M(D.fee(c.code) * (c.units || 1))] }; }), { tight: 1 }) :
           U.grid(['Ln', 'CPT', 'Mod', 'Dx Ptr', ['Units', 'num'], ['Charge', 'num']], cpt.map(function (c, i) { return { cells: [i + 1, '<b>' + E(c.code) + '</b>', signed() ? E(c.mod || '') : '<input class="inl" data-mod="' + e.codes.indexOf(c) + '" value="' + E(c.mod || '') + '" style="width:44px">', dx.slice(0, 4).map(function (_, k2) { return String.fromCharCode(65 + k2); }).join(''), c.units || 1, M(D.fee(c.code) * (c.units || 1))] }; }), { tight: 1 })).replace('<tbody></tbody>', '<tbody>' + U.empty(6, auto.busy || busy ? 'Building…' : D.DENTAL ? 'Write the note; Althea codes the procedures from it.' : 'Write the note; Althea builds the claim from it.') + '</tbody>') +
@@ -176,8 +179,8 @@
         }), { tight: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(4, busy ? 'Reading the note…' : 'Codes appear as you write.') + '</tbody>') + '</div>' +
         (signed() ? '' : D.DENTAL ? '<div style="display:flex;gap:5px;margin-top:6px"><input class="inl" id="mcode" placeholder="CDT (D2392)" style="width:96px"><input class="inl" id="mtooth" placeholder="Tooth" style="width:52px"><input class="inl" id="msurf" placeholder="Surfaces" style="width:66px"><input class="inl" id="mquad" placeholder="Quad" style="width:48px"><button class="mini" id="addcode">Add</button></div>'
           : '<div style="display:flex;gap:5px;margin-top:6px"><input class="inl" id="mcode" placeholder="Code (99213, E11.9)" style="width:120px"><input class="inl" id="mdesc" placeholder="Description"><button class="mini" id="addcode">Add</button></div>') + '</div>' +
-        '<div class="dp-sec"><div class="dp-h">Checks run <span class="sub">' + E(p.payer || '') + '</span></div><div class="ok-list">' + (ed.map(function (x) { return '<div class="' + (x.lvl === 'red' ? 'e' : 'w') + '">' + U.mark(x.lvl) + E(x.label) + (/^BASIC/.test(x.id) ? ': ' + E(x.text) : '') + '</div>'; }).join('') || '<div>All ' + (6 + D.allRules().length) + ' checks passed</div>') +
-          Object.keys(e.ignored || {}).map(function (k3) { return '<div class="w">' + E(k3) + ' ignored: ' + E(e.ignored[k3]) + '</div>'; }).join('') + '</div></div>' +
+        (waiting ? '' : '<div class="dp-sec"><div class="dp-h">Checks run <span class="sub">' + E(p.payer || '') + '</span></div><div class="ok-list">' + (ed.map(function (x) { return '<div class="' + (x.lvl === 'red' ? 'e' : 'w') + '">' + U.mark(x.lvl) + E(x.label) + (/^BASIC/.test(x.id) ? ': ' + E(x.text) : '') + '</div>'; }).join('') || '<div>All ' + (6 + D.allRules().length) + ' checks passed</div>') +
+          Object.keys(e.ignored || {}).map(function (k3) { return '<div class="w">' + E(k3) + ' ignored: ' + E(e.ignored[k3]) + '</div>'; }).join('') + '</div></div>') +
         '</div></section>';
     }
     function draw() {
@@ -260,7 +263,7 @@
     function autoKey() { return D.noteText(e) + '|' + e.visitType + '|' + (p.payer || '') + '|' + e.codes.map(function (c) { return c.code + (c.manual ? c.state : ''); }).join(','); }
     function scheduleAuto(force) {
       if (D.DENTAL) return dentalCheck(force);
-      clearTimeout(auto.timer); if (signed() || (!e.codes.length && !noteHasText())) return;
+      clearTimeout(auto.timer); if (signed() || LIVE.k || (!e.codes.some(function (c) { return c.manual; }) && !noteComplete())) return;
       auto.timer = setTimeout(function () {
         if (auto.busy) { auto.again = true; return; }
         var key = autoKey(); if (!force && e.autoKey === key && e.check && e.autoVer === 3) return;   // v3: one-call coding (claim-auto)
@@ -302,10 +305,15 @@
     }
     function codeKey() { return D.noteText(e) + '|' + e.visitType + '|' + (p.payer || ''); }
     function noteHasText() { return [e.s, e.o, e.a, e.p].join('\n').replace(/Chief complaint:[^.\n]*\.?/i, '').trim().length >= 12; }   // only the pre-filled chief complaint doesn't count
-    function scheduleCodes(ms) { clearTimeout(codeTimer); if (signed() || !noteHasText()) return; codeTimer = setTimeout(function () { runCodes(false); }, ms == null ? 2000 : ms); }
+    // coding waits until the note has what a claim needs: what the patient reported, the exam, the assessment and the
+    // plan (the pre-filled chief complaint alone isn't a subjective), and nobody is mid-sentence dictating
+    function missingSections() { return SECTIONS.filter(function (x) { var t = String(e[x[0]] || ''); if (x[0] === 's') t = t.replace(/Chief complaint:[^\n]*/gi, ''); return t.trim().length < 3; }).map(function (x) { return x[1]; }); }
+    function noteComplete() { return !missingSections().length; }
+    function scheduleCodes(ms) { clearTimeout(codeTimer); if (signed() || LIVE.k || !noteComplete()) { redrawRight(); return; } codeTimer = setTimeout(function () { runCodes(false); }, ms == null ? 2000 : ms); }
     function runCodes(force) {
       if (signed()) return;
       if (!(e.s + e.o + e.a + e.p).trim()) return U.toast('Write the note first.');
+      if (!noteComplete() && !D.DENTAL) { redrawRight(); return U.toast('Coding starts when the note is complete. Still needed: ' + missingSections().join(', ') + '.', 'info'); }
       if (busy) { scheduleCodes(1500); return; }
       var key = codeKey(); if (!force && key === lastCoded) return;
       if (noteHasText() && !D.DENTAL) { lastCoded = key; codeMsg = ''; e.codedAt = new Date().toISOString(); scheduleAuto(!!force); return; }   // one call codes, builds and checks the claim
@@ -384,7 +392,29 @@
     var QUESTION = /\?\s*$|^(how|what|why|where|when|who|which|can|could|does|do|is|are|should|will|would)\b/i;
     var COMMAND = /^(open|show|go|take me|read|scribe|start|stop|end|record|check|find|list|tell|sign|submit|accept|reject|switch|help|hey|hi|hello|thanks|thank you)\b/i;
     var CHART = /^(chart|add|note|document|write down|put)\b[:,\s]*(that\s+)?(to the note[:,\s]*)?/i;
+    // which section a sentence belongs in, from how it starts and what it describes (the AI sorts it properly once the
+    // sentence is finished; this is so words land in the right place while they're being said)
+    function sectionOf(t) {
+      var x = String(t || '').toLowerCase().trim();
+      if (/^(assessment|impression|diagnos[ie]s|dx)\b/.test(x)) return 'a';
+      if (/^(plan|we'?ll|we will|i'?ll|i will|increase|decrease|start|stop|continue|recheck|follow[- ]?up|refer|order|schedule|return)\b/.test(x)) return 'p';
+      if (/^(exam|on exam|physical exam|vitals?|objective)\b/.test(x) || /\b(blood pressure|bp)\s*(is\s*|of\s*)?\d|\bheart rate\b|\blungs? (are )?clear|\bheart (is )?regular|\bno (leg |pedal |peripheral )?(swelling|edema)\b|\bon (physical )?exam/.test(x)) return 'o';
+      return 's';
+    }
+    function liveShow(k, text) {
+      SECTIONS.forEach(function (x) { var ta = app.querySelector('textarea[data-n="' + x[0] + '"]'); if (!ta) return; ta.classList.toggle('live', x[0] === k && !!text); if (x[0] !== k || !text) ta.value = e[x[0]] || ''; });
+      var ta = k && app.querySelector('textarea[data-n="' + k + '"]'); if (!ta || !text) return;
+      ta.value = (e[k] ? String(e[k]).replace(/\s+$/, '') + '\n' : '') + text; ta.scrollTop = ta.scrollHeight;
+    }
     window.AlthaisEncounter = {
+      live: function (text) {
+        if (signed()) return;
+        text = String(text || '').replace(CHART, '').trim();
+        if (!text) { LIVE.k = ''; LIVE.text = ''; liveShow('', ''); redrawRight(); return; }
+        if (tab !== 'note') { tab = 'note'; draw(); }
+        var k = sectionOf(text), was = LIVE.k; LIVE.k = k; LIVE.text = text; liveShow(k, text);
+        if (!was) redrawRight();
+      },
       handles: function (intent) { return !signed() && ['scribe_visit', 'dictate_visit_note', 'start_visit', 'start_visit_timer', 'stop_visit_timer'].indexOf(intent) >= 0; },
       run: function (intent) {
         if (intent === 'stop_visit_timer') { if (!REC.on) return { text: 'Nothing is being recorded right now.', spoken: 'Nothing is being recorded.' }; app.querySelector('#rec').click(); return { text: 'Stopped. Use Write note from transcript, then Get codes.', spoken: 'Stopped.' }; }
@@ -397,13 +427,15 @@
       log: function (text, kind) { if (signed()) return; e.transcript.push({ t: stamp(), text: String(text).trim(), src: kind }); save(); if (tab === 'transcript') draw(); },
       chart: function (raw) {
         var text = String(raw).replace(CHART, '').trim();
+        if (LIVE.k) { var t = app.querySelector('textarea[data-n="' + LIVE.k + '"]'); if (t) t.classList.add('sorting'); }
         return fetch('/api/althea/extract', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'soap_note', text: text.slice(0, 4000) }) })
           .then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (j) {
             var f = j.fields || V.splitSoap(text), put = [], add = function (k, label, val) { val = String(val || '').trim(); if (!val || String(e[k] || '').toLowerCase().indexOf(val.toLowerCase()) >= 0) return; e[k] = (e[k] ? e[k].replace(/\s+$/, '') + '\n' : '') + val; if (put.indexOf(label) < 0) put.push(label); };
-            add('s', 'Subjective', [f.chief_complaint && 'Chief complaint: ' + f.chief_complaint, f.hpi, f.ros && 'ROS: ' + f.ros, f.medications && 'Medications: ' + f.medications, f.allergies && 'Allergies: ' + f.allergies].filter(Boolean).join('\n'));
+            add('s', 'Subjective', [f.chief_complaint && !/Chief complaint:/i.test(e.s || '') && 'Chief complaint: ' + f.chief_complaint, f.hpi, f.ros && 'ROS: ' + f.ros, f.medications && 'Medications: ' + f.medications, f.allergies && 'Allergies: ' + f.allergies].filter(Boolean).join('\n'));
             add('o', 'Objective', [f.exam, f.labs && 'Results: ' + f.labs].filter(Boolean).join('\n')); add('a', 'Assessment', f.assessment); add('p', 'Plan', f.plan);
             ['bp', 'hr', 'temp', 'spo2'].forEach(function (k) { if (f[k]) { e.vitals[k] = f[k]; if (put.indexOf('Vitals') < 0) put.push('Vitals'); } });
             if (!put.length) { e.s = (e.s ? e.s.replace(/\s+$/, '') + '\n' : '') + text; put.push('Subjective'); }   // couldn't sort it: keep it, in Subjective
+            LIVE.k = ''; LIVE.text = '';
             save(); tab = 'note'; draw(); scheduleCodes(300);
             return { text: 'Added to ' + put.join(', ') + '.', spoken: 'Added to ' + put.slice(0, 3).join(', ') + '.' };
           });

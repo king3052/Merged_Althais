@@ -555,3 +555,11 @@ html[data-theme-resolved="dark"] img, html[data-theme-resolved="dark"] iframe { 
 html body #althea-fab .alt-panel { position: fixed !important; left: 16px !important; bottom: 16px !important; top: auto !important; right: auto !important;
   width: 320px !important; max-height: min(420px, calc(100vh - 140px)) !important; z-index: 60; box-shadow: 0 10px 30px rgba(15, 17, 22, .22) !important; }
 html[data-theme-resolved="dark"] body #althea-fab .alt-panel { box-shadow: 0 10px 30px rgba(0, 0, 0, .55) !important; }
+
+/* the encounter while Althea is listening: the section being dictated, and the coding panel waiting for the full note */
+textarea.ed.live { outline: 2px solid var(--blue); outline-offset: -1px; background: var(--tint); transition: background .2s; }
+textarea.ed.sorting { outline: 2px dashed var(--blue); }
+.code-wait .cw-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.code-wait .cw-list span { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 3px; font-size: 12.5px; border: 1px solid var(--b); }
+.code-wait .cw-ok { color: var(--grn); border-color: var(--grn-line) !important; background: var(--grn-bg); }
+.code-wait .cw-miss { color: var(--m); border-style: dashed !important; }

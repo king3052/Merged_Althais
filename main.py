@@ -1680,6 +1680,21 @@ def _dental_claim_check(data: dict, codes: list) -> dict:
     return {"score": res["score"], "flags": res["flags"], "missing": res["missing"]}
 
 
+_SOAP_HEAD = re.compile(r"^\s*(SUBJECTIVE|OBJECTIVE|ASSESSMENT|PLAN)\s*:", re.I | re.M)
+
+
+def _note_gaps(note):
+    """Sections a SOAP note leaves empty. A free-text note without headings isn't judged here."""
+    heads = list(_SOAP_HEAD.finditer(note or ""))
+    if len(heads) < 2:
+        return []
+    body = {}
+    for i, m in enumerate(heads):
+        end = heads[i + 1].start() if i + 1 < len(heads) else len(note)
+        body[m.group(1).upper()] = body.get(m.group(1).upper(), "") + note[m.end():end].strip()
+    return [n.title() for n in ("OBJECTIVE", "ASSESSMENT", "PLAN") if n in body and len(re.sub(r"\W", "", body[n])) < 3]
+
+
 def _claim_check(header, codes, note):
     prompt = f"""You are a medical billing compliance reviewer. Score how likely this claim is to be paid without denial (0-100), checking:
 {_CHECK_RULES}
@@ -1716,6 +1731,10 @@ Visit note:
         res["flags"] = [f for f in res.get("flags", []) if "ncci" not in f.lower() and "bundl" not in f.lower()] + ncci
         hard = sum(1 for f in ncci if "no modifier" in f.lower())
         res["score"] = max(0, res["score"] - hard * 15)
+    gaps = _note_gaps(note)
+    if gaps:   # a visit code and diagnoses with no exam, assessment or plan behind them don't survive a records request
+        res["missing"] = res.get("missing", []) + ["Note incomplete: no " + ", ".join(g.lower() for g in gaps) + " documented"]
+        res["score"] = min(res["score"], 40 - 10 * (len(gaps) - 1))
     return res
 
 def _build_claim(note, transcript, header, visit, codes, last_check):

@@ -168,6 +168,9 @@
       var interim = "";
       for (var i = e.resultIndex; i < e.results.length; i++) { var chunk = e.results[i][0].transcript; if (e.results[i].isFinal) finalTranscript += chunk + " "; else interim += chunk; }
       transcriptEl.textContent = '"' + (finalTranscript + interim).trim() + '"';
+      /* on a visit, the words go into the note as they're said, in the section they belong in */
+      var ENC0 = window.AlthaisEncounter, heard = (finalTranscript + interim).trim();
+      if (ENC0 && ENC0.live && heard && (heard.split(/\s+/).length < 2 || (ENC0.wantsChart && ENC0.wantsChart(heard)))) ENC0.live(heard);
       if (silenceTimer) clearTimeout(silenceTimer);
       silenceTimer = setTimeout(function () { stopListening(true); }, 2000);   /* submit after ~2s of silence */
     };
@@ -229,6 +232,7 @@
       if (lr) { if (window.AlthaisEncounter && window.AlthaisEncounter.log) window.AlthaisEncounter.log(transcript, "command"); responseEl.textContent = lr.text || ""; statusEl.textContent = IDLE; speak(lr.spoken || ""); maybeResume(); return; }
     }
     var ENC = window.AlthaisEncounter, chart = ENC && ENC.wantsChart && ENC.wantsChart(transcript);
+    if (ENC && ENC.live && !chart) ENC.live("");   /* a question or command, not dictation: take it back out of the note */
     if (ENC && ENC.log) ENC.log(transcript, chart ? (voiceTurn ? "althea_spoken" : "althea_typed") : "command");   /* everything said to Althea goes in the visit's transcript */
     if (chart) {
       statusEl.textContent = "Charting…"; responseEl.textContent = "Adding that to the note…";
