@@ -236,7 +236,8 @@
   U.fit = function () {
     // Althea sits in the toolbar; in the dental app, up in the section tabs row (level with Schedule, Recall…) when there is one
     var snav = window.D && D.DENTAL && document.querySelector('.snav'), tb = snav || document.querySelector('.tb');
-    if (tb) document.documentElement.style.setProperty('--tb-top', Math.round(tb.getBoundingClientRect().top + window.scrollY + (snav ? Math.max(0, (tb.offsetHeight - 30) / 2) : 4)) + 'px');
+    var btn = document.querySelector('#althea-fab .alt-launch'), bh = btn && btn.offsetHeight ? btn.offsetHeight : (document.body.classList.contains('dental') ? 28 : 30);
+    if (tb) document.documentElement.style.setProperty('--tb-top', Math.round(tb.getBoundingClientRect().top + window.scrollY + (snav ? Math.max(0, (tb.offsetHeight - bh) / 2) : 4)) + 'px');
     var m = document.querySelector('.main'); if (!m) return;
     document.documentElement.style.setProperty('--chrome', Math.round(m.getBoundingClientRect().top + window.scrollY) + 'px');
   };
