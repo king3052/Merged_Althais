@@ -44,3 +44,23 @@ def test_intractable_headache_codes_need_the_note_to_say_so():
     # episodic and chronic tension headaches follow the note
     out, _ = icd10.supported([{"code": "G44.229", "type": "ICD-10"}], "Assessment: Episodic tension-type headaches, not migraines")
     assert out[0]["code"] == "G44.219"
+
+
+def test_documented_status_codes_are_added():
+    """A penicillin allergy and a history of smoking in the note become Z88.0 and Z87.891; negations and current smokers don't."""
+    import icd10
+    out, _ = icd10.status([{"code": "J18.1", "type": "ICD-10"}], "Allergies: Penicillin causes hives\nSH: Former smoker, 15 pack-years, quit 2018")
+    assert [c["code"] for c in out] == ["J18.1", "Z88.0", "Z87.891"]
+    assert icd10.status([], "Denies penicillin allergy. Currently smokes 1 ppd.")[0] == []
+
+
+def test_treating_with_a_prescription_is_moderate_risk():
+    """'Treat at home with doxycycline 100 mg' is prescription drug management: with 2+ chronic illnesses the visit is 99214."""
+    import main
+    codes = [{"code": "99213", "type": "CPT"}, {"code": "J18.1", "type": "ICD-10"}, {"code": "E11.65", "type": "ICD-10"}, {"code": "I10", "type": "ICD-10"}]
+    note = "ASSESSMENT: Pneumonia, type 2 diabetes with hyperglycemia, hypertension\nPLAN: Treat at home with doxycycline 100 mg twice daily for 7 days"
+    out = main._em_floor(codes, note, "office visit, established patient", [])
+    assert out[0]["code"] == "99214"
+    # doses as they're said out loud count too
+    note2 = note.replace("100 mg", "100 milligrams")
+    assert main._em_floor([dict(c) for c in codes], note2, "office visit, established patient", [])[0]["code"] == "99214"

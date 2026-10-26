@@ -96,7 +96,7 @@
     if (V.seen) V.seen('visit', e.id, e.mrn);
     var chk = { busy: false, err: '' };
     var auto = { busy: false, err: '', timer: null, again: false };
-    var AMB = { on: false, busy: null, again: false, pend: [], wrote: {} }, LIVE = { k: '', text: '' }, SECTIONS = [['s', 'Subjective'], ['o', 'Objective'], ['a', 'Assessment'], ['p', 'Plan']];   // what Althea is hearing now; the note's sections
+    var AMB = { on: false, busy: null, again: false, pend: [], wrote: {}, last: 0, wait: null }, LIVE = { k: '', text: '' }, SECTIONS = [['s', 'Subjective'], ['o', 'Objective'], ['a', 'Assessment'], ['p', 'Plan']];   // what Althea is hearing now; the note's sections
     var tab = V.q.get('tab') || 'note', REC = { on: false, rec: null, start: 0, consent: false }, codeMsg = '', busy = false;
     var signed = function () { return e.status === 'Signed'; };
     var save = function () { e.updated = new Date().toISOString(); D.save(); };
@@ -228,7 +228,7 @@
       if (REC.on) { REC.on = false; V.recording = ''; if (REC.rec) try { REC.rec.stop(); } catch (x) {} clearInterval(tick); D.log('Recording stopped: ' + p.name); draw(); return; }
       if (!SR) return U.toast('This browser can’t record speech. Use Chrome or Edge, or paste a transcript.');
       var r = new SR(); r.lang = 'en-US'; r.continuous = true; r.interimResults = true;
-      r.onresult = function (ev) { var interim = ''; for (var i = ev.resultIndex; i < ev.results.length; i++) { var t = ev.results[i][0].transcript.trim(); if (ev.results[i].isFinal && t) { e.transcript.push({ t: stamp(), text: t }); save(); if (tab === 'transcript') draw(); } else interim += t; } var el = document.getElementById('interim'); if (el) el.textContent = interim || 'Listening…'; };
+      r.onresult = function (ev) { if (window.AlthaisSession) AlthaisSession.active(); var interim = ''; for (var i = ev.resultIndex; i < ev.results.length; i++) { var t = ev.results[i][0].transcript.trim(); if (ev.results[i].isFinal && t) { e.transcript.push({ t: stamp(), text: t }); save(); if (tab === 'transcript') draw(); } else interim += t; } var el = document.getElementById('interim'); if (el) el.textContent = interim || 'Listening…'; };
       r.onend = function () { if (REC.on) try { r.start(); } catch (x) {} };
       r.onerror = function (ev) { if (ev.error === 'not-allowed') { REC.on = false; clearInterval(tick); U.toast('Microphone permission was denied.'); draw(); } };
       try { r.start(); } catch (x) {}
@@ -248,8 +248,8 @@
           var f = x.ok && !x.j.error && x.j.fields ? x.j.fields : V.splitSoap(e.transcript.filter(function (l) { return l.src !== 'command'; }).map(function (l) { return l.text; }).join('\n')), filled = [];
           var blank = function (k) { return !String(e[k] || '').replace(/Chief complaint:[^.\n]*\.?/i, '').trim(); };
           var put = function (k, val) { if (val && blank(k)) { e[k] = (k === 's' && String(e.s || '').trim() ? e.s.replace(/\s+$/, '') + '\n' : '') + val; filled.push(k.toUpperCase()); } };
-          put('s', [f.chief_complaint && 'Chief complaint: ' + f.chief_complaint, f.hpi, f.ros && 'ROS: ' + f.ros, f.pmh && 'PMH: ' + f.pmh, f.medications && 'Medications: ' + f.medications, f.allergies && 'Allergies: ' + f.allergies].filter(Boolean).join('\n'));
-          put('o', [f.exam, f.labs && 'Results: ' + f.labs].filter(Boolean).join('\n')); put('a', f.assessment); put('p', f.plan);
+          put('s', [f.chief_complaint && 'Chief complaint: ' + f.chief_complaint, f.hpi, f.ros && 'ROS: ' + f.ros, f.pmh && 'PMH: ' + f.pmh, f.psh && 'PSH: ' + f.psh, f.fh && 'FH: ' + f.fh, f.sh && 'SH: ' + f.sh, f.medications && 'Medications: ' + f.medications, f.allergies && 'Allergies: ' + f.allergies].filter(Boolean).join('\n'));
+          put('o', [f.rr && 'RR ' + f.rr, f.exam, f.labs && 'Results: ' + f.labs].filter(Boolean).join('\n')); put('a', f.assessment); put('p', f.plan);
           ['bp', 'hr', 'temp', 'spo2'].forEach(function (k) { if (f[k] && !e.vitals[k]) e.vitals[k] = f[k]; });
           save(); draw(); scheduleCodes(300); U.toast(filled.length ? 'Filled ' + filled.join(', ') + '. Review before signing.' : 'Nothing new to fill; sections that already had text were left alone.');
         }).catch(function (err) { b.disabled = false; msg.textContent = err.message; });
@@ -396,9 +396,10 @@
     // sentence is finished; this is so words land in the right place while they're being said)
     function sectionOf(t) {
       var x = String(t || '').toLowerCase().trim();
-      if (/^(assessment|impression|diagnos[ie]s|dx)\b/.test(x) || /^(so,?\s+)?(i think|this (is|looks|sounds) like|it (looks|sounds) like|these (are|sound|look)|what you'?re describing|your blood pressure (is ?n[o']t|isn'?t) (controlled|under control))/.test(x)) return 'a';
+      if (/^(assessment|impression|diagnos[ie]s|dx)\b/.test(x) || /^(so,?\s+)?(i think|this (is|looks|sounds) like|this is |it (looks|sounds) like|these (are|sound|look)|what you'?re describing|your blood pressure (is ?n[o']t|isn'?t) (controlled|under control))/.test(x)) return 'a';
       if (/^(so,?\s+)?(let'?s|here'?s (the|what)|we'?re going to|i'?m going to (increase|start|add|order|send|bump|raise|have)|i want (you|to see)|i'?d like (you|to see)|come back|see you)/.test(x)) return 'p';
-      if (/^(let me (listen|check|take|look|feel|examine)|your (blood pressure|heart rate|pulse|temperature) (today )?(is|was)|(your )?(lungs|heart) (sound|are|is))/.test(x)) return 'o';
+      if (/^(let me (listen|check|take|look|feel|examine)|your (vitals|labs?|blood work|x-?ray|chest x-?ray|blood pressure|heart rate|pulse|temperature|oxygen)\b|(the )?(chest )?x-?ray|(your )?(lungs|heart) (sound|are|is))/.test(x)) return 'o';
+      if (/^(keep taking|stay on|go to the (er|emergency)|i'?m (starting|prescribing)|since your|we'?ll (treat|start|repeat|do|check))/.test(x)) return 'p';
       if (/^(plan|we'?ll|we will|i'?ll|i will|increase|decrease|start|stop|continue|recheck|follow[- ]?up|refer|order|schedule|return)\b/.test(x)) return 'p';
       if (/^(exam|on exam|physical exam|vitals?|objective)\b/.test(x) || /\b(blood pressure|bp)\s*(is\s*|of\s*)?\d|\bheart rate\b|\blungs? (are )?clear|\bheart (is )?regular|\bno (leg |pedal |peripheral )?(swelling|edema)\b|\bon (physical )?exam/.test(x)) return 'o';
       return 's';
@@ -414,16 +415,19 @@
     }
     // the visit so far, written up as a note. Sections only Althea has written are replaced; a section the clinician edited
     // keeps their words and gets the new lines added
-    function redraft() {
+    // at most one rewrite every 10 seconds while the visit goes on (the words stay on screen meanwhile); now = the visit ended
+    function redraft(now) {
       if (AMB.busy) { AMB.again = true; return AMB.busy; }
-      AMB.again = false;
+      var gap = AMB.last + 10000 - Date.now();
+      if (!now && gap > 0) { if (!AMB.wait) AMB.wait = new Promise(function (ok) { setTimeout(function () { AMB.wait = null; ok(redraft()); }, gap); }); return AMB.wait; }
+      AMB.again = false; AMB.last = Date.now();
       var n = AMB.pend.length, said = e.transcript.filter(function (l) { return l.src === 'visit'; }).map(function (l) { return l.text; }).join('\n');
       AMB.busy = fetch('/api/althea/extract', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'soap_scribe', text: said }) })
         .then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (j) {
           var f = j.fields; if (!f) return { text: 'Still listening. I’ll catch up on the next thing said.' };
           var put = [], was = AMB.wrote, now = {
-            s: [f.chief_complaint && 'Chief complaint: ' + f.chief_complaint, f.hpi, f.ros && 'ROS: ' + f.ros, f.pmh && 'PMH: ' + f.pmh, f.medications && 'Medications: ' + f.medications, f.allergies && 'Allergies: ' + f.allergies].filter(Boolean).join('\n'),
-            o: [f.exam, f.labs && 'Results: ' + f.labs].filter(Boolean).join('\n'), a: f.assessment || '', p: f.plan || '' };
+            s: [f.chief_complaint && 'Chief complaint: ' + f.chief_complaint, f.hpi, f.ros && 'ROS: ' + f.ros, f.pmh && 'PMH: ' + f.pmh, f.psh && 'PSH: ' + f.psh, f.fh && 'FH: ' + f.fh, f.sh && 'SH: ' + f.sh, f.medications && 'Medications: ' + f.medications, f.allergies && 'Allergies: ' + f.allergies].filter(Boolean).join('\n'),
+            o: [f.rr && 'RR ' + f.rr, f.exam, f.labs && 'Results: ' + f.labs].filter(Boolean).join('\n'), a: f.assessment || '', p: f.plan || '' };
           SECTIONS.forEach(function (x) {
             var k = x[0], v = String(now[k] || '').trim(), cur = String(e[k] || '').trim(); if (!v || v === cur) return;
             if (!cur || cur === String(was[k] || '').trim()) e[k] = v;
@@ -434,12 +438,13 @@
           AMB.wrote = { s: e.s, o: e.o, a: e.a, p: e.p }; AMB.pend.splice(0, n); save();
           if (tab === 'note') { draw(); liveShow(LIVE.k, LIVE.text); } else redrawRight();
           return { text: put.length ? 'Updated ' + put.join(', ') + '.' : 'Listening…' };
-        }).then(function (r) { AMB.busy = null; return AMB.again ? redraft() : r; });
+        }).then(function (r) { AMB.busy = null; return AMB.again ? redraft(!AMB.on) : r; });
       return AMB.busy;
     }
     window.AlthaisEncounter = {
       live: function (text) {
         if (signed()) return;
+        if (text && window.AlthaisSession) AlthaisSession.active();   // talking through a visit keeps you signed in
         text = String(text || '').replace(CHART, '').trim();
         if (!text) { LIVE.k = ''; LIVE.text = ''; liveShow('', ''); redrawRight(); return; }
         if (tab !== 'note') { tab = 'note'; draw(); }
@@ -466,7 +471,7 @@
       listen: function (on) {
         AMB.on = !!on; if (on) { draw(); return Promise.resolve({}); }
         D.log('Althea stopped listening: ' + p.name);
-        return (AMB.busy || Promise.resolve()).then(function () { return AMB.again ? redraft() : null; }).then(function () {
+        return (AMB.busy || Promise.resolve()).then(function () { return AMB.pend.length || AMB.again ? redraft(true) : null; }).then(function () {
           LIVE.k = ''; LIVE.text = ''; AMB.pend = []; draw(); scheduleCodes(300); scheduleAuto();
           var miss = missingSections();
           return miss.length ? { text: 'Visit charted. Still missing: ' + miss.join(', ') + ', so I’ll code it once that’s in the note.', spoken: 'Visit charted. The note still needs ' + miss.join(' and ') + '.' }

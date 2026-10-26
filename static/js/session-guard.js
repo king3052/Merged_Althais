@@ -1,5 +1,5 @@
 /* Automatic sign-out after inactivity (security.py). Added to every signed-in page by the server.
-   - Mouse, keyboard, scroll and touch count as activity; the server is told at most once a minute (POST .../ping).
+   - Mouse, keyboard, scroll and touch count as activity, and so does speech Althea charts during a visit; the server is told at most once a minute (POST .../ping).
      Background requests never count, so a screen left open signs out on time even while it keeps refreshing data.
    - A minute before the clinic's limit, a notice counts down; any activity keeps you signed in.
    - Activity in another tab or window of Althais counts too (the server keeps one clock per session).
@@ -36,6 +36,8 @@
     if (box) ping();
   }
   ['mousemove', 'mousedown', 'keydown', 'wheel', 'scroll', 'touchstart'].forEach(function (ev) { window.addEventListener(ev, active, { passive: true, capture: true }); });
+  // a clinician talking through a visit while Althea listens is working, with no hands on the computer
+  window.AlthaisSession = { active: active };
   window.addEventListener('storage', function (e) {
     if (e.key === 'althais.active') { lastActive = Math.max(lastActive, +e.newValue || 0); if (box) hide(); }
     if (e.key === 'althais.signedOut') location.href = out;   // another tab timed out: this one follows

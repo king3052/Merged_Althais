@@ -4,8 +4,8 @@ Sessions
   Every sign-in is a row in user_sessions, named by the `sid` in the session cookie's signed token (auth.create_token).
   A request is signed in only while that row exists, isn't revoked, hasn't passed its end, and has seen activity within
   the clinic's idle limit (Settings > Security; 15 minutes unless the clinic chose otherwise). Activity is a page load
-  or the browser's ping (static/js/session-guard.js, sent at most once a minute while someone is moving the mouse or
-  typing), never a background request, so a screen left open polls without keeping the session alive. Signing out,
+  or the browser's ping (static/js/session-guard.js, sent at most once a minute while someone is moving the mouse,
+  typing, or talking through a visit Althea is charting), never a background request, so a screen left open polls without keeping the session alive. Signing out,
   a password change and a 2FA reset end sessions on the server. The admin console works the same way (kind "admin").
 
 Two-step login (TOTP, RFC 6238, any authenticator app)
@@ -719,7 +719,7 @@ async def middleware(request: Request, call_next):
     signed_in = request.cookies.get(ADMIN_COOKIE if admin else COOKIE_NAME)
     if ctype.startswith("text/html") and signed_in and request.method == "GET" and resp.status_code == 200 and _guarded_page(path, admin):
         body = b"".join([chunk async for chunk in resp.body_iterator])
-        tag = (f'<script src="/static/js/session-guard.js?v=2" data-admin="{1 if admin else 0}" defer></script>').encode()
+        tag = (f'<script src="/static/js/session-guard.js?v=3" data-admin="{1 if admin else 0}" defer></script>').encode()
         i = body.rfind(b"</body>")
         body = body[:i] + tag + body[i:] if i >= 0 else body + tag
         headers = {k: v for k, v in resp.headers.items() if k.lower() != "content-length"}

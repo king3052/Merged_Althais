@@ -1606,8 +1606,9 @@ def _note_limit(model, err):
     _MODEL_DOWN[model] = _time.time() + wait
     return wait
 
-def _fast_json(prompt, schema, name, model=None, timeout=None):
-    """One structured answer (fast model unless told otherwise); retried once on a malformed reply."""
+def _fast_json(prompt, schema, name, model=None, timeout=None, wait_for=0):
+    """One structured answer (fast model unless told otherwise); retried once on a malformed reply. wait_for: when this model
+    is over its per-minute limit, wait up to that many seconds for it rather than switching to the other model."""
     last = None
     cl = client.with_options(timeout=timeout, max_retries=0) if timeout else client
     model = model or FAST_MODEL
@@ -1618,7 +1619,10 @@ def _fast_json(prompt, schema, name, model=None, timeout=None):
     first = model
     for attempt in range(3):
         if attempt and last is not None and _is_rate_limited(last):
-            if up(other) and model != other:
+            wait = _MODEL_DOWN.get(model, 0) - _time.time()
+            if wait_for and wait <= wait_for:   # the same model in a few seconds beats the weaker one now
+                _time.sleep(max(0, wait) + 0.3)
+            elif up(other) and model != other:
                 model = other   # each model has its own limit: use the other one instead of waiting
             else:               # both busy: wait out the shorter reset if it's brief, rather than failing the claim
                 wait = min(_MODEL_DOWN.get(first, 0), _MODEL_DOWN.get(other, 0)) - _time.time()
@@ -1709,7 +1713,7 @@ Visit note:
 {note}
 >>>"""
     try:
-        res = _fast_json(prompt, _CHECK_SCHEMA, "claim_check")
+        res = _fast_json(prompt, _CHECK_SCHEMA, "claim_check", wait_for=30)
     except Exception as e:   # the AI reviewer is busy: score by the rules a clearinghouse applies
         print(f"claim check by rules: {str(e)[:120]}", flush=True)
         low = (header + " " + (note or "")[:3000]).lower()      # /api/validate-claim sends the claim header as the note's first line
@@ -1765,7 +1769,7 @@ TRANSCRIPT:
 >>>"""
     has_dx = lambda r: any(c.get("code") and not str(c.get("type", "")).upper().startswith("CPT") for c in r.get("codes", []))
     try:
-        res = _fast_json(prompt, _BUILD_SCHEMA, "claim_build", model=BUILD_MODEL, timeout=9)
+        res = _fast_json(prompt, _BUILD_SCHEMA, "claim_build", model=BUILD_MODEL, timeout=9, wait_for=30)
     except Exception:
         res = {}
     if not has_dx(res):   # no reply, or a reply without a diagnosis: the other model gets one try
@@ -1785,7 +1789,8 @@ TRANSCRIPT:
     codes, header_notes = icd10.resolve_headers(codes, note + " " + transcript)
     codes, sup_notes = icd10.supported(codes, note + " " + transcript)
     codes, spec_notes = icd10.specify(codes, note)
-    spec_notes = sup_notes + spec_notes
+    codes, stat_notes = icd10.status(codes, note)
+    spec_notes = sup_notes + spec_notes + stat_notes
     header_notes += spec_notes
     if header_notes:
         codes, more = icd10.clean(codes)
@@ -1806,7 +1811,7 @@ def _em_floor(codes, note, visit, notes, adds=None):
     worse = re.search(r"worsen|uncontrolled|not at goal|poorly controlled|progress|exacerbat|up from|rising|increased from|flare", text)
     problems_mod = len(chronic) >= 2 or (chronic and worse)
     plan = text.split("plan", 1)[-1] if "plan" in text else text
-    rx = [m for m in re.finditer(r"\b(start|add|begin|increase|decrease|titrate|switch|change|continue|refill|stop|discontinue|prescribe)\w*\b[^.\n]{0,60}?\d+(\.\d+)?\s*(mg|mcg|units|ml)\b", plan)]
+    rx = [m for m in re.finditer(r"\b(start|add|begin|increase|decrease|titrate|switch|change|continue|refill|stop|discontinue|prescribe|treat|take)\w*\b[^.\n]{0,60}?\d+(\.\d+)?\s*(mg|mcg|units|ml|milligrams?|micrograms?|milliliters?)\b", plan)]
     risk_mod = any(not _OTC.search(m.group(0)) for m in rx)
     new = "new" in visit.lower()
     # ceiling: one acute uncomplicated problem, no drug (Rx or OTC), no tests = straightforward MDM (99212 / 99202)

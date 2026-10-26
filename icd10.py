@@ -200,7 +200,26 @@ _NEEDS = [
     (r"^I1[23]", r"ckd|chronic kidney|kidney disease|renal|egfr|esrd|dialysis"),
     (r"^I1[13]\.0|^I13\.[12]", r"heart failure|\bchf\b|hfref|hfpef"),
     (r"^N18", r"ckd|chronic kidney|kidney disease|renal|egfr|esrd|dialysis"),
+    (r"^T78\.0", r"anaphyla"),
 ]
+
+# status codes the note documents outright: (code, what the note must say, what it must not)
+_STATUS = [
+    ("Z88.0", r"(penicillin|amoxicillin|pcn)\W+(allerg|causes|gives|reaction)|allerg\w*\W+(to\W+)?(penicillin|amoxicillin|pcn)", r"\b(no|denies|denied|without|not)\b[^.\n]{0,25}(allerg\w*\W+(to\W+)?)?(penicillin|amoxicillin|pcn)"),
+    ("Z87.891", r"former smoker|quit smoking|ex-?smoker|smoked\b[^.\n]{0,60}\bquit|history of (smoking|tobacco|nicotine)|quit (in )?\d{4}", r"current(ly)? smok|still smok|smokes \d"),
+]
+
+def status(codes, note):
+    """Add a status code (penicillin allergy, history of smoking) the note documents and the claim doesn't have yet."""
+    text, have = str(note or "").lower(), {dotted(_raw(c.get("code"))) for c in codes}
+    out, notes = list(codes), []
+    for code, need, unless in _STATUS:
+        if code in have or not re.search(need, text) or (unless and re.search(unless, text)):
+            continue
+        out.append({"code": code, "type": "ICD-10", "description": lookup(code)[2], "reason": "The note documents it: " + lookup(code)[2].lower()})
+        notes.append(code + " added: " + lookup(code)[2])
+    return out, notes
+
 
 _INTRACTABLE = r"intractable|refractory|pharmacoresistant|treatment[- ]resistant|medically resistant"
 

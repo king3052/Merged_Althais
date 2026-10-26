@@ -200,7 +200,7 @@
   // ---- the note as text (for coding, rule checks and the claim) ----
   D.noteText = function (e) {
     var v = D.DENTAL ? {} : e.vitals || {};
-    return ['SUBJECTIVE: ' + (e.s || ''), 'OBJECTIVE: ' + [v.bp && 'BP ' + v.bp, v.hr && 'HR ' + v.hr, v.temp && 'Temp ' + v.temp, v.wt && 'Wt ' + v.wt].filter(Boolean).join(', ') + ' ' + (e.o || ''),
+    return ['SUBJECTIVE: ' + (e.s || ''), 'OBJECTIVE: ' + [v.bp && 'BP ' + v.bp, v.hr && 'HR ' + v.hr, v.temp && 'Temp ' + v.temp, v.spo2 && 'SpO2 ' + v.spo2 + '%', v.wt && 'Wt ' + v.wt].filter(Boolean).join(', ') + ' ' + (e.o || ''),
       'ASSESSMENT: ' + (e.a || ''), 'PLAN: ' + (e.p || '')].concat((e.addenda || []).filter(function (x) { return x.signed; }).map(function (x) { return 'ADDENDUM: ' + x.text; })).join('\n');
   };
 
