@@ -14,7 +14,7 @@
     var ec = e ? e.codes : [], dsc = function (code) { var x = ec.filter(function (y) { return y.code === code; })[0]; return (x && x.desc) || desc(code); };
     return { claimId: c.id, patient: p.name || '', mrn: c.mrn, dob: p.dob || '', sex: p.sex || '', provider: prov.name || '', npi: prov.npi || '', payer: D.payer(c), svcDate: c.dos, pos: '11',
       addrStreet: p.addr || '', addrPhone: p.phone || '', insuredId: p.member || '',
-      cpts: c.lines.map(function (l) { var x = { code: l.code, description: dsc(l.code), type: D.DENTAL && /^D\d{4}$/.test(l.code) ? 'CDT' : 'CPT', modifier: l.mod || '', units: l.units || 1, charge: D.fee(l.code) * (l.units || 1) };
+      cpts: c.lines.map(function (l) { var x = { code: l.code, description: dsc(l.code), type: D.DENTAL && /^D\d{4}$/.test(l.code) ? 'CDT' : 'CPT', modifier: l.mod || '', units: l.units || 1, charge: D.lineFee(l) };
         if (D.DENTAL) { x.tooth = l.tooth || ''; x.surface = l.surface || ''; x.quad = l.quad || ''; } return x; }),
       icds: c.dx.map(function (d) { return { code: d, description: dsc(d), type: 'ICD-10' }; }),
       totalAmt: D.charge(c), note: e ? D.noteText(e) : (c.note || ''), billing: { name: S.clinic.name, npi: S.clinic.npi, ein: S.clinic.ein, addr: S.clinic.addr, city: S.clinic.city, phone: S.clinic.phone } };

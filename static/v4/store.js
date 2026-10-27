@@ -16,7 +16,8 @@
   // a procedure (billed service) code, as opposed to a diagnosis
   D.isProc = function (type) { return type === 'CPT' || type === 'CDT'; };
   // a claim line from a code (keeps tooth, surface and quadrant for dental)
-  D.lineOf = function (c) { var l = { code: String(c.code || '').toUpperCase(), mod: c.mod || c.modifier || '', units: +c.units || 1 }; if (c.tooth || c.surface || c.quad) { l.tooth = c.tooth || ''; l.surface = c.surface || ''; l.quad = c.quad || ''; } return l; };
+  D.lineOf = function (c) { var l = { code: String(c.code || '').toUpperCase(), mod: c.mod || c.modifier || '', units: +c.units || 1 }; if (Number(c.charge) > 0) l.charge = Math.round(Number(c.charge) * 100) / 100;   // a charge that came with the claim (EMR, extension, import) wins over the fee schedule
+  if (c.tooth || c.surface || c.quad) { l.tooth = c.tooth || ''; l.surface = c.surface || ''; l.quad = c.quad || ''; } return l; };
   D.lineText = function (l) { return D.DENTAL ? DX.lineText(l) : l.code + (l.mod ? '-' + l.mod : '') + (l.units > 1 ? ' \u00d7' + l.units : ''); };
 
   D.PAYERS = D.DENTAL ? DX.PAYERS : ['Medicare B', 'Medicare Adv.', 'Aetna PPO', 'UHC', 'Cigna', 'BCBS TX', 'TX Medicaid', 'Self-pay'];
@@ -189,7 +190,8 @@
   D.enc = function (id) { return S.encs.filter(function (e) { return e.id === id; })[0] || null; };
   D.claim = function (id) { return S.claims.filter(function (c) { return c.id === id; })[0] || null; };
   D.fee = function (code) { var f = S.fees.filter(function (x) { return x.code === String(code).toUpperCase(); })[0]; return f ? f.rate : 0; };
-  D.charge = function (c) { var f = D.sum(c.lines || [], function (l) { return D.fee(l.code) * (l.units || 1); }); return f || Number(c.amount) || 0; };   // claims brought over keep their amount when a code has no fee here
+  D.lineFee = function (l) { return Number(l.charge) > 0 ? Number(l.charge) : D.fee(l.code) * (l.units || 1); };
+  D.charge = function (c) { var f = D.sum(c.lines || [], D.lineFee); return f || Number(c.amount) || 0; };   // claims brought over keep their amount when a code has no fee here
   D.sum = function (list, f) { return list.reduce(function (s, x) { return s + (f ? (f(x) || 0) : x); }, 0); };
   D.payer = function (c) { var p = D.pt(c.mrn); return c.payer || (p ? p.payer : ''); };
   D.stage = function (st) { return S.claims.filter(function (c) { return c.stage === st; }); };
