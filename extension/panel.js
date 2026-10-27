@@ -205,27 +205,43 @@ const LABEL = { clean: "Ready to submit", review: "Worth a look", fix: "Fix befo
 const SEVS = [["error", "Errors"], ["warn", "Warnings"], ["info", "Info"]];
 const sevOf = (x) => (x === "error" || x === "warn" ? x : "info");
 const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
+// A short name for what each check is about, shown above the message.
+const TOPIC = { ncci: "Bundling", multi_em: "Visit level", icd_header: "Specificity", icd_unknown: "Unknown code", bad_icd: "Code format", bad_cpt: "Code format",
+  bad_cdt: "Code format", no_dx: "Missing diagnosis", no_cpt: "Missing procedure", no_payer: "Payer", no_dos: "Date of service", future_dos: "Date of service",
+  stale: "Filing deadline", aging: "Filing deadline", no_charge: "Charge", dup_in_file: "Duplicate", dup_existing: "Duplicate", no_tooth: "Tooth", bad_tooth: "Tooth",
+  tooth_type: "Tooth", no_surface: "Surface", bad_surface: "Surface", surface_count: "Surface", no_quad: "Quadrant", no_arch: "Arch", same_tooth: "Same tooth",
+  dup_line: "Duplicate line", two_exams: "Exams", clean_and_maint: "Cleaning", clean_and_srp: "Cleaning", fmx_and_bw: "X-rays", attach: "Attachment", age_limit: "Age limit" };
+const SEVWORD = { error: "Error", warn: "Warning", info: "Note" };
+const GROUPS = { CPT: "Procedures", CDT: "Procedures (CDT)", "ICD-10": "Diagnoses" };
 let last = null, pick = "";
 
+// Top of the panel: a status pill that counts the lines needing work, the score, and which claim this is.
 function setVerify(state, pct, label, meta, flags) {
-  const v = $("verify");
-  v.className = "card verify " + state;
-  // A claim with errors can't go out, so lead with how many things need fixing rather than a percentage.
-  const errs = flags ? flags.filter((x) => x.severity === "error").length : 0, warns = flags ? flags.filter((x) => x.severity === "warn").length : 0;
-  const count = pct != null && (errs || warns);
-  $("pct").parentElement.classList.toggle("count", !!count);
-  $("pct").textContent = pct == null ? "–" : count ? (errs || warns) : pct;
-  $("pctsign").textContent = pct == null ? "" : count ? (errs ? "to fix" : "to check") : "%";
+  const v = $("verify"), f = $("form");
+  v.className = "verify " + state;
   $("vlabel").textContent = label;
   $("vmeta").textContent = meta;
-  $("rbar").setAttribute("stroke-dasharray", (pct || 0) + " 100");
+  $("vscore").innerHTML = pct == null ? "" : pct + " <small>/ 100</small>";
+  const show = pct != null && flags;
+  $("vgrid").hidden = !show;
+  if (!show) return;
+  const vals = { claim: f.claim_id.value, payer: f.payer.value, dos: f.dos.value };
+  for (const k in vals) { $("g-" + k).hidden = !vals[k]; $("m-" + k).textContent = vals[k]; }
+  $("vgrid").hidden = !(vals.claim || vals.payer || vals.dos);
 }
-function setCounts(flags) {
-  for (const [s] of SEVS) {
-    const n = flags ? flags.filter((x) => sevOf(x.severity) === s).length : 0, el = document.querySelector('.stat[data-jump="' + s + '"]');
-    $("n-" + s).textContent = n; el.classList.toggle("on", n > 0); el.disabled = !n;
-  }
+function pillText(v, rows, flags) {
+  const n = (s) => rows.filter((r) => r.status !== "ok" && sevOf(r.status) === s).length, lines = (k) => k + (k === 1 ? " line" : " lines");
+  if (v === "fix") { const k = n("error"); return k ? lines(k) + (k === 1 ? " needs a fix" : " need fixes") : LABEL.fix; }
+  if (v === "review") { const k = n("warn") + n("error"); return k ? lines(k) + " worth a look" : LABEL.review; }
+  return rows.length ? "All lines look good" : LABEL.clean;
 }
+function metaText(v) {
+  const payer = $("form").payer.value.trim();
+  if (v === "fix") return (payer || "The payer") + " will likely deny this claim as it stands.";
+  if (v === "review") return "Nothing blocks it, but check the lines marked below first.";
+  return "This is a pre-submission check, not a guarantee of payment.";
+}
+function setCounts() {}
 function claimMeta() {
   const f = $("form");
   return [f.claim_id.value && "Claim " + f.claim_id.value, f.payer.value, f.dos.value].filter(Boolean).join(" · ") || "Claim from this page";
@@ -253,60 +269,67 @@ function showResult(j) {
   const v = LABEL[j.verdict] ? j.verdict : "review", score = Math.max(0, Math.min(100, Math.round(Number(j.score) || 0)));
   j.flags = j.flags || []; j.rows = codeRows(j); last = j;
   if (pick && !j.rows.some((r) => r.code === pick)) pick = "";
-  setVerify(v, score, LABEL[v], claimMeta(), j.flags);
+  setVerify(v, score, pillText(v, j.rows, j.flags), metaText(v), j.flags);
   if ($("readmsg").classList.contains("err")) say("readmsg", "");
   setCounts(j.flags);
   $("recheck").disabled = false; $("copy").disabled = false; $("copy").title = "Copy results";
   render();
 }
 
+function issueHtml(x, j) {
+  const s = sevOf(x.severity), fix = S.FIX[x.code], kind = S.KIND_OF[x.code];
+  return '<div class="iss ' + s + '"><span class="k">' + esc(TOPIC[x.code] || SEVWORD[s]) + "</span>" + esc(x.message) +
+    (fix ? '<div class="fixhint"><b>Fix:</b> ' + esc(fix) + "</div>" : "") +
+    (kind && overlayOn ? '<button type="button" class="link showon" data-flag="' + j.flags.indexOf(x) + '">Show on page</button>' : "") + "</div>";
+}
 function render() {
-  const j = last, f = $("form");
+  const j = last;
   if (!j) return;
-  let h = "", codesHtml = "";
-  if (j.rows.length) {
-    let h = '<section class="card codes"><h3>Codes<span class="count">' + j.rows.length + "</span></h3>";
-    for (const type of ["CPT", "ICD-10"]) {
-      const rows = j.rows.filter((r) => r.type === type);
-      if (!rows.length) continue;
-      h += '<div class="grp"><div class="grp-h">' + (type === "CPT" ? "Procedures (CPT / HCPCS)" : "Diagnoses (ICD-10)") + "</div>";
-      h += rows.map((r) => {
-        const st = r.status === "ok" ? "ok" : sevOf(r.status);
-        const word = st === "ok" ? "OK" : r.issues + (r.issues === 1 ? " issue" : " issues");
-        return '<button type="button" class="code ' + st + (pick === r.code ? " sel" : "") + '" data-code="' + esc(r.code) + '" title="Show issues for ' + esc(r.code) + '">' +
-          '<span class="sd"></span><span class="cv">' + esc(r.code) + '</span><span class="cd">' + esc(r.description || "") + '</span><span class="cs">' + word + "</span></button>";
-      }).join("") + "</div>";
+  const rank = { error: 3, warn: 2, info: 1 }, byRank = (a, b) => rank[sevOf(b.severity)] - rank[sevOf(a.severity)];
+  // Each issue sits under the first line it names; other lines it names point back to it.
+  const order = [];
+  for (const t of ["CPT", "CDT", "ICD-10"]) j.rows.filter((r) => r.type === t).forEach((r) => order.push(r));
+  j.rows.filter((r) => !order.includes(r)).forEach((r) => order.push(r));
+  const owner = new Map();
+  j.flags.forEach((x) => { const r = order.find((r) => mentions(x, r.code)); if (r) owner.set(x, r.code); });
+  let h = "";
+  const loose = j.flags.filter((x) => !owner.has(x)).sort(byRank);
+  if (loose.length) {
+    const s = loose.reduce((w, x) => (rank[sevOf(x.severity)] > rank[w] ? sevOf(x.severity) : w), "info");
+    h += '<div class="grp-t">Whole claim</div><section class="line claimwide ' + s + '"><div class="lh"><span class="cv">Claim</span><span class="cd">' +
+      esc([...new Set(loose.map((x) => S.KIND_LABEL[S.KIND_OF[x.code]]).filter(Boolean))].join(", ") || "Applies to the whole claim") +
+      '</span><span class="st">' + SEVWORD[s] + "</span></div>" + loose.map((x) => issueHtml(x, j)).join("") + "</section>";
+  }
+  let group = null;
+  for (const r of order) {
+    const g = GROUPS[r.type] || r.type || "Codes";
+    if (g !== group) {
+      if (group === "Procedures") h += modsLine();
+      h += '<div class="grp-t">' + esc(g) + "</div>"; group = g;
     }
-    const mods = list(f.modifiers.value);
-    if (mods.length) h += '<div class="mods">Modifiers ' + mods.map((m) => '<span class="tag">' + esc(m) + "</span>").join("") + "</div>";
-    h += "</section>";
-    codesHtml = h;
+    const mine = j.flags.filter((x) => owner.get(x) === r.code).sort(byRank);
+    const refs = j.flags.filter((x) => owner.get(x) !== r.code && mentions(x, r.code));
+    const st = r.status === "ok" && !mine.length && !refs.length ? "ok" : sevOf(r.status === "ok" ? (mine[0] || refs[0]).severity : r.status);
+    const where = [r.tooth && "#" + String(r.tooth).replace(/^#/, ""), r.surface, r.quad].filter(Boolean).join(" ");
+    const open = st !== "ok" && pick !== r.code;
+    h += '<section class="line ' + st + '" data-code="' + esc(r.code) + '"><button type="button" class="lh" aria-expanded="' + open + '"><span class="cv">' + esc(r.code) + "</span>" +
+      '<span class="cd">' + esc(r.description || "") + "</span>" + (where ? '<span class="where">' + esc(where) + "</span>" : "") +
+      '<span class="st">' + (st === "ok" ? "✓ OK" : SEVWORD[st]) + "</span></button>" +
+      (open ? mine.map((x) => issueHtml(x, j)).join("") +
+        refs.map((x) => '<div class="iss ref">Flagged together with <b>' + esc(owner.get(x)) + "</b> above.</div>").join("") : "") + "</section>";
   }
-  const shown = pick ? j.flags.filter((x) => mentions(x, pick)) : j.flags;
-  if (pick) h += '<div class="filter">Showing issues for <b class="mono">' + esc(pick) + '</b><button type="button" id="clearpick">Show all</button></div>';
-  if (!j.flags.length) {
-    h += '<section class="card allclear"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.8"/></svg><div>No errors or warnings<span>This is a pre-submission check, not a guarantee of payment.</span></div></section>';
-  } else if (pick && !shown.length) {
-    h += '<section class="card allclear"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.8"/></svg><div>No issues name ' + esc(pick) + "</div></section>";
-  }
-  for (const [s, title] of SEVS) {
-    const items = shown.filter((x) => sevOf(x.severity) === s);
-    if (!items.length) continue;
-    h += '<section class="card issues ' + s + '" id="g-' + s + '"><h3><span class="sd"></span>' + title + '<span class="count">' + items.length + "</span></h3>" +
-      items.map((x) => {
-        const fix = S.FIX[x.code], kind = S.KIND_OF[x.code];
-        return '<div class="issue">' + esc(x.message) + (fix ? '<div class="fixhint">' + esc(fix) + "</div>" : "") +
-          ((x.codes || []).length ? '<div class="tags">' + x.codes.map((c) => '<span class="tag">' + esc(c) + "</span>").join("") + "</div>" : "") +
-          (kind && overlayOn ? '<button type="button" class="link showon" data-flag="' + j.flags.indexOf(x) + '">Show on page</button>' : "") + "</div>";
-      }).join("") + "</section>";
-  }
-  h += codesHtml;                                   // the problems first, the code list after
+  if (group === "Procedures") h += modsLine();
+  if (!j.rows.length && !loose.length) h += '<section class="card allclear"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.8"/></svg><div>No errors or warnings<span>This is a pre-submission check, not a guarantee of payment.</span></div></section>';
   $("result").innerHTML = h;
+}
+function modsLine() {
+  const mods = list($("form").modifiers.value);
+  return '<div class="mods-l">Modifiers' + (mods.length ? mods.map((m) => '<span class="tag">' + esc(m) + "</span>").join("") : ": none") + "</div>";
 }
 
 $("result").addEventListener("click", (ev) => {
-  const c = ev.target.closest(".code");
-  if (c) { pick = pick === c.dataset.code ? "" : c.dataset.code; render(); return; }
+  const c = ev.target.closest(".lh");
+  if (c) { const code = c.parentElement.dataset.code; if (code) { pick = pick === code ? "" : code; render(); } return; }
   if (ev.target.id === "clearpick") { pick = ""; render(); return; }
   const so = ev.target.closest(".showon");
   if (so && last) {
@@ -314,14 +337,10 @@ $("result").addEventListener("click", (ev) => {
     activeTabId().then((id) => { if (id != null && x) chrome.runtime.sendMessage({ t: "focus", tabId: id, code: x.code, codes: x.codes || [] }).catch(() => {}); });
   }
 });
-document.querySelectorAll(".stat").forEach((b) => (b.onclick = () => {
-  if (pick) { pick = ""; render(); }
-  const g = $("g-" + b.dataset.jump); if (g) g.scrollIntoView({ behavior: "smooth", block: "start" });
-}));
 $("recheck").onclick = () => runCheck();
 $("copy").onclick = async () => {
   if (!last) return;
-  const f = $("form"), lines = ["Althais claim check: " + $("pct").textContent + "% – " + $("vlabel").textContent, claimMeta(),
+  const f = $("form"), lines = ["Althais claim check: " + $("vlabel").textContent + " (score " + last.score + "/100)", claimMeta(),
     "CPT: " + (list(f.cpt.value).join(", ") || "none") + (f.modifiers.value.trim() ? "  Modifiers: " + list(f.modifiers.value).join(", ") : ""), "ICD-10: " + (list(f.icd.value).join(", ") || "none")];
   for (const [s, title] of SEVS) {
     const items = last.flags.filter((x) => sevOf(x.severity) === s);
@@ -333,9 +352,11 @@ $("copy").onclick = async () => {
 function busy(text) {
   $("verify").classList.add("busy");
   if (!last) setVerify("idle busy", null, text, claimMeta());
+  else $("vlabel").textContent = text;
 }
 function fail(e) {
   $("verify").classList.remove("busy");
+  if (last) $("vlabel").textContent = pillText(LABEL[last.verdict] ? last.verdict : "review", last.rows, last.flags);
   if (!last) setVerify("idle", null, "Couldn't check this claim", claimMeta());
   say("readmsg", e.message, true);
 }
