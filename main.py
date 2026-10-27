@@ -944,6 +944,12 @@ def _patient_dict(p: OrgPatient) -> dict:
     return base
 
 
+def _pos(v) -> str:
+    """A place-of-service code as two digits ("23", "02"), or "" when there isn't one."""
+    d = re.sub(r"\D", "", str(v or ""))[:2]
+    return d.zfill(2) if d and d != "0" else ""
+
+
 def _claim_dict(c: OrgClaim) -> dict:
     return {
         "id": c.claim_id, "patientName": c.patient_name, "mrn": c.mrn,
@@ -953,7 +959,7 @@ def _claim_dict(c: OrgClaim) -> dict:
         "flags": json.loads(c.flags or "[]"),
         "appealLetter": c.appeal_letter,
         "createdAt": c.created_at.isoformat() if c.created_at else "",
-        "dos": c.dos or "", "provider": c.provider or "", "source": c.source or "",
+        "dos": c.dos or "", "provider": c.provider or "", "source": c.source or "", "pos": c.pos or "",
     }
 
 
@@ -1221,6 +1227,7 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
         row.appeal_letter = body.get("appealLetter", row.appeal_letter)
         row.dos           = body.get("dos", row.dos)
         row.provider      = body.get("provider", row.provider)
+        row.pos           = _pos(body.get("pos", row.pos))
     else:
         just_submitted = new_status == "Submitted"
         created_str = body.get("createdAt", "")
@@ -1236,7 +1243,7 @@ async def api_save_claim(request: Request, user=Depends(require_biller), db: Ses
             status=body.get("status", "Draft"), score=body.get("score"),
             flags=json.dumps(body.get("flags", [])),
             appeal_letter=body.get("appealLetter", ""), created_at=created,
-            dos=str(body.get("dos", "") or "")[:20], provider=str(body.get("provider", "") or "")[:255],
+            dos=str(body.get("dos", "") or "")[:20], provider=str(body.get("provider", "") or "")[:255], pos=_pos(body.get("pos")),
         ))
     # Track submissions on the user who actually submitted it - powers the
     # "Claims" stat on the admin Overview page, which was previously a
@@ -1730,7 +1737,12 @@ Visit note:
     if not cpts:
         res["missing"] = res.get("missing", []) + ["CPT/HCPCS service code"]
         res["score"] = min(res["score"], 20)
-    ncci = check_claim_ncci_flags(cpts)
+    mods = {}
+    for c in codes:                                  # each code's own modifier, so a 25 on the visit clears the bundling flag it answers
+        m = str(c.get("modifier") or "").strip().upper()
+        if m and str(c.get("type", "")).upper().startswith("CPT"):
+            mods.setdefault(str(c.get("code", "")).upper(), []).append(m)
+    ncci = check_claim_ncci_flags(cpts, None, mods)
     if ncci:
         res["flags"] = [f for f in res.get("flags", []) if "ncci" not in f.lower() and "bundl" not in f.lower()] + ncci
         hard = sum(1 for f in ncci if "no modifier" in f.lower())

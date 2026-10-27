@@ -51,7 +51,11 @@ function fill(fields) {
   f.claim_id.value = fields.claim_id || ""; f.dos.value = fields.dos || ""; f.payer.value = fields.payer || "";
   f.cpt.value = (fields.cpt || []).join(", "); f.icd.value = (fields.icd || []).join(", "); f.modifiers.value = (fields.modifiers || []).join(", ");
   f.amount.value = fields.amount || "";
+  // which procedure line each modifier sits on, so a 25 on the visit answers the bundling check (sent while the modifiers box is untouched)
+  read.lineMods = (fields.lines || []).filter((l) => l.code && l.mod).map((l) => ({ code: l.code, mod: l.mod }));
+  read.mods = f.modifiers.value;
 }
+const read = { lineMods: [], mods: "" };
 
 // Reads every frame of the tab (athenaOne and other EMRs put claim screens inside frames), then merges what each frame found.
 async function scan(diag, quiet) {
@@ -72,7 +76,7 @@ async function scan(diag, quiet) {
 }
 
 function merge(outs) {
-  const f = { claim_id: "", dos: "", payer: "", pos: "", cpt: [], icd: [], modifiers: [], amount: "" };
+  const f = { claim_id: "", dos: "", payer: "", pos: "", cpt: [], icd: [], modifiers: [], amount: "", lines: [] };
   const found = {}, guessed = new Set(), hosts = new Set();
   // Frames with labelled fields beat frames that only guessed from page text.
   outs.sort((a, b) => a.guessed.length - b.guessed.length);
@@ -80,6 +84,7 @@ function merge(outs) {
     hosts.add(o.host);
     for (const k of ["claim_id", "dos", "payer", "pos", "amount"]) if (!f[k] && o.fields[k]) f[k] = o.fields[k];
     for (const k of ["cpt", "icd", "modifiers"]) if (!f[k].length || !o.guessed.includes(k)) o.fields[k].forEach((x) => { if (!f[k].includes(x)) f[k].push(x); });
+    if (!f.lines.length && o.fields.lines && o.fields.lines.length) f.lines = o.fields.lines;
     o.guessed.forEach((k) => guessed.add(k));
     Object.keys(o.found).forEach((k) => { if (o.found[k]) found[k] = true; });
   });
@@ -206,7 +211,7 @@ const SEVS = [["error", "Errors"], ["warn", "Warnings"], ["info", "Info"]];
 const sevOf = (x) => (x === "error" || x === "warn" ? x : "info");
 const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
 // A short name for what each check is about, shown above the message.
-const TOPIC = { ncci: "Bundling", multi_em: "Visit level", icd_header: "Specificity", icd_unknown: "Unknown code", bad_icd: "Code format", bad_cpt: "Code format",
+const TOPIC = { ncci: "Bundling", ncci_mod: "Bundling", multi_em: "Visit level", icd_header: "Specificity", icd_unknown: "Unknown code", bad_icd: "Code format", bad_cpt: "Code format",
   bad_cdt: "Code format", no_dx: "Missing diagnosis", no_cpt: "Missing procedure", no_payer: "Payer", no_dos: "Date of service", future_dos: "Date of service",
   stale: "Filing deadline", aging: "Filing deadline", no_charge: "Charge", dup_in_file: "Duplicate", dup_existing: "Duplicate", no_tooth: "Tooth", bad_tooth: "Tooth",
   tooth_type: "Tooth", no_surface: "Surface", bad_surface: "Surface", surface_count: "Surface", no_quad: "Quadrant", no_arch: "Arch", same_tooth: "Same tooth",
@@ -386,7 +391,8 @@ async function runCheck() {
   try {
     const j = await api("/api/extension/check", { method: "POST", body: JSON.stringify({ claim: {
       claim_id: f.claim_id.value, dos: f.dos.value, payer: f.payer.value, cpt: list(f.cpt.value), icd: list(f.icd.value),
-      modifiers: list(f.modifiers.value), amount: f.amount.value } }) });
+      modifiers: list(f.modifiers.value), amount: f.amount.value,
+      line_mods: f.modifiers.value === read.mods ? read.lineMods.filter((l) => list(f.cpt.value).includes(l.code)) : [] } }) });
     showResult(j);
   } catch (e) { fail(e); }
 }

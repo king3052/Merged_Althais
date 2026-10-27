@@ -5,7 +5,7 @@
   // Which part of the claim each check is about, so the overlay can outline it on the EMR page.
   const KIND_OF = {
     no_dx: "icd", bad_icd: "icd", icd_unknown: "icd", icd_header: "icd",
-    no_cpt: "cpt", bad_cpt: "cpt", ncci: "cpt", multi_em: "cpt",
+    no_cpt: "cpt", bad_cpt: "cpt", ncci: "cpt", ncci_mod: "cpt", multi_em: "cpt",
     no_payer: "payer",
     no_dos: "dos", future_dos: "dos", stale: "dos", aging: "dos",
     no_charge: "amount",

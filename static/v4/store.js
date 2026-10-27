@@ -190,6 +190,8 @@
   D.enc = function (id) { return S.encs.filter(function (e) { return e.id === id; })[0] || null; };
   D.claim = function (id) { return S.claims.filter(function (c) { return c.id === id; })[0] || null; };
   D.fee = function (code) { var f = S.fees.filter(function (x) { return x.code === String(code).toUpperCase(); })[0]; return f ? f.rate : 0; };
+  var POS_NAMES = { '02': 'Telehealth', '10': 'Telehealth (home)', '11': 'Office', '19': 'Outpatient hospital (off campus)', '20': 'Urgent care', '21': 'Inpatient hospital', '22': 'Outpatient hospital', '23': 'Emergency room', '31': 'Skilled nursing', '32': 'Nursing facility', '49': 'Independent clinic', '50': 'FQHC', '72': 'Rural health clinic' };
+  D.posLabel = function (p) { p = String(p || '11'); return p + ' ' + (POS_NAMES[p] || 'Place of service ' + p); };   // claims with no POS from the EMR use 11
   D.lineFee = function (l) { return Number(l.charge) > 0 ? Number(l.charge) : D.fee(l.code) * (l.units || 1); };
   D.charge = function (c) { var f = D.sum(c.lines || [], D.lineFee); return f || Number(c.amount) || 0; };   // claims brought over keep their amount when a code has no fee here
   D.sum = function (list, f) { return list.reduce(function (s, x) { return s + (f ? (f(x) || 0) : x); }, 0); };

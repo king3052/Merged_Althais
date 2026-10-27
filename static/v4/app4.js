@@ -12,7 +12,7 @@
   V.claimSnap = function (c) {
     var p = D.pt(c.mrn) || {}, e = c._enc || D.enc(c.encId), prov = D.staff(c.prov) || D.staff(S.clinic.userStaff) || D.providers()[0] || {};
     var ec = e ? e.codes : [], dsc = function (code) { var x = ec.filter(function (y) { return y.code === code; })[0]; return (x && x.desc) || desc(code); };
-    return { claimId: c.id, patient: p.name || '', mrn: c.mrn, dob: p.dob || '', sex: p.sex || '', provider: prov.name || '', npi: prov.npi || '', payer: D.payer(c), svcDate: c.dos, pos: '11',
+    return { claimId: c.id, patient: p.name || '', mrn: c.mrn, dob: p.dob || '', sex: p.sex || '', provider: prov.name || '', npi: prov.npi || '', payer: D.payer(c), svcDate: c.dos, pos: c.pos || '11',
       addrStreet: p.addr || '', addrPhone: p.phone || '', insuredId: p.member || '',
       cpts: c.lines.map(function (l) { var x = { code: l.code, description: dsc(l.code), type: D.DENTAL && /^D\d{4}$/.test(l.code) ? 'CDT' : 'CPT', modifier: l.mod || '', units: l.units || 1, charge: D.lineFee(l) };
         if (D.DENTAL) { x.tooth = l.tooth || ''; x.surface = l.surface || ''; x.quad = l.quad || ''; } return x; }),
@@ -118,7 +118,7 @@
     var line = function (l) {
       if (!l) return '<tr class="sl"><td colspan="13" class="shade">&nbsp;</td><td class="shade"></td><td class="shade"></td></tr><tr class="sl2">' + '<td></td>'.repeat(13) + '<td class="npi">NPI</td><td></td></tr>';
       return '<tr class="sl"><td colspan="13" class="shade">&nbsp;</td><td class="shade"></td><td class="shade"></td></tr><tr class="sl2">' +
-        [dos[0], dos[1], dos[2], dos[0], dos[1], dos[2]].map(function (x) { return '<td>' + v(x) + '</td>'; }).join('') + '<td>' + v('11') + '</td><td></td><td>' + v(l.code) + '</td><td>' + v((l.modifier || '').split(/[\s,]+/).join(' ')) + '</td><td>' + v(ptr) + '</td>' +
+        [dos[0], dos[1], dos[2], dos[0], dos[1], dos[2]].map(function (x) { return '<td>' + v(x) + '</td>'; }).join('') + '<td>' + v(s.pos) + '</td><td></td><td>' + v(l.code) + '</td><td>' + v((l.modifier || '').split(/[\s,]+/).join(' ')) + '</td><td>' + v(ptr) + '</td>' +
         '<td class="amt">' + money(l.charge) + '</td><td>' + v(l.units) + '</td><td class="npi">NPI</td><td>' + v(s.npi) + '</td></tr>';
     };
     var html = '<div class="c15" id="cms1500form">' +
@@ -229,7 +229,7 @@
     var w = U.modal('Sending ' + list.length + ' claim' + (list.length === 1 ? '' : 's'), '<div id="tx-steps"></div><pre id="tx-edi" class="mono" style="margin:10px 0 0;padding:8px;background:var(--ph);border:1px solid var(--b2);max-height:150px;overflow:auto;font-size:11px;white-space:pre-wrap"></pre><div id="tx-res"></div>', [['Close', '', function () { done && done(); }]], { wide: 1 });
     var c0 = list[0], s0 = V.claimSnap(c0), d = D.today().replace(/-/g, '');
     w.querySelector('#tx-edi').textContent = ['ISA*00*          *00*          *ZZ*ALTHAIS        *ZZ*CLEARINGHOUSE  *' + d.slice(2) + '*1200*^*00501*' + c0.id.replace(/\D/g, '').slice(-9) + '*0*T*:~', 'GS*HC*ALTHAIS*CLEARINGHOUSE*' + d + '*1200*1*X*' + (D.DENTAL ? '005010X224A2' : '005010X222A1') + '~', 'ST*837*0001*' + (D.DENTAL ? '005010X224A2' : '005010X222A1') + '~',
-      'NM1*85*2*' + (S.clinic.name || '').toUpperCase() + '*****XX*' + (S.clinic.npi || '') + '~', 'NM1*IL*1*' + s0.patient.toUpperCase().replace(', ', '*') + '****MI*' + s0.insuredId + '~', 'CLM*' + c0.id + '*' + s0.totalAmt.toFixed(2) + '***11:B:1*Y*A*Y*Y~',
+      'NM1*85*2*' + (S.clinic.name || '').toUpperCase() + '*****XX*' + (S.clinic.npi || '') + '~', 'NM1*IL*1*' + s0.patient.toUpperCase().replace(', ', '*') + '****MI*' + s0.insuredId + '~', 'CLM*' + c0.id + '*' + s0.totalAmt.toFixed(2) + '***' + (s0.pos || '11') + ':B:1*Y*A*Y*Y~',
       (s0.icds.length ? 'HI*' + s0.icds.map(function (x, i) { return (i ? 'ABF:' : 'ABK:') + x.code.replace('.', ''); }).join('*') + '~' : '')].filter(Boolean).concat(s0.cpts.map(function (l, i) {
         return D.DENTAL ? 'LX*' + (i + 1) + '~\nSV3*AD:' + l.code + '*' + l.charge.toFixed(2) + '**' + ({ UR: '10', UL: '20', LL: '30', LR: '40', UA: '01', LA: '02' }[l.quad] || '') + '**' + l.units + '~' + (l.tooth ? '\nTOO*JP*' + l.tooth + (l.surface ? '*' + l.surface.split('').join(':') : '') + '~' : '')
           : 'LX*' + (i + 1) + '~\nSV1*HC:' + l.code + (l.modifier ? ':' + l.modifier : '') + '*' + l.charge.toFixed(2) + '*UN*' + l.units + '***1~'; })).join('\n');

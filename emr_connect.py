@@ -382,6 +382,8 @@ def to_canonical_rows(headers, rows):
         for c in _split_codes(cell(r, "modifiers")):
             if c not in g["modifiers"]:
                 g["modifiers"].append(c)
+            if len(cpts) == 1:
+                g.setdefault("line_mods", []).append({"code": cpts[0], "mod": c})
         g["amount"] += _money(cell(r, "amount"))
         for f in ("payer", "provider", "mrn", "pos"):          # fill blanks from later line items
             if not g[f] and _s(cell(r, f)):
@@ -392,6 +394,25 @@ def to_canonical_rows(headers, rows):
 # ──────────────────────────────────────────────────────────────────────────
 #  The pre-submission check
 # ──────────────────────────────────────────────────────────────────────────
+
+def _pos2(v) -> str:
+    """Place of service as two digits ("23"), or ""."""
+    d = re.sub(r"\D", "", str(v or ""))[:2]
+    return d.zfill(2) if d and d != "0" else ""
+
+
+def line_mods(c: dict) -> dict:
+    """{procedure code: [modifiers on its line]} from what the claim knows: explicit line_mods, then the lines themselves."""
+    out = {}
+    for l in list(c.get("line_mods") or []) + list(c.get("lines") or []):
+        if isinstance(l, dict) and l.get("code"):
+            m = re.sub(r"[^A-Z0-9]", "", str(l.get("mod") or l.get("modifier") or "").upper())[:2]
+            if m:
+                out.setdefault(str(l["code"]).upper(), [])
+                if m not in out[str(l["code"]).upper()]:
+                    out[str(l["code"]).upper()].append(m)
+    return out
+
 
 # Severity: "error" = fix before sending, "warn" = look at it, "info" = for your records.
 def claim_check(c: dict, today: dt.date = None, seen_ids=None, existing_ids=None):
@@ -440,8 +461,11 @@ def claim_check(c: dict, today: dt.date = None, seen_ids=None, existing_ids=None
     # NCCI bundling between the procedure codes (existing Althais edit table); medical claims only
     if not dental:
         try:
-            for f in check_claim_ncci(cpts):
-                add("warn" if f.get("modifier_allowed") else "error", "ncci", f["message"])
+            for f in check_claim_ncci(cpts, c.get("modifiers") or [], line_mods(c)):
+                if f.get("bypassed"):
+                    add("info", "ncci_mod", f["message"])
+                else:
+                    add("warn" if f.get("modifier_allowed") else "error", "ncci", f["message"])
         except Exception:
             pass
     else:
@@ -528,7 +552,8 @@ def _lines(v):
         except (TypeError, ValueError):
             units = 1
         out.append({"code": _s(l.get("code")).upper()[:8], "tooth": _s(l.get("tooth"))[:4], "surface": _s(l.get("surface"))[:7].upper(),
-                    "quad": _s(l.get("quad"))[:5].upper(), "units": units, "charge": _money(l.get("charge"))})
+                    "quad": _s(l.get("quad"))[:5].upper(), "units": units, "charge": _money(l.get("charge")),
+                    "mod": re.sub(r"[^A-Z0-9]", "", _s(l.get("mod") or l.get("modifier")).upper())[:2]})
     return out
 
 
@@ -628,6 +653,7 @@ async def api_commit(request: Request, user=Depends(require_biller), db: Session
             row.patient_name, row.mrn, row.payer = c["patient_name"], c["mrn"], c["payer"]
             row.codes, row.amount, row.score, row.flags = json.dumps(codes), c["amount"], c["score"], json.dumps(flags)
             row.dos, row.provider = c["dos"], c["provider"]
+            row.pos = _pos2(c.get("pos")) or row.pos
             if not row.source:
                 row.source = "import"
             if not keep_status:
@@ -636,7 +662,7 @@ async def api_commit(request: Request, user=Depends(require_biller), db: Session
             made += 1
             db.add(OrgClaim(org_key=org, claim_id=cid, patient_name=c["patient_name"], mrn=c["mrn"], payer=c["payer"],
                             codes=json.dumps(codes), note=note, amount=c["amount"], status=STATUS_FOR[c["verdict"]],
-                            score=c["score"], flags=json.dumps(flags), dos=c["dos"], provider=c["provider"], source=(emr if emr in ("drchrono", "athenahealth", "tebra") else "import")))
+                            score=c["score"], flags=json.dumps(flags), dos=c["dos"], provider=c["provider"], pos=_pos2(c.get("pos")), source=(emr if emr in ("drchrono", "athenahealth", "tebra") else "import")))
     record_activity(db, user, "codes", made + updated)
     db.commit()
     return {"ok": True, "created": made, "updated": updated, "skipped": skipped, "summary": summarize(checked)}
