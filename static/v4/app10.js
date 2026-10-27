@@ -52,7 +52,7 @@
     var rows = c.lines.map(function (l, i) {
       return { cells: [i + 1, ed ? inp(i, 'code', l.code, 58) : '<b class="mono">' + E(l.code) + '</b>', ed ? inp(i, 'tooth', l.tooth, 38, DX.needsTooth(l.code) ? 'req.' : '') : E(l.tooth || ''),
         ed ? inp(i, 'surface', l.surface, 50, DX.SURF_COUNT[l.code] ? 'req.' : '') : E(l.surface || ''), ed ? inp(i, 'quad', l.quad, 36, DX.needsQuad(l.code) || DX.needsArch(l.code) ? 'req.' : '') : E(l.quad || ''),
-        M(D.fee(l.code) * (l.units || 1)), ed ? '<button class="mini" data-dldel="' + i + '" data-dlc="' + E(c.id) + '">×</button>' : ''] };
+        M(D.lineFee(l)), ed ? '<button class="mini" data-dldel="' + i + '" data-dlc="' + E(c.id) + '">×</button>' : ''] };
     });
     return '<div class="dp-sec"><div class="dp-h">Procedures' + (ed ? '<span class="end"><a href="#" id="addline">Add procedure</a></span>' : '') + '</div>' +
       U.grid(['Ln', 'CDT', 'Tooth', 'Surface', 'Quad', ['Fee', 'num'], ''], rows, { tight: 1 }).replace('<tbody></tbody>', '<tbody>' + U.empty(7, 'No procedures yet.') + '</tbody>') +

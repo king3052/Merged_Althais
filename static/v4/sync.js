@@ -52,7 +52,7 @@
     var isDx = function (c) { var k = String(c.code || '').toUpperCase().trim(); return /icd|diag|dx/i.test(c.type || '') || (!/cpt|hcpcs|proc/i.test(c.type || '') && /^[A-TV-Z][0-9][0-9A-Z](\.?[0-9A-Z]{1,4})?$/.test(k) && !/^[A-Z]\d{4}$/.test(k)); };
     var cpts = [], dx = [], seen = {};
     all.forEach(function (c) { if (!c || !c.code) return; var k = String(c.code).toUpperCase().trim(), key = k + '|' + (c.tooth || '') + '|' + (c.surface || '') + '|' + (c.quad || ''); if (seen[key]) return; seen[key] = 1;
-      if (isDx(c)) dx.push(k); else cpts.push(D.lineOf({ code: k, mod: c.modifier || c.mod || '', units: +c.units || 1, tooth: c.tooth, surface: c.surface, quad: c.quad })); });   // dental: each procedure keeps its tooth
+      if (isDx(c)) dx.push(k); else cpts.push(D.lineOf({ code: k, mod: c.modifier || c.mod || '', units: +c.units || 1, charge: c.charge, tooth: c.tooth, surface: c.surface, quad: c.quad })); });   // dental: each procedure keeps its tooth
     if (!cpts.length && o.cpt) cpts = String(o.cpt).split(/[\s,;]+/).filter(Boolean).map(function (c) { return { code: c.toUpperCase(), mod: '', units: 1 }; });
     if (!dx.length && (o.icd || o.dx || o.diagnosis)) dx = String(o.icd || o.dx || o.diagnosis).split(/[\s,;]+/).filter(function (x) { return /^[A-Z]\d/i.test(x); }).map(function (c) { return c.toUpperCase(); });
     return { cpts: cpts, dx: dx };

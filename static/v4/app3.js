@@ -44,7 +44,7 @@
         U.grid(['Ln', 'CPT', 'Mod', 'Dx ptr', ['Units', 'num'], ['Amount', 'num'], ''], c.lines.map(function (l, i) {
           var edit = ['edits', 'ready'].indexOf(c.stage) >= 0;
           return { cells: [i + 1, edit ? '<input class="inl" data-lc="' + i + '" value="' + E(l.code) + '" style="width:62px">' : l.code, edit ? '<input class="inl" data-lm="' + i + '" value="' + E(l.mod || '') + '" style="width:40px">' : E(l.mod || '—'), c.dx.slice(0, 4).map(function (_, k) { return String.fromCharCode(65 + k); }).join(''),
-            edit ? '<input class="inl" type="number" min="1" data-lu="' + i + '" value="' + (l.units || 1) + '" style="width:44px">' : (l.units || 1), M(D.fee(l.code) * (l.units || 1)), edit ? '<button class="mini" data-ldel="' + i + '">×</button>' : ''] };
+            edit ? '<input class="inl" type="number" min="1" data-lu="' + i + '" value="' + (l.units || 1) + '" style="width:44px">' : (l.units || 1), M(D.lineFee(l)), edit ? '<button class="mini" data-ldel="' + i + '">×</button>' : ''] };
         }), { tight: 1 }) + '<div class="mut" style="margin-top:5px">' + c.dx.map(function (d, k) { return (k < 4 ? String.fromCharCode(65 + k) + ': ' : '') + d; }).join('  ') + '</div></div>';
       if (tab === 'edits') {
         if (c.stage === 'edits') {
@@ -217,7 +217,7 @@
     U.on(app, '.opt', 'click', function (l) { l.parentNode.querySelectorAll('.opt').forEach(function (o) { o.classList.toggle('on', o === l); }); });
     // line edits
     var lineChange = function (attr, fn) { U.on(app, '[' + attr + ']', 'change', function (i) { var c = C(); fn(c, +i.getAttribute(attr), i.value.trim()); D.scrub(c); after(c, 'Charge lines edited'); }); };
-    lineChange('data-lc', function (c, i, v) { c.lines[i].code = v.toUpperCase(); }); lineChange('data-lm', function (c, i, v) { c.lines[i].mod = v.toUpperCase(); }); lineChange('data-lu', function (c, i, v) { c.lines[i].units = Math.max(1, parseInt(v, 10) || 1); });
+    lineChange('data-lc', function (c, i, v) { c.lines[i].code = v.toUpperCase(); delete c.lines[i].charge; }); lineChange('data-lm', function (c, i, v) { c.lines[i].mod = v.toUpperCase(); }); lineChange('data-lu', function (c, i, v) { c.lines[i].units = Math.max(1, parseInt(v, 10) || 1); });
     U.on(app, '[data-ldel]', 'click', function (b) { var c = C(); c.lines.splice(+b.dataset.ldel, 1); D.scrub(c); after(c, 'Charge line removed'); });
     U.on(app, '#addline', 'click', function (a, e) { e.preventDefault(); if (D.DENTAL) return V.addDentalLine(C(), function (c, text) { D.scrub(c); after(c, text); }); U.ask('Add Charge Line', 'CPT / HCPCS code', '', function (code) { var c = C(); c.lines.push({ code: code.trim().toUpperCase(), mod: '', units: 1 }); D.scrub(c); after(c, 'Charge line added ' + code); }, { ok: 'Add Line', ph: 'e.g. 36415' }); });
     U.on(app, '[data-dxdel]', 'click', function (b) { var c = C(); c.dx.splice(+b.dataset.dxdel, 1); D.scrub(c); after(c, 'Diagnosis removed'); });
@@ -234,9 +234,9 @@
       if (v === 'lines') { tab = /DX/.test(x.id) ? 'dx' : 'charges'; return draw(); }
       if (v === 'fees') return location.href = '/v4/settings?s=fs';
       if (v === 'recode') { var m2 = /^(D\d{4}) is a .* Bill (D\d{4}) instead\./.exec(x.text), ln = c.lines.filter(function (y) { return y.code === m2[1] && (!x.tooth || DX.normTooth(y.tooth) === x.tooth); })[0];
-        if (ln) { ln.code = m2[2]; D.scrub(c); return after(c, 'Code changed ' + m2[1] + ' to ' + m2[2] + (x.tooth ? ' on tooth ' + x.tooth : '')); } }
+        if (ln) { ln.code = m2[2]; delete ln.charge; D.scrub(c); return after(c, 'Code changed ' + m2[1] + ' to ' + m2[2] + (x.tooth ? ' on tooth ' + x.tooth : '')); } }
       if (v === 'attached') { c.attached = true; D.scrub(c); return after(c, 'X-rays and narrative marked as attached'); }
-      if (v === 'downcode') { var l = c.lines.filter(function (y) { return /^992/.test(y.code); })[0]; var old = l.code; l.code = String(+l.code - 1); D.scrub(c); return after(c, 'Level changed ' + old + ' to ' + l.code); }
+      if (v === 'downcode') { var l = c.lines.filter(function (y) { return /^992/.test(y.code); })[0]; var old = l.code; l.code = String(+l.code - 1); delete l.charge; D.scrub(c); return after(c, 'Level changed ' + old + ' to ' + l.code); }
       if (v === 'ask') { e.addenda = e.addenda || []; e.addenda.push({ text: 'Please document: ' + x.text, from: 'Billing (' + x.id + ')', signed: false }); c.waitingOn = x.id; c.resolved = c.resolved || {}; c.resolved[x.id] = 'Asked provider'; c.edits = c.edits.filter(function (y) { return y.id !== x.id; }); return after(c, 'Asked ' + D.provName(c.prov) + ' to document ' + x.id); }
       U.ask('Override ' + x.id, 'Reason (kept on the claim)', '', function (r) { c.resolved = c.resolved || {}; c.resolved[x.id] = r; D.scrub(c); after(c, 'Override ' + x.id + ': ' + r); }, { ok: 'Override', html: '<p class="cf" style="margin-bottom:10px">' + E(x.text || '') + '</p>' });
     });
