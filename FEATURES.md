@@ -94,7 +94,10 @@ Last updated: 2026-10-24.
 | Multi-location (DSO): location on schedule, procedures, claims and ledger; office filter; regions | Done / Partial | No per-location user permissions yet |
 | Import from Open Dental, Dentrix and Eaglesoft exports (patients, procedure history) with preview | Done | Practice setup > Import data, `dental_ops.parse_import` |
 | Live Open Dental connection: patients, primary dental plan (payer, subscriber ID, group, payer ID) and completed procedures, pulled again without duplicates | Built, off until `OPENDENTAL_DEVELOPER_KEY` is set | `opendental.py`, Practice setup > Import data; not yet run against Open Dental's test database |
-| Import of appointments, insurance plans, ledgers and images from those systems | Not started | |
+| Open Dental documents and X-rays: list a patient's Imaging-module documents, copy one into Althais, push a filed record back | Built, off until the SFTP drop (`OPENDENTAL_SFTP_*`) is set up | `opendental.documents/download/upload`, Records Inbox > Open Dental documents; not yet run against Open Dental |
+| Records Inbox: outside records from secure upload links, fax, Open Dental and a records network, read for patient and kind, filed by staff (X-rays also to dental images) | Done (upload links, staff upload) / Built, off until a fax provider is signed (fax) | `records_intake.py`, `/v4/emr/inbox`; patient matching reads text PDFs only (no OCR yet) |
+| Records network (Quest/Labcorp results, Direct, Carequality/CommonWell/TEFCA) | Mock | `records_network.py`; needs a vendor contract and BAA |
+| Import of appointments, insurance plans and ledgers from those systems | Not started | |
 
 ## Tests
 

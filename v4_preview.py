@@ -25,6 +25,7 @@ PAGES = {
     "/v4/emr/patients": ("patients", "Patients"),
     "/v4/emr/chart": ("chart", "Patient chart"),
     "/v4/emr/documents": ("documents", "Documents"),
+    "/v4/emr/inbox": ("inbox", "Records Inbox"),
     "/v4/revenue/claims": ("claims", "Claims"),
     "/v4/revenue/denials": ("denials", "Denials"),
     "/v4/revenue/payer-rules": ("rules", "Payer rules"),
@@ -54,7 +55,7 @@ PAGES = {
     "/v4/dental/labs": ("dlabs", "Lab Cases"),
     "/v4/dental/setup": ("dsetup", "Practice Setup"),
 }
-DENTAL_PAGES = {k for k, _ in PAGES.values() if k.startswith("d") and k not in ("documents", "denials")}
+DENTAL_PAGES = {k for k, _ in PAGES.values() if k.startswith("d") and k not in ("documents", "denials", "inbox")}
 # a dental clinic opening one of the shared pages gets the dental one instead
 DENTAL_INSTEAD = {"overview": "/v4/dental/today", "schedule": "/v4/dental/schedule", "patients": "/v4/dental/patients", "chart": "/v4/dental/chart",
                   "claims": "/v4/dental/claims", "denials": "/v4/dental/denials", "tracker": "/v4/dental/claims"}
@@ -63,7 +64,7 @@ DENTAL_INSTEAD = {"overview": "/v4/dental/today", "schedule": "/v4/dental/schedu
 # page key -> the area (auth.AREAS) it belongs to: a page shows only when the clinic's plan has that area's tool and the
 # clinic's manager hasn't switched it off for this person. Pages not listed are open to every signed-in member.
 AREA_OF = {"overview": "overview", "schedule": "schedule", "encounter": "patients", "patients": "patients", "chart": "patients",
-           "documents": "patients", "claims": "claims", "tracker": "claims", "denials": "denials", "rules": "payer_intelligence",
+           "documents": "patients", "inbox": "patients", "claims": "claims", "tracker": "claims", "denials": "denials", "rules": "payer_intelligence",
            "codenote": "code_a_note", "billing": "billing_activation", "connect": "claims", "team": "team",
            "settings": "settings", "accesslog": "settings",
            "dtoday": "overview", "dschedule": "schedule", "dpatients": "patients", "dchart": "patients", "dbenefits": "claims", "dclaims": "claims",

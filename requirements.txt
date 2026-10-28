@@ -61,3 +61,4 @@ pillow-heif==1.8.1
 segno==1.6.6
 pypdf==5.4.0
 fpdf2==2.8.3
+paramiko==3.5.1

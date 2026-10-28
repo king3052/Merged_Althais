@@ -41,7 +41,7 @@
 
   var NAV = [
     ['overview', 'Overview', '/v4/overview', []],
-    ['emr', 'EMR', '/v4/emr/schedule', [['schedule', 'Schedule', '/v4/emr/schedule'], ['patients', 'Patients', '/v4/emr/patients'], ['chart', 'Patient chart', '/v4/emr/chart'], ['encounter', 'Encounter', '/v4/emr/encounter'], ['documents', 'Documents', '/v4/emr/documents']]],
+    ['emr', 'EMR', '/v4/emr/schedule', [['schedule', 'Schedule', '/v4/emr/schedule'], ['patients', 'Patients', '/v4/emr/patients'], ['chart', 'Patient chart', '/v4/emr/chart'], ['encounter', 'Encounter', '/v4/emr/encounter'], ['documents', 'Documents', '/v4/emr/documents'], ['inbox', 'Records inbox', '/v4/emr/inbox']]],
     ['revenue', 'Revenue', '/v4/revenue/claims', [['claims', 'Claims', '/v4/revenue/claims'], ['tracker', 'Claim Tracker', '/v4/revenue/claim-tracker'], ['denials', 'Denials', '/v4/revenue/denials'], ['rules', 'Payer rules', '/v4/revenue/payer-rules'], ['codenote', 'Code a Note', '/v4/revenue/code-a-note'], ['billing', 'Billing activation', '/v4/revenue/billing-activation'], ['connect', 'Connect EMR', '/v4/revenue/connect']]],
     ['staff', 'Staff', '/v4/staff/team', []],
     ['settings', 'Settings', '/v4/settings', (window.__ALTHAIS_USER__ || {}).role === 'admin' ? [['settings', 'Settings', '/v4/settings'], ['accesslog', 'Access log', '/v4/settings/access-log']] : []],
@@ -50,7 +50,7 @@
   if (window.D && D.DENTAL) NAV = [
     ['dtoday', 'Today', '/v4/dental/today', []],
     ['dschedule', 'Schedule', '/v4/dental/schedule', [['dschedule', 'Schedule', '/v4/dental/schedule'], ['drecall', 'Recall', '/v4/dental/recall'], ['dmessages', 'Messages', '/v4/dental/messages']]],
-    ['dpatients', 'Patients', '/v4/dental/patients', [['dpatients', 'Patients', '/v4/dental/patients'], ['dchart', 'Chart', '/v4/dental/chart'], ['dforms', 'Forms', '/v4/dental/forms'], ['dlabs', 'Lab cases', '/v4/dental/labs'], ['documents', 'Documents', '/v4/emr/documents']]],
+    ['dpatients', 'Patients', '/v4/dental/patients', [['dpatients', 'Patients', '/v4/dental/patients'], ['dchart', 'Chart', '/v4/dental/chart'], ['dforms', 'Forms', '/v4/dental/forms'], ['dlabs', 'Lab cases', '/v4/dental/labs'], ['documents', 'Documents', '/v4/emr/documents'], ['inbox', 'Records inbox', '/v4/emr/inbox']]],
     ['dins', 'Insurance', '/v4/dental/claims', [['dbenefits', 'Verify benefits', '/v4/dental/benefits'], ['dclaims', 'Claims', '/v4/dental/claims'], ['dpreauths', 'Pre-auths', '/v4/dental/preauths'], ['dera', 'ERA posting', '/v4/dental/era'], ['ddenials', 'Denials', '/v4/dental/denials'], ['billing', 'Billing activation', '/v4/revenue/billing-activation']]],
     ['dmoney', 'Billing', '/v4/dental/billing', [['dbilling', 'Patient billing', '/v4/dental/billing'], ['dreports', 'Production & collections', '/v4/dental/reports'], ['dreviews', 'Reviews', '/v4/dental/reviews']]],
     ['staff', 'Staff', '/v4/staff/team', []],
