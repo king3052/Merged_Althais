@@ -57,7 +57,7 @@ def _segment_page(seg_id, title, em):
     page = {
         "ctas": [("See what changes", "#rows"), ("Try the " + tools[0] + " demo", TOOL_HREF[tools[0]])] if tools else [("See what changes", "#rows")],
         "card": s["headline"],
-        "stats_head": ("By the numbers", "What " + s["case_study"]["org"].lower(), "saw with Althais."),
+        "stats_head": ("By the numbers", "What " + s["case_study"]["org"].lower(), "will see with Althais."),
         "stats": [_stat(r) for r in s.get("roi", [])],
         "stats_note": "Results from one organization; yours will depend on your volume, payers and specialties.",
         "recommend": {"tier": tier + " tier", "text": why, "tools": [(t, TOOL_HREF[t]) for t in tools]},
