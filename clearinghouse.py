@@ -172,6 +172,7 @@ class ClaimMD(Connector):
             fixed = re.sub(r"&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)", "&amp;", text or "")
             fixed = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", fixed)
             fixed = re.sub(r"^\s*<\?xml[^>]*\?>", "", fixed)
+            fixed = re.sub(r"(\s)(\d[\w.\-]*)(\s*=)", r"\1_\2\3", fixed)   # Claim.MD names some attributes 1500_claims: invalid XML, kept as _1500_claims
             return bare(ET.fromstring(fixed.strip()))
         except Exception:
             return None
@@ -211,8 +212,17 @@ class ClaimMD(Connector):
             return None, {}
         want = re.sub(r"[^a-z]", "", (payer or "").lower())
         exact = [r for r in rows if re.sub(r"[^a-z]", "", (r.get("payer_name") or "").lower()) == want]
-        best = exact[0] if len(exact) == 1 else rows[0] if len(rows) == 1 else None   # never guess between several payers
-        return (best.get("payerid"), dict(best.attrib)) if best is not None else (None, {"matches": len(rows)})
+        best = exact[0] if len(exact) == 1 else rows[0] if len(rows) == 1 else None
+        if best is None and exact:
+            ids = {r.get("payerid") for r in exact}
+            if len(ids) == 1:                          # the same payer listed more than once (per state, per program)
+                best = exact[0]
+            else:                                      # the payer's main nationwide listing: no state, takes claims and eligibility
+                main = [r for r in exact if not (r.get("payer_state") or "").strip() and "yes" in (r.get("_1500_claims", "yes"), r.get("dent_claims", "yes"))
+                        and (r.get("eligibility") or "yes") != "no"]
+                if len({r.get("payerid") for r in main}) == 1:
+                    best = main[0]
+        return (best.get("payerid"), dict(best.attrib)) if best is not None else (None, {"matches": len(rows)})   # still never guesses between different payers
 
     def payer_requirement(self, payer: str, transaction: str) -> Result:
         pid, attrs = self.find_payer(payer)
