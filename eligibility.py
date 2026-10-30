@@ -252,6 +252,18 @@ def service_code_for(user, db) -> str:
     return "35" if org_practice(user, db) == "dental" else "30"
 
 
+def saved_payer_id(db, user, payer: str) -> str:
+    """The clearinghouse payer ID the clinic saved for this payer in Billing Activation, if any."""
+    try:
+        import billing_activation as ba
+        from billing_registry import payer_key
+        _, data = ba.load_profile(db, ba.org_of(user))
+        key = payer_key(payer)
+        return next((str(p.get("payerId") or "") for p in (data or {}).get("payers") or [] if p.get("key") == key and p.get("payerId")), "")
+    except Exception:
+        return ""
+
+
 @router.post("/api/eligibility/check")
 async def check_now(request: Request, user=Depends(require_any_role("admin", "biller", "provider", "front_desk")), db: Session = Depends(get_db)):
     """Check one patient's coverage now (the patient chart's Check Eligibility)."""
@@ -269,7 +281,7 @@ async def check_now(request: Request, user=Depends(require_any_role("admin", "bi
     rel = s("relationship", 10).lower()
     req = EligibilityRequest(payer=s("payer", 128), member_id=s("member_id"), patient_dob=date("patient_dob"), subscriber_first=s("subscriber_first"),
                              subscriber_last=s("subscriber_last"), subscriber_dob=date("subscriber_dob"),
-                             relationship=rel if rel in ("self", "spouse", "child", "other") else "self", payer_id=s("payer_id", 20),
+                             relationship=rel if rel in ("self", "spouse", "child", "other") else "self", payer_id=s("payer_id", 20) or saved_payer_id(db, user, s("payer", 128)),
                              service_date=date("service_date"), service_code=service_code_for(user, db), **_billing_ids(db, user))
     res = (await run_in_threadpool(check_eligibility, req)).as_dict()
     return res
