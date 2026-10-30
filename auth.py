@@ -61,7 +61,17 @@ COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "0") == "1"
 #  Database setup
 # ──────────────────────────────────────────────────────────────────────────
 _connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=_connect_args)
+# Postgres: keep enough connections open for a page's parallel API calls (each route runs in a worker thread and takes
+# one), and replace connections before the host's pooler drops idle ones, so no request pays for a fresh TLS connection.
+_pool_args = {} if DATABASE_URL.startswith("sqlite") else {
+    "pool_size": int(os.environ.get("DB_POOL_SIZE", "10")),
+    "max_overflow": int(os.environ.get("DB_MAX_OVERFLOW", "20")),
+    "pool_recycle": int(os.environ.get("DB_POOL_RECYCLE", "300")),
+    "pool_pre_ping": os.environ.get("DB_PRE_PING", "0") == "1",
+}
+engine = create_engine(DATABASE_URL, connect_args=_connect_args, **_pool_args)
+import perf as _perf   # query time per request, for the Server-Timing header (perf.py)
+_perf.watch(engine)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
@@ -463,6 +473,7 @@ def current_user(request: Request, db: Session = Depends(get_db)):
     if not data:
         return None
     import security
+    _perf.adopt(db, request, token)   # the session and user rows the middleware already read: no second query
     if not security.session_ok(db, data, request):   # signed out, timed out after inactivity, or replaced
         return None
     try:
@@ -1299,9 +1310,21 @@ def org_products(user: User, db: Session) -> set:
     return clinic & mine
 
 
+def _entitlements(user: User, db: Session):
+    """(row or None, doc) for the clinic's entitlements. Read once per request: a page view asks for them about seven times."""
+    m = _perf.memo()
+    key = ("entitlements", _doc_org_key(user))
+    if m is not None and key in m:
+        return m[key]
+    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    if m is not None:
+        m[key] = (row, doc)
+    return row, doc
+
+
 def clinic_products(user: User, db: Session) -> set:
     """The products this user's organization can use. {"suite"} unlocks everything."""
-    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    row, doc = _entitlements(user, db)
     if not row or not isinstance(doc.get("products"), list):
         return {"suite"}
     return {p for p in doc["products"] if p in PRODUCTS}
@@ -1312,7 +1335,7 @@ PRACTICES = ("medical", "dental")   # which version of Althais a clinic sees; se
 
 def org_practice(user: User, db: Session) -> str:
     """"medical" (ER, urgent care, office) or "dental". Set in /admin; a clinic with no setting is medical."""
-    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    row, doc = _entitlements(user, db)
     return doc.get("practice") if row and doc.get("practice") in PRACTICES else "medical"
 
 
@@ -1320,7 +1343,7 @@ def org_test_clinic(user: User, db: Session) -> bool:
     """A clinic Althais marked as a test clinic in /admin: no two-step login there, neither the setup screen
     (security.policy_for) nor the code at sign-in (login), even for people who had turned it on.
     For trying the product, never for a clinic with real patients."""
-    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    row, doc = _entitlements(user, db)
     return bool(row and doc.get("test_clinic"))
 
 
@@ -1333,7 +1356,7 @@ def ensure_practice(user: User, db: Session, practice: str) -> None:
 
 def org_althea(user: User, db: Session) -> bool:
     """Althea, the assistant, is switched on per clinic in /admin. Until it's set, it comes with the full suite only."""
-    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    row, doc = _entitlements(user, db)
     if row and isinstance(doc.get("althea"), bool):
         return doc["althea"]
     return "suite" in clinic_products(user, db)
@@ -1341,7 +1364,7 @@ def org_althea(user: User, db: Session) -> bool:
 
 def org_manager(user: User, db: Session) -> bool:
     """Whether the clinic's admins get Manager (/manager) to handle their employees. Switched in /admin; on by default."""
-    row, doc = _load_doc(user, db, ENTITLEMENTS_CATEGORY)
+    row, doc = _entitlements(user, db)
     return doc.get("manager") is not False if row else True
 
 

@@ -257,7 +257,8 @@ async def middleware(request: Request, call_next):
     if not path.startswith("/api/") or path.startswith(_SKIP) or method == "OPTIONS":
         return response
     try:
-        who, behalf = _who_from_request(request)
+        from starlette.concurrency import run_in_threadpool
+        who, behalf = await run_in_threadpool(_who_from_request, request)   # may read the database: keep it off the event loop
         if who is None:
             return response          # anonymous calls are refused by the API anyway; sign-in attempts are recorded in auth.login
         what, rid = _what(path)
