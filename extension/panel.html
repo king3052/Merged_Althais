@@ -22,23 +22,17 @@
 </section>
 
 <main id="main">
-  <section id="verify" class="card verify idle">
-    <div class="vtop">
-      <div class="ring" aria-hidden="true"><svg viewBox="0 0 64 64"><circle class="rt" cx="32" cy="32" r="27"/><circle id="rbar" class="rb" cx="32" cy="32" r="27" pathLength="100" stroke-dasharray="0 100"/></svg><span class="spin"></span><div class="pct"><b id="pct">&ndash;</b><small id="pctsign"></small></div></div>
-      <div class="vinfo">
-        <span class="eyebrow">Claim verification</span>
-        <span id="vlabel" class="vlabel">No claim checked yet</span>
-        <span id="vmeta" class="vmeta">Open a claim in your EMR to start.</span>
-      </div>
-    </div>
-    <div class="stats">
-      <button type="button" class="stat error" data-jump="error"><b id="n-error">0</b><span>Errors</span></button>
-      <button type="button" class="stat warn" data-jump="warn"><b id="n-warn">0</b><span>Warnings</span></button>
-      <button type="button" class="stat info" data-jump="info"><b id="n-info">0</b><span>Info</span></button>
+  <section id="verify" class="verify idle">
+    <div class="vrow"><span class="pill"><i></i><span id="vlabel">No claim checked yet</span><span class="spin"></span></span><span id="vscore" class="vscore"></span></div>
+    <p id="vmeta" class="vmeta">Open a claim in your EMR to start.</p>
+    <div id="vgrid" class="vgrid" hidden>
+      <div id="g-claim"><span>Claim</span><b id="m-claim" class="mono"></b></div>
+      <div id="g-payer"><span>Payer</span><b id="m-payer"></b></div>
+      <div id="g-dos"><span>Service</span><b id="m-dos" class="mono"></b></div>
     </div>
     <div class="actions">
-      <button id="read" type="button" class="btn pri"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6M8 14h8M8 17h5"/></svg>Read page</button>
-      <button id="recheck" type="button" class="btn" disabled title="Check the claim again"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Re-check</button>
+      <button id="read" type="button" class="btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6M8 14h8M8 17h5"/></svg>Read page</button>
+      <button id="recheck" type="button" class="btn pri" disabled title="Check the claim again"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Re-check</button>
       <button id="copy" type="button" class="btn sq" disabled title="Copy results" aria-label="Copy results"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button>
     </div>
     <label class="switch"><input type="checkbox" id="auto" checked><span class="track"><span class="knob"></span></span><span class="sw-text"><b>Automatic</b><span id="autohint"></span></span></label>

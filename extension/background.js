@@ -103,7 +103,8 @@ async function check(cfg, fields) {
   try {
     r = await fetch(base + "/api/extension/check", { method: "POST", headers: { Authorization: "Bearer " + cfg.token, "Content-Type": "application/json" },
       body: JSON.stringify({ claim: { claim_id: fields.claim_id, dos: fields.dos, payer: fields.payer, cpt: fields.cpt, icd: fields.icd, modifiers: fields.modifiers, amount: fields.amount,
-      lines: (fields.lines || []).filter((l) => "tooth" in l), tooth_column: !!fields.tooth_column } }) });
+      lines: (fields.lines || []).filter((l) => "tooth" in l), tooth_column: !!fields.tooth_column,
+      line_mods: (fields.lines || []).filter((l) => l.mod).map((l) => ({ code: l.code, mod: l.mod })) } }) });
   } catch (e) { throw Object.assign(new Error("Couldn't reach Althais. Check your connection."), { kind: "offline" }); }
   let j = {};
   try { j = await r.json(); } catch (e) {}

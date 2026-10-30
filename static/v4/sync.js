@@ -64,7 +64,7 @@
     var st = snap.structured || {}, sv = st.vitals || {};
     var noteTxt = o.note || snap.note || (snap.structured ? ['CHIEF COMPLAINT: ' + (st.cc || ''), 'HPI: ' + (st.hpi || ''), 'ROS: ' + (st.ros || ''), 'VITALS: ' + [sv.bp && 'BP ' + sv.bp, sv.hr && 'HR ' + sv.hr].filter(Boolean).join(', '), 'EXAM: ' + (st.exam || ''), 'LABS: ' + (st.labs || ''), 'ASSESSMENT: ' + (st.assessment || ''), 'PLAN: ' + (st.plan || '')].join('\n') : '');
     var c = { id: o.claimId || o.id, encId: '', note: noteTxt, mrn: ensurePatient(o.mrn, o.patient || o.patientName, o.payer), dos: dos, prov: staffFor(o.provider || snap.provider), payer: o.payer || '', lines: cpts, dx: dx,
-      stage: stage, resolved: {}, amount: Number(o.amount) || 0, created: o.ts || o.createdAt || '', imported: true,
+      stage: stage, resolved: {}, amount: Number(o.amount) || 0, pos: String(o.pos || snap.pos || '').replace(/\D/g, '').slice(0, 2), created: o.ts || o.createdAt || '', imported: true,
       hist: [{ at: new Date().toISOString(), text: o.source === 'extension' ? 'Created with the Althais browser extension in the EMR (' + (o.status || 'Draft') + ')' : 'Brought over from the previous EMR (status: ' + (o.status || 'Draft') + ')' }] };
     if (stage === 'submitted' || stage === 'paid' || stage === 'denied') { c.submittedOn = dos; c.status = o.status; }
     if (stage === 'paid') { c.paid = Number(o.paid || o.amount) || 0; c.paidOn = iso(o.paidOn) || dos; }
@@ -153,8 +153,8 @@
   var STATUS = { edits: 'Pending Review', ready: 'Ready to Submit', submitted: 'Submitted', paid: 'Paid', denied: 'Denied' };
   function claimOut(c) {
     return { id: c.id, patientName: D.ptName(c.mrn), mrn: c.mrn, payer: D.payer(c), amount: Math.round(D.charge(c)), status: c.stage === 'denied' && c.dstatus === 'Appealed' ? 'Appealed' : STATUS[c.stage] || 'Draft',
-      codes: c.lines.map(function (l) { var x = { code: l.code, type: /^D\d{4}$/.test(l.code) ? 'CDT' : 'CPT', modifier: l.mod || '', units: l.units || 1 }; if (l.tooth || l.surface || l.quad) { x.tooth = l.tooth || ''; x.surface = l.surface || ''; x.quad = l.quad || ''; } return x; }).concat(c.dx.map(function (d) { return { code: d, type: 'ICD-10' }; })),
-      flags: (c.edits || []).map(function (x) { return x.id; }), appealLetter: c.letter || '', createdAt: c.created || '', dos: c.dos || '', provider: (D.staff(c.prov) || {}).name || '' };
+      codes: c.lines.map(function (l) { var x = { code: l.code, type: /^D\d{4}$/.test(l.code) ? 'CDT' : 'CPT', modifier: l.mod || '', units: l.units || 1 }; if (Number(l.charge) > 0) x.charge = Number(l.charge); if (l.tooth || l.surface || l.quad) { x.tooth = l.tooth || ''; x.surface = l.surface || ''; x.quad = l.quad || ''; } return x; }).concat(c.dx.map(function (d) { return { code: d, type: 'ICD-10' }; })),
+      flags: (c.edits || []).map(function (x) { return x.id; }), appealLetter: c.letter || '', createdAt: c.created || '', dos: c.dos || '', provider: (D.staff(c.prov) || {}).name || '', pos: c.pos || '' };
   }
   function push() {
     if (!ready) return;

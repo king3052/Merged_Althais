@@ -16,6 +16,7 @@ HOW TO GET THE FULL CMS TABLE (do this quarterly):
   6. Repeat every quarter (Jan, Apr, Jul, Oct)
 """
 
+import re
 import sqlite3, os, sys
 from pathlib import Path
 
@@ -121,12 +122,43 @@ def load_from_cms_file(directory: str):
     conn.close()
     print(f"Done. Total: {final:,} pairs from {len(txt_files)} file(s)")
 
-def check_claim_ncci(cpt_codes: list) -> list:
-    """Check CPT codes against NCCI edits. Returns list of conflict dicts."""
+# Modifiers CMS lists as NCCI-associated: on a pair whose modifier indicator is 1, one of these says the two services were separate.
+NCCI_MODS = {"59", "XE", "XS", "XP", "XU", "24", "25", "57", "58", "78", "79", "91", "LT", "RT", "LC", "LD", "LM", "RC", "RI",
+             "E1", "E2", "E3", "E4", "FA", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9",
+             "TA", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"}
+EM_ONLY = {"25", "57"}          # these two only count on the E/M visit itself
+
+
+def _is_em(code: str) -> bool:
+    return bool(re.fullmatch(r"99[2-4]\d\d", code))
+
+
+def _bypass(col1: str, col2: str, line_mods: dict, claim_mods: set):
+    """The NCCI-associated modifier that lets this pair be billed separately, and whether it's on the right line.
+    Returns (modifier, where) with where = "line" (on the code it belongs on) or "claim" (on the claim, line unknown), or (None, None)."""
+    def fits(m, code):
+        return m in NCCI_MODS and (m not in EM_ONLY or _is_em(code))
+    for code in (col2, col1):                         # CMS: the modifier goes on the column-two code; 25/57 go on the E/M wherever it sits
+        for m in sorted(line_mods.get(code, ())):
+            if fits(m, code):
+                return m, "line"
+    if not any(line_mods.get(x) for x in (col1, col2)):
+        for m in sorted(claim_mods):                  # the screen or file only gave claim-level modifiers
+            if m in NCCI_MODS and (m not in EM_ONLY or _is_em(col1) or _is_em(col2)):
+                return m, "claim"
+    return None, None
+
+
+def check_claim_ncci(cpt_codes: list, modifiers=None, line_mods=None) -> list:
+    """Check CPT codes against NCCI edits. Returns list of conflict dicts.
+    modifiers: modifiers on the claim (any line). line_mods: {code: [modifiers on that code's line]}, when the lines are known.
+    A pair that may be billed with a modifier and has one comes back with bypassed=<modifier> and an informational message."""
     _ensure_db()
     if not cpt_codes or len(cpt_codes) < 2:
         return []
     codes = list(set(str(c).strip().upper() for c in cpt_codes if c))
+    claim_mods = {str(m).strip().upper() for m in (modifiers or []) if m}
+    lm = {str(k).strip().upper(): {str(m).strip().upper() for m in (v or []) if m} for k, v in (line_mods or {}).items()}
     conflicts = []
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -142,26 +174,37 @@ def check_claim_ncci(cpt_codes: list) -> list:
                     if row:
                         mi = str(row["modifier_indicator"]).strip()
                         modifier_allowed = mi == "1"
-                        if modifier_allowed:
+                        bypass, where = _bypass(col1, col2, lm, claim_mods) if modifier_allowed else (None, None)
+                        if bypass:
+                            on = next((x for x in (col2, col1) if bypass in lm.get(x, ())), "")
+                            msg = (f"{col2} and {col1} are an NCCI pair, billed separately with modifier {bypass}"
+                                   + (f" on {on}" if on else "") + ". "
+                                   + ("Make sure the note documents a significant, separately identifiable visit."
+                                      if bypass in EM_ONLY else "Make sure the note shows the services were distinct.")
+                                   + (f" Check that {bypass} is on the right line." if where == "claim" else ""))
+                        elif modifier_allowed:
                             msg = (f"Possible NCCI bundling: {col2} is typically bundled into "
                                    f"{col1}, an NCCI-associated modifier (25, 57, 59, XE, XS, "
                                    f"XU, XP) may allow separate billing if services are clinically "
                                    f"distinct. Verify before submitting.")
+                            wrong = next(((m, x) for x in (col1, col2) if not _is_em(x) for m in sorted(lm.get(x, ())) if m in EM_ONLY), None)
+                            if wrong:
+                                msg += f" Modifier {wrong[0]} is on {wrong[1]}; it belongs on the visit (E/M) code."
                         else:
                             msg = (f"NCCI bundling conflict: {col2} is bundled into {col1} and "
                                    f"cannot be billed separately, no modifier can override this. "
                                    f"Remove {col2} or verify services were genuinely separate.")
-                        conflicts.append({"col1": col1, "col2": col2,
-                                          "modifier_allowed": modifier_allowed, "message": msg})
+                        conflicts.append({"col1": col1, "col2": col2, "modifier_allowed": modifier_allowed,
+                                          "bypassed": bypass or "", "message": msg})
                         break
         conn.close()
     except Exception as e:
         print(f"NCCI check skipped (DB error): {e}")
     return conflicts
 
-def check_claim_ncci_flags(cpt_codes: list) -> list:
-    """Returns plain-English flag strings for the validate-claim response."""
-    return [c["message"] for c in check_claim_ncci(cpt_codes)]
+def check_claim_ncci_flags(cpt_codes: list, modifiers=None, line_mods=None) -> list:
+    """Returns plain-English flag strings for the validate-claim response (pairs a modifier already covers are left out)."""
+    return [c["message"] for c in check_claim_ncci(cpt_codes, modifiers, line_mods) if not c.get("bypassed")]
 
 if __name__ == "__main__":
     if "--load" in sys.argv:

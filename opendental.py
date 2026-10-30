@@ -107,6 +107,22 @@ class Client:
         except ValueError:
             raise OpenDentalError("Open Dental sent something that isn't JSON.")
 
+    def post(self, path, body):
+        try:
+            r = self.http.post(BASE + path, json=body, headers={"Authorization": self.auth, "Accept": "application/json"}, timeout=60)
+        except requests.RequestException as e:
+            raise OpenDentalError(f"Couldn't reach Open Dental ({type(e).__name__}).")
+        if r.status_code in (401, 403):
+            raise OpenDentalError("Open Dental didn't accept the key, or the key doesn't have permission for documents. Ask Open Dental to add Documents read/create to Althais's key.")
+        if r.status_code == 404:
+            raise OpenDentalError("Open Dental couldn't find that document or patient.")
+        if r.status_code >= 400:
+            raise OpenDentalError(f"Open Dental answered {r.status_code}: {(r.text or '')[:200]}")
+        try:
+            return r.json() if (r.text or "").strip() else {}
+        except ValueError:
+            return {}
+
     def one(self, path):
         if path not in self.cache:
             self.cache[path] = self.get(path)
@@ -256,3 +272,105 @@ def record_pull(db, org, summary: dict):
     _, doc = _load(db, org)
     doc["last_pull"], doc["last_summary"] = dt.datetime.now(timezone.utc).isoformat(), summary
     _save(db, org, doc)
+
+
+# ---- documents and images (Imaging module) ----
+# Open Dental never returns a file's bytes over the API. DownloadSftp asks the office's eConnector to put the file on an
+# SFTP server we name; Althais then reads it from there and deletes it. The SFTP server is Althais's own (env below),
+# reachable from the internet with a key-pinned host. Uploading goes the other way through POST /documents/Upload
+# (base64), which Open Dental turns into a real file the first time someone opens it in the Imaging module.
+SFTP = {"host": "OPENDENTAL_SFTP_HOST", "port": "OPENDENTAL_SFTP_PORT", "user": "OPENDENTAL_SFTP_USER",
+        "password": "OPENDENTAL_SFTP_PASSWORD", "dir": "OPENDENTAL_SFTP_DIR", "hostkey": "OPENDENTAL_SFTP_HOSTKEY"}
+UPLOAD_EXT = {"application/pdf": ".pdf", "image/png": ".png", "image/jpeg": ".jpg", "image/tiff": ".tif", "image/webp": ".webp"}
+
+
+def sftp_config() -> dict:
+    c = {k: os.environ.get(v, "").strip() for k, v in SFTP.items()}
+    c["port"] = int(c["port"] or 22)
+    c["dir"] = c["dir"].strip("/")
+    return c
+
+
+def sftp_ready() -> bool:
+    c = sftp_config()
+    return bool(c["host"] and c["user"] and c["password"] and c["hostkey"])
+
+
+def pat_num(mrn: str) -> str:
+    """Open Dental's PatNum for a patient that came from Open Dental (MRN OD<PatNum>), or ""."""
+    m = re.fullmatch(r"OD(\d+)", str(mrn or "").strip().upper())
+    return m.group(1) if m else ""
+
+
+def documents(cl: Client, pnum: str) -> list:
+    """The patient's documents and images in Open Dental (newest first), without file contents."""
+    rows = cl.get("/documents", {"PatNum": pnum}) or []
+    out = []
+    for d in rows if isinstance(rows, list) else []:
+        out.append({"doc_num": str(d.get("DocNum") or ""), "mount_num": str(d.get("MountNum") or "0"), "description": d.get("Description") or "",
+                    "date": _date(d.get("DateCreated")), "category": d.get("docCategory") or "", "teeth": d.get("ToothNumbers") or "",
+                    "image_type": d.get("ImgType") or "", "file": (str(d.get("filePath") or "").replace("\\", "/").rsplit("/", 1)[-1])})
+    return sorted([d for d in out if d["doc_num"] and d["doc_num"] != "0"], key=lambda d: d["date"], reverse=True)
+
+
+def _sftp():
+    import base64 as b64
+    import paramiko
+    c = sftp_config()
+    if not sftp_ready():
+        raise OpenDentalError("Althais's file drop for Open Dental isn't set up yet (OPENDENTAL_SFTP_* settings).")
+    kt, _, kb = c["hostkey"].partition(" ")
+    try:
+        key = paramiko.PKey.from_type_string(kt, b64.b64decode(kb.split()[0]))
+    except Exception:
+        raise OpenDentalError("OPENDENTAL_SFTP_HOSTKEY should look like 'ssh-ed25519 AAAA...'.")
+    t = paramiko.Transport((c["host"], c["port"]))
+    t.banner_timeout = t.auth_timeout = 20
+    t.start_client(timeout=20)
+    if t.get_remote_server_key() != key:          # pinned: never send the password to a server we didn't expect
+        t.close()
+        raise OpenDentalError("The file drop server's key doesn't match OPENDENTAL_SFTP_HOSTKEY. Nothing was downloaded.")
+    t.auth_password(c["user"], c["password"])
+    return t, paramiko.SFTPClient.from_transport(t)
+
+
+def download(cl: Client, doc_num: str, max_bytes: int = 20 * 1024 * 1024):
+    """(bytes, filename) of one Open Dental document, through Althais's SFTP drop. The copy on the drop is deleted."""
+    import uuid
+    c = sftp_config()
+    if not sftp_ready():
+        raise OpenDentalError("Althais's file drop for Open Dental isn't set up yet (OPENDENTAL_SFTP_* settings).")
+    info = cl.get(f"/documents/{doc_num}") or {}
+    name = str(info.get("FileName") or "")
+    ext = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ".jpg"
+    if not re.fullmatch(r"\.[a-z0-9]{2,5}", ext):
+        ext = ".bin"
+    rel = "/".join(x for x in (c["dir"], uuid.uuid4().hex + ext) if x)
+    res = cl.post("/documents/DownloadSftp", {"DocNum": int(doc_num), "SftpAddress": f"{c['host']}/{rel}", "SftpUsername": c["user"],
+                                              "SftpPassword": c["password"], **({"SftpPort": c["port"]} if c["port"] != 22 else {})})
+    loc = str((res or {}).get("location") or rel)
+    path = "/" + loc.split(c["host"], 1)[-1].lstrip("/") if c["host"] in loc else "/" + rel
+    t, sf = _sftp()
+    try:
+        if sf.stat(path).st_size > max_bytes:
+            raise OpenDentalError("That file is over 20 MB. Open it in Open Dental instead.")
+        with sf.open(path, "rb") as fh:
+            data = fh.read()
+        try:
+            sf.remove(path)
+        except Exception:
+            pass
+    finally:
+        sf.close()
+        t.close()
+    return data, (name or f"opendental-{doc_num}{ext}")
+
+
+def upload(cl: Client, pnum: str, data: bytes, mime: str, description: str) -> dict:
+    """Put a file into the patient's Open Dental Imaging module. Returns Open Dental's document (DocNum ...)."""
+    import base64 as b64
+    ext = UPLOAD_EXT.get(mime)
+    if not ext:
+        raise OpenDentalError("Open Dental takes PDF, PNG, JPEG, TIFF or WebP files.")
+    return cl.post("/documents/Upload", {"PatNum": int(pnum), "rawBase64": b64.b64encode(data).decode(), "extension": ext,
+                                         "Description": str(description or "Outside record")[:255]})

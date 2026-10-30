@@ -62,44 +62,28 @@ textarea{font:11px/1.35 var(--mono)}
 .btn:disabled:hover{background:var(--surface)}
 .row{display:flex;gap:8px;margin-top:12px}
 
-/* verification card */
-.verify{--vc:var(--m);--vbg:var(--surface);--vline:var(--b);border-color:var(--vline);background:var(--vbg)}
+/* claim summary: a status pill, the score, and the claim's identity */
+.verify{--vc:var(--m);--vbg:var(--ph);--vline:var(--b);margin:-12px -12px 12px;padding:12px 14px 14px;background:var(--surface);border-bottom:1px solid var(--b)}
 .verify.clean{--vc:var(--grn);--vbg:var(--grn-bg);--vline:var(--grn-line)}
 .verify.review{--vc:var(--amb);--vbg:var(--amb-bg);--vline:var(--amb-line)}
 .verify.fix{--vc:var(--red);--vbg:var(--red-bg);--vline:var(--red-line)}
-.vtop{display:flex;align-items:center;gap:14px}
-.ring{position:relative;flex:none;width:76px;height:76px}
-.ring svg{width:76px;height:76px;transform:rotate(-90deg)}
-.ring circle{fill:none;stroke-width:5}
-.ring .rt{stroke:rgba(127,127,127,.18)}
-.ring .rb{stroke:var(--vc);stroke-linecap:round;transition:stroke-dasharray .5s ease}
-.ring .spin{position:absolute;inset:0;display:none;border-color:transparent;border-top-color:var(--brand)}
-.verify.busy .ring .spin{display:block}
-.verify.idle .ring .rb{stroke-opacity:0}
-.pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--vc)}
-.pct b{font:700 22px/1 var(--mono);letter-spacing:-.02em}
-.pct small{margin-top:5px;font:700 12px var(--mono)}
-.verify.idle .pct{color:var(--m)}
-.vinfo{display:flex;flex-direction:column;min-width:0}
-.eyebrow{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
-.vlabel{margin:2px 0 1px;font-size:15px;font-weight:700;line-height:1.25;color:var(--vc)}
-.verify.idle .vlabel{color:var(--t2);font-weight:600}
-.vmeta{color:var(--t2);font-size:12px;overflow-wrap:anywhere}
-.verify.busy .vtop{opacity:.7}
-
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.stat{display:flex;flex-direction:column;align-items:flex-start;padding:7px 10px;border:1px solid var(--b);border-radius:6px;background:var(--surface);color:var(--t2);font:inherit;text-align:left;cursor:pointer}
-.stat b{font:700 18px/1.2 var(--mono);color:var(--b)}
-.stat span{font-size:11px;font-weight:600}
-.stat:hover{border-color:var(--t2)}
-.stat:disabled{cursor:default}
-.stat:disabled:hover{border-color:var(--b)}
-.stat.error.on b{color:var(--red)}
-.stat.warn.on b{color:var(--amb)}
-.stat.info.on b{color:var(--brand)}
-
+.vrow{display:flex;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border:1px solid var(--vline);border-radius:999px;background:var(--vbg);color:var(--vc);font-weight:700;font-size:12.5px}
+.pill>i{width:7px;height:7px;border-radius:50%;background:var(--vc)}
+.verify.idle .pill{color:var(--t2)}
+.pill .spin{display:none;width:11px;height:11px}
+.verify.busy .pill .spin{display:inline-block}
+.verify.busy .pill>i{display:none}
+.vscore{margin-left:auto;font:700 13px var(--mono);color:var(--t2)}
+.vscore small{font-weight:500;color:var(--m)}
+.vmeta{margin:8px 0 0;color:var(--t2);font-size:12px;overflow-wrap:anywhere}
+.vmeta:empty{display:none}
+.vgrid{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;margin-top:10px}
+.vgrid div{min-width:0;font-size:11px;color:var(--m)}
+.vgrid b{display:block;overflow:hidden;color:var(--t);font-size:13px;text-overflow:ellipsis;white-space:nowrap}
+.vgrid b.mono{font-family:var(--mono);font-size:12.5px}
 .actions{display:flex;gap:8px;margin-top:12px}
-.actions #read{flex:1}
+.actions #read,.actions #recheck{flex:1}
 
 .switch{display:flex;align-items:center;gap:10px;margin:10px 0 0;padding:0;font-size:12px;font-weight:400;color:var(--t2);text-transform:none;letter-spacing:0;cursor:pointer}
 .switch input{position:absolute;width:0;height:0;opacity:0}
@@ -168,8 +152,32 @@ footer svg{width:14px;height:14px;margin-top:1px}
 #offsites{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 #offsites .link{display:inline;margin:0}
 
-.pct.count{flex-direction:column;gap:1px}
-.pct.count b{font-size:24px}
-.pct.count small{margin:0;font:700 9px/1 var(--sans,system-ui);letter-spacing:.02em;text-transform:uppercase}
 .fixhint{margin-top:4px;color:var(--t2);font-size:12px}
 .showon{display:inline-block;margin:5px 0 0;padding:0}
+
+/* claim lines: every code with its own issues underneath */
+.grp-t{margin:14px 2px 6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--m)}
+.grp-t:first-child{margin-top:2px}
+.line{margin:0 0 8px;border:1px solid var(--b);border-left:4px solid var(--grn);border-radius:8px;background:var(--surface);overflow:hidden}
+.line.error{border-left-color:var(--red)}.line.warn{border-left-color:var(--amb)}.line.info{border-left-color:var(--brand)}
+.line.sel{box-shadow:0 0 0 2px var(--brand)}
+.lh{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border:0;background:none;color:var(--t);font:inherit;text-align:left;cursor:pointer}
+.lh:hover{background:var(--ph)}
+.lh .cv{flex:none;font:700 13.5px var(--mono)}
+.lh .cd{flex:1;min-width:0;overflow:hidden;color:var(--t2);font-size:12.5px;text-overflow:ellipsis;white-space:nowrap}
+.lh .where{flex:none;font:600 11px var(--mono);color:var(--m)}
+.lh .st{flex:none;font-size:11.5px;font-weight:700;color:var(--grn)}
+.line.error .st{color:var(--red)}.line.warn .st{color:var(--amb)}.line.info .st{color:var(--brand)}
+.iss{padding:9px 12px 10px;border-top:1px dashed var(--b);background:var(--ph);font-size:12.5px}
+.iss+.iss{border-top:1px solid var(--b2)}
+.iss .k{display:block;margin-bottom:2px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--brand)}
+.iss.error .k{color:var(--red)}.iss.warn .k{color:var(--amb)}
+.iss .fixhint b{color:var(--t)}
+.iss.ref{color:var(--m);font-size:12px}
+.iss.ref b{font-family:var(--mono);color:var(--t2)}
+.line.claimwide{border-left-color:var(--vc,var(--red))}
+.mods-l{margin:-2px 2px 4px;font-size:12px;color:var(--m)}
+.mods-l .tag{margin-left:4px}
+.line.claimwide .cv{font-family:inherit;font-size:13px}
+.line.claimwide .lh{cursor:default}
+.line.claimwide .lh:hover{background:none}

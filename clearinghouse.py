@@ -155,9 +155,24 @@ class ClaimMD(Connector):
 
     @staticmethod
     def _xml(text):
+        """Claim.MD's XML. Its payer list can carry a bare "&" or control characters in payer names, which a strict
+        parser rejects, so a second try cleans those up before giving up."""
         import xml.etree.ElementTree as ET
+
+        def bare(root):                                # a default namespace would hide <payer>/<claim>/<error> from find()
+            for el in root.iter():
+                if isinstance(el.tag, str) and "}" in el.tag:
+                    el.tag = el.tag.split("}", 1)[1]
+            return root
         try:
-            return ET.fromstring(text)
+            return bare(ET.fromstring(text))
+        except Exception:
+            pass
+        try:
+            fixed = re.sub(r"&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)", "&amp;", text or "")
+            fixed = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", fixed)
+            fixed = re.sub(r"^\s*<\?xml[^>]*\?>", "", fixed)
+            return bare(ET.fromstring(fixed.strip()))
         except Exception:
             return None
 
@@ -175,9 +190,12 @@ class ClaimMD(Connector):
         except Exception as e:
             return self._res(False, "UNKNOWN", f"Couldn't reach Claim.MD: {e}")
         root = self._xml(text)
-        if code == 200 and root is not None and root.find(".//payer") is not None:
+        listed = (root is not None and root.find(".//payer") is not None) or (root is None and re.search(r"<payer\s[^>]*payerid=", text or "") and "<error" not in (text or ""))
+        if code == 200 and listed:                     # a payer list only comes back for a key Claim.MD accepted
             return self._res(True, "CONNECTED", "Claim.MD accepted the account key.", raw=text)
-        return self._res(False, "UNKNOWN", self._error(root, text) or "Claim.MD didn't accept that account key.", raw=text)
+        msg = self._error(root, text) if root is not None else ""
+        return self._res(False, "UNKNOWN", (msg if msg and not msg.lstrip().startswith("<") else "") or
+                         (f"Claim.MD answered {code}." if code != 200 else "Claim.MD didn't accept that account key."), raw=text)
 
     def find_payer(self, payer: str):
         """Claim.MD's payer record for a payer name: (payerid, attributes) or (None, {})."""

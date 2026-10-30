@@ -143,7 +143,10 @@ def _clean_claim(b: dict):
              "cpt": codes(b.get("cpt"), r"[A-Za-z0-9]{4,6}"), "icd": codes(b.get("icd"), r"[A-Za-z0-9.]{3,9}"), "modifiers": codes(b.get("modifiers"), r"[A-Za-z0-9]{2}", 8),
              "amount": amount, "provider": "", "pos": "", "rows": [],
              # dental screens: each procedure with its tooth, surface and quadrant; tooth_column says whether the screen showed teeth at all
-             "lines": ec._lines(b.get("lines")), "tooth_column": bool(b.get("tooth_column"))}
+             "lines": ec._lines(b.get("lines")), "tooth_column": bool(b.get("tooth_column")),
+             # medical screens: which procedure line each modifier is on, so bundling checks know a 25 is on the visit
+             "line_mods": [{"code": str(x.get("code") or "").upper()[:8], "mod": re.sub(r"[^A-Za-z0-9]", "", str(x.get("mod") or "")).upper()[:2]}
+                           for x in (b.get("line_mods") if isinstance(b.get("line_mods"), list) else [])[:40] if isinstance(x, dict) and x.get("code") and x.get("mod")]}
     if not claim["cpt"] and not claim["icd"] and not claim["payer"]:
         return None, "Nothing to check yet. Read the page or type the codes in first."
     return claim, None
@@ -427,6 +430,7 @@ async def claim(request: Request, authorization: str = Header(default=""), db: S
         db.add(row)
     row.patient_name, row.mrn, row.payer, row.codes, row.amount = snap["patient"], snap["mrn"] or snap["insuredId"], snap["payer"], json.dumps(codes), snap["totalAmt"]
     row.dos, row.provider, row.source = snap["svcDate"], snap["provider"], "extension"
+    row.pos = ec._pos2(snap.get("pos"))
     _ensure_patient(db, ns, snap)
     if action == "draft":
         db.commit()

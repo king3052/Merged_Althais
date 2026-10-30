@@ -201,6 +201,7 @@ class OrgClaim(Base):
     dos: Mapped[str] = mapped_column(String(20), default="", nullable=True)          # date of service, YYYY-MM-DD
     provider: Mapped[str] = mapped_column(String(255), default="", nullable=True)    # rendering provider name
     source: Mapped[str] = mapped_column(String(32), default="", nullable=True)       # "" (typed in Althais) | "import" | "drchrono" | "athenahealth" | "tebra" | "extension"
+    pos: Mapped[str] = mapped_column(String(4), default="", nullable=True)           # place of service from the EMR (23 ER, 20 urgent care, 11 office); "" = the clinic's default
 
 
 class UserActivity(Base):
@@ -323,7 +324,7 @@ except Exception:
 
 # org_claims gained date of service, provider and source (same safe-ALTER pattern)
 for _ddl in ("ALTER TABLE org_claims ADD COLUMN dos VARCHAR(20) DEFAULT ''", "ALTER TABLE org_claims ADD COLUMN provider VARCHAR(255) DEFAULT ''",
-             "ALTER TABLE org_claims ADD COLUMN source VARCHAR(32) DEFAULT ''"):
+             "ALTER TABLE org_claims ADD COLUMN source VARCHAR(32) DEFAULT ''", "ALTER TABLE org_claims ADD COLUMN pos VARCHAR(4) DEFAULT ''"):
     try:
         with engine.connect() as _conn:
             _conn.execute(text(_ddl))
