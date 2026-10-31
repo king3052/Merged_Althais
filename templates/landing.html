@@ -21,37 +21,31 @@
   <script src="/static/js/theme.js?v={{ asset_v }}"></script>
   <link rel="stylesheet" href="/static/althais-landing.css?v={{ asset_v }}" />
   <link rel="stylesheet" href="/static/althais-dark.css?v={{ asset_v }}" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
+  <link rel="stylesheet" href="/static/althais-lobe.css?v={{ asset_v }}" />
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body class="vhero rcl">
 
-{% set logo_href = "#top" %}{% set nav_style = "rc" %}{% set hide_login = True %}{% include "_site_nav.html" %}
+{% set logo_href = "#top" %}{% include "_lobe_top.html" %}
 
-<main>
+<main id="content">
 
-<!-- HERO: full-screen clips that cross-fade behind the headline (static/media/hero, Mixkit free license). The script at the
-     bottom of the page plays one clip at a time; with reduced motion only the first frame shows. -->
-<section class="hero hero-vid" aria-label="Althais">
+<!-- HERO: laid out like getlobe.com. Full-screen clips cross-fade behind the copy (static/media/hero, Mixkit free license);
+     the script at the bottom of the page plays one clip at a time; with reduced motion only the first frame shows. -->
+<section class="lh-hero" aria-labelledby="hero-title">
   <div class="hv-media" aria-hidden="true">
     <video class="hv-clip on" muted playsinline preload="auto" poster="/static/media/hero/hero-1.jpg" data-src="/static/media/hero/hero-1.mp4"></video>
     <video class="hv-clip" muted playsinline preload="none" poster="/static/media/hero/hero-2.jpg" data-src="/static/media/hero/hero-2.mp4"></video>
-    <div class="hv-shade"></div>
+    <div class="lh-hero-scrim"></div>
   </div>
-  <div class="hv-in">
-    <div class="hv-top">
-      <div class="hv-eyebrow">AI Scribe, Coding &amp; Claims In One Platform</div>
-      <h1 class="display">From encounter,<br /><span class="hv-l2">to <span id="hero-rot" class="rot">reimbursement</span>.</span></h1>
-    </div>
-    <div class="hv-foot">
-      <div class="hv-left"><p class="hv-cred"><b>Built for</b> physician practices, hospitals and revenue cycle teams</p>
-        <a href="/roi-calculator" class="hv-link hv-roi">See what denials cost you. Calculate your ROI <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a></div>
-      <div class="hv-right">
-        <p class="lede">Speak the visit or type the note. Althais writes the SOAP, suggests the ICD-10 and CPT codes, checks them against real CMS edits, and hands you a claim ready for your review.</p>
-        <div class="hero-cta">
-          <a href="/pilot" class="btn btn-accent hv-btn">Join Althais <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
-          <a href="#how" class="hv-link">Explore <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
-        </div>
-      </div>
+  <div class="lb-container lh-hero-content">
+    <p class="lh-hero-audience">AI scribe, coding and claims in one platform</p>
+    <h1 id="hero-title">From encounter, to <span id="hero-rot" class="rot">reimbursement</span>.</h1>
+    <p class="lh-hero-context">Speak the visit or type the note. Althais writes the SOAP, suggests ICD-10 and CPT codes, checks them against real CMS edits, and hands you a claim to review.</p>
+    <div class="lh-hero-cta">
+      <a class="lb-btn lb-btn--onmedia" href="/pilot">Join Althais <svg class="lb-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="lr-story-link" href="#platform">See how it works <svg class="lb-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
   </div>
 </section>
@@ -87,111 +81,61 @@
   </div>
 </div>
 
-<!-- SOLUTIONS: three tabs, each with the problem, how Althais solves it, and a photo -->
-<section class="sx" id="how">
-  <div class="sx-head">
-    <h2>One platform, start to finish.</h2>
-    <p>Built for <span class="sx-rot" data-words="physician practices|emergency departments|direct primary care clinics|revenue cycle teams">physician practices</span>.</p>
+<!-- STORY: laid out like getlobe.com's "Behind every inquiry" section. Three panels, problem to guide to hand-off; the cards in
+     each panel are illustrations, not real patient data. Styles in static/althais-lobe.css (.lbh-*). -->
+<section id="visit-story" class="lbh-story" aria-labelledby="visit-story-title">
+  <div class="lb-container">
+    <p class="lr-eyebrow">BEHIND EVERY CLAIM, A VISIT</p>
+    <h2 id="visit-story-title">Every visit deserves a clean claim.</h2>
+    <div class="lbh-journey" role="group" aria-label="How Althais takes a visit from an unfinished note to a checked claim">
+      <div class="lbh-journey-panels">
+        <figure class="lbh-jpanel lbh-jpanel--dim">
+          <span class="lbh-jpanel-media" aria-hidden="true"><img src="/static/media/landing/serve-clinics.jpg" alt="" loading="lazy"></span>
+          <span class="lbh-jpanel-frag" role="img" aria-label="Illustration: notes left unsigned after hours, so the claim hasn't gone out">
+            <span class="lbh-jfrag" aria-hidden="true">
+              <span class="lbh-jfrag-bubble">Still charting from this morning.</span>
+              <span class="lbh-jfrag-row lbh-jfrag-row--mute"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8M16 13H8M16 17H8"/></svg><span>14 notes unsigned · after hours</span></span>
+              <span class="lbh-jfrag-row lbh-jfrag-row--mute"><span class="lbh-jfrag-dot"></span><span>Claim not sent</span></span>
+            </span>
+          </span>
+          <figcaption class="lbh-jpanel-cap">Notes get written after the last patient leaves, from memory.</figcaption>
+        </figure>
+        <span class="lbh-journey-arrow" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+        <figure class="lbh-jpanel lbh-jpanel--guide">
+          <span class="lbh-jpanel-media" aria-hidden="true"><img src="/static/media/landing/serve-practices.jpg" alt="" loading="lazy"></span>
+          <span class="lbh-jpanel-frag" role="img" aria-label="Illustration: Althais drafts the note during the visit and the provider signs it">
+            <span class="lbh-jfrag" aria-hidden="true">
+              <span class="lbh-jfrag-bubble lbh-jfrag-bubble--family">Cough and fever for three days.</span>
+              <span class="lbh-jfrag-bubble lbh-jfrag-bubble--lobe">SOAP note drafted. Codes suggested.</span>
+              <span class="lbh-jfrag-row lbh-jfrag-row--held"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg><span>Signed · Thu 2:30 PM</span></span>
+            </span>
+          </span>
+          <figcaption class="lbh-jpanel-cap">What a provider needs is a note written while they talk.</figcaption>
+        </figure>
+        <span class="lbh-journey-arrow" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+        <figure class="lbh-jpanel lbh-jpanel--handoff">
+          <span class="lbh-jpanel-media" aria-hidden="true"><img src="/static/media/landing/tool-althea.jpg" alt="" loading="lazy"></span>
+          <span class="lbh-jpanel-frag" role="img" aria-label="Illustration: a claim checked against NCCI edits, ready for the billing team to approve">
+            <span class="lbh-jfrag" aria-hidden="true">
+              <span class="lbh-jfrag-row lbh-jfrag-row--label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8M16 13H8M16 17H8"/></svg><span>Claim check · 4:10 PM</span></span>
+              <span class="lbh-jfrag-line">99213 · J06.9 · NCCI edits passed</span>
+              <span class="lbh-jfrag-row lbh-jfrag-row--held"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Ready for your approval</span></span>
+            </span>
+          </span>
+          <figcaption class="lbh-jpanel-cap">What your billing team needs is a claim already checked.</figcaption>
+        </figure>
+      </div>
+      <span class="lbh-journey-drop" aria-hidden="true"></span>
+    </div>
+    <p class="lbh-story-landing">This is <span class="lbh-story-brand">Althais</span>.</p>
   </div>
-  <div class="sx-tabs" role="tablist"><button type="button" class="sx-tab on" role="tab" aria-selected="true" data-sx="0"><span class="sx-k">Speak it, don't type it</span><b>AI Scribe</b><span class="sx-s">Notes from the visit</span><i class="sx-bar"><em></em></i></button><button type="button" class="sx-tab" role="tab" aria-selected="false" data-sx="1"><span class="sx-k">Codes with the reasons behind them</span><b>Smart Coding</b><span class="sx-s">ICD-10 and CPT</span><i class="sx-bar"><em></em></i></button><button type="button" class="sx-tab" role="tab" aria-selected="false" data-sx="2"><span class="sx-k">Checked before it is filed</span><b>Clean Claims</b><span class="sx-s">Edits, submission and tracking</span><i class="sx-bar"><em></em></i></button></div>
-  <div class="sx-panels"><div class="sx-panel on" role="tabpanel" data-sx="0">
-        <div class="sx-copy">
-          <div class="eyebrow">Speak it, don't type it</div>
-          <h3>AI Scribe</h3>
-          <div class="sx-prob"><b>The problem</b><p>Notes get written after the last patient leaves, from memory, and details that support the right code get lost.</p></div>
-          <div class="sx-appr"><b><svg class="rx" width="15" height="15" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="11"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="11"/></svg>How Althais solves it</b><p>Althais listens to the visit, spoken or typed, and turns it into a structured SOAP note you edit and sign.</p><ul><li>Chief complaint, assessment and plan, already organized</li><li>Provider time captured from the visit</li><li>Nothing is filed until you sign</li></ul></div>
-        </div>
-        <div class="sx-media shot"><img src="/static/media/landing/app-scribe.jpg" alt="The Althais encounter screen: a SOAP progress note written from the visit, beside the patient chart" loading="lazy"></div>
-      </div><div class="sx-panel" role="tabpanel" data-sx="1" aria-hidden="true">
-        <div class="sx-copy">
-          <div class="eyebrow">Codes with the reasons behind them</div>
-          <h3>Smart Coding</h3>
-          <div class="sx-prob"><b>The problem</b><p>Coding from a free-text note means guessing at levels and modifiers, and undercoding quietly costs the practice.</p></div>
-          <div class="sx-appr"><b><svg class="rx" width="15" height="15" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="11"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="11"/></svg>How Althais solves it</b><p>Althais reads the note and suggests ICD-10 and CPT codes, each with a confidence score and the documentation behind it.</p><ul><li>A confidence score on every code</li><li>Accept, reject or add your own</li><li>Modifier and specificity prompts</li></ul></div>
-        </div>
-        <div class="sx-media shot"><img src="/static/media/landing/app-coding.jpg" alt="The Althais coding panel: a 95% claim check, the CPT and ICD-10 codes, and the note lines each code rests on" loading="lazy"></div>
-      </div><div class="sx-panel" role="tabpanel" data-sx="2" aria-hidden="true">
-        <div class="sx-copy">
-          <div class="eyebrow">Checked before it is filed</div>
-          <h3>Clean Claims</h3>
-          <div class="sx-prob"><b>The problem</b><p>Bundling conflicts and missing fields are found after a denial, weeks later, when the visit is long forgotten.</p></div>
-          <div class="sx-appr"><b><svg class="rx" width="15" height="15" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="11"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="11"/></svg>How Althais solves it</b><p>Every claim is checked against CMS NCCI edits while the note is still open, then tracked from submission to payment.</p><ul><li>NCCI edits checked on every claim</li><li>Sent only after your team approves it</li><li>Denials flagged, with an appeal letter drafted</li></ul></div>
-        </div>
-        <div class="sx-media shot"><img src="/static/media/landing/app-claims.jpg" alt="The Althais claim detail: a 95% claim check, the codes picked for the visit, and Sign And Approve Claim" loading="lazy"></div>
-      </div></div>
 </section>
 
-<!-- WHO WE WORK WITH: photo carousel -->
-<section class="wc" id="serve">
-  <div class="sx-head">
-    <div class="eyebrow">Purpose-built</div>
-    <h2>Who we work with</h2>
-    <p>Built for <span class="sx-rot" data-words="physician practices|hospitals and emergency care|small and direct care clinics|revenue cycle teams">physician practices</span>.</p>
-  </div>
-  <div class="wc-wrap">
-    <button type="button" class="wc-arrow prev" aria-label="Previous"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg></button>
-    <div class="wc-track"><a class="wc-card" href="/solutions/private-practices"><img src="/static/media/landing/serve-practices.jpg" alt="A doctor talking with a young patient and her mother" loading="lazy"><div class="wc-cap"><h3>Physician practices</h3><p>Notes written while you talk, codes suggested before you sign.</p></div></a><a class="wc-card" href="/solutions/hospital-systems"><img src="/static/media/landing/serve-hospitals.jpg" alt="A doctor at a patient's hospital bedside" loading="lazy"><div class="wc-cap"><h3>Emergency &amp; hospital care</h3><p>High-acuity visits coded with the reasons behind each code.</p></div></a><a class="wc-card" href="/solutions/private-practices"><img src="/static/media/landing/serve-clinics.jpg" alt="A nurse charting on a tablet at a patient's bedside" loading="lazy"><div class="wc-cap"><h3>Small &amp; direct care clinics</h3><p>A billing team's work, without hiring a billing team.</p></div></a><a class="wc-card" href="/solutions/revenue-cycle-teams"><img src="/static/media/landing/tool-althea.jpg" alt="A care team reviewing a tablet together" loading="lazy"><div class="wc-cap"><h3>Revenue cycle teams</h3><p>Clean claims out the door, and fewer denials coming back.</p></div></a></div>
-    <button type="button" class="wc-arrow next" aria-label="Next"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
-  </div>
-</section>
-
-<!-- RESULTS: what pilot clinicians and leaders said (their words only) -->
-<section class="rs" id="voices">
-  <div class="sx-head">
-    <div class="eyebrow">From our pilots</div>
-    <h2>Clinicians are already seeing the difference</h2>
-  </div>
-  <div class="rs-grid">
-    <figure class="rs-card accent">
-      <div class="rs-top"><svg class="rs-q" width="34" height="26" viewBox="0 0 34 26" aria-hidden="true"><path d="M0 26V15C0 6.7 4.4 1.7 13 0l1.6 3.4C9.8 5 7.6 8 7.4 12H14v14zm19 0V15c0-8.3 4.4-13.3 13-15l1.6 3.4C28.8 5 26.6 8 26.4 12H33v14z" fill="currentColor"/></svg><span class="rs-org"><span class="rs-txt">MCH</span></span></div>
-      <blockquote>“NCCI real-time checking is something I’ve been asking vendors to build for years. Most practices don’t find out about bundling conflicts until after the rejection.”</blockquote>
-      <figcaption><span class="rs-av">BC</span><span class="rs-who"><b>Bryan Cox</b><span>Director, Revenue Cycle · MCH, Odessa, TX</span></span></figcaption>
-    </figure>
-    <figure class="rs-card ">
-      <div class="rs-top"><svg class="rs-q" width="34" height="26" viewBox="0 0 34 26" aria-hidden="true"><path d="M0 26V15C0 6.7 4.4 1.7 13 0l1.6 3.4C9.8 5 7.6 8 7.4 12H14v14zm19 0V15c0-8.3 4.4-13.3 13-15l1.6 3.4C28.8 5 26.6 8 26.4 12H33v14z" fill="currentColor"/></svg><span class="rs-org"><img src="/static/logos/tarin-health.png" alt="Tarin Health" loading="lazy"></span></div>
-      <blockquote>“The coding engine caught a bundling error I would have missed, the kind that comes back as a denial two weeks later when you’ve already moved on.”</blockquote>
-      <figcaption><span class="rs-av">JT</span><span class="rs-who"><b>Dr. James Tarin</b><span>Tarin Health DPC · Pecos, TX</span></span></figcaption>
-    </figure>
-    <figure class="rs-card ">
-      <div class="rs-top"><svg class="rs-q" width="34" height="26" viewBox="0 0 34 26" aria-hidden="true"><path d="M0 26V15C0 6.7 4.4 1.7 13 0l1.6 3.4C9.8 5 7.6 8 7.4 12H14v14zm19 0V15c0-8.3 4.4-13.3 13-15l1.6 3.4C28.8 5 26.6 8 26.4 12H33v14z" fill="currentColor"/></svg><span class="rs-org"><img src="/static/logos/hamilton-healthbox.png" alt="Hamilton Health Box" loading="lazy"></span></div>
-      <blockquote>“Small clinics running lean can’t afford a billing department. Althais is built for exactly that setting, and the Althea voice layer is something I haven’t seen anywhere else.”</blockquote>
-      <figcaption><span class="rs-av">AG</span><span class="rs-who"><b>Dr. Ashish Gupta</b><span>MD MBA, Deputy CMO · Hamilton Health Box</span></span></figcaption>
-    </figure>
-  </div>
-</section>
+{% include "_lobe_sections.html" %}
 
 </main>
-<script>
-  // solutions tabs: click to switch, advance on their own every 8 seconds; rotating words under the headings
-  (function () {
-    var root = document.querySelector('.sx'); if (!root) return;
-    var tabs = [].slice.call(root.querySelectorAll('.sx-tab')), panels = [].slice.call(root.querySelectorAll('.sx-panel')), i = 0, t;
-    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    function show(n) {
-      i = n; tabs.forEach(function (b, k) { b.classList.toggle('on', k === n); b.setAttribute('aria-selected', k === n ? 'true' : 'false'); var e = b.querySelector('em'); e.style.animation = 'none'; void e.offsetWidth; e.style.animation = ''; });
-      panels.forEach(function (p, k) { p.classList.toggle('on', k === n); if (k === n) p.removeAttribute('aria-hidden'); else p.setAttribute('aria-hidden', 'true'); });
-      clearTimeout(t); if (!reduce) t = setTimeout(function () { show((i + 1) % tabs.length); }, 8000);
-    }
-    tabs.forEach(function (b, k) { b.addEventListener('click', function () { show(k); }); });
-    root.classList.toggle('still', !!reduce); show(0);
-  })();
-  (function () {
-    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; if (reduce) return;
-    [].forEach.call(document.querySelectorAll('.sx-rot'), function (el) {
-      var w = el.getAttribute('data-words').split('|'), k = 0;
-      setInterval(function () { if (document.hidden) return; el.classList.add('out'); setTimeout(function () { k = (k + 1) % w.length; el.textContent = w[k]; el.classList.remove('out'); }, 300); }, 2800);
-    });
-  })();
-  // who we work with: arrows scroll the cards one at a time
-  (function () {
-    var tr = document.querySelector('.wc-track'); if (!tr) return;
-    var step = function (d) { var c = tr.querySelector('.wc-card'); tr.scrollBy({ left: d * (c.getBoundingClientRect().width + 14), behavior: 'smooth' }); };
-    document.querySelector('.wc-arrow.prev').addEventListener('click', function () { step(-1); });
-    document.querySelector('.wc-arrow.next').addEventListener('click', function () { step(1); });
-  })();
-</script>
 
-{% include "_site_footer.html" %}
+{% include "_lobe_footer.html" %}
 
 <button type="button" class="ask" id="ask" aria-haspopup="dialog" aria-expanded="false" aria-controls="ap" aria-label="Chat with Althea, our AI assistant">
   <span class="ask-av"><svg viewBox="161 142 1032 1001" fill="#3163ed" aria-hidden="true"><path d="M353 179Q390 142 428 177L676 402L420 648L197 406Q162 368 199 331ZM924 177Q963 142 1000 178L1157 332Q1194 368 1158 406L930 648L676 402ZM420 648L676 884L429 1107Q390 1142 353 1105L199 952Q162 915 198 878ZM930 648L1151 878Q1187 915 1150 951L992 1106Q955 1142 917 1107L676 884Z"/></svg></span>
@@ -225,7 +169,7 @@
 <script>
   // Hero clips: play one at a time, cross-fade to the next when it ends; load each clip only when it's up next.
   (function () {
-    var hero = document.querySelector('.hero-vid'); if (!hero) return;
+    var hero = document.querySelector('.lh-hero'); if (!hero) return;
     var clips = [].slice.call(hero.querySelectorAll('.hv-clip')), i = 0, timer;
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     var load = function (v) { if (!v.src) { v.src = v.dataset.src; v.preload = 'auto'; } };
@@ -242,11 +186,10 @@
       if (cur !== next) setTimeout(function () { cur.pause(); }, 1300);
       timer = setTimeout(function () { go((i + 1) % clips.length); }, 11000);   // in case a clip never fires "ended"
     }
-    // the header sits on the video until you scroll past it
-    // three header states: transparent at the very top, dark frosted glass while scrolling over the video, white after it
+    // vhero-past: scrolled below the hero (Althea's button opens back out)
     var onScroll = function () {
       document.body.classList.toggle('vhero-scroll', window.scrollY > 4);
-      document.body.classList.toggle('vhero-past', window.scrollY > hero.offsetHeight - 77);
+      document.body.classList.toggle('vhero-past', window.scrollY > hero.offsetTop + hero.offsetHeight - 112);
     };
     window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
     if (reduce) return;

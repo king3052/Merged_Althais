@@ -1,0 +1,50 @@
+{# Landing page footer, laid out like getlobe.com: brand and mission, three link columns, one line at the bottom. Keeps the
+   newsletter sign-up from _site_footer.html (posts to /api/newsletter-signup). Styles in static/althais-lobe.css (.lb-footer*). #}
+<footer class="lb-footer" id="althais-footer">
+  <div class="lb-container">
+    <div class="lb-footer-grid">
+      <div class="lb-footer-brand">
+        <a class="lb-footer-brand-row" href="/" aria-label="Althais home"><svg width="24" height="24" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8"/></svg><span>Althais</span></a>
+        <p class="lb-footer-mission">AI scribe, coding and claims in one platform. Less time on paperwork, more time with patients.</p>
+        <form class="lb-footer-news" id="lb-news" novalidate>
+          <label for="lb-news-in">Join our newsletter</label>
+          <div class="lb-footer-news-row"><input id="lb-news-in" type="email" name="email" placeholder="you@practice.com" autocomplete="email" required><button type="submit">Subscribe</button></div>
+          <p class="lb-footer-news-msg" id="lb-news-msg" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+      <div class="lb-footer-col"><p>Products</p><ul>
+        <li><a href="/how-it-works">How it works</a></li><li><a href="/platform/ai-scribe">AI Scribe</a></li><li><a href="/platform/medical-coding">Medical Coding</a></li>
+        <li><a href="/platform/claims-insurance">Claims &amp; Insurance</a></li><li><a href="/platform/althea">Althea Assistant</a></li><li><a href="/platform/team-onboarding">Team &amp; Onboarding</a></li>
+        <li><a href="/pricing">Pricing</a></li><li><a href="/compare">Compare Althais</a></li></ul></div>
+      <div class="lb-footer-col"><p>Company</p><ul>
+        <li><a href="/about">Our Story</a></li><li><a href="/solutions">Who we serve</a></li><li><a href="/resources">Resources</a></li><li><a href="/case-studies">Case studies</a></li>
+        <li><a href="/careers">Careers</a></li><li><a href="/security">Security</a></li><li><a href="/hipaa-compliance">HIPAA compliance</a></li>
+        <li><a href="/legal/privacy">Privacy</a></li><li><a href="/legal/terms">Terms</a></li></ul></div>
+      <div class="lb-footer-col"><p>Next steps</p><ul>
+        <li><a href="/demo">Request demo</a></li><li><a href="/pilot">Join the pilot</a></li><li><a href="/roi-calculator">ROI calculator</a></li><li><a href="/contact">Contact us</a></li><li><a href="/login">Log in</a></li></ul></div>
+    </div>
+    <div class="lb-footer-bottom"><p>© 2026 Althais Inc. · Less time on paperwork. More time with patients.</p></div>
+  </div>
+</footer>
+<script>
+  // newsletter: posts to /api/newsletter-signup
+  (function () {
+    var form = document.getElementById("lb-news"); if (!form) return;
+    var input = document.getElementById("lb-news-in"), msg = document.getElementById("lb-news-msg"), btn = form.querySelector("button");
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var email = input.value.trim();
+      msg.className = "lb-footer-news-msg";
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "Enter a valid email address."; msg.classList.add("err"); input.focus(); return; }
+      btn.disabled = true; msg.textContent = "";
+      try {
+        var res = await fetch("/api/newsletter-signup", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ email: email }).toString() });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok || !data.ok) throw new Error(data.error || "Something went wrong. Try again.");
+        msg.textContent = "You're subscribed. Thanks!"; form.reset();
+      } catch (err) {
+        msg.textContent = err.message || "Something went wrong. Try again."; msg.classList.add("err");
+      } finally { btn.disabled = false; }
+    });
+  })();
+</script>
