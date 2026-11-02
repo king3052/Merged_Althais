@@ -160,7 +160,7 @@ def parse_claimmd_271(code: int, text: str, dental: bool = False) -> Eligibility
     res = EligibilityResult(status="", source="claimmd", plan=el.get("plan_number") or el.get("group_name") or "")
     benefits = el.findall(".//benefit")
     field = eb_fields(benefits)
-    copays = []
+    copays, deds, rem = [], [], []
     for b in benefits:
         code_, svc = eb(b, field)
         amt = _f(b.get("benefit_amount"))
@@ -173,10 +173,15 @@ def parse_claimmd_271(code: int, text: str, dental: bool = False) -> Eligibility
         elif code_ == "B" and amt is not None and net != "N":
             copays.append((0 if svc in ("98", "UC") else 1 if svc in ("30", "") else 2, amt))   # office visit or urgent care first, then the plan's general copay
         elif code_ == "C" and amt is not None and net != "N" and indiv:
-            if (b.get("benefit_period_code") or "") == "29":
-                res.deductible_remaining = amt if res.deductible_remaining is None else res.deductible_remaining
-            elif res.deductible is None:
-                res.deductible = amt
+            per = (b.get("benefit_period_code") or "").strip()
+            if per == "29":                        # remaining
+                rem.append((0 if net == "Y" else 1, amt))
+            elif per != "24":                      # 24 = met so far this year, not the deductible itself
+                deds.append(({"23": 0, "25": 1, "22": 2}.get(per, 3) + (0 if net == "Y" else 4), amt))
+    if deds:
+        res.deductible = sorted(deds, key=lambda d: d[0])[0][1]       # calendar year, in network, first
+    if rem:
+        res.deductible_remaining = sorted(rem, key=lambda d: d[0])[0][1]
     if copays:
         res.copay = sorted(copays, key=lambda c: c[0])[0][1]
     res.benefits = benefit_rows(benefits, field)

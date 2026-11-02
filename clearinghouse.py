@@ -252,7 +252,8 @@ class ClaimMD(Connector):
             raise RuntimeError(self._error(root, text))
         out = []
         for cl in root.findall(".//claim"):
-            msgs = [{"status": m.get("status") or "", "message": (m.get("message") or "").strip(), "responseid": m.get("responseid") or ""} for m in cl.findall(".//message")]
+            msgs = [{"status": m.get("status") or "", "message": (m.get("message") or m.get("mesg") or m.get("error_mesg") or m.text or "").strip(),
+                     "responseid": m.get("responseid") or ""} for m in cl.findall(".//message")]
             out.append({"claimid": cl.get("claimid") or "", "claimmd_id": cl.get("claimmd_id") or "", "status": (cl.get("status") or "").upper(),
                         "sender": cl.get("sender_name") or "", "messages": msgs})
         return out, root.get("last_responseid") or last_id
@@ -330,7 +331,7 @@ class ClaimMD(Connector):
         if err:
             return self._res(False, "REJECTED", "Claim.MD didn't accept the file: " + err, raw=text)
         cl = root.find(".//claim")
-        msgs = "; ".join((m.get("message") or "").strip() for m in cl.findall(".//message") if (m.get("message") or "").strip())
+        msgs = claim_messages(cl)
         if (cl.get("status") or "").upper() == "R":
             return self._res(False, "REJECTED", "Claim.MD rejected the claim" + (": " + msgs if msgs else "."), ref=cl.get("claimmd_id") or "", raw=text)
         return self._res(True, "SENT", "Sent to Claim.MD" + (" (" + msgs + ")" if msgs else "."), ref=cl.get("claimmd_id") or cl.get("claimid") or "", raw=text)
@@ -351,6 +352,19 @@ class ClaimMD(Connector):
         return self._res(True, "SENT", "Attachment sent to Claim.MD.", ref=acn, raw=text)
 
 
+def claim_messages(cl) -> str:
+    """Every message Claim.MD attached to a claim, whatever it called the field (message, mesg, error_mesg) or as text."""
+    out = []
+    for el in [cl] + list(cl.iter()):
+        for k in ("message", "mesg", "error_mesg", "msg", "reason"):
+            v = (el.get(k) or "").strip()
+            if v and v not in out:
+                out.append(v)
+        if el is not cl and (el.text or "").strip() and len(el) == 0 and el.text.strip() not in out:
+            out.append(el.text.strip())
+    return "; ".join(out)[:500]
+
+
 # ---- X12 837P (005010X222A1) for one professional claim ----
 def _x(v, n=None):
     v = re.sub(r"[~*:^]", " ", str(v or "")).strip().upper()
@@ -360,7 +374,7 @@ def _x(v, n=None):
 def build_837p(c: dict, payer_id: str, payer_name: str) -> str:
     b = c.get("billingProfile") or {}
     addr = b.get("address") or {}
-    need = [("the clinic's NPI", b.get("npi")), ("the clinic's Tax ID", b.get("tin")), ("the billing address", addr.get("line1")),
+    need = [("the clinic's legal name", (b.get("legalName") or "").strip()), ("the clinic's NPI", b.get("npi")), ("the clinic's Tax ID", b.get("tin")), ("the billing address", addr.get("line1")),
             ("the billing city, state and ZIP", addr.get("city") and addr.get("state") and addr.get("zip")), ("the rendering provider's NPI", c.get("npi"))]
     missing = [n for n, v in need if not v]
     if missing:
@@ -450,7 +464,7 @@ def norm_surfaces(s) -> list:
 def build_837d(c: dict, payer_id: str, payer_name: str) -> str:
     b = c.get("billingProfile") or {}
     addr = b.get("address") or {}
-    need = [("the clinic's NPI", b.get("npi")), ("the clinic's Tax ID", b.get("tin")), ("the billing address", addr.get("line1")),
+    need = [("the clinic's legal name", (b.get("legalName") or "").strip()), ("the clinic's NPI", b.get("npi")), ("the clinic's Tax ID", b.get("tin")), ("the billing address", addr.get("line1")),
             ("the billing city, state and ZIP", addr.get("city") and addr.get("state") and addr.get("zip")), ("the treating dentist's NPI", c.get("npi"))]
     missing = [n for n, v in need if not v]
     if missing:
