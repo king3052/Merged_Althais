@@ -418,7 +418,9 @@ def parse_835(x: str) -> dict:
             out["claims"].append(claim)
             line = None
         elif sid == "NM1" and g(1) == "QC" and claim is not None:
-            claim["patient"] = {"last": g(3), "first": g(4), "member_id": g(9)}
+            claim["patient"] = dict(claim.get("patient") or {}, last=g(3), first=g(4), member_id=g(9) or (claim.get("patient") or {}).get("member_id", ""))
+        elif sid == "NM1" and g(1) == "IL" and claim is not None and g(9):      # the subscriber: the member ID usually rides here
+            claim.setdefault("patient", {})["member_id"] = (claim.get("patient") or {}).get("member_id") or g(9)
         elif sid == "SVC" and claim is not None:
             code = _comp(g(1), comp)
             line = {"code": code[1] if len(code) > 1 else code[0], "charge": float(g(2) or 0), "paid": float(g(3) or 0), "allowed": None, "adjustments": [], "ref": ""}

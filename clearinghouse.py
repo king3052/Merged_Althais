@@ -134,11 +134,11 @@ class ClaimMD(Connector):
     """Claim.MD (https://api.claim.md): claims go up as X12 837P (medical) or 837D (dental) files to /services/upload/, authenticated with the clinic's
     own AccountKey (Claim.MD portal > Settings > Account Settings). The key is stored encrypted per clinic; see save_connection.
     Endpoints and fields follow Claim.MD's published API reference. Enrollment stays a manual step (Claim.MD returns a
-    form link per payer), so enrollment_submit is off; acknowledgments and ERAs are read by polling when that's built."""
+    form link per payer), so enrollment_submit is off; claim responses (response/) and ERAs (eralist/, era835/) are read by polling."""
     name = "claimmd"
     label = "Claim.MD"
     BASE = "https://svc.claim.md/services/"
-    capabilities = {c: c in ("connection_check", "payer_list", "claim_submit", "attachments") for c in CAPABILITIES}
+    capabilities = {c: c in ("connection_check", "payer_list", "claim_submit", "attachments", "era_835") for c in CAPABILITIES}
 
     def __init__(self, key: str, environment: str = "production"):
         self.key, self.environment = key, environment
@@ -256,6 +256,56 @@ class ClaimMD(Connector):
             out.append({"claimid": cl.get("claimid") or "", "claimmd_id": cl.get("claimmd_id") or "", "status": (cl.get("status") or "").upper(),
                         "sender": cl.get("sender_name") or "", "messages": msgs})
         return out, root.get("last_responseid") or last_id
+
+    def era_list(self, last_id: str = "0"):
+        """ERAs (payments and denials) received since last_id (Claim.MD /services/eralist/): (list of dicts, new last id).
+        Claim.MD sends last_eraid with the list; if it doesn't, the highest eraid seen is used, so an ERA is never read twice."""
+        code, text = self._post("eralist/", {"ERAID": str(last_id or "0")}, timeout=60)
+        root = self._xml(text)
+        if code != 200 or root is None:
+            raise RuntimeError(self._error(root, text) or "No response from Claim.MD.")
+        if root.find(".//error") is not None:
+            raise RuntimeError(self._error(root, text))
+        out, seen = [], set()
+        for e in root.iter():
+            eid = (e.get("eraid") or "").strip()
+            if not eid or eid in seen or e is root:
+                continue
+            seen.add(eid)
+            out.append({"eraid": eid, "payer": e.get("payer_name") or "", "payerid": e.get("payerid") or "",
+                        "check": e.get("check_number") or e.get("eftnum") or "", "amount": e.get("paid_amount") or "",
+                        "date": e.get("paid_date") or "", "npi": e.get("prov_npi") or ""})
+        nums = [int(x["eraid"]) for x in out if x["eraid"].isdigit()]
+        last = (root.get("last_eraid") or "").strip() or (str(max(nums)) if nums else "")
+        if last.isdigit() and str(last_id or "0").isdigit() and int(last) < int(last_id or 0):
+            last = str(last_id)
+        return out, last or str(last_id or "0")
+
+    def era_835(self, eraid: str) -> str:
+        """One ERA as X12 835 text (Claim.MD /services/era835/). The 835 comes back inside XML; it's taken out as-is."""
+        import base64
+        import html
+        code, text = self._post("era835/", {"eraid": str(eraid)}, timeout=60)
+        if code != 200:
+            raise RuntimeError(f"Claim.MD answered {code} for ERA {eraid}.")
+        find = lambda t: (re.search(r"ISA\*.*?IEA\*[^~]*~", t, re.S) or [None])[0]
+        got = find(text) or find(html.unescape(text))
+        if not got:
+            root = self._xml(text)
+            if root is not None and root.find(".//error") is not None:
+                raise RuntimeError(self._error(root, text))
+            for el in ([] if root is None else root.iter()):
+                body = (el.text or "").strip()
+                if len(body) > 40:
+                    try:
+                        got = find(base64.b64decode(body).decode("utf-8", "replace"))
+                    except Exception:
+                        got = None
+                    if got:
+                        break
+        if not got:
+            raise RuntimeError(f"Claim.MD's ERA {eraid} had no 835 in it.")
+        return got
 
     def submit_claim(self, claim: dict, idempotency_key: str) -> Result:
         dental = is_dental(claim)

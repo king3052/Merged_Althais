@@ -2088,7 +2088,8 @@ def admin_get_clearinghouse(db: Session = Depends(get_db), _: bool = Depends(req
     conn = chx.load_connection(chx.PLATFORM)
     sent = db.scalar(select(func.count()).select_from(ClaimTransmission).where(ClaimTransmission.delivery == "SENT")) or 0
     return {"partner": conn.get("partner") or "", "last4": conn.get("last4") or "", "connectedBy": conn.get("connectedBy") or "", "connectedAt": conn.get("connectedAt") or "",
-            "lastPoll": conn.get("lastPoll") or "", "pollError": conn.get("pollError") or "", "sent": sent}
+            "lastPoll": conn.get("lastPoll") or "", "pollError": conn.get("pollError") or "", "sent": sent,
+            "lastEraPoll": conn.get("lastEraPoll") or "", "eraError": conn.get("eraError") or ""}
 
 
 @router.put("/api/admin/clearinghouse")
@@ -2152,6 +2153,116 @@ def poll_clearinghouse() -> int:
                                 environment=tx.environment, reference=r["claimmd_id"], actor="Claim.MD", note=text[:1000]))
             n += 1
         conn["lastResponseId"], conn["lastPoll"], conn["pollError"] = last, _now().isoformat(), ""
+        chx.save_connection(db, chx.PLATFORM, conn)
+        db.commit()
+        return n
+
+
+# ── ERAs: payments and denials from payers, read from Claim.MD and posted to the claims Althais sent ──
+CARC = {"1": "Deductible", "2": "Coinsurance", "3": "Copay", "4": "Procedure code inconsistent with the modifier", "5": "Procedure code inconsistent with place of service",
+        "11": "Diagnosis inconsistent with the procedure", "16": "Claim lacks information needed to adjudicate", "18": "Duplicate claim",
+        "22": "Another payer may be primary (coordination of benefits)", "23": "Prior payer's adjudication", "27": "Expenses after coverage ended",
+        "29": "Filing deadline passed", "31": "Patient not identified as our insured", "45": "Charge exceeds the contracted fee",
+        "50": "Not medically necessary", "96": "Non-covered charge", "97": "Included in another service (bundled)",
+        "109": "Claim not covered by this payer; send it to the correct payer", "119": "Benefit maximum reached",
+        "167": "Diagnosis not covered", "197": "Prior authorization absent", "204": "Service not covered by the patient's plan",
+        "226": "Information requested from the provider was not provided", "252": "Attachment or documentation required", "253": "Sequestration"}
+GROUPS = {"CO": "contractual", "PR": "patient responsibility", "OA": "other", "PI": "payer initiated", "CR": "correction"}
+
+
+def _money(v):
+    return f"${float(v or 0):,.2f}"
+
+
+def remit_note(cl: dict) -> str:
+    """One claim's payment, in words a biller reads: what was paid, what the patient owes and why, what was written off or denied."""
+    adj = list(cl.get("adjustments") or []) + [a for ln in cl.get("lines") or [] for a in ln.get("adjustments") or []]
+    by = {}
+    for a in adj:
+        k = (a.get("group") or "", a.get("carc") or "")
+        by[k] = by.get(k, 0.0) + float(a.get("amount") or 0)
+    pr = [f"{CARC.get(c, 'reason ' + c).lower()} {_money(v)}" for (g, c), v in by.items() if g == "PR" and v]
+    other = [f"{g}-{c} {CARC.get(c, '')} {_money(v)}".replace("  ", " ") for (g, c), v in by.items() if g != "PR" and v]
+    head = (f"Denied: {_money(cl.get('charge'))} not paid" if cl.get("status") == "denied" or (not cl.get("paid") and other)
+            else f"Paid {_money(cl.get('paid'))} of {_money(cl.get('charge'))}")
+    parts = [head]
+    if pr:
+        parts.append("patient owes " + ", ".join(pr))
+    if other:
+        parts.append("adjustments: " + "; ".join(other))
+    return ". ".join(parts) + "."
+
+
+def _remit_status(cl: dict) -> str:
+    st, paid, charge = cl.get("status") or "", float(cl.get("paid") or 0), float(cl.get("charge") or 0)
+    if st == "reversal":
+        return "REVERSED"
+    if st == "denied" or (paid <= 0 and not float(cl.get("patient_resp") or 0)):
+        return "DENIED"
+    return "PAID"
+
+
+def post_era(db, era: dict, eraid: str = "") -> int:
+    """Post one parsed 835 to the claims Althais sent. Matches CLP01 (the claim number Althais put on the 837) to the
+    clinic's sent claim. Returns how many claims were updated; claims Althais didn't send are skipped."""
+    n = 0
+    for cl in era.get("claims") or []:
+        cid = (cl.get("claim_id") or "").strip()
+        if not cid:
+            continue
+        tx = db.scalar(select(ClaimTransmission).where(ClaimTransmission.claim_id == cid, ClaimTransmission.delivery == "SENT")
+                       .order_by(ClaimTransmission.id.desc()))
+        if not tx:
+            continue
+        ref = f"ERA {eraid or era.get('check') or ''}".strip()
+        dup = db.scalar(select(BillingEvent).where(BillingEvent.claim_id == tx.claim_id, BillingEvent.kind == "era", BillingEvent.reference == ref))
+        if dup:
+            continue
+        status = _remit_status(cl)
+        tx.payment = "DENIED" if status == "DENIED" else "PAID" if status == "PAID" else tx.payment
+        tx.paid_at = _now()
+        if tx.payer_status != "REJECTED":
+            tx.payer_status, tx.payer_at = "ACCEPTED", tx.payer_at or _now()
+        if status == "DENIED":
+            reasons = sorted({a.get("carc") for a in (cl.get("adjustments") or []) + [x for ln in cl.get("lines") or [] for x in ln.get("adjustments") or []]
+                              if a.get("group") != "PR" and a.get("carc")})
+            tx.blockers = json.dumps([{"title": "Denied by " + (era.get("payer") or "the payer"),
+                                       "reason": "; ".join(f"{r}: {CARC.get(r, 'see the payer remark')}" for r in reasons) or "No reason given",
+                                       "next": "Correct and resubmit, or appeal", "responsible": "biller"}])
+        note = remit_note(cl) + (f" Check/EFT {era.get('check')}." if era.get("check") else "") + (f" Payer claim # {cl.get('payer_claim_id')}." if cl.get("payer_claim_id") else "")
+        db.add(BillingEvent(org_key=tx.org_key, claim_id=tx.claim_id, kind="era", to_status=status, source="clearinghouse",
+                            environment=tx.environment, reference=ref, actor=era.get("payer") or "Payer", note=note[:1000]))
+        n += 1
+    return n
+
+
+def poll_eras() -> int:
+    """New ERAs from Claim.MD, posted to the claims they pay or deny. Remembers the last ERA read (lastEraId)."""
+    conn = chx.load_connection(chx.PLATFORM)
+    if conn.get("partner") != "claimmd" or not conn.get("key"):
+        return 0
+    from dental_x12 import parse_835
+    cmd = chx.ClaimMD(chx.unseal(conn["key"]))
+    with SessionLocal() as db:
+        try:
+            rows, last = cmd.era_list(conn.get("lastEraId") or "0")
+        except Exception as e:
+            conn["eraError"], conn["lastEraPoll"] = str(e)[:200], _now().isoformat()
+            chx.save_connection(db, chx.PLATFORM, conn); db.commit()
+            return 0
+        n, done = 0, conn.get("lastEraId") or "0"
+        for r in sorted(rows, key=lambda r: int(r["eraid"]) if r["eraid"].isdigit() else 0):
+            try:
+                n += post_era(db, parse_835(cmd.era_835(r["eraid"])), r["eraid"])
+                db.commit()
+                done = r["eraid"]
+            except Exception as e:
+                db.rollback()
+                conn["eraError"] = f"ERA {r['eraid']}: {str(e)[:150]}"
+                break          # try this one again next time; the ones before it are already posted
+        else:
+            done, conn["eraError"] = last, ""
+        conn["lastEraId"], conn["lastEraPoll"] = done, _now().isoformat()
         chx.save_connection(db, chx.PLATFORM, conn)
         db.commit()
         return n

@@ -57,6 +57,7 @@ class EligibilityResult:
     plan: str = ""
     errors: List[str] = field(default_factory=list)
     source: str = ""                 # which provider answered
+    benefits: list = field(default_factory=list)   # every row the payer sent (kind = EB01, service = EB03), for the coverage details
     dental: Optional[dict] = None    # dental plans: maximums, deductibles, coverage by category, limits (see dental_summary)
     checked_at: str = field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat())
 
@@ -103,6 +104,47 @@ class ClaimMDEligibility(EligibilityProvider):
         return parse_claimmd_271(code, text, dental=(req.service_code or "").startswith("35"))
 
 
+# X12 271 EB01 (what the row says: active coverage, co-payment, deductible...). Claim.MD names the row's attributes
+# benefit_code / benefit_coverage_code, and which one carries EB01 vs EB03 (the service type, e.g. 30 = health plan,
+# 35 = dental) is read from the response itself rather than assumed: the descriptions say which is which.
+EB01 = {"1", "2", "3", "4", "5", "6", "7", "8", "A", "B", "C", "CB", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "MC", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y"}
+_EB01_WORDS = re.compile(r"active coverage|inactive|co-?pay|deductible|co-?insurance|out of pocket|limitation|non-?covered|benefit description|contact following", re.I)
+
+
+def eb_fields(benefits) -> str:
+    """Which attribute holds EB01: "benefit_code" (Althais's original reading) or "benefit_coverage_code"."""
+    votes = {"benefit_code": 0, "benefit_coverage_code": 0}
+    for b in benefits:
+        if _EB01_WORDS.search(b.get("benefit_coverage_description") or ""):
+            votes["benefit_coverage_code"] += 2
+        if _EB01_WORDS.search(b.get("benefit_description") or ""):
+            votes["benefit_code"] += 2
+        for k in votes:
+            v = (b.get(k) or "").strip().upper()
+            if v and v not in EB01 and not v.isdigit():
+                votes["benefit_coverage_code" if k == "benefit_code" else "benefit_code"] += 1    # a service type like UC or MH: the other one is EB01
+            elif v in ("B", "C", "A", "F", "G", "I"):
+                votes[k] += 1
+    return "benefit_coverage_code" if votes["benefit_coverage_code"] > votes["benefit_code"] else "benefit_code"
+
+
+def eb(b, field: str):
+    """(EB01, EB03 service type) for one benefit row."""
+    other = "benefit_coverage_code" if field == "benefit_code" else "benefit_code"
+    return (b.get(field) or "").strip().upper(), (b.get(other) or "").strip().upper()
+
+
+def benefit_rows(benefits, field: str) -> list:
+    """Every benefit row, in plain fields, for the chart's coverage details."""
+    out = []
+    for b in benefits:
+        e1, e3 = eb(b, field)
+        out.append({"kind": e1, "service": e3, "level": (b.get("benefit_level_code") or "").upper(), "network": (b.get("inplan_network") or "").upper(),
+                    "period": b.get("benefit_period_code") or "", "amount": _f(b.get("benefit_amount")), "percent": _f(b.get("benefit_percent")),
+                    "text": " ".join(x for x in (b.get("benefit_coverage_description"), b.get("benefit_description"), b.get("benefit_notes")) if x)[:200]})
+    return out
+
+
 def parse_claimmd_271(code: int, text: str, dental: bool = False) -> EligibilityResult:
     """Summarize Claim.MD's eligdata XML: X12 271 benefit codes 1 = active coverage, 6 = inactive, B = co-payment,
     C = deductible (time period 29 = remaining)."""
@@ -116,24 +158,28 @@ def parse_claimmd_271(code: int, text: str, dental: bool = False) -> Eligibility
     if el is None:
         return EligibilityResult(status="error", source="claimmd", errors=["Claim.MD returned no eligibility result."])
     res = EligibilityResult(status="", source="claimmd", plan=el.get("plan_number") or el.get("group_name") or "")
-    for b in el.findall(".//benefit"):
-        code_ = (b.get("benefit_code") or "").upper()
-        amt = b.get("benefit_amount")
-        try:
-            amt = float(amt) if amt not in (None, "") else None
-        except ValueError:
-            amt = None
+    benefits = el.findall(".//benefit")
+    field = eb_fields(benefits)
+    copays = []
+    for b in benefits:
+        code_, svc = eb(b, field)
+        amt = _f(b.get("benefit_amount"))
+        net = (b.get("inplan_network") or "Y").upper()
+        indiv = (b.get("benefit_level_code") or "IND").upper() != "FAM"
         if code_ == "1":
             res.status = "active"
         elif code_ == "6" and res.status != "active":
             res.status = "inactive"
-        elif code_ == "B" and amt is not None and res.copay is None and (b.get("inplan_network") or "Y").upper() != "N":
-            res.copay = amt
-        elif code_ == "C" and amt is not None:
+        elif code_ == "B" and amt is not None and net != "N":
+            copays.append((0 if svc in ("98", "UC") else 1 if svc in ("30", "") else 2, amt))   # office visit or urgent care first, then the plan's general copay
+        elif code_ == "C" and amt is not None and net != "N" and indiv:
             if (b.get("benefit_period_code") or "") == "29":
                 res.deductible_remaining = amt if res.deductible_remaining is None else res.deductible_remaining
             elif res.deductible is None:
                 res.deductible = amt
+    if copays:
+        res.copay = sorted(copays, key=lambda c: c[0])[0][1]
+    res.benefits = benefit_rows(benefits, field)
     if not res.status:
         res.status, res.errors = "error", ["Claim.MD's answer didn't say whether coverage is active."]
     if dental and res.status == "active":
@@ -180,9 +226,9 @@ def dental_summary(benefits) -> dict:
         if cur is None or (net != "N" and out.get("_" + key) == "N"):
             out[key], out["_" + key] = val, net
 
+    field = eb_fields(benefits)
     for b in benefits:
-        code = (b.get("benefit_code") or "").upper()
-        cov = (b.get("benefit_coverage_code") or "").strip()
+        code, cov = eb(b, field)
         cat = DENTAL_CATEGORIES.get(cov, b.get("benefit_coverage_description") or "Dental")
         period = (b.get("benefit_period_code") or "").strip()
         level = (b.get("benefit_level_code") or "").upper()
