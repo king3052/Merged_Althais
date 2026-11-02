@@ -1341,7 +1341,10 @@ def transmit(db, org, env, data, user, c: dict, release=False, by_althais=False)
         return {"status": "duplicate_blocked", "blockers": [{"title": "Already sent", "reason": "This claim number was already sent with different details",
                                                              "next": "Send a corrected or replacement claim instead", "responsible": "biller"}]}
     dec = claim_decision(db, org, env, data, user, c, connector, by_althais=by_althais)
-    hold = db.scalar(select(ClaimTransmission).where(ClaimTransmission.org_key == org, ClaimTransmission.claim_id == cid, ClaimTransmission.delivery.in_(("HELD", "QUEUED"))))
+    # an earlier try of this claim (held, queued, or failed at the clearinghouse) is reused, never duplicated: a second row with the
+    # same idempotency key can't be saved, and a claim that went out but wasn't recorded could be sent twice
+    hold = db.scalar(select(ClaimTransmission).where(ClaimTransmission.org_key == org, ClaimTransmission.claim_id == cid,
+                                                     ClaimTransmission.delivery.in_(("HELD", "QUEUED", "FAILED"))).order_by(ClaimTransmission.id.desc()))
     if not dec["ready"]:
         if not hold:
             hold = ClaimTransmission(org_key=org, claim_id=cid, content_hash=h, idempotency_key=f"{org}|{cid}|{h}|hold"[:191], payer=dec["payer"],
@@ -1351,10 +1354,15 @@ def transmit(db, org, env, data, user, c: dict, release=False, by_althais=False)
         return {"status": "held", "blockers": dec["blockers"],
                 "message": "Saved and held. It wasn't sent. It'll be ready to send as soon as these are done."}
     key = f"{org}|{cid}|{h}"[:191]
-    tx = hold or ClaimTransmission(org_key=org, claim_id=cid, content_hash=h, idempotency_key=key, payer=dec["payer"], provider_id=dec["providerId"],
-                                   environment=env, user_id=user.id)
-    if not hold:
+    same = db.scalar(select(ClaimTransmission).where(ClaimTransmission.idempotency_key == key))
+    tx = hold or same or ClaimTransmission(org_key=org, claim_id=cid, content_hash=h, idempotency_key=key, payer=dec["payer"], provider_id=dec["providerId"],
+                                           environment=env, user_id=user.id)
+    if tx.id is None:
         db.add(tx)
+    if same is not None and same is not tx:
+        key = tx.idempotency_key        # the key already belongs to an older row of this claim: keep this row's own
+    tx.delivery = "SENDING"
+    db.flush()                          # anything that would stop this row from saving fails here, before the claim leaves Althais
     pv = provider_for(data, c.get("provider"), c.get("npi") or "") or {}
     sendable = dict(c, billingProfile=data, npi=c.get("npi") or pv.get("npi") or "", providerTaxonomy=pv.get("taxonomy") or "")   # the 837 needs the clinic's billing profile and the provider's NPI
     import claim_attachments as ca
