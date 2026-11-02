@@ -139,22 +139,22 @@ async def staff_portal_only(request: Request, call_next):
     temp_guarded = path.startswith(_APP_PAGE_PREFIXES + ("/portal",)) or (is_api and not path.startswith(("/api/me", "/api/invitations/")))
     if (guarded or temp_guarded) and not (is_api and path == "/api/branding" and request.method == "GET"):   # brand.js paints the portal too
         token = request.cookies.get(COOKIE_NAME)
-        data = decode_token(token) if token else None
-        if data:
-            with SessionLocal() as db:
-                try:
-                    u = db.get(User, int(data["sub"]))
-                except (KeyError, ValueError, TypeError):
-                    u = None
-                if u is not None and getattr(u, "must_change_password", 0) and temp_guarded:
-                    if is_api:
-                        return JSONResponse({"error": "Create your password first.", "detail": "Create your password first."}, status_code=403)
-                    return RedirectResponse(url="/set-password", status_code=302)
-                if u is not None and guarded and getattr(u, "portal_only", 0):
-                    if is_api:
-                        return JSONResponse({"error": "Your clinic has given you the Staff Portal only.", "detail": "Staff Portal only."}, status_code=403)
-                    return RedirectResponse(url="/portal", status_code=302)
+        if token:
+            import perf
+            u = (await perf.identity(request)).user   # read once per request, in a worker thread (perf.py)
+            if u is not None and getattr(u, "must_change_password", 0) and temp_guarded:
+                if is_api:
+                    return JSONResponse({"error": "Create your password first.", "detail": "Create your password first."}, status_code=403)
+                return RedirectResponse(url="/set-password", status_code=302)
+            if u is not None and guarded and getattr(u, "portal_only", 0):
+                if is_api:
+                    return JSONResponse({"error": "Your clinic has given you the Staff Portal only.", "detail": "Staff Portal only."}, status_code=403)
+                return RedirectResponse(url="/portal", status_code=302)
     return await call_next(request)
+
+
+import perf   # registered last, so it wraps everything: one memo per request and the Server-Timing header
+app.middleware("http")(perf.middleware)
 
 
 @app.on_event("startup")

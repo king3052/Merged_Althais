@@ -157,6 +157,11 @@ def session_row(request, admin=False):
         data = None
     if not data or not data.get("sid"):
         return None, None
+    if not admin:
+        import perf
+        got = perf.cached_ident(request, token)   # already read by the middleware for this request
+        if got is not None and got.data and got.data.get("sid") == data["sid"]:
+            return got.session, data
     with SessionLocal() as db:
         row = db.get(UserSession, data["sid"])
         if row is not None:
@@ -702,7 +707,8 @@ async def middleware(request: Request, call_next):
     Also adds the idle sign-out script to every signed-in page, and standard security headers to every response."""
     path = request.url.path
     if not path.startswith(_SETUP_OK) and request.cookies.get(COOKIE_NAME):
-        row, data = session_row(request)
+        import perf
+        row = (await perf.identity(request)).session   # read in a worker thread, not on the event loop
         if row is not None and row.mfa_setup and not row.revoked and row.kind == "user":
             if path.startswith("/api/"):
                 return JSONResponse({"error": "Set up two-step login first.", "detail": "Set up two-step login first.", "setup": "/setup-2fa"}, status_code=403)

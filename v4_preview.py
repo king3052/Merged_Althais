@@ -86,7 +86,7 @@ def allowed_pages(user, products: set) -> list:
 
 
 def _page(key: str, title: str):
-    async def view(request: Request, user=Depends(current_user)):
+    def view(request: Request, user=Depends(current_user)):   # plain def: FastAPI runs it in a worker thread, so its database reads don't hold up other requests
         if not user:
             return RedirectResponse("/login?next=" + quote(str(request.url.path) + ("?" + request.url.query if request.url.query else "")), status_code=302)
         import json
