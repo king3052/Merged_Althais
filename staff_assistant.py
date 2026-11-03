@@ -46,10 +46,10 @@ def _classify(q: str) -> str:
         if re.search(rx, s):
             return intent
     key = os.environ.get("GROQ_API_KEY", "")
-    if key.startswith("gsk_"):   # a real key: let the model pick one of the same intents
+    import ai_client
+    if key.startswith("gsk_") or ai_client.PROVIDER == "vertex":   # a real AI service: let the model pick one of the same intents
         try:
-            from groq import Groq
-            r = Groq(api_key=key).chat.completions.create(
+            r = ai_client.make_client(timeout=20).chat.completions.create(
                 model="openai/gpt-oss-120b", temperature=0, max_completion_tokens=300, reasoning_effort="low",
                 messages=[{"role": "user", "content": "Classify this question from a clinic employee about their own onboarding into exactly one of: "
                            + ", ".join(EMPLOYEE_INTENTS) + '. Reply with JSON only: {"intent": "..."}\nQuestion: ' + q}],

@@ -11,7 +11,8 @@ import json
 from urllib.parse import urlencode
 from ncci_checker import check_claim_ncci_flags
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"), timeout=25, max_retries=0)   # a slow or stuck AI call can't hold a request open
+import ai_client   # Groq today, or Google Vertex AI (Gemini) with AI_PROVIDER=vertex: same calls either way (ai_client.py)
+client = ai_client.make_client(timeout=25, max_retries=0)   # a slow or stuck AI call can't hold a request open
 
 # llama-3.3-70b-versatile was deprecated by Groq (announced June 17, 2026):
 # this is Groq's own recommended replacement. Kept as a single constant
@@ -153,6 +154,18 @@ async def staff_portal_only(request: Request, call_next):
     return await call_next(request)
 
 
+@app.get("/api/health")
+def health():
+    """For the host's health checks (Cloud Run, Railway): up, and the database answers. Says nothing about any clinic."""
+    from sqlalchemy import text as _t
+    try:
+        with SessionLocal() as db:
+            db.execute(_t("SELECT 1"))
+        return {"ok": True, "ai": ai_client.PROVIDER}
+    except Exception:
+        return JSONResponse({"ok": False, "error": "database"}, status_code=503)
+
+
 import perf   # registered last, so it wraps everything: one memo per request and the Server-Timing header
 app.middleware("http")(perf.middleware)
 
@@ -161,6 +174,8 @@ app.middleware("http")(perf.middleware)
 async def _staff_reminders_job():
     """Onboarding and credential reminders, a few times a day. Each one is sent once (staff_notifications)."""
     import asyncio
+    if os.environ.get("JOBS_DISABLED"):    # a copy of the app that must not run jobs (a test deploy, or the old host during a move)
+        return
 
     async def loop():
         while True:
@@ -177,7 +192,7 @@ async def _billing_jobs():
     """Billing activation's persistent jobs (billing_jobs table): due work every minute, reminders and a full re-check daily.
     Jobs survive restarts; a job interrupted mid-run is picked up again once its lease expires."""
     import asyncio, os
-    if os.environ.get("BILLING_JOBS_DISABLED"):
+    if os.environ.get("BILLING_JOBS_DISABLED") or os.environ.get("JOBS_DISABLED"):
         return
 
     async def loop():
@@ -209,7 +224,7 @@ async def _billing_jobs():
 async def _dental_reminders_job():
     """Dental appointment reminders (72 and 24 hours ahead), every 15 minutes. Off with DENTAL_JOBS_DISABLED."""
     import asyncio, os
-    if os.environ.get("DENTAL_JOBS_DISABLED") or os.environ.get("BILLING_JOBS_DISABLED"):
+    if os.environ.get("DENTAL_JOBS_DISABLED") or os.environ.get("BILLING_JOBS_DISABLED") or os.environ.get("JOBS_DISABLED"):
         return
 
     async def loop():
