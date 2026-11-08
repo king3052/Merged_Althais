@@ -116,6 +116,8 @@ dental_pages._templates = templates
 app.include_router(dental_pages.router)
 import lost_money   # Lost Money Report: 835/837/CSV files in, dollars the clinic is owed out (lost_money.py)
 app.include_router(lost_money.router)
+import recovery   # Fix it: corrected claims, appeal letters, tracking each Lost Money item until it's paid (recovery.py)
+app.include_router(recovery.router)
 import audit   # access log: who viewed or changed patient and billing data (audit.py)
 app.include_router(audit.router)
 app.middleware("http")(audit.middleware)
@@ -128,7 +130,7 @@ app.middleware("http")(security.middleware)
 # Invited staff whose clinic only gives them the Staff Portal (users.portal_only, set from their organization
 # membership in staff_onboarding.py) can reach the portal and their own account, nothing else: every other page
 # sends them to /portal and every other API answers 403. Enforced here, on the server, for every request.
-_APP_PAGE_PREFIXES = ("/overview", "/emr", "/revenue", "/staff", "/scribe", "/coding", "/settings", "/manager", "/onboarding", "/lost-money")
+_APP_PAGE_PREFIXES = ("/overview", "/emr", "/revenue", "/staff", "/scribe", "/coding", "/settings", "/manager", "/onboarding", "/lost-money", "/recovery")
 _PORTAL_APIS = ("/api/portal/", "/api/memberships", "/api/invitations/", "/api/me", "/api/change-password")
 
 

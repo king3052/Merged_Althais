@@ -197,6 +197,9 @@ class Claim:
     dx: List[str] = field(default_factory=list)
     lines: List[Line] = field(default_factory=list)
     source: str = ""
+    patient: str = ""           # "LAST, FIRST" (never shown in the report; used on recovery letters)
+    member_id: str = ""
+    raw: Optional[dict] = None  # the claim's own 837 segments, so a corrected claim can be built from it (recovery.py)
 
 
 @dataclass
@@ -218,6 +221,9 @@ class Remit:
     adjustments: List[Adj] = field(default_factory=list)
     lines: List[Line] = field(default_factory=list)
     source: str = ""
+    patient: str = ""
+    member_id: str = ""
+    payee_npi: str = ""
 
     @property
     def reversed(self) -> bool:
@@ -240,6 +246,9 @@ class Finding:
     deadline: str = ""
     days_left: Optional[int] = None
     counted: bool = True        # counts toward the money found (False: prevention or information)
+    carc: str = ""              # the payer's reason code, for denials
+    evidence: List[str] = field(default_factory=list)   # payer claim numbers paid at the usual rate (underpayments)
+    fix: str = ""               # what a corrected claim would change: "add_modifier:CODE:MOD", "add_line:CODE:CHARGE", "needs_drug", "resend"
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -316,14 +325,14 @@ def _svc_code(v: str, comp: str) -> Tuple[str, List[str]]:
 def parse_835(x: str, source: str = "") -> List[Remit]:
     segs, comp = _segments(x)
     remits: List[Remit] = []
-    payer = payer_id = date = check = ""
+    payer = payer_id = date = check = payee = ""
     r: Optional[Remit] = None
     line: Optional[Line] = None
     for s in segs:
         sid = s[0].upper()
         g = lambda i: s[i].strip() if len(s) > i else ""
         if sid == "ST":
-            payer = payer_id = date = check = ""
+            payer = payer_id = date = check = payee = ""
             r = line = None
         elif sid == "BPR":
             date = _date8(g(16))
@@ -331,17 +340,23 @@ def parse_835(x: str, source: str = "") -> List[Remit]:
             check = g(2)
         elif sid == "N1" and g(1) == "PR":
             payer = g(2)
+        elif sid == "N1" and g(1) == "PE":
+            payee = g(4) if g(3) == "XX" else payee
         elif sid == "REF" and g(1) == "2U" and r is None:
             payer_id = g(2)
         elif sid == "CLP":
             r = Remit(claim_id=g(1), status=g(2), charge=_f(g(3)), paid=_f(g(4)), patient_resp=_f(g(5)), payer_claim_id=g(7),
-                      payer=payer, payer_id=payer_id, payer_type=_payer_type(g(6), payer), date=date, check=check, source=source)
+                      payer=payer, payer_id=payer_id, payer_type=_payer_type(g(6), payer), date=date, check=check, source=source, payee_npi=payee)
             remits.append(r)
             line = None
         elif r is None:
             continue
         elif sid == "NM1" and g(1) == "82":
             r.provider = _prov_name(g(3), g(4), g(9))
+        elif sid == "NM1" and g(1) in ("QC", "IL"):
+            if g(1) == "QC" or not r.patient:
+                r.patient = ", ".join(p for p in (g(3), g(4)) if p)
+            r.member_id = r.member_id or g(9)
         elif sid == "DTM" and g(1) == "232" and not r.dos:
             r.dos = _date8(g(2))
         elif sid == "SVC":
@@ -368,37 +383,75 @@ def parse_837p(x: str, source: str = "") -> List[Claim]:
     segs, comp = _segments(x)
     claims: List[Claim] = []
     payer = payer_id = indicator = billing_npi = ""
+    sub_name = sub_id = ""
     c: Optional[Claim] = None
     line: Optional[Line] = None
-    nm1_ctx = ""
+    # the claim's surroundings, kept so one claim can be sent again on its own: header (BHT to the first HL), billing
+    # provider (HL 20), subscriber (HL 22), patient (HL 23) and the claim loop itself
+    header: list = []
+    blocks = {"20": [], "22": [], "23": []}
+    where = "header"
+    env = {"isa": ["ZZ", "ALTHAIS", "ZZ", "CLAIMMD"], "gs": ["ALTHAIS", "CLAIMMD"]}
     for s in segs:
         sid = s[0].upper()
         g = lambda i: s[i].strip() if len(s) > i else ""
+        norm = [v.replace(comp, ":") if comp != ":" else v for v in s]
+        if sid == "ISA":
+            env["isa"] = [g(5), g(6), g(7), g(8)]
+        elif sid == "GS":
+            env["gs"] = [g(2), g(3)]
+        if sid in ("ISA", "GS", "GE", "IEA", "SE"):
+            where = "out"
+            c = line = None
+            continue
         if sid == "ST":
             if g(1) != "837":
                 return claims
+            header, blocks, where = [], {"20": [], "22": [], "23": []}, "header"
             c = line = None
-        elif sid == "HL" and g(3) == "22":
-            payer = payer_id = indicator = ""
+            continue
+        if sid == "HL":
+            level = g(3)
+            where = level if level in blocks else "out"
+            if level in blocks:
+                blocks[level] = [norm]
+                if level == "20":
+                    blocks["22"], blocks["23"] = [], []
+                if level == "22":
+                    blocks["23"] = []
+            if level == "22":
+                payer = payer_id = indicator = sub_name = sub_id = ""
             c = line = None
-        elif sid == "SBR":
+            continue
+        if where == "header" and sid != "BHT":
+            header.append(norm)
+        elif where in blocks and c is None and sid != "CLM":
+            blocks[where].append(norm)
+        if sid == "SBR":
             indicator = g(9)
-        elif sid == "NM1":
-            nm1_ctx = g(1)
+        elif sid == "NM1" and c is None:
             if g(1) == "85":
                 billing_npi = g(9)
             elif g(1) == "PR":
                 payer, payer_id = g(3), g(9)
-            elif g(1) == "82" and c is not None:
-                c.provider = _prov_name(g(3), g(4), g(9))
-        elif sid == "CLM":
+            elif g(1) == "IL":
+                sub_name, sub_id = ", ".join(p for p in (g(3), g(4)) if p), g(9)
+            elif g(1) == "QC":
+                sub_name = ", ".join(p for p in (g(3), g(4)) if p)
+        if sid == "CLM":
             pos = (g(5).split(comp) or [""])[0]
             c = Claim(claim_id=g(1), charge=_f(g(2)), pos=pos, payer=payer, payer_id=payer_id,
-                      payer_type=_payer_type(indicator, payer), provider=billing_npi, source=source)
+                      payer_type=_payer_type(indicator, payer), provider=billing_npi, source=source, patient=sub_name, member_id=sub_id,
+                      raw={"env": {k: list(v) for k, v in env.items()}, "header": [list(h) for h in header], "hl20": [list(v) for v in blocks["20"]],
+                           "hl22": [list(v) for v in blocks["22"]], "hl23": [list(v) for v in blocks["23"]], "clm": [norm]})
             claims.append(c)
             line = None
-        elif c is None:
             continue
+        if c is None:
+            continue
+        c.raw["clm"].append(norm)
+        if sid == "NM1" and g(1) == "82":
+            c.provider = _prov_name(g(3), g(4), g(9))
         elif sid == "HI":
             for v in s[1:]:
                 parts = v.split(comp)
@@ -664,10 +717,16 @@ class Analysis:
         self._rate_cache: Dict[tuple, Optional[Tuple[float, str]]] = {}
         self._ratio: Optional[float] = None
         self.rates = self._rates()
+        price: Dict[str, List[float]] = defaultdict(list)
+        for ln in [l for c in ds.claims for l in c.lines] + [l for r in self.remits for l in r.lines]:
+            if ln.charge > 0:
+                price[ln.code].append(ln.charge / (ln.units or 1))
+        self.charges = {k: round(statistics.median(v), 2) for k, v in price.items()}
         self.payer_paid_codes = self._payer_paid_codes()
 
     # ── expected amounts, from the clinic's own payments ──
     def _rates(self):
+        self.rate_refs: Dict[tuple, List[str]] = defaultdict(list)
         per_payer: Dict[Tuple[str, str, tuple], List[Tuple[str, float]]] = defaultdict(list)
         any_payer: Dict[Tuple[str, tuple], List[float]] = defaultdict(list)
         for r in self.remits:
@@ -680,6 +739,7 @@ class Analysis:
                 per_unit = round(a / (l.units or 1), 2)
                 code, mods = _price_key(l)
                 per_payer[((r.payer or "").upper(), code, mods)].append((l.dos or r.date or "", per_unit))
+                self.rate_refs[((r.payer or "").upper(), code, mods, per_unit)].append(f"{r.payer_claim_id or r.claim_id} ({l.dos or r.dos})")
                 any_payer[(code, mods)].append(per_unit)
         return {"payer": per_payer, "any": any_payer}
 
@@ -714,6 +774,10 @@ class Analysis:
                     tot_c += l.charge
                     tot_a += a
         return min(max(tot_a / tot_c, 0.2), 1.0) if tot_c else 0.5
+
+    def charge_for(self, code: str, fallback: float) -> float:
+        """The clinic's own price for a code, for a line added to a corrected claim."""
+        return self.charges.get(code) or round(fallback, 2)
 
     def _payer_paid_codes(self):
         out: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
@@ -772,13 +836,20 @@ class Analysis:
                 remarks = f" Remarks: {', '.join(l.remarks)}." if l.remarks else ""
                 lost = left is not None and left < 0
                 if kind == "timely" or lost:
-                    self.add(category="lost", title=f"{l.code} denied ({reason})" + (" — past the appeal window" if lost else ""),
+                    self.add(carc=carc, category="lost", title=f"{l.code} denied ({reason})" + (" — past the appeal window" if lost else ""),
                              dollars=value, confidence="high", action="Prevention: " + ("file within the payer's limit; keep clearinghouse acceptance reports" if kind == "timely" else "work denials within days of the payment file"),
                              why=f"{reason}.{remarks} Worth about ${value:,.2f} ({how}).", claim_id=r.claim_id, payer_claim_id=r.payer_claim_id,
                              payer=r.payer, dos=l.dos or r.dos, code=l.code, deadline=deadline, days_left=left, counted=False)
                     continue
                 conf = {"high": "high", "medium": "medium", "low": "low"}[odds]
-                self.add(category="denial", title=f"{l.code} denied — {CARC.get(carc, 'reason ' + carc) if carc else 'no reason code'}",
+                fix = ""
+                if carc == "4" and l.code in QW_TESTS and "QW" not in l.mods:
+                    fix = f"add_modifier:{l.code}:QW"
+                elif kind == "bundle" and l.code in EM_ALL and "25" not in l.mods:
+                    fix = f"add_modifier:{l.code}:25"
+                elif kind in ("fix", "coverage", "bundle"):
+                    fix = "correct"
+                self.add(carc=carc, fix=fix, category="denial", title=f"{l.code} denied — {CARC.get(carc, 'reason ' + carc) if carc else 'no reason code'}",
                          dollars=value, confidence=conf, action=action,
                          why=f"{reason}.{remarks} Expected about ${value:,.2f} ({how}). Appeal window assumed {window} days for a {r.payer_type.replace('_', ' ')} payer: check the contract.",
                          claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code,
@@ -817,7 +888,8 @@ class Analysis:
                 short = round((rate - per_unit) * (l.units or 1), 2)
                 if per_unit < rate * 0.98 - 0.25 and short >= 1.0:
                     extra = f" The payer also took {', '.join(CARC.get(c, c) for c in reasons)}." if reasons else ""
-                    self.add(category="underpaid", title=f"{l.code} paid below {r.payer}'s usual rate",
+                    refs = [x for x in self.rate_refs.get(((r.payer or "").upper(), code, mods, round(rate, 2)), []) if not x.startswith((r.payer_claim_id or r.claim_id) + " ")][:3]
+                    self.add(evidence=refs, category="underpaid", title=f"{l.code} paid below {r.payer}'s usual rate",
                              dollars=short, confidence="high" if n_rate >= 3 else "medium",
                              action="Ask the payer to reprocess at the contracted rate (call or reconsideration form); attach a paid example at the usual rate",
                              why=f"Allowed ${a:,.2f} for {l.units:g} unit(s); {r.payer} allowed ${rate:,.2f} per unit on {n_rate} of {len(vals)} other {l.code} lines that year.{extra}",
@@ -919,23 +991,23 @@ class Analysis:
                         except ValueError:
                             continue
                     val = round(_mode([round(v, 2) for v in paid_here[addon]]), 2)
-                    self.add(category="missed", title=f"{addon} missing ({what})", dollars=val, confidence="medium",
+                    self.add(fix=f"add_line:{addon}:{self.charge_for(addon, val * 2)}", category="missed", title=f"{addon} missing ({what})", dollars=val, confidence="medium",
                              action=f"Add {addon} on a corrected claim if the visit qualified, and add it to your charge template",
                              why=f"{payer} paid you for {addon} on {len(paid_here[addon])} other visits (usually ${val:,.2f}); this {'weekend ' if addon == '99051' else ''}visit has none.",
                              claim_id=cid, payer=payer, dos=dos, code=addon)
             drugs = {c for c in codes if c.startswith("J") and not INHALATION_DRUG.match(c) and not c.startswith("J8")}
             inhaled = {c for c in codes if INHALATION_DRUG.match(c)}
             if codes & DRUG_ADMIN and not drugs and not any(c.startswith(("Q", "90")) and len(c) == 5 for c in codes if c not in DRUG_ADMIN):
-                self.add(category="missed", title="Injection given, no drug billed", dollars=self._typical("J", payer, 12.0), confidence="medium",
+                self.add(fix="needs_drug", category="missed", title="Injection given, no drug billed", dollars=self._typical("J", payer, 12.0), confidence="medium",
                          action="Add the drug's J-code and units from the note (e.g. J1885 ketorolac, J0696 ceftriaxone, J1100 dexamethasone)",
                          why=f"{', '.join(sorted(codes & DRUG_ADMIN))} is on the claim but no drug code. Unless the drug was free or patient-supplied, it's billable.",
                          claim_id=cid, payer=payer, dos=dos, code=",".join(sorted(codes & DRUG_ADMIN)))
             if drugs and not codes & DRUG_ADMIN:
-                self.add(category="missed", title="Drug billed, no injection fee", dollars=self.expected(payer, Line(code="96372", charge=40.0))[0], confidence="medium",
+                self.add(fix=f"add_line:96372:{self.charge_for('96372', 45.0)}", category="missed", title="Drug billed, no injection fee", dollars=self.expected(payer, Line(code="96372", charge=40.0))[0], confidence="medium",
                          action="Add 96372 (or the IV push/infusion code) if the clinic gave the injection",
                          why=f"{', '.join(sorted(drugs))} is billed with no administration code.", claim_id=cid, payer=payer, dos=dos, code="96372")
             if inhaled and not codes & NEB_ADMIN:
-                self.add(category="missed", title="Nebulizer medicine billed, no treatment code", dollars=self.expected(payer, Line(code="94640", charge=60.0))[0],
+                self.add(fix=f"add_line:94640:{self.charge_for('94640', 60.0)}", category="missed", title="Nebulizer medicine billed, no treatment code", dollars=self.expected(payer, Line(code="94640", charge=60.0))[0],
                          confidence="medium", action="Add 94640 for the nebulizer treatment (76 modifier for a repeat)",
                          why=f"{', '.join(sorted(inhaled))} billed without 94640.", claim_id=cid, payer=payer, dos=dos, code="94640")
             if codes & NEB_ADMIN and not inhaled:
@@ -943,7 +1015,7 @@ class Analysis:
                          action="Add the inhalation drug (e.g. J7613 albuterol, J7620 albuterol-ipratropium) with units", counted=False,
                          why="94640 is on the claim with no J76xx medicine.", claim_id=cid, payer=payer, dos=dos, code="J7613")
             if codes & BLOOD_LABS and not codes & VENIPUNCTURE:
-                self.add(category="missed", title="Blood test billed, no blood draw", dollars=self.expected(payer, Line(code="36415", charge=15.0))[0],
+                self.add(fix=f"add_line:36415:{self.charge_for('36415', 15.0)}", category="missed", title="Blood test billed, no blood draw", dollars=self.expected(payer, Line(code="36415", charge=15.0))[0],
                          confidence="medium", action="Add 36415 (venipuncture) when the clinic drew the blood",
                          why=f"{', '.join(sorted(codes & BLOOD_LABS))} billed without 36415.", claim_id=cid, payer=payer, dos=dos, code="36415")
 
@@ -970,7 +1042,7 @@ class Analysis:
             value = sum(self.expected(c.payer, l)[0] for l in c.lines)
             limit = 365 if c.payer_type == "medicare" else 90 if c.payer_type == "medicaid" else 180
             since = _days(c.dos, self.today.isoformat()) or 0
-            self.add(category="no_response", title=f"No answer from {c.payer or 'the payer'} after {age} days",
+            self.add(fix="resend", category="no_response", title=f"No answer from {c.payer or 'the payer'} after {age} days",
                      dollars=round(value, 2), confidence="medium",
                      action="Check claim status (payer portal or 276); if the payer never got it, resubmit now" + (f" — the usual {limit}-day filing limit is close" if since > limit - 30 else ""),
                      why=f"Sent for {c.dos}; no payment or denial in the payment files, which run to {last_remit}. It may be in a file that wasn't uploaded.",
@@ -1203,7 +1275,7 @@ def _m(v: float) -> str:
     return f"${v:,.0f}" if abs(v) >= 100 else f"${v:,.2f}"
 
 
-def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_section: int = 40) -> str:
+def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_section: int = 40, saved: Optional[dict] = None) -> str:
     s = a.summary()
     e = html.escape
     out = [f"<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
@@ -1212,6 +1284,15 @@ def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_se
     period = f"{s['period']['start']} to {s['period']['end']} ({s['period']['days']} days)" if s["period"]["start"] else "no dates found"
     out.append(f"<p class=sub>{s['visits']:,} visits · {s['payments']:,} payer answers · {e(period)} · made by Althais on {a.today.isoformat()}"
                + (" · <b>SAMPLE DATA, not a real clinic</b>" if sample else "") + "</p>")
+    if saved:
+        parts = [f"{saved['created']} new item(s) saved to Recovery" + (f", {saved['refreshed']} updated" if saved.get("refreshed") else "")]
+        if saved.get("recovered"):
+            parts.append(f"{saved['recovered']} earlier item(s) now paid ({_m(saved['recovered_dollars'])})")
+        if saved.get("denied_again"):
+            parts.append(f"{saved['denied_again']} denied again")
+        out.append("<div class='card' style='margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap'>"
+                   f"<div><b>Fix it:</b> {e('; '.join(parts))}. Corrected claims and appeal letters are ready there.</div>"
+                   "<a href='/recovery'><button>Open Recovery</button></a></div>")
     out.append("<div class=cards>"
                f"<div class='card hero'><div class=k>Money found</div><div class=v>{_m(s['found'])}</div><div class=s>about {_m(s['found_annual'])} a year at this pace</div></div>"
                f"<div class=card><div class=k>Possible, needs chart review</div><div class=v>{_m(s['possible'])}</div><div class=s>about {_m(s['possible_annual'])} a year</div></div>"
@@ -1464,7 +1545,7 @@ except ImportError:      # the command line works without the web stack
 if _HAS_FASTAPI:
     router = APIRouter()
 
-    def _page(action: str, who: str) -> str:
+    def _page(action: str, who: str, saving: bool = False) -> str:
         return f"""<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Lost Money Report</title><style>{STYLE}
 .drop{{border:2px dashed var(--line);border-radius:14px;padding:36px 16px;text-align:center;background:var(--card);cursor:pointer}}
@@ -1477,7 +1558,8 @@ if _HAS_FASTAPI:
 <li>Drop them here (a zip works). Nothing is saved: the files are read once to build the report.</li></ol></div>
 <form id=f style="margin-top:16px"><p><input type=text name=clinic placeholder="Clinic name (optional, shown on the report)"></p>
 <div class=drop id=drop>Drop files here, or click to choose<input id=pick type=file name=files multiple hidden></div>
-<div id=list></div><button id=go type=submit>Build the report</button> <span id=err></span></form>
+<div id=list></div>{'<p><label><input type=checkbox name=save value=1 checked> Save what can be recovered to <a href="/recovery">Recovery</a>, and close items these payments settle</label></p>' if saving else ''}
+<button id=go type=submit>Build the report</button> <span id=err></span></form>
 <script>
 const d=document.getElementById('drop'),p=document.getElementById('pick'),L=document.getElementById('list');let F=[];
 const show=()=>L.textContent=F.length?F.length+' file(s): '+F.map(f=>f.name).slice(0,8).join(', ')+(F.length>8?'…':''):'';
@@ -1487,7 +1569,7 @@ d.onclick=()=>p.click();p.onchange=()=>{{F=[...p.files];show()}};
 d.addEventListener('drop',x=>{{F=[...x.dataTransfer.files];show()}});
 document.getElementById('f').onsubmit=async e=>{{e.preventDefault();const E=document.getElementById('err');E.textContent='';
 if(!F.length){{E.textContent='Choose some files first.';return}}const b=document.getElementById('go');b.disabled=true;b.textContent='Reading…';
-const fd=new FormData();fd.append('clinic',e.target.clinic.value);F.forEach(f=>fd.append('files',f,f.name));
+const fd=new FormData();fd.append('clinic',e.target.clinic.value);fd.append('save',e.target.save&&e.target.save.checked?'1':'0');F.forEach(f=>fd.append('files',f,f.name));
 try{{const r=await fetch('{action}',{{method:'POST',body:fd}});const t=await r.text();
 if(!r.ok){{let m=t;try{{m=JSON.parse(t).error||t}}catch(_){{}};throw new Error(m)}}
 document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.message;b.disabled=false;b.textContent='Build the report'}}}};
@@ -1503,17 +1585,18 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
             out.append((os.path.basename(f.filename or "file"), data))
         return out
 
-    def _respond(pairs, clinic: str, fmt: str):
+    def _respond(pairs, clinic: str, fmt: str, save=None):
         a = analyze(pairs)
         if not a.ds.claims and not a.ds.remits:
             errs = "; ".join(f"{f['name']}: {f['error']}" for f in a.ds.files if f["error"]) or "no 835, 837 or CSV data found"
             return JSONResponse({"error": f"Nothing to analyse ({errs})."}, status_code=400)
+        saved = save(a) if save else None
         if fmt == "json":
-            return JSONResponse(a.to_dict())
+            return JSONResponse(dict(a.to_dict(), recovery=saved))
         if fmt == "csv":
             from fastapi.responses import Response
             return Response(worklist_csv(a), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=lost-money-worklist.csv"})
-        return HTMLResponse(render_html(a, clinic=clinic[:80]), headers={"Cache-Control": "no-store"})
+        return HTMLResponse(render_html(a, clinic=clinic[:80], saved=saved), headers={"Cache-Control": "no-store"})
 
     def _db():
         from auth import get_db
@@ -1544,16 +1627,27 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
             return RedirectResponse("/login?next=/lost-money", status_code=303)
         if not ok:
             return HTMLResponse("Billers and admins only.", status_code=403)
-        return HTMLResponse(_page("/api/lost-money/report", "Upload your payment and claim files; see the money you're owed, claim by claim."),
+        return HTMLResponse(_page("/api/lost-money/report", "Upload your payment and claim files; see the money you're owed, claim by claim.", saving=True),
                             headers={"Cache-Control": "no-store"})
 
     @router.post("/api/lost-money/report")
-    async def lost_money_report(files: List[UploadFile] = File(...), clinic: str = Form(""), fmt: str = Form("html"), user=Depends(_biller)):
+    async def lost_money_report(files: List[UploadFile] = File(...), clinic: str = Form(""), fmt: str = Form("html"), save: str = Form("1"),
+                                user=Depends(_biller), db=Depends(_db)):
         try:
             pairs = await _read(files)
         except ValueError as e:
             return JSONResponse({"error": str(e)}, status_code=413)
-        return _respond(pairs, clinic, fmt)
+
+        def keep(a):
+            import billing_activation as ba
+            import recovery
+            org = ba.org_of(user)
+            if org.startswith("user:"):
+                return None
+            out = recovery.save_cases(db, org, user.email, a)
+            db.commit()
+            return out
+        return _respond(pairs, clinic, fmt, keep if save == "1" else None)
 
     @router.get("/admin/lost-money", response_class=HTMLResponse)
     def admin_lost_money_page(request: Request):
