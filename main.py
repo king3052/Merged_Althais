@@ -206,6 +206,9 @@ async def _billing_jobs():
                 if polls % 60 == 3:   # the Monday recovery email (recovery.py), checked hourly, once a week per clinic
                     import recovery
                     await asyncio.to_thread(recovery.send_weekly)
+                if polls % 60 == 4:   # watch payments: re-run the Lost Money analysis for clinics with new files (monitor.py)
+                    import monitor
+                    await asyncio.to_thread(monitor.run_due)
             except Exception as e:
                 print(f"[BILLING JOBS] {type(e).__name__}")      # no details: they could include clinic data
             await asyncio.sleep(60)

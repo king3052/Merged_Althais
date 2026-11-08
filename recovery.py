@@ -484,6 +484,73 @@ def _row(c: RecoveryCase) -> dict:
             "updatedAt": c.updated_at.isoformat() + "Z" if c.updated_at else ""}
 
 
+@router.get("/api/recovery/monitor")
+def monitor_status(user=Depends(_biller), db: Session = Depends(get_db)):
+    import monitor
+    return monitor.status(db, _org(user))
+
+
+APPEAL_SCHEMA = {"type": "object", "additionalProperties": False, "required": ["fills"], "properties": {"fills": {"type": "array", "items": {
+    "type": "object", "additionalProperties": False, "required": ["placeholder", "text", "quote"],
+    "properties": {"placeholder": {"type": "string"}, "text": {"type": "string"}, "quote": {"type": "string"}}}}}}
+
+
+def _squash(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "")).strip().lower()
+
+
+def fill_from_note(letter: str, note: str, ask=None) -> dict:
+    """The parts of an appeal letter in [brackets] that the visit note answers, filled from the note. Every fill has to
+    quote the note word for word; a fill whose quote isn't in the note is thrown away and its bracket stays. Nothing
+    else in the letter changes. ask(prompt) -> {"fills": [...]} (the AI); injectable for tests."""
+    holes = placeholders(letter)
+    if not holes:
+        return {"letter": letter, "filled": [], "left": []}
+    if ask is None:
+        import main as _m
+        ask = lambda p: _m._fast_json(p, APPEAL_SCHEMA, "appeal_fill", model=_m.BUILD_MODEL, timeout=25)
+    prompt = ("You help an urgent care clinic finish an insurance appeal letter. Below are the letter's unfinished parts, each in "
+              "[square brackets], and the visit note. For each part the NOTE answers, write the text that replaces it: factual, "
+              "plain, first person plural (\"we\"), one to three sentences, using only facts stated in the note. Do not add "
+              "diagnoses, findings, times or reasons the note doesn't state. For each fill, give a quote copied word for word "
+              "from the note that supports it. Skip any part the note doesn't answer (addresses, names, authorization numbers, "
+              "dates not in the note). Use the placeholder text exactly as written, brackets included.\n\n"
+              "UNFINISHED PARTS:\n" + "\n".join(holes) + "\n\nVISIT NOTE:\n" + note[:12000] +
+              "\n\nAnswer as JSON: {\"fills\": [{\"placeholder\": \"[...]\", \"text\": \"...\", \"quote\": \"...\"}]}")
+    got = ask(prompt) or {}
+    note_sq = _squash(note)
+    filled, out = [], letter
+    for f in got.get("fills") or []:
+        ph, text, quote = str(f.get("placeholder") or ""), str(f.get("text") or "").strip(), str(f.get("quote") or "").strip()
+        if ph not in holes or ph not in out or not text or "[" in text or "]" in text:
+            continue
+        if len(_squash(quote)) < 12 or _squash(quote) not in note_sq:
+            continue                     # not backed by the note word for word: leave the bracket for a person
+        out = out.replace(ph, text, 1)
+        filled.append({"placeholder": ph, "text": text, "quote": quote})
+    return {"letter": out, "filled": filled, "left": placeholders(out)}
+
+
+@router.post("/api/recovery/cases/{cid}/draft")
+async def draft_from_note(cid: int, request: Request, user=Depends(_biller), db: Session = Depends(get_db)):
+    """Fill the letter's [bracketed] parts from the visit note (pasted, not stored). The person reviews before saving."""
+    body = await request.json()
+    case = _case(db, user, cid)
+    note = str(body.get("note") or "")
+    if len(note.strip()) < 40:
+        return JSONResponse({"error": "Paste the visit note first (the whole note works best)."}, status_code=400)
+    doc = _open(case)
+    _, profile = _profile(db, case.org_key, doc)
+    letter = str(body.get("text") or doc.get("letter") or draft_letter(case, doc, profile))[:20000]
+    try:
+        res = fill_from_note(letter, note[:20000])
+    except Exception:
+        return JSONResponse({"error": "The AI didn't answer in time. Try again, or fill the brackets by hand."}, status_code=502)
+    _log(case, f"Letter drafted from the visit note ({len(res['filled'])} part(s) filled, {len(res['left'])} left)", user.email)
+    db.commit()
+    return res
+
+
 @router.get("/api/recovery/cases")
 def list_cases(user=Depends(_biller), db: Session = Depends(get_db)):
     org = _org(user)
@@ -669,6 +736,7 @@ input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8p
 <div class=card><div class=k>Still to recover</div><div class=v id=tOpen>$0</div><div class=s id=tOpenN></div></div>
 <div class=card><div class=k>Sent, waiting on payers</div><div class=v id=tSent>$0</div><div class=s>&nbsp;</div></div>
 <div class=card><div class=k>Deadlines in 14 days</div><div class=v id=tDue>0</div><div class=s>work these first</div></div></div>
+<div id=watch class=card style="margin:4px 0 6px;font-size:13.5px;color:var(--muted)"></div>
 <div class=tabs id=tabs></div><div id=list></div></main>
 <div class=panel id=panel></div>
 <script>
@@ -703,10 +771,19 @@ if(c.kind==='corrected'||c.kind==='resend'){
   h+=`<div class=row><button onclick="send()" ${c.send.ok&&c.status!=='SENT'?'':'disabled'}>${c.status==='SENT'?'Sent':'Send through Althais'}</button><button class=ghost onclick="dlClaim()">Download corrected claim (837)</button></div>
   <div class="${c.send.ok?'ok':'warn'}">${esc(c.send.why)}</div>`;}}
 if(c.letter!==undefined){h+=`<h2>${c.kind==='reconsideration'?'Reconsideration letter':'Appeal letter'}</h2><p class=sub>Fill in everything in [brackets] from the visit note. Nothing in this letter is guessed.</p>
+<details ${c.placeholders.length?'open':''} style="margin:8px 0"><summary style="cursor:pointer"><b>Fill it from the visit note</b> (AI)</summary>
+<p class=sub style="margin-top:6px">Paste the note. Althais fills only the bracketed parts the note answers, quoting it; everything else stays for you. The note isn't saved.</p>
+<textarea id=note style="min-height:120px" placeholder="Paste the visit note here"></textarea><div class=row><button onclick="draft()">Fill from note</button></div><div id=quotes></div></details>
 <textarea id=letter>${esc(c.letter)}</textarea><div id=ph></div><div class=row><button class=ghost onclick="saveLetter()">Save</button><button onclick="dlLetter()">Download PDF</button></div>`}
 h+=`<h2>Status</h2><div class=row><button class=ghost onclick="st('SENT')">Mark sent</button><button class=ghost onclick="rec()">Mark recovered</button><button class=ghost onclick="st('CLOSED')">Close (won't recover)</button><button class=ghost onclick="st('OPEN')">Reopen</button></div>
 <p class=sub>Currently: <b>${esc(c.statusLabel)}</b>${c.reference?' · reference '+esc(c.reference):''}</p><ul class=hist>${c.history.slice().reverse().map(x=>`<li>${esc(x.at.slice(0,16).replace('T',' '))} — ${esc(x.what)}${x.who?' ('+esc(x.who)+')':''}</li>`).join('')}</ul><p id=msg></p>`;
 P.innerHTML=h;if(c.letter!==undefined)ph(c.placeholders)}
+async function draft(){const b=event.target;b.disabled=true;b.textContent='Reading the note…';
+ try{const j=await (await api(`/api/recovery/cases/${CUR.id}/draft`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:$('#note').value,text:$('#letter').value})})).json();
+ $('#letter').value=j.letter;ph(j.left);
+ $('#quotes').innerHTML=j.filled.length?'<div class=ok>Filled '+j.filled.length+' part(s). Check each against the note:</div><ul class=hist>'+j.filled.map(f=>'<li><b>'+esc(f.text)+'</b><br>from the note: “'+esc(f.quote)+'”</li>').join('')+'</ul>':'<div class=warn>The note didn\'t answer the bracketed parts. Fill them by hand.</div>';
+ msg(j.left.length?'Review the filled parts, fill the rest, then Save.':'Review the filled parts, then Save and download.')}catch(e){msg(e.message,1)}
+ b.disabled=false;b.textContent='Fill from note'}
 function ph(list){$('#ph').innerHTML=list.length?`<div class=warn>${list.length} part(s) still to fill in: ${list.slice(0,3).map(esc).join(' · ')}</div>`:'<div class=ok>Ready to download.</div>'}
 function body(){const b={edits:(CUR.edits||[]).filter((e,i)=>{const x=document.querySelector(`input[data-i="${i}"]`);return !x||x.checked})};
  if($('#mid')&&$('#mid').value!==CUR.memberId)b.memberId=$('#mid').value;
@@ -723,6 +800,10 @@ async function dlLetter(){try{await saveLetter();const r=await api(`/api/recover
 async function st(s,extra){try{await api(`/api/recovery/cases/${CUR.id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({status:s},extra||{}))});await load();open_(CUR.id)}catch(e){msg(e.message,1)}}
 function rec(){const v=prompt('Amount recovered ($)',CUR.expected);if(v===null)return;st('RECOVERED',{recovered:+v})}
 load().catch(e=>$('#list').innerHTML='<div class=empty>'+esc(e.message)+'</div>');
+fetch('/api/recovery/monitor',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(m=>{if(!m)return;const w=$('#watch');
+ if(!m.filesKept){w.innerHTML='<b>Not watching yet.</b> Run a Lost Money Report with “Save what can be recovered” on, or send claims through Althais, and Althais keeps checking every new payment file.';return}
+ w.innerHTML='<b style="color:var(--accent)">● Watching your payments.</b> '+m.filesKept+' payment and claim file(s)'+(m.fromClaimmd?' ('+m.fromClaimmd+' straight from Claim.MD)':'')+
+ (m.lastRun?' · last checked '+new Date(m.lastRun).toLocaleString():'')+(m.newCases?' · '+m.newCases+' new item(s) found':'')+(m.recovered?' · '+m.recovered+' paid':'')});
 fetch('/api/recovery/digest',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(j=>{if(j)$('#dg').checked=j.on});
 async function dg(on){try{await api('/api/recovery/digest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({on})})}catch(e){alert(e.message)}}
 </script></body></html>"""

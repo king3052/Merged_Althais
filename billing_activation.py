@@ -2268,6 +2268,11 @@ def poll_eras() -> int:
                     recovery.on_era(db, text)
                 except Exception as e:
                     print(f"[RECOVERY] ERA {r['eraid']}: {e}")
+                try:            # kept for the clinic it pays, so Althais keeps watching its payments (monitor.py)
+                    import monitor
+                    monitor.route_era(db, text, str(r["eraid"]))
+                except Exception as e:
+                    print(f"[MONITOR] ERA {r['eraid']}: {type(e).__name__}")
                 db.commit()
                 done = r["eraid"]
             except Exception as e:

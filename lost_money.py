@@ -1650,6 +1650,12 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
             except Exception:
                 db.rollback()
             out = recovery.save_cases(db, org, user.email, a) if save == "1" else None
+            if save == "1":
+                try:        # kept, so Althais keeps watching: the next files build on these (monitor.py)
+                    import monitor
+                    monitor.add_uploads(db, org, pairs)
+                except Exception:
+                    pass
             db.commit()
             return out
         return _respond(pairs, clinic, fmt, keep)
