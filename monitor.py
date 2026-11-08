@@ -221,4 +221,9 @@ def run_due(now: Optional[dt.datetime] = None) -> int:
             except Exception as e:
                 db.rollback()
                 print(f"[MONITOR] {type(e).__name__}")       # no details: they could include clinic data
+    try:                # payer change alerts across the network (network.py)
+        import network
+        network.refresh_alerts(now.date())
+    except Exception as e:
+        print(f"[NETWORK] alerts: {type(e).__name__}")
     return n

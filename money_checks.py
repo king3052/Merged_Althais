@@ -99,6 +99,11 @@ def learn(db, org: str, a: "lm.Analysis") -> dict:
                      "updated": dt.date.today().isoformat()}
     doc["updated"] = dt.date.today().isoformat()
     _store(db, org, doc)
+    try:            # weekly paid/denied counts for payer change alerts (network.py)
+        import network
+        network.record_signals(db, org, a)
+    except Exception as e:
+        print(f"[NETWORK] signals: {type(e).__name__}")
     # the network: patterns only, clinics hashed
     net = _load(db, NETWORK)
     pats = net.setdefault("patterns", {})
@@ -234,6 +239,15 @@ def check(db, org: str, c: dict) -> dict:
                 add("info", "network", f"Across {len(entry['clinics'])} Althais clinics, {entry.get('name') or payer} has denied {code} "
                     f"{'with ' + mk.replace('+', ', ') if mk != '-' else 'with no modifier'} (reason {carc}: {lm.CARC.get(carc, 'see the remark')}). "
                     + lm._rule_text(entry.get("name") or payer, code, carc, mk if mk != '-' else 'no modifier'))
+    # payer changes the Althais network is seeing right now
+    try:
+        import network
+        for al in network.alerts_for(db, org, [payer]):
+            if al["code"] in codes and (al["payer"] == _norm(payer) or _match_payer({al["payer"]: 1}, payer)) and al["mods"] == _mods_key(mods.get(al["code"], [])):
+                add("warn", "payer_change", "Heads up: " + al["message"] + " " + lm._rule_text(al.get("payerName") or payer, al["code"], al["carc"], al["mods"] if al["mods"] != "-" else "no modifier"),
+                    rate(al["code"], 0))
+    except Exception:
+        pass
     expected = None
     if mem and all(x in rates for x in cpts):
         expected = round(sum(rates[x]["rate"] for x in cpts), 2)

@@ -202,6 +202,7 @@ def match(db: Session, remits: List["lm.Remit"], org: Optional[str] = None) -> d
             got = sum((lm._allowed(l) or l.paid) for l in paid) if paid else r.paid + r.patient_resp
             amount = round(case.expected if case.category == "underpaid" else got, 2)    # a reprocessed underpayment pays the difference
             case.status, case.recovered, case.closed_at = "RECOVERED", amount, _now()
+            _learn(db, case, True)
             _log(case, f"Paid on {r.date or 'a newer payment file'}: ${amount:,.2f}" + (f" (check/EFT {r.check})" if r.check else ""))
             out["recovered"] += 1
             out["dollars"] += amount
@@ -209,11 +210,22 @@ def match(db: Session, remits: List["lm.Remit"], org: Optional[str] = None) -> d
             carc = lm._denial_carc([a for l in lines for a in l.adjustments] + r.adjustments)
             if case.status != "DENIED_AGAIN" or case.carc != carc:
                 case.status = "DENIED_AGAIN"
+                if case.sent_at:
+                    _learn(db, case, False)
                 _log(case, f"Denied again on {r.date or 'a newer payment file'}: {carc} {lm.CARC.get(carc, '')}".strip())
                 out["denied_again"] += 1
         case.basis_date = r.date or case.basis_date
     out["dollars"] = round(out["dollars"], 2)
     return out
+
+
+def _learn(db, case, won: bool):
+    """The network learns how this fix went (network.py). Never blocks the case."""
+    try:
+        import network
+        network.record_outcome(db, case, won)
+    except Exception as e:
+        print(f"[NETWORK] outcome: {type(e).__name__}")
 
 
 def on_era(db: Session, era_text: str) -> dict:
@@ -582,7 +594,19 @@ def case_detail(cid: int, user=Depends(_biller), db: Session = Depends(get_db)):
         out["letter"] = doc.get("letter") or draft_letter(case, doc, profile)
         out["placeholders"] = placeholders(out["letter"])
     out["send"] = can_send(db, org, case, doc)
+    try:
+        import network
+        out["whatWorks"] = network.what_works(db, case.payer, case.code, case.carc, org)
+        out["myFix"] = network.fix_of(case)
+    except Exception:
+        out["whatWorks"], out["myFix"] = [], ""
     return out
+
+
+@router.get("/api/recovery/alerts")
+def payer_alerts(user=Depends(_biller), db: Session = Depends(get_db)):
+    import network
+    return {"alerts": network.alerts_for(db, _org(user))}
 
 
 @router.post("/api/recovery/cases/{cid}/letter")
@@ -682,7 +706,12 @@ async def set_status(cid: int, request: Request, user=Depends(_biller), db: Sess
     st = str(body.get("status") or "")
     if st not in STATUS_LABEL:
         return JSONResponse({"error": "Unknown status."}, status_code=400)
+    was_sent = case.status == "SENT" or case.sent_at is not None
     case.status = st
+    if st in ("RECOVERED", "PARTIAL"):
+        _learn(db, case, True)
+    elif st == "CLOSED" and was_sent:
+        _learn(db, case, False)
     if st == "SENT":
         case.sent_via, case.sent_at = case.sent_via or "clinic", case.sent_at or _now()
         case.basis_date = max(case.basis_date or "", dt.date.today().isoformat())
@@ -737,6 +766,7 @@ input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8p
 <div class=card><div class=k>Sent, waiting on payers</div><div class=v id=tSent>$0</div><div class=s>&nbsp;</div></div>
 <div class=card><div class=k>Deadlines in 14 days</div><div class=v id=tDue>0</div><div class=s>work these first</div></div></div>
 <div id=watch class=card style="margin:4px 0 6px;font-size:13.5px;color:var(--muted)"></div>
+<div id=alerts></div>
 <div class=tabs id=tabs></div><div id=list></div></main>
 <div class=panel id=panel></div>
 <script>
@@ -761,6 +791,8 @@ async function open_(id){const c=await (await api('/api/recovery/cases/'+id)).js
 let h=`<button class="x" onclick="$('#panel').classList.remove('on')">Close</button><h2 style="margin-top:0">${esc(c.title)}</h2>
 <p class=sub>${esc(c.payer)} · claim ${esc(c.claimId)}${c.payerClaimId?' · payer # '+esc(c.payerClaimId):''} · ${esc(c.dos)} · <b>${money(c.expected)}</b></p>
 <p>${esc(c.why)}</p><p><b>What gets it paid:</b> ${esc(c.action)}</p>`;
+if(c.whatWorks&&c.whatWorks.length){h+=`<div class=card style="background:var(--accent-soft);border:0"><b>What works</b> <span class=why>(${esc(c.whatWorks[0].scope)}, across Althais clinics)</span><ul style="margin:6px 0 0 18px;padding:0">`+
+ c.whatWorks.slice(0,4).map(w=>`<li${w.fix===c.myFix?' style="font-weight:600"':''}>${esc(w.label)}: paid <b>${w.paid} of ${w.tried}</b> times (${Math.round(w.rate*100)}%)${w.medianDays!=null?', usually in '+w.medianDays+' days':''}${w.fix===c.myFix?' ← this case':''}</li>`).join('')+'</ul></div>'}
 if(c.kind==='corrected'||c.kind==='resend'){
  h+=`<h2>${c.kind==='resend'?'Send the claim again':'Corrected claim'}</h2>`;
  if(!c.hasClaim)h+=`<div class=warn>The original claim file isn't saved for this case. Upload the claim files (837) with the payment files and run the report again, or fix it in your own system.</div>`;
@@ -800,6 +832,9 @@ async function dlLetter(){try{await saveLetter();const r=await api(`/api/recover
 async function st(s,extra){try{await api(`/api/recovery/cases/${CUR.id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({status:s},extra||{}))});await load();open_(CUR.id)}catch(e){msg(e.message,1)}}
 function rec(){const v=prompt('Amount recovered ($)',CUR.expected);if(v===null)return;st('RECOVERED',{recovered:+v})}
 load().catch(e=>$('#list').innerHTML='<div class=empty>'+esc(e.message)+'</div>');
+fetch('/api/recovery/alerts',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(j=>{if(!j||!j.alerts.length)return;
+ $('#alerts').innerHTML='<div class=card style="border-left:3px solid var(--warn);margin:6px 0"><b>Payer changes</b> <span class=why>(Althais watches every clinic\'s payments for these)</span><ul style="margin:6px 0 0 18px;padding:0">'+
+ j.alerts.slice(0,5).map(a=>'<li>'+esc(a.message)+(a.scope==='yours'?' <span class="chip medium">your clinic</span>':' <span class="chip low">network</span>')+'</li>').join('')+'</ul></div>'});
 fetch('/api/recovery/monitor',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(m=>{if(!m)return;const w=$('#watch');
  if(!m.filesKept){w.innerHTML='<b>Not watching yet.</b> Run a Lost Money Report with “Save what can be recovered” on, or send claims through Althais, and Althais keeps checking every new payment file.';return}
  w.innerHTML='<b style="color:var(--accent)">● Watching your payments.</b> '+m.filesKept+' payment and claim file(s)'+(m.fromClaimmd?' ('+m.fromClaimmd+' straight from Claim.MD)':'')+
@@ -860,7 +895,16 @@ def digest(db: Session, org: str, now: Optional[dt.datetime] = None) -> Optional
         "due": [{"days": d, "payer": (c.payer or "").title(), "code": c.code, "kind": KIND_LABEL.get(c.kind, c.kind), "dollars": c.expected}
                 for d, c in due[:6]],
         "due_count": len(due),
+        "alerts": _alert_lines(db, org),
     }
+
+
+def _alert_lines(db, org) -> List[str]:
+    try:
+        import network
+        return [a["message"] for a in network.alerts_for(db, org)[:3]]
+    except Exception:
+        return []
 
 
 def _money(v: float) -> str:
@@ -894,6 +938,10 @@ def digest_html(d: dict, clinic: str, unsubscribe_url: str) -> str:
         lines.append(f"{d['ready_count']} corrected claim{'s are' if d['ready_count'] != 1 else ' is'} ready to send with one click.")
     if d["denied_again_count"]:
         lines.append(f"{d['denied_again_count']} came back denied again and need{'s' if d['denied_again_count'] == 1 else ''} a second look.")
+    alerts_html = ""
+    if d.get("alerts"):
+        alerts_html = ("<tr><td style='padding:16px 28px 0'><div style='font-size:13px;font-weight:600;color:#a35a00;margin-bottom:4px'>Payer changes to watch</div>"
+                       + "".join("<div style='font-size:13px;color:#374151;padding:3px 0'>" + e(x) + "</div>" for x in d["alerts"]) + "</td></tr>")
     return f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f5f7;font-family:Inter,Segoe UI,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:10px;border:1px solid #e4e6eb">
@@ -905,6 +953,7 @@ def digest_html(d: dict, clinic: str, unsubscribe_url: str) -> str:
 {stat('Still to recover', _money(d['todo']), f"{d['todo_count']} item(s)")}
 {stat('Deadlines in 14 days', str(d['due_count']), 'work these first')}</tr></table></td></tr>
 {f"<tr><td style='padding:6px 28px 0;font-size:14px;color:#374151;line-height:1.6'>{'<br>'.join(lines)}</td></tr>" if lines else ''}
+{alerts_html}
 {f"<tr><td style='padding:16px 28px 0'><div style='font-size:13px;font-weight:600;color:#0f1116;margin-bottom:4px'>Closest deadlines</div><table width='100%' cellpadding='0' cellspacing='0'>{rows}</table></td></tr>" if rows else ''}
 <tr><td style="padding:22px 28px 26px"><a href="{APP_URL}/recovery" style="display:inline-block;background:#0f6b5c;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px">Open Recovery</a></td></tr>
 <tr><td style="padding:14px 28px;border-top:1px solid #f0f0f0;font-size:11.5px;color:#9aa3af;line-height:1.5">

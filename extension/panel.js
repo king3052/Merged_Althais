@@ -218,7 +218,7 @@ const TOPIC = { ncci: "Bundling", ncci_mod: "Bundling", multi_em: "Visit level",
   dup_line: "Duplicate line", two_exams: "Exams", clean_and_maint: "Cleaning", clean_and_srp: "Cleaning", fmx_and_bw: "X-rays", attach: "Attachment", age_limit: "Age limit",
   money_deleted: "Invalid code", money_consult: "Consult code", money_qw: "Modifier QW", money_mod25: "Modifier 25", money_no_drug: "Missed charge",
   money_no_admin: "Missed charge", money_no_neb: "Missed charge", money_no_draw: "Missed charge", money_addon: "Missed add-on",
-  money_payer_pattern: "Payer pattern", money_network: "Althais network" };
+  money_payer_pattern: "Payer pattern", money_network: "Althais network", money_payer_change: "Payer change" };
 const usd = (v) => "$" + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const SEVWORD = { error: "Error", warn: "Warning", info: "Note" };
 const GROUPS = { CPT: "Procedures", CDT: "Procedures (CDT)", "ICD-10": "Diagnoses" };
