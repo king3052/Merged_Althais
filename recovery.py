@@ -662,7 +662,8 @@ input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8p
 .empty{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted)}
 </style></head><body><main>
 <div class=top><div><h1>Recovery</h1><p class=sub>Every item the Lost Money Report found, worked until it's paid. Payments close cases on their own.</p></div>
-<a href="/lost-money"><button>Run a Lost Money Report</button></a></div>
+<div class=row style="margin:0"><label class=e style="margin:0"><input type=checkbox id=dg onchange="dg(this.checked)"> Monday email</label>
+<a href="/api/recovery/digest/preview" target=_blank><button class=ghost>Preview</button></a><a href="/lost-money"><button>Run a Lost Money Report</button></a></div></div>
 <div class=cards>
 <div class="card hero"><div class=k>Recovered</div><div class=v id=tRec>$0</div><div class=s id=tRecN></div></div>
 <div class=card><div class=k>Still to recover</div><div class=v id=tOpen>$0</div><div class=s id=tOpenN></div></div>
@@ -722,4 +723,219 @@ async function dlLetter(){try{await saveLetter();const r=await api(`/api/recover
 async function st(s,extra){try{await api(`/api/recovery/cases/${CUR.id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({status:s},extra||{}))});await load();open_(CUR.id)}catch(e){msg(e.message,1)}}
 function rec(){const v=prompt('Amount recovered ($)',CUR.expected);if(v===null)return;st('RECOVERED',{recovered:+v})}
 load().catch(e=>$('#list').innerHTML='<div class=empty>'+esc(e.message)+'</div>');
+fetch('/api/recovery/digest',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(j=>{if(j)$('#dg').checked=j.on});
+async function dg(on){try{await api('/api/recovery/digest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({on})})}catch(e){alert(e.message)}}
 </script></body></html>"""
+
+
+# ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+#  The Monday email: what Althais got back last week, what's waiting on payers, which deadlines are close
+# ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# Sent to each clinic's admins and billers on Monday morning (DIGEST_HOUR_UTC, 14:00 UTC = 8 or 9 AM Central), once a
+# week per clinic even across restarts (org_settings "recovery_digest" remembers the week). Amounts, payers, codes and
+# day counts only: no patient names, claim numbers or dates of service in an email. One-click unsubscribe per person.
+
+DIGEST_CATEGORY = "recovery_digest"
+DIGEST_HOUR_UTC = 14
+
+
+def _settings(db, org: str):
+    from auth import OrgSettings
+    row = db.scalar(select(OrgSettings).where(OrgSettings.org_key == org, OrgSettings.category == DIGEST_CATEGORY))
+    return row, (json.loads(row.data or "{}") if row else {})
+
+
+def _save_settings(db, org: str, row, data: dict):
+    from auth import OrgSettings
+    if row is None:
+        row = OrgSettings(org_key=org, category=DIGEST_CATEGORY, data="{}")
+        db.add(row)
+    row.data = json.dumps(data)
+
+
+def digest(db: Session, org: str, now: Optional[dt.datetime] = None) -> Optional[dict]:
+    """The week's numbers for one clinic, or None when it has no cases."""
+    now = now or _now()
+    since = now - dt.timedelta(days=7)
+    cases = db.scalars(select(RecoveryCase).where(RecoveryCase.org_key == org)).all()
+    if not cases:
+        return None
+    won = [c for c in cases if c.status in ("RECOVERED", "PARTIAL") and c.closed_at and c.closed_at >= since]
+    sent = [c for c in cases if c.status == "SENT"]
+    todo = [c for c in cases if c.status in ("OPEN", "READY", "DENIED_AGAIN")]
+    new = [c for c in cases if c.created_at and c.created_at >= since]
+    again = [c for c in cases if c.status == "DENIED_AGAIN" and c.updated_at and c.updated_at >= since]
+    today = now.date()
+    due = sorted((((dt.date.fromisoformat(c.deadline) - today).days, c) for c in todo if c.deadline), key=lambda x: (x[0], -x[1].expected))
+    due = [(d, c) for d, c in due if 0 <= d <= 14]
+    return {
+        "recovered_week": round(sum(c.recovered for c in won), 2), "recovered_week_count": len(won),
+        "recovered_total": round(sum(c.recovered for c in cases if c.status in ("RECOVERED", "PARTIAL")), 2),
+        "sent": round(sum(c.expected for c in sent), 2), "sent_count": len(sent),
+        "todo": round(sum(c.expected for c in todo), 2), "todo_count": len(todo),
+        "ready_count": sum(1 for c in todo if c.status == "READY"),
+        "new_count": len(new), "new": round(sum(c.expected for c in new), 2),
+        "denied_again_count": len(again),
+        "due": [{"days": d, "payer": (c.payer or "").title(), "code": c.code, "kind": KIND_LABEL.get(c.kind, c.kind), "dollars": c.expected}
+                for d, c in due[:6]],
+        "due_count": len(due),
+    }
+
+
+def _money(v: float) -> str:
+    return f"${v:,.0f}" if abs(v) >= 100 or v == int(v) else f"${v:,.2f}"
+
+
+def digest_subject(d: dict) -> str:
+    if d["recovered_week"]:
+        return f"Althais got back {_money(d['recovered_week'])} last week"
+    if d["due_count"]:
+        return f"{d['due_count']} recovery deadline{'s' if d['due_count'] != 1 else ''} in the next 14 days"
+    return f"{_money(d['todo'] + d['sent'])} still being recovered"
+
+
+def digest_html(d: dict, clinic: str, unsubscribe_url: str) -> str:
+    from auth import APP_URL
+    e = lambda s: str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def stat(label, value, sub, hero=False):
+        return (f"<td width='50%' style='padding:6px'><div style='border:1px solid #e4e6eb;border-radius:8px;padding:14px;"
+                f"background:{'#e3f2ef' if hero else '#fff'}'><div style='font-size:12px;color:#6b7280'>{label}</div>"
+                f"<div style='font-size:24px;font-weight:700;color:{'#0f6b5c' if hero else '#0f1116'};margin-top:2px'>{value}</div>"
+                f"<div style='font-size:12px;color:#6b7280'>{sub}</div></div></td>")
+    rows = "".join(f"<tr><td style='padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#0f1116'>{e(x['payer'])} · {e(x['code'])} · {e(x['kind'])}</td>"
+                   f"<td style='padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:{'#a12a2a' if x['days'] <= 3 else '#a35a00'};text-align:right;white-space:nowrap'>{x['days']} day{'s' if x['days'] != 1 else ''} · {_money(x['dollars'])}</td></tr>"
+                   for x in d["due"])
+    lines = []
+    if d["new_count"]:
+        lines.append(f"{d['new_count']} new item{'s' if d['new_count'] != 1 else ''} found ({_money(d['new'])}).")
+    if d["ready_count"]:
+        lines.append(f"{d['ready_count']} corrected claim{'s are' if d['ready_count'] != 1 else ' is'} ready to send with one click.")
+    if d["denied_again_count"]:
+        lines.append(f"{d['denied_again_count']} came back denied again and need{'s' if d['denied_again_count'] == 1 else ''} a second look.")
+    return f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f5f7;font-family:Inter,Segoe UI,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:10px;border:1px solid #e4e6eb">
+<tr><td style="padding:24px 28px 8px"><span style="font-size:12px;font-weight:700;letter-spacing:.2em;color:#0f6b5c">ALTHAIS</span>
+<h1 style="font-size:20px;color:#0f1116;margin:10px 0 2px">Your week in recovery</h1><div style="font-size:13px;color:#6b7280">{e(clinic)}</div></td></tr>
+<tr><td style="padding:8px 22px"><table width="100%" cellpadding="0" cellspacing="0"><tr>
+{stat('Recovered last week', _money(d['recovered_week']), f"{d['recovered_week_count']} item(s) · {_money(d['recovered_total'])} all time", True)}
+{stat('Sent, waiting on payers', _money(d['sent']), f"{d['sent_count']} item(s)")}</tr><tr>
+{stat('Still to recover', _money(d['todo']), f"{d['todo_count']} item(s)")}
+{stat('Deadlines in 14 days', str(d['due_count']), 'work these first')}</tr></table></td></tr>
+{f"<tr><td style='padding:6px 28px 0;font-size:14px;color:#374151;line-height:1.6'>{'<br>'.join(lines)}</td></tr>" if lines else ''}
+{f"<tr><td style='padding:16px 28px 0'><div style='font-size:13px;font-weight:600;color:#0f1116;margin-bottom:4px'>Closest deadlines</div><table width='100%' cellpadding='0' cellspacing='0'>{rows}</table></td></tr>" if rows else ''}
+<tr><td style="padding:22px 28px 26px"><a href="{APP_URL}/recovery" style="display:inline-block;background:#0f6b5c;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px">Open Recovery</a></td></tr>
+<tr><td style="padding:14px 28px;border-top:1px solid #f0f0f0;font-size:11.5px;color:#9aa3af;line-height:1.5">
+No patient details are included in this email. Sent every Monday to your clinic's admins and billers.
+<a href="{unsubscribe_url}" style="color:#9aa3af">Stop these emails</a>.</td></tr></table></td></tr></table></body></html>"""
+
+
+def _unsub_token(org: str, email: str) -> str:
+    import jwt
+    from auth import SECRET_KEY
+    return jwt.encode({"o": org, "e": email.lower(), "p": "recovery-digest-off"}, SECRET_KEY, algorithm="HS256")
+
+
+def recipients(db: Session, org: str, data: dict) -> List[str]:
+    from auth import User
+    off = {x.lower() for x in data.get("off") or []}
+    users = db.scalars(select(User).where(User.organization == org)).all()
+    out = []
+    for u in users:
+        if getattr(u, "active", 1) == 0 or getattr(u, "portal_only", 0) or not u.email:
+            continue
+        if ROLE_LEVELS.get(u.role or "viewer", 0) < ROLE_LEVELS["biller"] or u.email.lower() in off:
+            continue
+        out.append(u.email)
+    return sorted(set(out))
+
+
+def send_weekly(now: Optional[dt.datetime] = None, force: bool = False) -> int:
+    """Monday's email for every clinic with recovery cases. Returns how many emails went out."""
+    from auth import APP_URL, send_email
+    now = now or _now()
+    if not force and (now.weekday() != 0 or now.hour < DIGEST_HOUR_UTC):
+        return 0
+    week = f"{now.isocalendar()[0]}-W{now.isocalendar()[1]:02d}"
+    sent = 0
+    with SessionLocal() as db:
+        orgs = [o for (o,) in db.execute(select(RecoveryCase.org_key).distinct()).all()]
+        for org in orgs:
+            try:
+                row, data = _settings(db, org)
+                if data.get("lastWeek") == week and not force:
+                    continue
+                d = digest(db, org, now)
+                if not d or not (d["recovered_week"] or d["todo_count"] or d["sent_count"]):
+                    continue
+                for email in recipients(db, org, data):
+                    url = f"{APP_URL}/recovery/digest/unsubscribe?t={_unsub_token(org, email)}"
+                    if send_email(email, digest_subject(d), digest_html(d, org, url)):
+                        sent += 1
+                data["lastWeek"] = week
+                _save_settings(db, org, row, data)
+                db.commit()
+            except Exception as ex:
+                db.rollback()
+                print(f"[RECOVERY DIGEST] {type(ex).__name__}")      # no details: they could include clinic data
+    return sent
+
+
+@router.get("/recovery/digest/unsubscribe", response_class=HTMLResponse)
+def digest_unsubscribe(t: str = "", db: Session = Depends(get_db)):
+    import jwt
+    from auth import SECRET_KEY
+    try:
+        tok = jwt.decode(t, SECRET_KEY, algorithms=["HS256"])
+        assert tok.get("p") == "recovery-digest-off"
+    except Exception:
+        return HTMLResponse("<p style='font-family:sans-serif'>This link isn't valid.</p>", status_code=400)
+    row, data = _settings(db, tok["o"])
+    off = set(data.get("off") or [])
+    off.add(tok["e"])
+    data["off"] = sorted(off)
+    _save_settings(db, tok["o"], row, data)
+    db.commit()
+    return HTMLResponse("<p style='font-family:sans-serif;padding:32px'>Done. You won't get the weekly recovery email any more. "
+                        "Turn it back on from the Recovery page.</p>")
+
+
+@router.get("/api/recovery/digest")
+def digest_settings(user=Depends(_biller), db: Session = Depends(get_db)):
+    org = _org(user)
+    _, data = _settings(db, org)
+    return {"on": user.email.lower() not in {x.lower() for x in data.get("off") or []}, "lastWeek": data.get("lastWeek", "")}
+
+
+@router.post("/api/recovery/digest")
+async def digest_toggle(request: Request, user=Depends(_biller), db: Session = Depends(get_db)):
+    body = await request.json()
+    org = _org(user)
+    row, data = _settings(db, org)
+    off = {x.lower() for x in data.get("off") or []}
+    (off.discard if body.get("on") else off.add)(user.email.lower())
+    data["off"] = sorted(off)
+    _save_settings(db, org, row, data)
+    db.commit()
+    return {"on": bool(body.get("on"))}
+
+
+@router.get("/api/recovery/digest/preview", response_class=HTMLResponse)
+def digest_preview(user=Depends(_biller), db: Session = Depends(get_db)):
+    org = _org(user)
+    d = digest(db, org)
+    if not d:
+        return HTMLResponse("<p style='font-family:sans-serif;padding:24px'>Nothing to report yet. Run a Lost Money Report first.</p>")
+    return HTMLResponse(digest_html(d, org, "#"), headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/recovery/digest/test")
+def digest_test(user=Depends(_biller), db: Session = Depends(get_db)):
+    from auth import APP_URL, send_email
+    org = _org(user)
+    d = digest(db, org)
+    if not d:
+        return JSONResponse({"error": "Nothing to report yet. Run a Lost Money Report first."}, status_code=400)
+    ok = send_email(user.email, "[Test] " + digest_subject(d), digest_html(d, org, f"{APP_URL}/recovery/digest/unsubscribe?t={_unsub_token(org, user.email)}"))
+    return {"ok": ok, "to": user.email, "message": "Sent." if ok else "Email isn't set up on this server (RESEND_API_KEY)."}

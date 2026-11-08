@@ -274,3 +274,74 @@ def test_send_refused_when_the_claim_isnt_the_clinics(db, monkeypatch):
     assert not res["ok"] and "billing NPI" in res["why"]
     monkeypatch.setattr(chx, "connector_for", lambda org: chx.NotConnected())
     assert not rc.can_send(db, "Recovery Test NPI", case, rc._open(case))["ok"]
+
+
+# ── the Monday email ──
+def test_weekly_digest_numbers_and_no_patient_details(db):
+    rc.save_cases(db, "Recovery Test Digest", "pat@example.com", analysis())
+    db.commit()
+    rows = db.scalars(select(rc.RecoveryCase).where(rc.RecoveryCase.org_key == "Recovery Test Digest")).all()
+    won = next(c for c in rows if c.claim_id == "BUN1")
+    won.status, won.recovered, won.closed_at = "RECOVERED", 88.0, dt.datetime(2026, 11, 6)
+    sent = next(c for c in rows if c.claim_id == "MED1")
+    sent.status = "SENT"
+    soon = next(c for c in rows if c.claim_id == "QW1")
+    soon.deadline = "2026-11-12"
+    db.commit()
+    d = rc.digest(db, "Recovery Test Digest", dt.datetime(2026, 11, 9, 14))
+    assert d["recovered_week"] == 88.0 and d["recovered_week_count"] == 1 and d["sent"] == sent.expected
+    assert d["due_count"] >= 1 and d["due"][0]["days"] == 3 and d["due"][0]["code"] == "87880"
+    assert rc.digest_subject(d) == "Althais got back $88 last week"
+    html = rc.digest_html(d, "Recovery Test Digest", "https://x/unsub")
+    assert "$88" in html and "Open Recovery" in html and "https://x/unsub" in html
+    assert "DOE" not in html and "BUN1" not in html and "2026-08-03" not in html     # no patient, claim number or date of service
+    assert rc.digest(db, "Nobody Clinic") is None
+
+
+def test_weekly_send_once_per_week_to_billers_and_admins(monkeypatch):
+    import auth
+    org = "Recovery Digest Clinic"
+    with auth.SessionLocal() as s:
+        s.query(rc.RecoveryCase).filter(rc.RecoveryCase.org_key == org).delete()
+        s.query(auth.OrgSettings).filter(auth.OrgSettings.org_key == org).delete()
+        for email, role in (("dg-admin@example.com", "admin"), ("dg-biller@example.com", "biller"), ("dg-viewer@example.com", "viewer")):
+            if not s.scalar(select(auth.User).where(auth.User.email == email)):
+                s.add(auth.User(email=email, password_hash="x", full_name="P", organization=org, role=role, claims_submitted=0,
+                                onboarding_complete=1, active=1, email_verified=1))
+        s.commit()
+        rc.save_cases(s, org, "dg-admin@example.com", analysis())
+        s.commit()
+    got = []
+    monkeypatch.setattr(auth, "send_email", lambda to, subject, html: got.append((to, subject, html)) or True)
+    assert rc.send_weekly(dt.datetime(2026, 11, 10, 15)) == 0                    # Tuesday: nothing
+    assert rc.send_weekly(dt.datetime(2026, 11, 9, 9)) == 0                      # Monday, too early
+    mine = lambda: sorted(t for t, _, _ in got if t.startswith("dg-"))          # other tests' clinics may get theirs too
+    rc.send_weekly(dt.datetime(2026, 11, 9, 14, 5))
+    assert mine() == ["dg-admin@example.com", "dg-biller@example.com"]
+    got.clear()
+    rc.send_weekly(dt.datetime(2026, 11, 9, 16))
+    assert mine() == []                                                          # once a week, even after a restart
+    # one click on the link stops it for that person only
+    from fastapi.testclient import TestClient
+    import main
+    tok = rc._unsub_token(org, "dg-biller@example.com")
+    assert TestClient(main.app).get(f"/recovery/digest/unsubscribe?t={tok}").status_code == 200
+    assert TestClient(main.app).get("/recovery/digest/unsubscribe?t=forged").status_code == 400
+    got.clear()
+    rc.send_weekly(dt.datetime(2026, 11, 16, 14, 5))
+    assert mine() == ["dg-admin@example.com"]
+
+
+def test_digest_toggle_and_preview():
+    c = _client("recovery-biller@example.com")
+    if not c.get("/api/recovery/cases").json()["cases"]:
+        c.post("/api/lost-money/report", data={"save": "1"}, files=[("files", (n, b)) for n, b in files()])
+    assert c.get("/api/recovery/digest").json()["on"] is True
+    assert c.post("/api/recovery/digest", json={"on": False}).json()["on"] is False
+    assert c.get("/api/recovery/digest").json()["on"] is False
+    c.post("/api/recovery/digest", json={"on": True})
+    p = c.get("/api/recovery/digest/preview")
+    assert p.status_code == 200 and "Your week in recovery" in p.text
+    t = c.post("/api/recovery/digest/test").json()
+    assert t["to"] == "recovery-biller@example.com"
+    assert _client("recovery-viewer@example.com", role="viewer").get("/api/recovery/digest/preview").status_code == 403
