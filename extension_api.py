@@ -167,7 +167,20 @@ async def check(request: Request, authorization: str = Header(default=""), db: S
     if err:
         return JSONResponse({"error": err}, status_code=400, headers=NO_STORE)
     c = ec.run_checks([claim])[0]
-    return JSONResponse({**_result(c), "echo": {k: c[k] for k in ("cpt", "icd", "modifiers", "payer", "dos", "amount")}}, headers=NO_STORE)
+    return JSONResponse({**_result(c, _money(db, who, c)), "echo": {k: c[k] for k in ("cpt", "icd", "modifiers", "payer", "dos", "amount")}}, headers=NO_STORE)
+
+
+def _money(db, who, c):
+    """Money checks (money_checks.py): the clinic's payer memory, add-ons, pairs, payer denial patterns. Never blocks a check.
+    Payer memory is kept under the clinic's billing key (its organization name), so the token's person says which clinic."""
+    try:
+        import money_checks
+        from auth import User
+        u = db.get(User, who[2]) if len(who) > 2 and who[2] else None
+        org = (u.organization or "").strip() if u is not None and (u.organization or "").strip() else who[0]
+        return money_checks.check(db, org, c)
+    except Exception:
+        return None
 
 
 EM_OFFICE = re.compile(r"^992(0[2-5]|1[1-5])$")   # office / outpatient E/M visits
@@ -208,13 +221,21 @@ def _codes(c, flags):
     return rows
 
 
-def _result(c):
+def _result(c, money=None):
     flags = [{k: f[k] for k in ("severity", "code", "message", "tooth") if k in f} for f in c["flags"] if f["code"] != "no_patient"]
     flags += _extra_flags(c)
+    if money:
+        said25 = any(f["code"] == "ncci" and "25" in f["message"] for f in flags)
+        flags += [{k: f[k] for k in ("severity", "code", "message", "dollars", "fix")} for f in money["flags"]
+                  if not (f["code"] == "money_mod25" and said25)]
     every = c["cpt"] + c["icd"]
     for f in flags:
         f["codes"] = [x for x in every if re.search(r"(?<![A-Z0-9.])" + re.escape(x) + r"(?![A-Z0-9])", f["message"].upper())]
-    return {"verdict": ec.verdict_for(flags), "score": ec.score_for(flags), "flags": flags, "codes": _codes(c, flags)}
+    out = {"verdict": ec.verdict_for(flags), "score": ec.score_for(flags), "flags": flags, "codes": _codes(c, flags)}
+    if money:
+        out["money"] = {"expected": money["expected"], "atStake": round(sum(f.get("dollars") or 0 for f in flags if f["code"].startswith("money_") and f["severity"] != "info"), 2),
+                        "payer": money.get("payer_name") or "", "known": money.get("payer_known", False)}
+    return out
 
 
 @router.post("/api/extension/lookup")
@@ -252,7 +273,7 @@ async def lookup(request: Request, authorization: str = Header(default=""), db: 
     c = ec.run_checks([claim])[0]
     fields = {k: c[k] for k in ("cpt", "icd", "modifiers", "payer", "dos", "amount")}
     fields["claim_id"] = cid
-    return JSONResponse({**_result(c), "fields": fields}, headers=NO_STORE)
+    return JSONResponse({**_result(c, _money(db, who, c)), "fields": fields}, headers=NO_STORE)
 
 
 

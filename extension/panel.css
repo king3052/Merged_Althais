@@ -181,3 +181,8 @@ footer svg{width:14px;height:14px;margin-top:1px}
 .line.claimwide .cv{font-family:inherit;font-size:13px}
 .line.claimwide .lh{cursor:default}
 .line.claimwide .lh:hover{background:none}
+
+/* money checks */
+.moneybar{border-left:3px solid #0f6b5c;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.45}
+.moneybar b{color:#0f6b5c}.moneybar .sub{color:var(--muted,#5b6472);margin-top:3px}
+.iss .k .money{color:#0f6b5c;font-weight:700}

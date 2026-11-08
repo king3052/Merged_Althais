@@ -52,3 +52,11 @@ To try the other tabs: open claim 50002 (no diagnosis), switch the mock EMR to *
 Test on sandbox or test data only until the practice has a signed agreement with Althais (and Althais has its own agreements with the services it uses). Drawing on an EMR's screens and typing into them should also be cleared against that vendor's terms for third-party tools before a clinic uses it.
 
 **Don't use Create claim for clinics whose EMR sends claims itself** (athenaOne, Tebra and similar): the payer would get the claim twice. For those clinics, use Code note and Fill into EMR, then submit from the EMR.
+
+## Money checks (0.9.0)
+
+Every check also runs the clinic's money checks (money_checks.py on the server): the panel shows what's at stake on the
+claim and what the payer usually pays the clinic for these codes, and flags missed add-ons the payer already pays the
+clinic for (99051 on weekends, S9088), injections without the drug and the reverse, nebulizer and blood-draw pairs,
+modifier 25 and QW, deleted and consult codes, and the payer's own repeated denials. The clinic's payer memory comes
+from its Lost Money Reports, so run one first. Nothing new is sent from the page: still only codes, payer, date and charge.

@@ -14,6 +14,9 @@
     bad_cdt: "cpt", no_tooth: "tooth", bad_tooth: "tooth", tooth_type: "tooth", no_surface: "surface", bad_surface: "surface",
     surface_count: "surface", no_quad: "quad", no_arch: "quad", same_tooth: "cpt", dup_line: "cpt", two_exams: "cpt",
     clean_and_maint: "cpt", clean_and_srp: "cpt", fmx_and_bw: "cpt", attach: "cpt", age_limit: "cpt",
+    // money checks (the clinic's payer memory)
+    money_deleted: "cpt", money_consult: "cpt", money_qw: "cpt", money_mod25: "cpt", money_no_drug: "cpt", money_no_admin: "cpt",
+    money_no_neb: "cpt", money_no_draw: "cpt", money_addon: "cpt", money_payer_pattern: "cpt", money_network: "cpt",
   };
 
   // One plain next step per check, shown under the message.

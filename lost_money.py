@@ -1640,14 +1640,19 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
 
         def keep(a):
             import billing_activation as ba
+            import money_checks
             import recovery
             org = ba.org_of(user)
             if org.startswith("user:"):
                 return None
-            out = recovery.save_cases(db, org, user.email, a)
+            try:            # the clinic's payer memory, for checks before claims go out (money_checks.py)
+                money_checks.learn(db, org, a)
+            except Exception:
+                db.rollback()
+            out = recovery.save_cases(db, org, user.email, a) if save == "1" else None
             db.commit()
             return out
-        return _respond(pairs, clinic, fmt, keep if save == "1" else None)
+        return _respond(pairs, clinic, fmt, keep)
 
     @router.get("/admin/lost-money", response_class=HTMLResponse)
     def admin_lost_money_page(request: Request):

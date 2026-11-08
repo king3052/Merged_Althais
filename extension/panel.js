@@ -215,7 +215,11 @@ const TOPIC = { ncci: "Bundling", ncci_mod: "Bundling", multi_em: "Visit level",
   bad_cdt: "Code format", no_dx: "Missing diagnosis", no_cpt: "Missing procedure", no_payer: "Payer", no_dos: "Date of service", future_dos: "Date of service",
   stale: "Filing deadline", aging: "Filing deadline", no_charge: "Charge", dup_in_file: "Duplicate", dup_existing: "Duplicate", no_tooth: "Tooth", bad_tooth: "Tooth",
   tooth_type: "Tooth", no_surface: "Surface", bad_surface: "Surface", surface_count: "Surface", no_quad: "Quadrant", no_arch: "Arch", same_tooth: "Same tooth",
-  dup_line: "Duplicate line", two_exams: "Exams", clean_and_maint: "Cleaning", clean_and_srp: "Cleaning", fmx_and_bw: "X-rays", attach: "Attachment", age_limit: "Age limit" };
+  dup_line: "Duplicate line", two_exams: "Exams", clean_and_maint: "Cleaning", clean_and_srp: "Cleaning", fmx_and_bw: "X-rays", attach: "Attachment", age_limit: "Age limit",
+  money_deleted: "Invalid code", money_consult: "Consult code", money_qw: "Modifier QW", money_mod25: "Modifier 25", money_no_drug: "Missed charge",
+  money_no_admin: "Missed charge", money_no_neb: "Missed charge", money_no_draw: "Missed charge", money_addon: "Missed add-on",
+  money_payer_pattern: "Payer pattern", money_network: "Althais network" };
+const usd = (v) => "$" + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const SEVWORD = { error: "Error", warn: "Warning", info: "Note" };
 const GROUPS = { CPT: "Procedures", CDT: "Procedures (CDT)", "ICD-10": "Diagnoses" };
 let last = null, pick = "";
@@ -282,8 +286,8 @@ function showResult(j) {
 }
 
 function issueHtml(x, j) {
-  const s = sevOf(x.severity), fix = S.FIX[x.code], kind = S.KIND_OF[x.code];
-  return '<div class="iss ' + s + '"><span class="k">' + esc(TOPIC[x.code] || SEVWORD[s]) + "</span>" + esc(x.message) +
+  const s = sevOf(x.severity), fix = x.fix || S.FIX[x.code], kind = S.KIND_OF[x.code];
+  return '<div class="iss ' + s + '"><span class="k">' + esc(TOPIC[x.code] || SEVWORD[s]) + (x.dollars > 0 ? ' · <b class="money">' + usd(x.dollars) + "</b>" : "") + "</span>" + esc(x.message) +
     (fix ? '<div class="fixhint"><b>Fix:</b> ' + esc(fix) + "</div>" : "") +
     (kind && overlayOn ? '<button type="button" class="link showon" data-flag="' + j.flags.indexOf(x) + '">Show on page</button>' : "") + "</div>";
 }
@@ -298,6 +302,10 @@ function render() {
   const owner = new Map();
   j.flags.forEach((x) => { const r = order.find((r) => mentions(x, r.code)); if (r) owner.set(x, r.code); });
   let h = "";
+  if (j.money && (j.money.atStake > 0 || j.money.expected)) {
+    h += '<section class="card moneybar">' + (j.money.atStake > 0 ? "<div><b>" + usd(j.money.atStake) + "</b> at stake on this claim. Fix the lines marked below before it goes out.</div>" : "") +
+      (j.money.expected ? '<div class="sub">' + esc(j.money.payer || "This payer") + " usually pays you about <b>" + usd(j.money.expected) + "</b> for these codes.</div>" : "") + "</section>";
+  }
   const loose = j.flags.filter((x) => !owner.has(x)).sort(byRank);
   if (loose.length) {
     const s = loose.reduce((w, x) => (rank[sevOf(x.severity)] > rank[w] ? sevOf(x.severity) : w), "info");
