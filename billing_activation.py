@@ -2261,7 +2261,13 @@ def poll_eras() -> int:
         n, done = 0, conn.get("lastEraId") or "0"
         for r in sorted(rows, key=lambda r: int(r["eraid"]) if r["eraid"].isdigit() else 0):
             try:
-                n += post_era(db, parse_835(cmd.era_835(r["eraid"])), r["eraid"])
+                text = cmd.era_835(r["eraid"])
+                n += post_era(db, parse_835(text), r["eraid"])
+                try:            # recovery cases (recovery.py) close when the corrected claim is paid; never blocks posting
+                    import recovery
+                    recovery.on_era(db, text)
+                except Exception as e:
+                    print(f"[RECOVERY] ERA {r['eraid']}: {e}")
                 db.commit()
                 done = r["eraid"]
             except Exception as e:

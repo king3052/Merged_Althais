@@ -85,6 +85,10 @@ class Connector:
         """Send the documents for a claim that carries attachment control number `acn` (PWK06)."""
         self._need("attachments")
 
+    def upload_x12(self, name: str, edi: str) -> Result:
+        """Send a finished 837 file as is (corrected and resent claims from recovery.py)."""
+        self._need("claim_submit")
+
 
 class NotConnected(Connector):
     name = "none"
@@ -125,6 +129,11 @@ class Sandbox(Connector):
 
     def send_attachment(self, acn, pdf):
         return self._res("SENT", f"Test attachment received ({len(pdf) // 1024 or 1} KB).", ref=acn)
+
+    def upload_x12(self, name, edi):
+        if not (edi or "").startswith("ISA") or "CLM*" not in edi:
+            return self._res("REJECTED", "Not an 837 claim file.", ok=False)
+        return self._res("SENT", "Test claim file accepted by the test clearinghouse.", ref="TEST-" + hashlib.sha256(edi.encode()).hexdigest()[:10].upper())
 
     def parse_webhook(self, payload):
         return payload
@@ -322,6 +331,23 @@ class ClaimMD(Connector):
         except ValueError as e:
             return self._res(False, "REJECTED", str(e))
         name = re.sub(r"[^A-Za-z0-9_-]", "_", str(claim.get("claimId") or "claim")) + (".837d" if dental else ".837")
+        try:
+            code, text = self._post("upload/", {"Filename": name}, files={"File": (name, edi.encode(), "application/edi-x12")}, timeout=60)
+        except Exception as e:
+            return self._res(False, "UNKNOWN", f"Couldn't reach Claim.MD: {e}")
+        root = self._xml(text)
+        err = self._error(root, text) if (code != 200 or root is None or root.find(".//claim") is None) else ""
+        if err:
+            return self._res(False, "REJECTED", "Claim.MD didn't accept the file: " + err, raw=text)
+        cl = root.find(".//claim")
+        msgs = claim_messages(cl)
+        if (cl.get("status") or "").upper() == "R":
+            return self._res(False, "REJECTED", "Claim.MD rejected the claim" + (": " + msgs if msgs else "."), ref=cl.get("claimmd_id") or "", raw=text)
+        return self._res(True, "SENT", "Sent to Claim.MD" + (" (" + msgs + ")" if msgs else "."), ref=cl.get("claimmd_id") or cl.get("claimid") or "", raw=text)
+
+    def upload_x12(self, name: str, edi: str) -> Result:
+        """A finished 837 (a corrected or resent claim) to /services/upload/, read back like submit_claim."""
+        name = re.sub(r"[^A-Za-z0-9_.-]", "_", name or "claim.837")
         try:
             code, text = self._post("upload/", {"Filename": name}, files={"File": (name, edi.encode(), "application/edi-x12")}, timeout=60)
         except Exception as e:
