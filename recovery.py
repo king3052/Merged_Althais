@@ -186,7 +186,16 @@ def match(db: Session, remits: List["lm.Remit"], org: Optional[str] = None) -> d
     else:
         q = q.where(RecoveryCase.sent_via == "althais")
     for case in db.scalars(q).all():
-        newer = [r for r in by_claim.get(case.claim_id, []) if (r.date or "") > (case.basis_date or "")]
+        sent_day = case.sent_at.date().isoformat() if case.sent_at else ""
+
+        def is_newer(r):
+            d = r.date or ""
+            if d > (case.basis_date or ""):
+                return True
+            # paid the same day it was sent (Claim.MD's test payer does this): a new payer claim number shows it's the
+            # answer to the corrected claim, not the old denial read again
+            return bool(sent_day and d >= sent_day and r.payer_claim_id and r.payer_claim_id != case.payer_claim_id)
+        newer = [r for r in by_claim.get(case.claim_id, []) if is_newer(r)]
         if org is None:
             npi = _billing_npi(_open(case))
             newer = [r for r in newer if npi and r.payee_npi == npi]

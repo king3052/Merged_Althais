@@ -345,3 +345,16 @@ def test_digest_toggle_and_preview():
     t = c.post("/api/recovery/digest/test").json()
     assert t["to"] == "recovery-biller@example.com"
     assert _client("recovery-viewer@example.com", role="viewer").get("/api/recovery/digest/preview").status_code == 403
+
+
+def test_paid_the_same_day_it_was_sent_closes_the_case(db):
+    rc.save_cases(db, "Recovery Test SameDay", "pat@example.com", analysis())
+    case = db.scalar(select(rc.RecoveryCase).where(rc.RecoveryCase.org_key == "Recovery Test SameDay", rc.RecoveryCase.claim_id == "BUN1"))
+    case.status, case.sent_at, case.basis_date = "SENT", dt.datetime(2026, 11, 8, 18, 15), "2026-11-08"
+    db.commit()
+    old = lm.build_835("BLUE CROSS", "2026-11-08", [_remit("BUN1", "2026-08-03", [_denied("99213", 145.0, "97")])], "BL")
+    rc.match(db, lm.parse_835(old), org="Recovery Test SameDay")              # the old denial, re-read the same day: same payer claim number
+    assert case.status == "SENT"
+    paid = lm.build_835("BLUE CROSS", "2026-11-08", [_remit("BUN1", "2026-08-03", [_ok("99213", 88.0, 145.0, ["25"])])], "BL").replace("ICNBUN1", "TSTNEW77")
+    rc.match(db, lm.parse_835(paid), org="Recovery Test SameDay")
+    assert case.status == "RECOVERED" and case.recovered == 88.0

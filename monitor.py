@@ -204,6 +204,7 @@ def _set_status(db, org: str, data: dict):
 
 
 def run_due(now: Optional[dt.datetime] = None) -> int:
+    from recovery import RecoveryCase
     """Hourly: every clinic with files newer than its last run. Also drops files past the keep window. Returns clinics run."""
     now = now or _now()
     n = 0
@@ -213,8 +214,13 @@ def run_due(now: Optional[dt.datetime] = None) -> int:
         latest = dict(db.execute(select(PaymentFile.org_key, func.max(PaymentFile.id)).group_by(PaymentFile.org_key)).all())
         for org, newest in latest.items():
             try:
-                if newest <= int(status(db, org).get("lastFileId") or 0):      # nothing newer than what the last run read
-                    continue
+                st = status(db, org)
+                if newest <= int(st.get("lastFileId") or 0):      # nothing newer than what the last run read...
+                    last = (st.get("lastRun") or "").rstrip("Z")
+                    waiting = db.scalar(select(func.count(RecoveryCase.id)).where(RecoveryCase.org_key == org, RecoveryCase.status == "SENT"))
+                    stale = not last or dt.datetime.fromisoformat(last) < _now() - dt.timedelta(hours=20)
+                    if not (waiting and stale):                    # ...unless claims are out with payers: then once a day anyway
+                        continue
                 run(db, org, now)
                 db.commit()
                 n += 1
