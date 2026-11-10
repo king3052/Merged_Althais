@@ -29,6 +29,8 @@ PAGES = {
     "/v4/revenue/claims": ("claims", "Claims"),
     "/v4/revenue/denials": ("denials", "Denials"),
     "/v4/revenue/payer-rules": ("rules", "Payer rules"),
+    "/v4/revenue/lost-money": ("lostmoney", "Lost Money"),      # lost_money.py, shown in the app frame (static/v4/app14.js)
+    "/v4/revenue/recovery": ("recovery", "Recovery"),           # recovery.py, likewise
     "/v4/revenue/code-a-note": ("codenote", "Code a Note"),
     "/v4/revenue/claim-tracker": ("tracker", "Claim Tracker"),
     "/v4/revenue/billing-activation": ("billing", "Billing Activation"),
@@ -82,7 +84,9 @@ def allowed_pages(user, products: set) -> list:
             return True
         tool = AREAS[area][1]
         return area not in blocked and (tool == "*" or has_product(products, tool))
-    return [k for k, _ in PAGES.values() if ok(k)]
+    from auth import ROLE_LEVELS
+    biller = ROLE_LEVELS.get(getattr(user, "role", None) or "viewer", 0) >= ROLE_LEVELS["biller"]
+    return [k for k, _ in PAGES.values() if ok(k) and (biller or k not in ("lostmoney", "recovery"))]
 
 
 def _page(key: str, title: str):

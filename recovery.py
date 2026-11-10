@@ -748,29 +748,31 @@ def recovery_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/login?next=/recovery", status_code=303)
     if ROLE_LEVELS.get(u.role or "viewer", 0) < ROLE_LEVELS["biller"]:
         return HTMLResponse("Billers and admins only.", status_code=403)
+    if request.headers.get("sec-fetch-dest") == "document":      # opened on its own: show it inside the app (v4 shell)
+        return RedirectResponse("/v4/revenue/recovery", status_code=302)
     return HTMLResponse(PAGE.replace("/*STYLE*/", lm.STYLE), headers={"Cache-Control": "no-store"})
 
 
 PAGE = r"""<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Recovery</title><style>/*STYLE*/
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 10px}.tabs button{background:var(--chip);color:var(--ink)}.tabs button.on{background:var(--accent);color:#fff}
+.tabs{display:flex;gap:0;flex-wrap:wrap;margin:16px 0 0;border-bottom:1px solid var(--line)}.tabs button{background:none;color:var(--ink2);border:0;border-bottom:2px solid transparent;border-radius:0;height:30px}.tabs button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}.tabs button:hover{filter:none;background:var(--hover)}
 tr.r{cursor:pointer}tr.r:hover td{background:var(--chip)}
-.panel{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--card);border-left:1px solid var(--line);overflow:auto;padding:22px 20px 40px;box-shadow:-12px 0 40px rgba(0,0,0,.12);display:none}
-.panel.on{display:block}.x{float:right;background:var(--chip);color:var(--ink)}
-textarea{width:100%;min-height:340px;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
-input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.ghost{background:var(--chip);color:var(--ink)}
-.warn{background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:8px;font-size:13px}
-.ok{background:var(--accent-soft);color:var(--accent);padding:8px 10px;border-radius:8px;font-size:13px}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--card);border-left:1px solid var(--line);overflow:auto;padding:22px 20px 40px;box-shadow:none;display:none}
+.panel.on{display:block}.x{float:right;background:var(--card);color:var(--ink);border-color:var(--line)}
+textarea{width:100%;min-height:340px;font:12px/1.5 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;padding:10px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink)}
+input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.ghost{background:var(--card);color:var(--ink);border-color:var(--line)}
+.warn{background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:3px;font-size:13px}
+.ok{background:var(--good-soft);color:var(--good);padding:8px 10px;border-radius:3px;font-size:13px}
 .hist{font-size:12.5px;color:var(--muted)}.hist li{margin:3px 0}label.e{display:flex;gap:8px;align-items:center;margin:4px 0}
-.empty{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted)}
+.empty{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:28px;text-align:center;color:var(--muted)}
 </style></head><body><main>
 <div class=top><div><h1>Recovery</h1><p class=sub>Every item the Lost Money Report found, worked until it's paid. Payments close cases on their own.</p></div>
 <div class=row style="margin:0"><label class=e style="margin:0"><input type=checkbox id=dg onchange="dg(this.checked)"> Monday email</label>
-<a href="/api/recovery/digest/preview" target=_blank><button class=ghost>Preview</button></a><a href="/lost-money"><button>Run a Lost Money Report</button></a></div></div>
+<a href="/api/recovery/digest/preview" target=_blank><button class=ghost>Preview</button></a><a href="/lost-money" target=_top><button>Run a Lost Money Report</button></a></div></div>
 <div class=cards>
-<div class="card hero"><div class=k>Recovered</div><div class=v id=tRec>$0</div><div class=s id=tRecN></div></div>
+<div class="card hero"><div class=k>Recovered</div><div class=v id=tRec style="color:var(--good)">$0</div><div class=s id=tRecN></div></div>
 <div class=card><div class=k>Still to recover</div><div class=v id=tOpen>$0</div><div class=s id=tOpenN></div></div>
 <div class=card><div class=k>Sent, waiting on payers</div><div class=v id=tSent>$0</div><div class=s>&nbsp;</div></div>
 <div class=card><div class=k>Deadlines in 14 days</div><div class=v id=tDue>0</div><div class=s>work these first</div></div></div>
@@ -935,7 +937,7 @@ def digest_html(d: dict, clinic: str, unsubscribe_url: str) -> str:
     def stat(label, value, sub, hero=False):
         return (f"<td width='50%' style='padding:6px'><div style='border:1px solid #e4e6eb;border-radius:8px;padding:14px;"
                 f"background:{'#e3f2ef' if hero else '#fff'}'><div style='font-size:12px;color:#6b7280'>{label}</div>"
-                f"<div style='font-size:24px;font-weight:700;color:{'#0f6b5c' if hero else '#0f1116'};margin-top:2px'>{value}</div>"
+                f"<div style='font-size:24px;font-weight:700;color:{'#1d5bb8' if hero else '#0f1116'};margin-top:2px'>{value}</div>"
                 f"<div style='font-size:12px;color:#6b7280'>{sub}</div></div></td>")
     rows = "".join(f"<tr><td style='padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#0f1116'>{e(x['payer'])} · {e(x['code'])} · {e(x['kind'])}</td>"
                    f"<td style='padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:{'#a12a2a' if x['days'] <= 3 else '#a35a00'};text-align:right;white-space:nowrap'>{x['days']} day{'s' if x['days'] != 1 else ''} · {_money(x['dollars'])}</td></tr>"
@@ -954,7 +956,7 @@ def digest_html(d: dict, clinic: str, unsubscribe_url: str) -> str:
     return f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f5f7;font-family:Inter,Segoe UI,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:10px;border:1px solid #e4e6eb">
-<tr><td style="padding:24px 28px 8px"><span style="font-size:12px;font-weight:700;letter-spacing:.2em;color:#0f6b5c">ALTHAIS</span>
+<tr><td style="padding:24px 28px 8px"><span style="font-size:12px;font-weight:700;letter-spacing:.2em;color:#1d5bb8">ALTHAIS</span>
 <h1 style="font-size:20px;color:#0f1116;margin:10px 0 2px">Your week in recovery</h1><div style="font-size:13px;color:#6b7280">{e(clinic)}</div></td></tr>
 <tr><td style="padding:8px 22px"><table width="100%" cellpadding="0" cellspacing="0"><tr>
 {stat('Recovered last week', _money(d['recovered_week']), f"{d['recovered_week_count']} item(s) · {_money(d['recovered_total'])} all time", True)}
@@ -964,7 +966,7 @@ def digest_html(d: dict, clinic: str, unsubscribe_url: str) -> str:
 {f"<tr><td style='padding:6px 28px 0;font-size:14px;color:#374151;line-height:1.6'>{'<br>'.join(lines)}</td></tr>" if lines else ''}
 {alerts_html}
 {f"<tr><td style='padding:16px 28px 0'><div style='font-size:13px;font-weight:600;color:#0f1116;margin-bottom:4px'>Closest deadlines</div><table width='100%' cellpadding='0' cellspacing='0'>{rows}</table></td></tr>" if rows else ''}
-<tr><td style="padding:22px 28px 26px"><a href="{APP_URL}/recovery" style="display:inline-block;background:#0f6b5c;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px">Open Recovery</a></td></tr>
+<tr><td style="padding:22px 28px 26px"><a href="{APP_URL}/recovery" style="display:inline-block;background:#1d5bb8;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px">Open Recovery</a></td></tr>
 <tr><td style="padding:14px 28px;border-top:1px solid #f0f0f0;font-size:11.5px;color:#9aa3af;line-height:1.5">
 No patient details are included in this email. Sent every Monday to your clinic's admins and billers.
 <a href="{unsubscribe_url}" style="color:#9aa3af">Stop these emails</a>.</td></tr></table></td></tr></table></body></html>"""

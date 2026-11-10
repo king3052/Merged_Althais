@@ -1242,29 +1242,35 @@ SECTIONS = [
 ]
 
 STYLE = """
-:root{--bg:#f6f7f9;--card:#fff;--ink:#14181f;--muted:#5b6472;--line:#e3e6eb;--accent:#0f6b5c;--accent-soft:#e3f2ef;
---warn:#a35a00;--warn-soft:#fff2df;--bad:#a12a2a;--bad-soft:#fde8e8;--chip:#eef0f3}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1216;--card:#171b21;--ink:#e8ebef;--muted:#9aa3af;
---line:#2a3039;--accent:#4fc3a8;--accent-soft:#16312b;--warn:#f0b35a;--warn-soft:#33270f;--bad:#f08080;--bad-soft:#3a1a1a;--chip:#222831}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
-main{max-width:1080px;margin:0 auto;padding:32px 16px 64px}h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em}
-h2{font-size:19px;margin:36px 0 4px}p.sub{color:var(--muted);margin:0 0 14px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:20px 0}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-.card .k{color:var(--muted);font-size:13px}.card .v{font-size:28px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
-.card .s{color:var(--muted);font-size:13px}.card.hero{background:var(--accent-soft);border-color:transparent}.card.hero .v{color:var(--accent)}
-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13.5px}
-th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{background:var(--chip);font-weight:600;font-size:12.5px;color:var(--muted)}
-td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}tr:last-child td{border-bottom:0}
-.wrap{overflow-x:auto;border-radius:12px}.chip{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;background:var(--chip);white-space:nowrap}
-.high{background:var(--accent-soft);color:var(--accent)}.medium{background:var(--warn-soft);color:var(--warn)}.low{background:var(--chip);color:var(--muted)}
-.late{color:var(--bad);font-weight:600}.why{color:var(--muted);font-size:12.5px;margin-top:3px}
-.bar{display:flex;align-items:center;gap:8px;margin:4px 0}.bar span.l{width:60px;color:var(--muted);font-size:13px}
-.bar .t{flex:1;background:var(--chip);border-radius:6px;height:14px;overflow:hidden}.bar .f{background:var(--accent);height:100%}
-.bar span.n{width:90px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
-.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--muted);font-size:13px;margin-top:28px}
-button{font:inherit;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
-.more{color:var(--muted);font-size:13px;margin-top:6px}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--brand:#1d5bb8;--bg:#eef1f4;--card:#fff;--ink:#1c2733;--ink2:#4a5868;--muted:#6b7785;--line:#d3d9e0;--line2:#e6eaef;--accent:var(--brand);
+--accent-soft:#eef4fc;--warn:#a15c07;--warn-soft:#fdf8ef;--bad:#b42318;--bad-soft:#fdf3f2;--chip:#f1f4f7;--good:#17784a;--good-soft:#f1f8f4;--hover:#f2f6fb}
+html[data-theme-resolved=dark]{color-scheme:dark;--bg:#0e1116;--card:#161a21;--ink:#e6e9ef;--ink2:#b3bbc9;--muted:#8a94a6;--line:#2d333e;--line2:#252a33;
+--accent-soft:rgb(29 91 184/.16);--warn:#e7ad5c;--warn-soft:#2a2011;--bad:#f08a7e;--bad-soft:#2b1715;--chip:#1d222b;--good:#63c995;--good-soft:#11251b;--hover:#1f2530}
+@media (prefers-color-scheme:dark){html:not([data-theme-resolved]){color-scheme:dark;--bg:#0e1116;--card:#161a21;--ink:#e6e9ef;--ink2:#b3bbc9;--muted:#8a94a6;
+--line:#2d333e;--line2:#252a33;--accent-soft:rgb(29 91 184/.16);--warn:#e7ad5c;--warn-soft:#2a2011;--bad:#f08a7e;--bad-soft:#2b1715;--chip:#1d222b;--good:#63c995;--good-soft:#11251b;--hover:#1f2530}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:12.5px/1.45 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+main{max-width:none;margin:0;padding:14px 16px 48px}h1{font-size:16px;font-weight:600;margin:0 0 2px}
+h2{font-size:13.5px;font-weight:600;margin:22px 0 6px}p.sub{color:var(--muted);margin:0 0 10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;margin:12px 0;border:1px solid var(--line);background:var(--card)}
+.cards .card{border:0;border-right:1px solid var(--line2);border-radius:0}.cards .card:last-child{border-right:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:10px 12px}
+.card .k{color:var(--muted);font-size:11.5px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}.card .v{font-size:20px;font-weight:600;margin-top:2px}
+.card .s{color:var(--muted);font-size:12px}.card.hero{background:var(--accent-soft)}.card.hero .v{color:var(--accent)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);font-size:12.5px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:top}th{background:var(--chip);font-weight:600;font-size:12px;color:var(--ink2);border-bottom:1px solid var(--line)}
+td.n,th.n{text-align:right;white-space:nowrap}tr:last-child td{border-bottom:0}tbody tr:hover td,tr:hover td{background:var(--hover)}
+.wrap{overflow-x:auto}.chip{display:inline-block;padding:0 6px;border-radius:2px;font-size:11.5px;line-height:18px;background:var(--chip);color:var(--ink2);white-space:nowrap;border:1px solid var(--line2)}
+.high{background:var(--good-soft);color:var(--good);border-color:transparent}.medium{background:var(--warn-soft);color:var(--warn);border-color:transparent}.low{background:var(--chip);color:var(--muted)}
+.late{color:var(--bad);font-weight:600}.why{color:var(--muted);font-size:12px;margin-top:2px}
+.bar{display:flex;align-items:center;gap:8px;margin:4px 0}.bar span.l{width:60px;color:var(--muted);font-size:12px}
+.bar .t{flex:1;background:var(--chip);border-radius:2px;height:12px;overflow:hidden}.bar .f{background:var(--accent);height:100%}
+.bar span.n{width:90px;text-align:right;font-size:12px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:10px 12px;color:var(--muted);font-size:12px;margin-top:22px}
+button{font:inherit;font-size:12.5px;background:var(--accent);color:#fff;border:1px solid transparent;border-radius:3px;height:28px;padding:0 12px;cursor:pointer;white-space:nowrap}
+button:hover{filter:brightness(.94)}button:disabled{opacity:.6;cursor:default}
+.more{color:var(--muted);font-size:12px;margin-top:6px}
 @media print{button{display:none}body{background:#fff}.card,table{break-inside:avoid}}
 """
 
@@ -1292,7 +1298,7 @@ def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_se
             parts.append(f"{saved['denied_again']} denied again")
         out.append("<div class='card' style='margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap'>"
                    f"<div><b>Fix it:</b> {e('; '.join(parts))}. Corrected claims and appeal letters are ready there.</div>"
-                   "<a href='/recovery'><button>Open Recovery</button></a></div>")
+                   "<a href='/recovery' target=_top><button>Open Recovery</button></a></div>")
     out.append("<div class=cards>"
                f"<div class='card hero'><div class=k>Money found</div><div class=v>{_m(s['found'])}</div><div class=s>about {_m(s['found_annual'])} a year at this pace</div></div>"
                f"<div class=card><div class=k>Possible, needs chart review</div><div class=v>{_m(s['possible'])}</div><div class=s>about {_m(s['possible_annual'])} a year</div></div>"
@@ -1548,8 +1554,8 @@ if _HAS_FASTAPI:
     def _page(action: str, who: str, saving: bool = False) -> str:
         return f"""<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Lost Money Report</title><style>{STYLE}
-.drop{{border:2px dashed var(--line);border-radius:14px;padding:36px 16px;text-align:center;background:var(--card);cursor:pointer}}
-.drop.on{{border-color:var(--accent);background:var(--accent-soft)}} input[type=text]{{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:100%;max-width:360px}}
+.drop{{border:1px dashed var(--line);border-radius:3px;padding:30px 16px;color:var(--ink2);text-align:center;background:var(--card);cursor:pointer}}
+.drop.on{{border-color:var(--accent);background:var(--accent-soft)}} input[type=text]{{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:3px;height:28px;background:var(--card);color:var(--ink);width:100%;max-width:360px}}
 #list{{color:var(--muted);font-size:13px;margin:10px 0}} #err{{color:var(--bad)}}</style></head><body><main>
 <h1>Lost Money Report</h1><p class=sub>{html.escape(who)}</p>
 <div class=card><ol style="margin:0 0 0 18px;padding:0;color:var(--muted)">
@@ -1558,7 +1564,7 @@ if _HAS_FASTAPI:
 <li>Drop them here (a zip works). Nothing is saved: the files are read once to build the report.</li></ol></div>
 <form id=f style="margin-top:16px"><p><input type=text name=clinic placeholder="Clinic name (optional, shown on the report)"></p>
 <div class=drop id=drop>Drop files here, or click to choose<input id=pick type=file name=files multiple hidden></div>
-<div id=list></div>{'<p><label><input type=checkbox name=save value=1 checked> Save what can be recovered to <a href="/recovery">Recovery</a>, and close items these payments settle</label></p>' if saving else ''}
+<div id=list></div>{'<p><label><input type=checkbox name=save value=1 checked> Save what can be recovered to <a href="/recovery" target=_top>Recovery</a>, and close items these payments settle</label></p>' if saving else ''}
 <button id=go type=submit>Build the report</button> <span id=err></span></form>
 <script>
 const d=document.getElementById('drop'),p=document.getElementById('pick'),L=document.getElementById('list');let F=[];
@@ -1627,6 +1633,8 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
             return RedirectResponse("/login?next=/lost-money", status_code=303)
         if not ok:
             return HTMLResponse("Billers and admins only.", status_code=403)
+        if request.headers.get("sec-fetch-dest") == "document":      # opened on its own: show it inside the app (v4 shell)
+            return RedirectResponse("/v4/revenue/lost-money", status_code=302)
         return HTMLResponse(_page("/api/lost-money/report", "Upload your payment and claim files; see the money you're owed, claim by claim.", saving=True),
                             headers={"Cache-Control": "no-store"})
 
