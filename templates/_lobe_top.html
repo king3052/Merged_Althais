@@ -1,0 +1,115 @@
+{# Landing page top: announcement bar + header, laid out like getlobe.com. Fixed to the top of the screen (40px bar + 72px
+   header); the hero below starts under it. Styles live in static/althais-lobe.css (.lb-*). #}
+{% set LB_CATEGORIES = [
+  ("Document the visit", "Write the note while you talk.", "A finished note, before the patient leaves.", [
+    ("/platform/ai-scribe", "AI Scribe", "Record the visit or type it. Get a SOAP note you can review and sign.", "mic"),
+    ("/platform/althea", "Althea Assistant", "Ask about the visit on screen, by voice or chat, without leaving the chart.", "chat")]),
+  ("Code and get paid", "Codes with the reasons attached.", "Clean claims, from the first code to payment.", [
+    ("/platform/medical-coding", "Medical Coding", "ICD-10 and CPT suggestions with confidence and the reason for each.", "code"),
+    ("/platform/claims-insurance", "Claims & Insurance", "Check claims against real CMS edits, send them, and track every one.", "claim")]),
+  ("Run your team", "Everyone set up and covered.", "Your team, ready from day one.", [
+    ("/platform/team-onboarding", "Team & Onboarding", "Invite staff, train them, and set who can see what.", "team"),
+    ("/security", "Security", "Encryption, access controls and a full audit log of patient data.", "lock")]),
+] %}
+{% set LB_LINKS = [("/solutions", "Who we serve"), ("/about", "Our Story"), ("/resources", "Resources")] %}
+{% macro lb_icon(name) -%}
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == "mic" %}<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+{%- elif name == "chat" %}<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>
+{%- elif name == "code" %}<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/>
+{%- elif name == "claim" %}<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/>
+{%- elif name == "team" %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14a6.5 6.5 0 0 1 3.5 6"/>
+{%- elif name == "lock" %}<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+{%- endif %}</svg>
+{%- endmacro %}
+{% set lb_arrow %}<svg class="lb-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>{% endset %}
+<div class="lb-top" id="top">
+  <a href="#content" class="lb-skiplink">Skip to content</a>
+  <p class="lb-announce">AI scribe, coding and claims in one platform.<a href="/how-it-works">Explore Althais</a></p>
+  <header class="lb-header">
+    <div class="lb-header-inner">
+      <a class="lb-header-brand" href="{{ logo_href | default('/') }}" aria-label="Althais home"><svg width="26" height="26" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="25" fill="none"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="8" stroke-linecap="butt"/></svg><span>Althais</span></a>
+      <nav class="lb-nav" aria-label="Primary">
+        <div class="lb-nav-drop"><button type="button" class="lb-nav-drop-trigger" aria-expanded="false" aria-controls="lb-mega-products">Products</button></div>
+        {% for href, label in LB_LINKS %}<a href="{{ href }}">{{ label }}</a>{% endfor %}
+      </nav>
+      <div class="lb-actions">
+        <a class="lb-login" href="/login">Log in</a>
+        <a class="lb-btn lb-btn--primary" href="/demo">Request demo</a>
+        <button type="button" class="lb-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="lb-mobile-navigation"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      </div>
+    </div>
+  </header>
+  <div id="lb-mega-products" inert role="region" aria-label="Althais products" class="lb-mega">
+    <div class="lb-container lb-mega-browser">
+      <div class="lb-product-categories" role="group" aria-label="Product categories">
+        {% for name, sub, title, items in LB_CATEGORIES %}
+        <button type="button" aria-pressed="{{ 'true' if loop.first else 'false' }}" aria-controls="lb-category-products" data-cat="{{ loop.index0 }}"><span>{{ name }}<small>{{ sub }}</small></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        {% endfor %}
+      </div>
+      <div id="lb-category-products" class="lb-category-products">
+        {% for name, sub, title, items in LB_CATEGORIES %}
+        <div class="lb-category" data-cat="{{ loop.index0 }}"{% if not loop.first %} hidden{% endif %}>
+          <p class="lb-category-title">{{ title }}</p>
+          <div class="lb-category-grid">
+            {% for href, pname, desc, icon in items %}<a class="lb-mega-cell" href="{{ href }}"><span class="lb-mega-icon" aria-hidden="true">{{ lb_icon(icon) }}</span><span class="lb-mega-name">{{ pname }}</span><span class="lb-mega-desc">{{ desc }}</span></a>{% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        <a class="lb-mega-more" href="/how-it-works">See how Althais works {{ lb_arrow }}</a>
+      </div>
+    </div>
+  </div>
+  <div id="lb-mobile-navigation" inert class="lb-mobile-sheet">
+    <a href="/how-it-works">Explore the platform</a>
+    {% for name, sub, title, items in LB_CATEGORIES %}
+    <details name="lb-mobile-products" class="lb-mobile-products"{% if loop.first %} open{% endif %}>
+      <summary>{{ name }}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      {% for href, pname, desc, icon in items %}<a href="{{ href }}">{{ pname }}</a>{% endfor %}
+    </details>
+    {% endfor %}
+    {% for href, label in LB_LINKS %}<a href="{{ href }}">{{ label }}</a>{% endfor %}
+    <a href="/login">Log in</a>
+    <a class="lb-btn lb-btn--primary" href="/demo">Request demo</a>
+  </div>
+</div>
+<script>
+  // Products mega menu: opens on click (and on hover with a mouse), category buttons swap the product grid; one sheet on phones
+  (function () {
+    var top = document.currentScript.previousElementSibling;
+    var trigger = top.querySelector('.lb-nav-drop-trigger'), mega = top.querySelector('.lb-mega');
+    var burger = top.querySelector('.lb-menu-btn'), sheet = top.querySelector('.lb-mobile-sheet');
+    var hoverable = window.matchMedia && matchMedia('(hover: hover)').matches, closeT;
+    function setMega(open) {
+      clearTimeout(closeT);
+      mega.classList.toggle('is-open', open); mega.inert = !open;
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    // with a mouse, hovering already opened it, so a click keeps it open instead of toggling it shut
+    trigger.addEventListener('click', function (e) { e.stopPropagation(); setMega(hoverable || !mega.classList.contains('is-open')); });
+    if (hoverable) {
+      [trigger, mega].forEach(function (el) {
+        el.addEventListener('mouseenter', function () { setMega(true); });
+        el.addEventListener('mouseleave', function () { closeT = setTimeout(function () { setMega(false); }, 160); });
+      });
+    }
+    [].forEach.call(top.querySelectorAll('.lb-product-categories button'), function (b, _, all) {
+      function pick() {
+        [].forEach.call(top.querySelectorAll('.lb-product-categories button'), function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+        [].forEach.call(top.querySelectorAll('.lb-category'), function (c) { c.hidden = c.dataset.cat !== b.dataset.cat; });
+      }
+      b.addEventListener('click', pick);
+      if (hoverable) b.addEventListener('mouseenter', pick);
+    });
+    function setSheet(open) {
+      sheet.classList.toggle('is-open', open); sheet.inert = !open;
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false'); burger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      document.documentElement.style.overflow = open ? 'hidden' : '';
+    }
+    burger.addEventListener('click', function () { setSheet(!sheet.classList.contains('is-open')); });
+    sheet.addEventListener('click', function (e) { if (e.target.closest('a')) setSheet(false); });
+    document.addEventListener('click', function (e) { if (!mega.contains(e.target)) setMega(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { setMega(false); setSheet(false); } });
+    window.addEventListener('resize', function () { if (window.innerWidth > 900 && sheet.classList.contains('is-open')) setSheet(false); });
+  })();
+</script>
