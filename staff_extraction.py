@@ -224,7 +224,8 @@ def claude_analyzer(expected_type: str, filename: str, content_type: str, data: 
              {"type": "image", "source": {"type": "base64", "media_type": content_type, "data": b64}})
     ask = (f"The clinic asked this person for: {DOC_TYPES.get(expected_type, expected_type)}. "
            "Classify what this document actually is, then report on it.")
-    client = anthropic.Anthropic(timeout=180.0, max_retries=2)
+    import ai_client
+    client = ai_client.anthropic_client(timeout=180.0, max_retries=2)   # Anthropic's API, or Claude on Vertex AI
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)   # output_format is the SDK's documented Pydantic path
         response = client.beta.messages.parse(
@@ -244,5 +245,5 @@ def claude_analyzer(expected_type: str, filename: str, content_type: str, data: 
     return AnalysisResult(status="analyzed", analysis=response.parsed_output, processor=f"claude:{response.model}")
 
 
-claude_analyzer.is_available = lambda: bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+claude_analyzer.is_available = lambda: __import__("ai_client").claude_ready()
 register(claude_analyzer)

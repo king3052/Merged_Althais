@@ -912,11 +912,12 @@ def _search(material: list, q: str, n: int = 3) -> list:
 
 def _claude_answer(question: str, snippets: list, mode: str) -> str:
     """Althea answers from the course material only. None when Claude isn't configured or doesn't answer."""
-    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+    if not __import__("ai_client").claude_ready():
         return None
     try:
         import anthropic
-        client = anthropic.Anthropic(timeout=25.0, max_retries=1)
+        import ai_client
+        client = ai_client.anthropic_client(timeout=25.0, max_retries=1)
         material = "\n\n".join(f"[{s['title']}]\n{s['text']}" for s in snippets)
         style = {"simple": "Explain it simply, in 2 or 3 short sentences a new employee would understand.",
                  "example": "Give one short, concrete example from a clinic day that shows it.",

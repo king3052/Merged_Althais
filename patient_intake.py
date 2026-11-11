@@ -359,7 +359,8 @@ def _prompt(tag: str) -> str:
 def claude_extract(data: bytes, content_type: str, tag: str) -> str:
     """One document through Claude; returns the raw reply text. Raises on any failure."""
     import anthropic
-    client = anthropic.Anthropic(timeout=EXTRACT_TIMEOUT, max_retries=1)
+    import ai_client
+    client = ai_client.anthropic_client(timeout=EXTRACT_TIMEOUT, max_retries=1)   # Anthropic's API, or Claude on Vertex AI
     b64 = base64.standard_b64encode(data).decode()
     block = ({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": b64}} if content_type == "application/pdf"
              else {"type": "image", "source": {"type": "base64", "media_type": content_type, "data": b64}})
@@ -372,7 +373,8 @@ EXTRACTOR = claude_extract   # replaced in tests
 
 
 def available() -> bool:
-    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+    import ai_client
+    return ai_client.claude_ready()
 
 
 # ──────────────────────────────────────────────────────────────────────────
