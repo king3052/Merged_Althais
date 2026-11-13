@@ -119,6 +119,8 @@ import lost_money   # Lost Money Report: 835/837/CSV files in, dollars the clini
 app.include_router(lost_money.router)
 import recovery   # Fix it: corrected claims, appeal letters, tracking each Lost Money item until it's paid (recovery.py)
 app.include_router(recovery.router)
+import payment_sources   # a clinic connects its own Claim.MD account; Althais pulls its payment files (payment_sources.py)
+app.include_router(payment_sources.router)
 import audit   # access log: who viewed or changed patient and billing data (audit.py)
 app.include_router(audit.router)
 app.middleware("http")(audit.middleware)

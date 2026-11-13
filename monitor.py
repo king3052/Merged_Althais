@@ -44,7 +44,7 @@ class PaymentFile(Base):
     org_key: Mapped[str] = mapped_column(String(255), index=True)
     sha: Mapped[str] = mapped_column(String(64))
     kind: Mapped[str] = mapped_column(String(8))           # 835 | 837 | csv
-    source: Mapped[str] = mapped_column(String(16))        # claimmd | upload
+    source: Mapped[str] = mapped_column(String(16))        # claimmd (Althais's account) | clinic_claimmd (the clinic's own) | upload
     name: Mapped[str] = mapped_column(String(160), default="")
     sealed: Mapped[str] = mapped_column(Text)
     received_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now, index=True)
@@ -155,8 +155,9 @@ def _sent_claims(db, org: str, since: dt.datetime) -> List[Tuple[str, bytes]]:
     return out
 
 
-def run(db, org: str, now: Optional[dt.datetime] = None) -> dict:
-    """The Lost Money analysis over the clinic's last 200 days of files; opens and closes Recovery cases."""
+def analyse(db, org: str, now: Optional[dt.datetime] = None, by: str = "Althais (watching payments)"):
+    """The Lost Money analysis over the clinic's last 200 days of files, with new items saved to Recovery and paid ones
+    closed. Returns (analysis, what was saved). Used by run() and by the report built from pulled files (payment_sources)."""
     import money_checks
     import recovery
     now = now or _now()
@@ -170,10 +171,19 @@ def run(db, org: str, now: Optional[dt.datetime] = None) -> dict:
             continue
     pairs += _sent_claims(db, org, since)
     a = lm.analyze(pairs, now.date())
+    a.kept_files = files
     saved = {"created": 0, "recovered": 0, "denied_again": 0, "recovered_dollars": 0.0}
     if a.remits or a.claims:
         money_checks.learn(db, org, a)
-        saved = recovery.save_cases(db, org, "Althais (watching payments)", a)
+        saved = recovery.save_cases(db, org, by, a)
+    return a, saved
+
+
+def run(db, org: str, now: Optional[dt.datetime] = None) -> dict:
+    """The Lost Money analysis over the clinic's last 200 days of files; opens and closes Recovery cases."""
+    now = now or _now()
+    a, saved = analyse(db, org, now)
+    files = a.kept_files
     s = a.summary()
     status = {"lastRun": now.isoformat(timespec="seconds") + "Z", "files": len(files), "payments": s["payments"], "claims": s["claims"],
               "found": s["found"], "period": s["period"], "newCases": saved.get("created", 0), "recovered": saved.get("recovered", 0),
@@ -191,7 +201,7 @@ def status(db, org: str) -> dict:
     row = _status_row(db, org)
     out = json.loads(row.data or "{}") if row else {}
     out["filesKept"] = db.scalar(select(func.count(PaymentFile.id)).where(PaymentFile.org_key == org)) or 0
-    out["fromClaimmd"] = db.scalar(select(func.count(PaymentFile.id)).where(PaymentFile.org_key == org, PaymentFile.source == "claimmd")) or 0
+    out["fromClaimmd"] = db.scalar(select(func.count(PaymentFile.id)).where(PaymentFile.org_key == org, PaymentFile.source.in_(("claimmd", "clinic_claimmd")))) or 0
     return out
 
 
@@ -208,6 +218,11 @@ def run_due(now: Optional[dt.datetime] = None) -> int:
     """Hourly: every clinic with files newer than its last run. Also drops files past the keep window. Returns clinics run."""
     now = now or _now()
     n = 0
+    try:                # clinics that connected their own clearinghouse account: their new payment files first (payment_sources.py)
+        import payment_sources
+        payment_sources.sync_due(now)
+    except Exception as e:
+        print(f"[PAYMENT_SOURCE] {type(e).__name__}")
     with SessionLocal() as db:
         db.query(PaymentFile).filter(PaymentFile.received_at < now - dt.timedelta(days=KEEP_DAYS)).delete(synchronize_session=False)
         db.commit()

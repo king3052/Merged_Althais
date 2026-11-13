@@ -889,11 +889,21 @@ class Analysis:
                 if per_unit < rate * 0.98 - 0.25 and short >= 1.0:
                     extra = f" The payer also took {', '.join(CARC.get(c, c) for c in reasons)}." if reasons else ""
                     refs = [x for x in self.rate_refs.get(((r.payer or "").upper(), code, mods, round(rate, 2)), []) if not x.startswith((r.payer_claim_id or r.claim_id) + " ")][:3]
+                    window = APPEAL_DAYS.get(r.payer_type, 180)
+                    deadline, left = _deadline(r.date or r.dos, window, self.today)
+                    why = (f"Allowed ${a:,.2f} for {l.units:g} unit(s); {r.payer} allowed ${rate:,.2f} per unit on {n_rate} of {len(vals)} other {l.code} lines that year.{extra}"
+                           + f" Reconsideration window assumed {window} days from the payment for a {r.payer_type.replace('_', ' ')} payer: check the contract.")
+                    if left is not None and left < 0:
+                        self.add(evidence=refs, category="lost", title=f"{l.code} paid below {r.payer}'s usual rate — past the reconsideration window",
+                                 dollars=short, confidence="high", action="Prevention: review payments within days of each payment file",
+                                 why=why, claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code,
+                                 deadline=deadline, days_left=left, counted=False)
+                        continue
                     self.add(evidence=refs, category="underpaid", title=f"{l.code} paid below {r.payer}'s usual rate",
                              dollars=short, confidence="high" if n_rate >= 3 else "medium",
                              action="Ask the payer to reprocess at the contracted rate (call or reconsideration form); attach a paid example at the usual rate",
-                             why=f"Allowed ${a:,.2f} for {l.units:g} unit(s); {r.payer} allowed ${rate:,.2f} per unit on {n_rate} of {len(vals)} other {l.code} lines that year.{extra}",
-                             claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code)
+                             why=why, claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code,
+                             deadline=deadline, days_left=left)
         # rate drops: a payer's usual rate for a code fell during the period
         for (payer, code, mods), vals in self.rates["payer"].items():
             vals = sorted(v for v in vals if v[0])
@@ -1041,12 +1051,15 @@ class Analysis:
                 continue        # too new to chase, or older than the payment files cover
             value = sum(self.expected(c.payer, l)[0] for l in c.lines)
             limit = 365 if c.payer_type == "medicare" else 90 if c.payer_type == "medicaid" else 180
-            since = _days(c.dos, self.today.isoformat()) or 0
+            deadline, left = _deadline(c.dos, limit, self.today)
             self.add(fix="resend", category="no_response", title=f"No answer from {c.payer or 'the payer'} after {age} days",
                      dollars=round(value, 2), confidence="medium",
-                     action="Check claim status (payer portal or 276); if the payer never got it, resubmit now" + (f" — the usual {limit}-day filing limit is close" if since > limit - 30 else ""),
-                     why=f"Sent for {c.dos}; no payment or denial in the payment files, which run to {last_remit}. It may be in a file that wasn't uploaded.",
-                     claim_id=c.claim_id, payer=c.payer, dos=c.dos, code=", ".join(l.code for l in c.lines[:4]))
+                     action="Check claim status (payer portal or 276); if the payer never got it, resubmit now"
+                            + (" — past the usual filing limit: only recoverable with proof it was filed on time (clearinghouse acceptance report)" if (left is not None and left < 0)
+                               else f" — the usual {limit}-day filing limit is close" if (left is not None and left < 30) else ""),
+                     why=f"Sent for {c.dos}; no payment or denial in the payment files, which run to {last_remit}. It may be in a file that wasn't uploaded."
+                         f" Filing limit assumed {limit} days from the visit for a {c.payer_type.replace('_', ' ')} payer: check the contract.",
+                     claim_id=c.claim_id, payer=c.payer, dos=c.dos, code=", ".join(l.code for l in c.lines[:4]), deadline=deadline, days_left=left)
 
     # ── 6. coding risks ──
     def coding_risks(self):
@@ -1168,6 +1181,7 @@ class Analysis:
         for f in self.findings:
             cats[f.category]["count"] += 1
             cats[f.category]["dollars"] += f.dollars
+        soon = [f for f in self.findings if f.counted and f.confidence in ("high", "medium") and f.days_left is not None and 0 <= f.days_left <= 30]
         denied_lines = sum(1 for r in self.remits for l in r.lines if _denied(l))
         all_lines = sum(len(r.lines) for r in self.remits)
         return {
@@ -1178,6 +1192,8 @@ class Analysis:
             "found": round(found, 2), "found_annual": round(found * factor, 2),
             "possible": round(possible, 2), "possible_annual": round(possible * factor, 2),
             "lost": round(lost, 2), "lost_annual": round(lost * factor, 2),
+            "act_soon": {"count": len(soon), "dollars": round(sum(f.dollars for f in soon), 2),
+                         "first": min((f.deadline for f in soon), default="")},
             "patient_owed": self.patient_owed,
             "denial_rate": round(denied_lines / all_lines, 4) if all_lines else None,
             "categories": {k: {"count": v["count"], "dollars": round(v["dollars"], 2)} for k, v in cats.items()},
@@ -1186,6 +1202,15 @@ class Analysis:
 
     def to_dict(self) -> dict:
         return {"summary": self.summary(), "findings": [asdict(f) for f in self.findings]}
+
+
+def _deadline(base: str, days: int, today: dt.date) -> Tuple[str, Optional[int]]:
+    """(act-by date, days left) counted from a payment or service date; ("", None) when the date can't be read."""
+    try:
+        d = dt.date.fromisoformat((base or "")[:10]) + dt.timedelta(days=days)
+    except ValueError:
+        return "", None
+    return d.isoformat(), (d - today).days
 
 
 def _group_of(adjs: List[Adj], carc: str) -> str:
@@ -1305,6 +1330,11 @@ def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_se
                f"<div class=card><div class=k>Lost for good</div><div class=v>{_m(s['lost'])}</div><div class=s>what prevention is worth</div></div>"
                f"<div class=card><div class=k>Denial rate (lines)</div><div class=v>{(s['denial_rate'] or 0):.1%}</div><div class=s>{_m(s['paid'])} paid on {_m(s['charges'])} billed</div></div>"
                "</div>")
+    soon = s.get("act_soon") or {}
+    if soon.get("count"):
+        out.append("<div class=card style='margin-top:-2px;border-color:var(--warn);background:var(--warn-soft)'>"
+                   f"<b>{_m(soon['dollars'])} has to be acted on within 30 days</b> ({soon['count']} item(s), the first by {e(soon['first'])}). "
+                   "After the deadline, the payer doesn't have to pay it. Each section below lists the soonest first.</div>")
     # where the money is
     rows = []
     for key, title, _ in SECTIONS:
@@ -1318,17 +1348,19 @@ def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_se
         items = [f for f in a.findings if f.category == key]
         if not items:
             continue
-        if key == "denial":
+        dated = key in ("denial", "underpaid", "no_response")
+        if dated:
             items.sort(key=lambda f: (f.days_left if f.days_left is not None else 9999, -f.dollars))
         out.append(f"<h2>{e(title)}</h2><p class=sub>{e(blurb)}</p>")
         if key == "levels" and a.levels.get("total"):
             out.append(_levels_html(a))
         out.append("<div class=wrap><table><tr><th>Item</th><th>Claim</th><th>Payer</th><th>Date</th><th>What to do</th>"
-                   + ("<th>Deadline</th>" if key == "denial" else "") + "<th class=n>Dollars</th></tr>")
+                   + ("<th>Act by</th>" if dated else "") + "<th class=n>Dollars</th></tr>")
         for f in items[:rows_per_section]:
             dl = ""
-            if key == "denial":
-                dl = (f"<td style='white-space:nowrap' class={'late' if (f.days_left or 99) < 15 else ''}>{e(f.deadline)}<br><span class=why>{f.days_left} days left</span></td>"
+            if dated:
+                left = (f"{f.days_left} days left" if f.days_left >= 0 else "past it") if f.days_left is not None else ""
+                dl = (f"<td style='white-space:nowrap' class={'late' if (f.days_left if f.days_left is not None else 99) < 15 else ''}>{e(f.deadline)}<br><span class=why>{left}</span></td>"
                       if f.deadline else "<td>check</td>")
             claim = e(f.claim_id) + (f"<br><span class=why>payer # {e(f.payer_claim_id)}</span>" if f.payer_claim_id else "")
             out.append(f"<tr><td><b>{e(f.title)}</b> <span class='chip {f.confidence}'>{f.confidence}</span><div class=why>{e(f.why)}</div></td>"
@@ -1548,6 +1580,47 @@ try:
 except ImportError:      # the command line works without the web stack
     _HAS_FASTAPI = False
 
+
+# The fastest way in: the clinic connects its own Claim.MD account and Althais pulls the payment files (payment_sources.py)
+CONNECT_HTML = """<div class=card id=src style="margin-bottom:14px">
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+<div style="max-width:640px"><b>Fastest: connect your Claim.MD account.</b> Althais reads your payment files itself, no exports.
+<div class=why>Paste your Claim.MD account key (in Claim.MD: Settings &gt; Account Settings). Althais only reads payment files with it, never sends
+claims from your account. It's stored encrypted, and you can disconnect any time.</div></div>
+<span class=chip id=srcState>not connected</span></div>
+<div id=srcForm style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<input type=password id=srcKey autocomplete=off placeholder="Claim.MD account key" style="font:inherit;padding:0 10px;border:1px solid var(--line);border-radius:3px;height:28px;background:var(--card);color:var(--ink);width:100%;max-width:360px">
+<button id=srcGo type=button>Connect</button></div>
+<div id=srcOn style="margin-top:10px;display:none;gap:8px;flex-wrap:wrap;align-items:center">
+<button id=srcReport type=button>Build the report from my payment files</button>
+<button id=srcOff type=button style="background:var(--card);color:var(--ink);border-color:var(--line)">Disconnect</button></div>
+<div id=srcMsg class=why style="margin-top:8px"></div>
+<div class=why style="margin-top:4px">Another clearinghouse (Availity, Office Ally, Waystar…)? Ask it for your "ERA" or "835" payment files for the last 90 days and upload them below.</div></div>
+<script>
+(()=>{const $=i=>document.getElementById(i),msg=t=>$('srcMsg').textContent=t||'';let busy=false;
+const j=async(u,o)=>{const r=await fetch(u,Object.assign({credentials:'same-origin'},o||{}));const t=await r.text();let d={};try{d=JSON.parse(t)}catch(_){d={html:t}}
+ if(!r.ok)throw new Error(d.error||('Error '+r.status));return d};
+const ago=s=>{if(!s)return'';const m=Math.round((Date.now()-Date.parse(s))/6e4);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
+const show=d=>{const on=!!d.connected;$('srcForm').style.display=on?'none':'flex';$('srcOn').style.display=on?'flex':'none';
+ $('srcState').textContent=on?'connected':'not connected';$('srcState').className='chip'+(on?' high':'');
+ if(on&&!busy)msg((d.error?'Last check: '+d.error+'. ':'')+d.filesRead+' payment file(s) read'+(d.lastSync?' · checked '+ago(d.lastSync):'')+(d.backfillDone?' · new ones are read every hour':''))};
+const pull=async()=>{busy=true;let n=0,more=true,err='';
+ while(more){msg('Reading your payment files from Claim.MD… '+n+' so far');const d=await j('/api/payment-source/sync',{method:'POST'});
+  n+=d.read;more=d.more;err=d.error;show(d.status);busy=true}
+ busy=false;msg(err?('Stopped: '+err+'. '+n+' file(s) read; it will try again within the hour.'):(n+' payment file(s) read. Build the report when ready.'))};
+j('/api/payment-source').then(show).catch(()=>{$('src').style.display='none'});
+$('srcGo').onclick=async()=>{const k=$('srcKey').value.trim();if(!k){msg('Paste your account key first.');return}
+ const b=$('srcGo');b.disabled=true;b.textContent='Checking…';
+ try{const d=await j('/api/payment-source/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({partner:'claimmd',key:k})});
+  $('srcKey').value='';show(d);await pull()}catch(x){msg(x.message)}finally{b.disabled=false;b.textContent='Connect'}};
+$('srcReport').onclick=async()=>{const b=$('srcReport');b.disabled=true;b.textContent='Building…';
+ try{const r=await fetch('/api/payment-source/report',{method:'POST',credentials:'same-origin'});const t=await r.text();
+  if(!r.ok){let m=t;try{m=JSON.parse(t).error||t}catch(_){};throw new Error(m)}document.open();document.write(t);document.close()}
+ catch(x){msg(x.message);b.disabled=false;b.textContent='Build the report from my payment files'}};
+$('srcOff').onclick=async()=>{if(!confirm('Disconnect Claim.MD? Althais stops reading new payment files. Files already read are kept for the report.'))return;
+ try{show(await j('/api/payment-source/disconnect',{method:'POST'}));msg('Disconnected.')}catch(x){msg(x.message)}};})();
+</script>"""
+
 if _HAS_FASTAPI:
     router = APIRouter()
 
@@ -1558,10 +1631,10 @@ if _HAS_FASTAPI:
 .drop.on{{border-color:var(--accent);background:var(--accent-soft)}} input[type=text]{{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:3px;height:28px;background:var(--card);color:var(--ink);width:100%;max-width:360px}}
 #list{{color:var(--muted);font-size:13px;margin:10px 0}} #err{{color:var(--bad)}}</style></head><body><main>
 <h1>Lost Money Report</h1><p class=sub>{html.escape(who)}</p>
-<div class=card><ol style="margin:0 0 0 18px;padding:0;color:var(--muted)">
+{CONNECT_HTML if saving else ""}{"<h2>Or upload files</h2>" if saving else ""}<div class=card><ol style="margin:0 0 0 18px;padding:0;color:var(--muted)">
 <li>Export 90 days (or more) of <b>payment files (835 / ERA)</b> from your clearinghouse or billing system.</li>
 <li>Add the <b>claim files (837)</b> for the same period if you can, or a <b>claims export (CSV)</b> with code, charge, payer, date and payment columns.</li>
-<li>Drop them here (a zip works). Nothing is saved: the files are read once to build the report.</li></ol></div>
+<li>Drop them here (a zip works). {"With Save on, the files are kept (encrypted) so Althais keeps watching your payments; with it off, they are read once and not kept." if saving else "Nothing is saved: the files are read once to build the report."}</li></ol></div>
 <form id=f style="margin-top:16px"><p><input type=text name=clinic placeholder="Clinic name (optional, shown on the report)"></p>
 <div class=drop id=drop>Drop files here, or click to choose<input id=pick type=file name=files multiple hidden></div>
 <div id=list></div>{'<p><label><input type=checkbox name=save value=1 checked> Save what can be recovered to <a href="/recovery" target=_top>Recovery</a>, and close items these payments settle</label></p>' if saving else ''}
