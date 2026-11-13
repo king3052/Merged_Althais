@@ -1585,8 +1585,9 @@ except ImportError:      # the command line works without the web stack
 CONNECT_HTML = """<div class=card id=src style="margin-bottom:14px">
 <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
 <div style="max-width:640px"><b>Fastest: connect your Claim.MD account.</b> Althais reads your payment files itself, no exports.
-<div class=why>Paste your Claim.MD account key (in Claim.MD: Settings &gt; Account Settings). Althais only reads payment files with it, never sends
-claims from your account. It's stored encrypted, and you can disconnect any time.</div></div>
+<div class=why>Paste your Claim.MD account key. In Claim.MD (as an admin user): Settings &gt; Account Settings &gt; scroll to <b>API Key (Account Key)</b>.
+If there's none yet, generate one there: it's shown only once, so copy it right away. If your billing software already uses a key, use that one:
+a new key can replace it. Althais only reads payment files with it, never sends claims from your account. It's stored encrypted, and you can disconnect any time.</div></div>
 <span class=chip id=srcState>not connected</span></div>
 <div id=srcForm style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
 <input type=password id=srcKey autocomplete=off placeholder="Claim.MD account key" style="font:inherit;padding:0 10px;border:1px solid var(--line);border-radius:3px;height:28px;background:var(--card);color:var(--ink);width:100%;max-width:360px">

@@ -82,8 +82,9 @@ def _clean_key(key: str) -> str:
 def connect(db, org: str, key: str, by: str = "") -> dict:
     """Check the key with Claim.MD, then keep it (encrypted). Returns {"ok", "message"}."""
     key = _clean_key(key)
-    if not key or len(key) > 200 or not re.fullmatch(r"[A-Za-z0-9_\-]+", key):
-        return {"ok": False, "message": "That doesn't look like a Claim.MD account key. Copy it from Claim.MD: Settings > Account Settings."}
+    # Only obvious mistakes are stopped here (empty, too long, a pasted sentence); Claim.MD itself decides if the key is right.
+    if not key or len(key) < 8 or len(key) > 300 or not all(33 <= ord(ch) < 127 for ch in key):
+        return {"ok": False, "message": "That doesn't look like a Claim.MD account key. In Claim.MD: Settings > Account Settings > API Key (Account Key)."}
     res = CONNECTOR(key).check_connection({})
     if not res.ok:
         return {"ok": False, "message": res.message or "Claim.MD didn't accept that account key."}

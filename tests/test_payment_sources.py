@@ -40,8 +40,10 @@ class FakeClaimMD:
     def __init__(self, key, environment="production"):
         self.key = key
 
+    accept = None
+
     def check_connection(self, account):
-        ok = self.key == GOOD_KEY
+        ok = self.key in (GOOD_KEY, self.accept)
         return types.SimpleNamespace(ok=ok, message="" if ok else "Claim.MD didn't accept that account key.")
 
     def era_list(self, last_id="0"):
@@ -60,7 +62,7 @@ class FakeClaimMD:
 def db(monkeypatch):
     import auth
     monkeypatch.setattr(ps, "CONNECTOR", FakeClaimMD)
-    FakeClaimMD.eras, FakeClaimMD.fail_on, FakeClaimMD.downloads = {}, set(), []
+    FakeClaimMD.eras, FakeClaimMD.fail_on, FakeClaimMD.downloads, FakeClaimMD.accept = {}, set(), [], None
     with auth.SessionLocal() as s:
         s.query(mon.PaymentFile).filter(mon.PaymentFile.org_key == ORG).delete()
         s.query(rc.RecoveryCase).filter(rc.RecoveryCase.org_key == ORG).delete()
@@ -73,7 +75,12 @@ NOW = dt.datetime(2026, 11, 13, 15)
 
 
 def test_a_key_is_checked_with_claimmd_and_kept_encrypted(db):
-    assert ps.connect(db, ORG, "not a key!")["ok"] is False                    # wrong shape: never sent anywhere
+    assert ps.connect(db, ORG, "short")["ok"] is False                         # obvious mistakes: never sent anywhere
+    assert ps.connect(db, ORG, "paste key here please")["ok"] is False         # passes the shape check; Claim.MD says no
+    assert ps.connect(db, ORG, "abc\u00e9defghij")["ok"] is False
+    FakeClaimMD.accept = "Ab12.cd+34/ef=56_gh-78"                               # real keys can hold dots, slashes, plus and equals signs
+    assert ps.connect(db, ORG, FakeClaimMD.accept)["ok"] is True
+    ps.disconnect(db, ORG)
     assert ps.connect(db, ORG, "WRONGkey1")["ok"] is False                     # Claim.MD said no
     assert ps.status(db, ORG)["connected"] is False
     assert ps.connect(db, ORG, f"  {GOOD_KEY}\n", by="biller@clinic.test")["ok"] is True
