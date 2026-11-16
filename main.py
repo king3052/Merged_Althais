@@ -65,6 +65,7 @@ from marketing_data import SOLUTION_SEGMENTS, RESOURCE_CATEGORIES, RESOURCE_ARTI
 from coding_rules import resolve_time_based_codes, is_governed_code
 from code_validation import validate_codes
 import policy_knowledge
+import services
 app.include_router(auth_router)
 import staff_onboarding
 from auth import decode_token, User
@@ -1804,7 +1805,8 @@ Visit note:
 def _build_claim(note, transcript, header, visit, codes, last_check, payer_history=None):
     prompt = f"""You are a certified medical coder. Build the claim for this visit so it is paid on first submission, using ONLY what is documented.
 Rules:
-- Pick exactly one E/M (or the procedure codes) the documentation supports. Visit: {visit}. Use MDM (2021 AMA office E/M) or documented time; never higher or lower than supported.
+- Code EVERY billable service the note shows was done in the clinic, each as its own CPT/HCPCS line: point-of-care tests (rapid strep, flu, COVID antigen, urine dipstick, A1c, pregnancy), X-rays (by body part and number of views), ECG, nebulizer treatments and the inhaled drug, injections (administration code plus the drug's J-code with units), vaccines (product plus administration), and procedures (laceration repair by length and site, incision and drainage, foreign body removal, cerumen removal with instruments, wart destruction). A test sent to an outside lab is not billed by the clinic.
+- E/M visit: bill one E/M only when a problem was evaluated and managed. A visit that is only a procedure (a laceration repair, an I&D, a cerumen removal) gets the procedure code and NO E/M: the decision to do a minor procedure is included in it. When a separate, significant problem is also evaluated the same day, bill the E/M with modifier 25. Visit: {visit}. Use MDM (2021 AMA office E/M) or documented time; never higher or lower than supported.
   MDM = 2 of 3: problems / data / risk. Straightforward 99212: 1 self-limited problem, minimal risk. Low 99213: 1 acute uncomplicated illness, or 1 stable chronic illness, or 2+ self-limited; low risk (OTC drugs).
   Moderate 99214: 1+ chronic illness with exacerbation/progression, or 2+ stable chronic illnesses, or 1 acute illness with systemic symptoms; data such as reviewing/ordering 3 tests; prescription drug management = moderate risk.
   High 99215: severe exacerbation or threat to life; drug therapy requiring intensive monitoring, decision about hospitalization. New patient: 99202-99205 on the same scale.
@@ -1850,6 +1852,8 @@ TRANSCRIPT:
     codes, sup_notes = icd10.supported(codes, note + " " + transcript)
     codes, spec_notes = icd10.specify(codes, note)
     codes, stat_notes = icd10.status(codes, note)
+    codes, side_notes = icd10.side_and_foreign_body(codes, note)
+    stat_notes = stat_notes + side_notes
     spec_notes = sup_notes + spec_notes + stat_notes
     header_notes += spec_notes
     if header_notes:
@@ -1872,12 +1876,18 @@ def _em_floor(codes, note, visit, notes, adds=None):
     problems_mod = len(chronic) >= 2 or (chronic and worse)
     plan = text.split("plan", 1)[-1] if "plan" in text else text
     rx = [m for m in re.finditer(r"\b(start|add|begin|increase|decrease|titrate|switch|change|continue|refill|stop|discontinue|prescribe|treat|take)\w*\b[^.\n]{0,60}?\d+(\.\d+)?\s*(mg|mcg|units|ml|milligrams?|micrograms?|milliliters?)\b", plan)]
-    risk_mod = any(not _OTC.search(m.group(0)) for m in rx)
+    # any prescription-strength drug with a dose in the plan or given in clinic ("Nitrofurantoin 100 mg twice daily",
+    # "Ondansetron 4 mg IM given"), not only ones introduced by a verb
+    doses = [m.group(0) for m in re.finditer(r"[a-z][a-z-]{3,}[^.\n]{0,25}?\b\d+(\.\d+)?\s*(mg|mcg|units|ml|mg/kg|milligrams?|micrograms?)\b", plan + " " + text.split("procedure", 1)[-1] if "procedure" in text else plan)]
+    rx_any = [d for d in doses if not _OTC.search(d)]
+    # a prescription named without a dose ("erythromycin ophthalmic ointment", "ciprofloxacin otic drops")
+    rx_any += re.findall(r"\b[a-z]{3,}(?:cillin|mycin|micin|floxacin|cycline|cef\w+|ceph\w+|azole|vir|sone|olone|pril|sartan|statin|formin|olol|dipine|prazole|tidine)\b(?![^.\n]{0,40}\b(allerg|history))", plan)
+    risk_mod = any(not _OTC.search(m.group(0)) for m in rx) or bool(rx_any)
     new = "new" in visit.lower()
     # ceiling: one acute uncomplicated problem, no drug (Rx or OTC), no tests = straightforward MDM (99212 / 99202)
     otc = re.search(r"acetaminophen|tylenol|ibuprofen|advil|motrin|naproxen|aleve|loratadine|cetirizine|fexofenadine|guaifenesin|docusate|benzonatate|lozenge|antihistamine|decongestant|nasal spray", plan)
     tests = re.search(r"\b(test|lab|labs|panel|x-?ray|cbc|bmp|cmp|a1c|culture|rapid|swab|urinalysis|\bua\b|ecg|ekg|imaging|ct|mri|ultrasound|ordered|reviewed)\b", text)
-    if not chronic and len(dx) <= 1 and not rx and not otc and not tests:
+    if not chronic and len(dx) <= 1 and not rx and not rx_any and not otc and not tests:
         top, cap = ("99203", "99202") if new else ("99213", "99212")
         if any(str(c.get("code")) == top for c in codes):
             notes.append(top + " → " + cap + ": straightforward MDM (one acute uncomplicated problem, no drug management, no tests)")
@@ -2005,14 +2015,20 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
             built["unresolved"] = built.get("unresolved", []) + [c + " was removed: not a billable ICD-10-CM code" for c in bad]
             built["codes"] = [c for c in built["codes"] if c.get("code") not in bad]
         codes = built["codes"]
-        if not any(str(c.get("type", "")).upper() == "CPT" for c in codes):   # the visit code first, so the E/M rules below can set its level
+        if not any(str(c.get("type", "")).upper() == "CPT" for c in codes) and not any(str(c.get("type", "")).upper() == "CPT" for c in services.add_documented(codes, note)[0]):   # the visit code first, so the E/M rules below can set its level
             codes.insert(0, {"code": "99203" if "new" in visit.lower() else "99213", "type": "CPT", "description": "Office visit", "modifier": "", "units": 1, "reason": "Office visit for this visit type"})
+        codes, svc = services.add_documented(codes, note)   # tests, X-rays, injections, procedures the note shows were done here
+        codes, svc_em = services.visit_with_minor_procedure(codes)
+        built.setdefault("rule_notes", []).extend(svc + svc_em)
         codes = _em_floor(codes, note, visit, built.setdefault("rule_notes", []), built["note_additions"])
         full = note + "".join("\n" + a["text"] for a in built["note_additions"])
         check = _with_money(_claim_check(header, codes, full), _money_flags(org, header, codes))
         best = {"codes": codes, "note_additions": built["note_additions"], "unresolved": built.get("unresolved", []), "rule_notes": built.get("rule_notes", []), "check": check, "passes": 1}
         if check["score"] < 90:
             again = _build_claim(note, transcript, header, visit, codes, check, history)
+            again["codes"], svc2 = services.add_documented(again["codes"], note)
+            again["codes"], svc2_em = services.visit_with_minor_procedure(again["codes"])
+            again.setdefault("rule_notes", []).extend(svc2 + svc2_em)
             again["codes"] = _em_floor(again["codes"], note, visit, again.setdefault("rule_notes", []), again["note_additions"])
             if any(str(c.get("type", "")).upper() == "CPT" for c in again["codes"]) and not icd10.problems(again["codes"]) and any(not str(c.get("type", "")).upper().startswith("CPT") for c in again["codes"]):
                 adds = built["note_additions"] + [a for a in again["note_additions"] if a["text"] not in {x["text"] for x in built["note_additions"]}]

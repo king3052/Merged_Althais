@@ -153,6 +153,11 @@ def _present(word, text):
 
 _EXTRA_STOP = _STOP | {"w", "without", "complications", "complication", "mellitus", "specified", "site", "nos", "elsewhere", "classified"}
 
+def _side(desc: str) -> str:
+    d = desc.lower()
+    return "bilateral" if "bilateral" in d else "left" if re.search(r"\bleft\b", d) else "right" if re.search(r"\bright\b", d) else ""
+
+
 def specify(codes, note):
     """Swap a vague diagnosis ("without complications" / "unspecified") for the sibling code whose extra detail the note
     states outright, e.g. E11.9 + "type 2 diabetes with hyperglycemia" -> E11.65. Returns (codes, notes)."""
@@ -174,6 +179,8 @@ def specify(codes, note):
             if "unspecified" in sd or "without complication" in sd:
                 continue
             if "not intractable" in d and "not intractable" not in sd:   # more specific, never more severe
+                continue
+            if (_side(d) and _side(sd) != _side(d)) or re.match(r"other\b", sd):   # keep the side; "other" isn't detail
                 continue
             extra = [t for t in set(re.sub(r"[^a-z0-9]+", " ", sd).split()) - base if t not in _EXTRA_STOP and len(t) > 3]
             if extra and all(_present(t, text) for t in extra) and len(extra) > best_n:
@@ -333,3 +340,51 @@ def from_assessment(note):
             seen.add(best[2])
             out.append({"code": dotted(best[2]), "type": "ICD-10", "description": best[3], "modifier": "", "units": 1, "reason": "From the note: " + it[:80]})
     return out
+
+
+_BY_DESC = {}
+
+
+def _nd(d: str) -> str:
+    """A short description in one spelling: the file mixes "w/o" and "without", "w" and "with"."""
+    d = d.lower().replace("w/o", "without")
+    return re.sub(r"\s+", " ", re.sub(r"\bw\b", "with", d)).strip()
+
+
+def _by_desc():
+    if not _BY_DESC:
+        for k, (bill, d) in _CODES.items():
+            if bill:
+                _BY_DESC.setdefault(_nd(d), k)
+    return _BY_DESC
+
+
+def side_and_foreign_body(codes, note):
+    """Fix a diagnosis that contradicts the note on side or foreign body, by swapping to the sibling code that differs only in
+    that word: a "left" code when the note only ever says right (and the reverse); "with foreign body" when the note says
+    there was none. Returns (codes, notes)."""
+    t = " " + re.sub(r"\s+", " ", str(note or "").lower()) + " "
+    has_left, has_right = bool(re.search(r"\bleft\b", t)), bool(re.search(r"\bright\b", t))
+    no_fb = bool(re.search(r"\b(no|without)( retained)? foreign bod(y|ies)\b|\bno fb\b", t))
+    out, notes = [], []
+    index = _by_desc()
+    for c in codes:
+        if str(c.get("type", "")).upper().startswith(("CPT", "HCPCS")):
+            out.append(c)
+            continue
+        exists, bill, desc = lookup(c.get("code"))
+        d = _nd(desc)
+        want = d
+        if re.search(r"\bleft\b", d) and has_right and not has_left:
+            want = re.sub(r"\bleft\b", "right", want)
+        elif re.search(r"\bright\b", d) and has_left and not has_right:
+            want = re.sub(r"\bright\b", "left", want)
+        if no_fb and " with foreign body" in want:
+            want = want.replace(" with foreign body", " without foreign body")
+        k = index.get(want) if want != d else None
+        if k:
+            out.append(dict(c, code=dotted(k), description=_CODES[k][1], reason="Matches the note: " + _CODES[k][1]))
+            notes.append(f"{c.get('code')} → {dotted(k)} ({_CODES[k][1]})")
+        else:
+            out.append(c)
+    return out, notes

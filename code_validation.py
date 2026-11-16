@@ -28,7 +28,7 @@ import re
 
 # ICD-10-CM: letter (not U, reserved), 2 digits, optional decimal + up to
 # 4 more alphanumeric characters. E.g. S61.409A, J06.9, A41.9, R07.9.
-_ICD10_RE = re.compile(r"^[A-TV-Z][0-9]{2}(\.[0-9A-Z]{1,4})?$", re.IGNORECASE)
+_ICD10_RE = re.compile(r"^[A-Z][0-9]{2}(\.[0-9A-Z]{1,4})?$", re.IGNORECASE)   # U07.1 (COVID-19), U09.9 included
 
 # CPT Category I: exactly 5 digits (e.g. 99284, 12001).
 _CPT_CAT1_RE = re.compile(r"^\d{5}$")
