@@ -45,7 +45,7 @@ if [ "$HAS" != "0" ]; then
 fi
 
 echo "== Copying (schema public, no owners or grants)"
-pg_dump "$SRC" --schema=public --no-owner --no-privileges --no-comments --format=plain | $T >/dev/null
+pg_dump "$SRC" --schema=public --no-owner --no-privileges --no-comments --format=plain | grep -vx "CREATE SCHEMA public;" | $T >/dev/null
 
 echo "== Checking row counts match"
 bad=0

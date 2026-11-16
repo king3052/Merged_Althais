@@ -36,10 +36,10 @@ gcloud artifacts repositories describe althais --location="$REGION" >/dev/null 2
 
 echo "== Cloud SQL (Postgres 17, the version Supabase runs)"
 if ! gcloud sql instances describe "$SQL_INSTANCE" >/dev/null 2>&1; then
-  gcloud sql instances create "$SQL_INSTANCE" --database-version=POSTGRES_17 --region="$REGION" --tier="$SQL_TIER" \
+  gcloud sql instances create "$SQL_INSTANCE" --database-version=POSTGRES_17 --region="$REGION" --edition=ENTERPRISE --tier="$SQL_TIER" \
     --storage-type=SSD --storage-size=10GB --storage-auto-increase \
     --backup-start-time=08:00 --enable-point-in-time-recovery --retained-backups-count=14 \
-    --require-ssl --database-flags=cloudsql.iam_authentication=on
+    --ssl-mode=ENCRYPTED_ONLY --database-flags=cloudsql.iam_authentication=on
 fi
 gcloud sql databases describe "$DB_NAME" --instance="$SQL_INSTANCE" >/dev/null 2>&1 || \
   gcloud sql databases create "$DB_NAME" --instance="$SQL_INSTANCE"

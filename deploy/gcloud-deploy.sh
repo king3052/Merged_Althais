@@ -4,6 +4,9 @@
 #   PROJECT_ID=althais-prod bash deploy/gcloud-deploy.sh            # deploys, sends no traffic to the new version
 #   PROJECT_ID=althais-prod PROMOTE=1 bash deploy/gcloud-deploy.sh  # deploys and makes it live
 #
+# The first deploy creates the service, which Cloud Run won't do with --no-traffic: it gets the run.app address only
+# (the domain still points at Railway) and, unless PROMOTE=1, JOBS_DISABLED=1.
+#
 # Exactly one instance, CPU always on: the app's billing jobs (end-of-day claim batch, Claim.MD responses every 5 minutes,
 # ERAs hourly, reminders) run inside the web process, so there must always be one copy running and never two.
 set -euo pipefail
@@ -35,7 +38,7 @@ gcloud run deploy "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --image 
   --allow-unauthenticated --ingress all --execution-environment gen2 \
   --set-secrets "$SECRETS" --set-env-vars "$ENVS" \
   --startup-probe "httpGet.path=/api/health,initialDelaySeconds=5,periodSeconds=5,failureThreshold=24" \
-  $( [ "${PROMOTE:-0}" = "1" ] || echo "--no-traffic --tag candidate" )
+  $( [ "${PROMOTE:-0}" = "1" ] || ! gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" >/dev/null 2>&1 || echo "--no-traffic --tag candidate" )
 
 echo
 if [ "${PROMOTE:-0}" = "1" ]; then

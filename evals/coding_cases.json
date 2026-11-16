@@ -1,0 +1,715 @@
+{
+ "version": 1,
+ "label_status": "DRAFT: labeled by Althais from public coding rules. Have a certified coder (CPC) check every label before treating scores as final.",
+ "how_to_read": "expect.cpt and expect.icd10 are lists of slots; each slot lists the acceptable codes, best first. E/M slot alternatives are a defensible level, not a free pass. modifiers: code -> modifiers that must be on it.",
+ "cases": [
+  {
+   "id": "strep_positive",
+   "title": "Strep throat, rapid test positive, antibiotic",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1994-03-02, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 32F with sore throat and fever to 101.2 for 2 days. No cough.\nOBJECTIVE: T 100.9. Tonsillar exudates, tender anterior cervical nodes. Rapid strep antigen performed in clinic: positive.\nASSESSMENT: Streptococcal pharyngitis.\nPLAN: Amoxicillin 500 mg twice daily for 10 days. Return if worse.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ],
+     [
+      "87880"
+     ]
+    ],
+    "icd10": [
+     [
+      "J02.0"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "viral_uri_new",
+   "title": "Cold, supportive care only",
+   "visit": "office visit, new patient",
+   "header": "patient Sample, Test, DOB 1988-07-14, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 38M, 3 days of runny nose, congestion and mild cough. No fever, no shortness of breath.\nOBJECTIVE: Afebrile. Clear rhinorrhea, lungs clear.\nASSESSMENT: Viral upper respiratory infection.\nPLAN: Rest, fluids, acetaminophen as needed. Return if fever or symptoms past 10 days.",
+   "expect": {
+    "cpt": [
+     [
+      "99202",
+      "99203"
+     ]
+    ],
+    "icd10": [
+     [
+      "J06.9"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "lac_forearm",
+   "title": "Forearm laceration, simple repair only",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1979-01-20, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 47M cut his right forearm on sheet metal 1 hour ago. Tetanus up to date (2023).\nOBJECTIVE: 3.0 cm linear laceration of the right forearm, superficial, no tendon involvement, no foreign body.\nPROCEDURE: Irrigated, simple repair with 5 interrupted 4-0 nylon sutures.\nASSESSMENT: Laceration of right forearm.\nPLAN: Wound care, suture removal in 10 days.",
+   "expect": {
+    "cpt": [
+     [
+      "12002"
+     ]
+    ],
+    "icd10": [
+     [
+      "S51.811A"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "lac_plus_uti",
+   "title": "Hand laceration repair plus a separate UTI visit",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1990-05-09, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 36F cut her left hand on a glass today. Also reports 2 days of burning with urination and frequency, no fever, no flank pain.\nOBJECTIVE: 2.0 cm laceration of the left palm, superficial. No CVA tenderness. Urine dipstick (non-automated, no microscopy): positive leukocytes and nitrites.\nPROCEDURE: Irrigation and simple repair of the 2.0 cm left hand laceration with 3 sutures.\nASSESSMENT: 1. Laceration of left hand. 2. Urinary tract infection.\nPLAN: Nitrofurantoin 100 mg twice daily for 5 days for the UTI. Suture removal in 10 days.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ],
+     [
+      "12001"
+     ],
+     [
+      "81002"
+     ]
+    ],
+    "icd10": [
+     [
+      "S61.412A"
+     ],
+     [
+      "N39.0",
+      "N30.00",
+      "N30.01"
+     ]
+    ],
+    "modifiers": {
+     "99213": [
+      "25"
+     ]
+    }
+   }
+  },
+  {
+   "id": "ankle_sprain_xray",
+   "title": "Ankle sprain with X-ray",
+   "visit": "office visit, new patient",
+   "header": "patient Sample, Test, DOB 2001-09-30, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 25M rolled his right ankle playing basketball yesterday. Able to walk with pain.\nOBJECTIVE: Swelling and tenderness over the right lateral ankle, no bony tenderness at the posterior malleolus. Right ankle X-ray, 3 views, taken in clinic: no fracture.\nASSESSMENT: Sprain of right ankle.\nPLAN: RICE, ibuprofen 600 mg every 8 hours as needed, ankle brace. Follow up in 1 week if not improving.",
+   "expect": {
+    "cpt": [
+     [
+      "99203"
+     ],
+     [
+      "73610"
+     ]
+    ],
+    "icd10": [
+     [
+      "S93.401A",
+      "S93.409A",
+      "S93.491A"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "flu_a",
+   "title": "Influenza A, test positive, antiviral",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1970-12-01, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 55F with 1 day of fever 102, body aches, chills and cough.\nOBJECTIVE: T 101.8, HR 104, lungs clear. Rapid influenza A/B antigen test in clinic: influenza A positive.\nASSESSMENT: Influenza A with fever and myalgias.\nPLAN: Oseltamivir 75 mg twice daily for 5 days. Fluids, rest. Return if short of breath.",
+   "expect": {
+    "cpt": [
+     [
+      "99214",
+      "99213"
+     ],
+     [
+      "87804"
+     ]
+    ],
+    "icd10": [
+     [
+      "J10.1",
+      "J10.89"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "covid_mild",
+   "title": "COVID positive, mild",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1985-02-11, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 41M, sore throat and congestion for 2 days. No shortness of breath. Not high risk.\nOBJECTIVE: Afebrile, lungs clear, SpO2 98%. SARS-CoV-2 rapid antigen test in clinic: positive.\nASSESSMENT: COVID-19, mild.\nPLAN: Supportive care, acetaminophen as needed, isolation guidance. Return if breathing worsens.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ],
+     [
+      "87811"
+     ]
+    ],
+    "icd10": [
+     [
+      "U07.1"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "cystitis",
+   "title": "Acute cystitis with dipstick",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1996-08-21, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 30F with dysuria and urgency for 1 day. No fever or back pain.\nOBJECTIVE: No CVA tenderness. Urine dipstick, non-automated, without microscopy: positive leukocyte esterase, positive nitrite, no blood.\nASSESSMENT: Acute cystitis without hematuria.\nPLAN: Nitrofurantoin 100 mg twice daily for 5 days.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ],
+     [
+      "81002"
+     ]
+    ],
+    "icd10": [
+     [
+      "N30.00"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "otitis_child",
+   "title": "Child ear infection",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 2020-04-15, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 6-year-old boy with left ear pain and fever for 1 day.\nOBJECTIVE: T 100.6. Left tympanic membrane bulging and erythematous, not perforated. Right TM normal.\nASSESSMENT: Acute suppurative otitis media, left ear.\nPLAN: Amoxicillin 90 mg/kg/day divided twice daily for 10 days. Ibuprofen for pain.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ]
+    ],
+    "icd10": [
+     [
+      "H66.002",
+      "H66.92",
+      "H66.90"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "asthma_neb",
+   "title": "Asthma flare, nebulizer in clinic, steroid",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1999-06-06, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 27F with moderate persistent asthma, wheezing and chest tightness for 2 days after a cold, using rescue inhaler every 3 hours.\nOBJECTIVE: Diffuse expiratory wheezes, SpO2 94%. Albuterol 2.5 mg nebulizer treatment given in clinic; wheezing improved, SpO2 97% after.\nASSESSMENT: Moderate persistent asthma with acute exacerbation.\nPLAN: Prednisone 40 mg daily for 5 days. Continue albuterol inhaler. Return if worse.",
+   "expect": {
+    "cpt": [
+     [
+      "99214"
+     ],
+     [
+      "94640"
+     ],
+     [
+      "J7613"
+     ]
+    ],
+    "icd10": [
+     [
+      "J45.41"
+     ]
+    ],
+    "modifiers": {
+     "99214": [
+      "25"
+     ]
+    }
+   }
+  },
+  {
+   "id": "bronchitis",
+   "title": "Acute bronchitis, OTC care",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1975-10-10, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 51M with productive cough for 6 days, no fever, no shortness of breath. Nonsmoker.\nOBJECTIVE: Afebrile, lungs with scattered rhonchi, no crackles, SpO2 98%.\nASSESSMENT: Acute bronchitis.\nPLAN: Guaifenesin and honey as needed, fluids. No antibiotics indicated. Return if fever or breathing trouble.",
+   "expect": {
+    "cpt": [
+     [
+      "99213",
+      "99212"
+     ]
+    ],
+    "icd10": [
+     [
+      "J20.9"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "sinusitis",
+   "title": "Acute maxillary sinusitis, antibiotic",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1983-03-03, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 43F with facial pressure over both cheeks and purulent nasal discharge for 12 days, worse after initial improvement.\nOBJECTIVE: Maxillary sinus tenderness, purulent drainage.\nASSESSMENT: Acute maxillary sinusitis.\nPLAN: Amoxicillin-clavulanate 875 mg twice daily for 7 days. Saline rinses.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ]
+    ],
+    "icd10": [
+     [
+      "J01.00",
+      "J01.90"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "conjunctivitis",
+   "title": "Bacterial pink eye, both eyes",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 2012-11-11, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 13-year-old girl with red, crusted eyes on both sides and yellow discharge since yesterday. No vision change.\nOBJECTIVE: Bilateral conjunctival injection with mucopurulent discharge. Visual acuity normal.\nASSESSMENT: Mucopurulent conjunctivitis, both eyes.\nPLAN: Erythromycin ophthalmic ointment four times daily for 5 days. Hand hygiene.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ]
+    ],
+    "icd10": [
+     [
+      "H10.023",
+      "H10.33"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "htn_lipids",
+   "title": "Two stable chronic illnesses, refills",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1960-01-25, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 66M here for blood pressure check and medication refills. Out of lisinopril for 2 days. No chest pain.\nOBJECTIVE: BP 132/84. Exam normal.\nASSESSMENT: 1. Essential hypertension, controlled. 2. Hyperlipidemia, stable on atorvastatin.\nPLAN: Refill lisinopril 20 mg daily and atorvastatin 40 mg daily for 90 days. Follow up with primary care.",
+   "expect": {
+    "cpt": [
+     [
+      "99214"
+     ]
+    ],
+    "icd10": [
+     [
+      "I10"
+     ],
+     [
+      "E78.5"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "diabetes_a1c",
+   "title": "Uncontrolled diabetes, A1c in clinic, dose change",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1968-05-17, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 58F with type 2 diabetes, home glucose readings 220-280 for a month.\nOBJECTIVE: Hemoglobin A1c point-of-care test in clinic: 9.4%.\nASSESSMENT: Type 2 diabetes mellitus with hyperglycemia, uncontrolled.\nPLAN: Increase metformin from 500 mg to 1000 mg twice daily. Diet counseling. Follow up with primary care in 4 weeks.",
+   "expect": {
+    "cpt": [
+     [
+      "99214"
+     ],
+     [
+      "83036"
+     ]
+    ],
+    "icd10": [
+     [
+      "E11.65"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "abscess_id",
+   "title": "Abscess drained, no separate visit",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1992-12-12, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 34M with a painful lump in the left armpit for 4 days.\nOBJECTIVE: 2 cm fluctuant abscess of the left axilla with surrounding erythema.\nPROCEDURE: Incision and drainage of the abscess, simple, packing placed.\nASSESSMENT: Abscess of left axilla.\nPLAN: Warm compresses, packing removal in 2 days.",
+   "expect": {
+    "cpt": [
+     [
+      "10060"
+     ]
+    ],
+    "icd10": [
+     [
+      "L02.412"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "finger_lac_tdap",
+   "title": "Finger laceration, repair and tetanus shot",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1986-04-04, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 40M cut his right index finger with a kitchen knife. Last tetanus shot over 10 years ago.\nOBJECTIVE: 2.8 cm laceration of the right index finger, nail not involved, no tendon involvement.\nPROCEDURE: Irrigation and simple repair with 4 sutures. Tdap vaccine 0.5 mL IM given in the left deltoid.\nASSESSMENT: Laceration of right index finger. Tetanus immunization.\nPLAN: Wound care, suture removal in 10 days.",
+   "expect": {
+    "cpt": [
+     [
+      "12002"
+     ],
+     [
+      "90715"
+     ],
+     [
+      "90471"
+     ]
+    ],
+    "icd10": [
+     [
+      "S61.210A"
+     ],
+     [
+      "Z23"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "back_strain",
+   "title": "Low back strain, muscle relaxant",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1981-08-08, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 45M with low back pain after lifting boxes 2 days ago. No numbness, no weakness, no bowel or bladder changes.\nOBJECTIVE: Paraspinal lumbar tenderness, negative straight leg raise, normal strength.\nASSESSMENT: Strain of muscle of lower back.\nPLAN: Ibuprofen 600 mg every 8 hours, cyclobenzaprine 5 mg at bedtime for 7 days, activity as tolerated.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ]
+    ],
+    "icd10": [
+     [
+      "S39.012A"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "chest_pain_ecg",
+   "title": "Chest pain, ECG, sent to ER",
+   "visit": "office visit, new patient",
+   "header": "patient Sample, Test, DOB 1962-02-02, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 64M with 1 hour of pressure-like chest pain radiating to the left arm, with sweating.\nOBJECTIVE: BP 158/96, HR 92. 12-lead ECG performed and interpreted in clinic: no acute ST changes.\nASSESSMENT: Chest pain, concerning for acute coronary syndrome.\nPLAN: Aspirin 325 mg chewed in clinic. Decision made to transfer to the emergency department by ambulance for further evaluation.",
+   "expect": {
+    "cpt": [
+     [
+      "99204",
+      "99205"
+     ],
+     [
+      "93000"
+     ]
+    ],
+    "icd10": [
+     [
+      "R07.9",
+      "R07.89"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "wart_cryo",
+   "title": "Common wart frozen off",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 2005-03-15, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 21F with a wart on the back of her right hand for 3 months.\nOBJECTIVE: Single 5 mm verrucous papule, dorsal right hand.\nPROCEDURE: Destruction by cryotherapy with liquid nitrogen, 2 freeze-thaw cycles.\nASSESSMENT: Common wart (verruca vulgaris).\nPLAN: Return in 3 weeks if still present.",
+   "expect": {
+    "cpt": [
+     [
+      "17110"
+     ]
+    ],
+    "icd10": [
+     [
+      "B07.8"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "cerumen",
+   "title": "Ear wax removed with instruments",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1950-06-30, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 76F with muffled hearing in the right ear for a week.\nOBJECTIVE: Right ear canal fully occluded by impacted cerumen.\nPROCEDURE: Removal of impacted cerumen from the right ear using curette under direct visualization. TM normal afterward.\nASSESSMENT: Impacted cerumen, right ear.\nPLAN: Return as needed.",
+   "expect": {
+    "cpt": [
+     [
+      "69210"
+     ]
+    ],
+    "icd10": [
+     [
+      "H61.21"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "splinter",
+   "title": "Splinter removed from hand",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1998-09-19, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 28M with a wood splinter in the right palm since this morning.\nOBJECTIVE: Wood splinter in the subcutaneous tissue of the right palm, no signs of infection.\nPROCEDURE: Incision and removal of the foreign body, simple.\nASSESSMENT: Foreign body in subcutaneous tissue of right hand.\nPLAN: Wound care.",
+   "expect": {
+    "cpt": [
+     [
+      "10120"
+     ]
+    ],
+    "icd10": [
+     [
+      "S60.551A",
+      "S61.451A"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "gastro_inj",
+   "title": "Stomach bug, nausea shot in clinic",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1993-01-31, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 33F with vomiting and diarrhea for 1 day, several coworkers sick. Mild lightheadedness.\nOBJECTIVE: HR 108, dry mucous membranes, abdomen soft and nontender.\nPROCEDURE: Ondansetron 4 mg IM injection given in clinic.\nASSESSMENT: Viral gastroenteritis with mild dehydration.\nPLAN: Ondansetron 4 mg ODT every 8 hours as needed, oral rehydration. Return if unable to keep fluids down.",
+   "expect": {
+    "cpt": [
+     [
+      "99214"
+     ],
+     [
+      "96372"
+     ],
+     [
+      "J2405"
+     ]
+    ],
+    "icd10": [
+     [
+      "A08.4"
+     ],
+     [
+      "E86.0"
+     ]
+    ],
+    "modifiers": {
+     "99214": [
+      "25"
+     ]
+    }
+   }
+  },
+  {
+   "id": "allergic_rhinitis",
+   "title": "Seasonal allergies, OTC",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1997-04-22, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 29M with sneezing, itchy eyes and runny nose for 2 weeks, every spring.\nOBJECTIVE: Pale boggy nasal turbinates, clear discharge.\nASSESSMENT: Seasonal allergic rhinitis due to pollen.\nPLAN: Cetirizine 10 mg daily, fluticasone nasal spray daily.",
+   "expect": {
+    "cpt": [
+     [
+      "99213",
+      "99212"
+     ]
+    ],
+    "icd10": [
+     [
+      "J30.1",
+      "J30.2"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "knee_contusion",
+   "title": "Knee bruise, X-ray negative",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1977-07-07, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 49F fell onto her right knee on concrete yesterday.\nOBJECTIVE: Bruising and tenderness over the right patella, full range of motion. Right knee X-ray, 2 views, in clinic: no fracture.\nASSESSMENT: Contusion of right knee.\nPLAN: Ice, ibuprofen as needed.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ],
+     [
+      "73560"
+     ]
+    ],
+    "icd10": [
+     [
+      "S80.01XA"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "cellulitis_leg",
+   "title": "Cellulitis of the leg, antibiotic",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1965-11-03, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 61M with redness and warmth of the right lower leg for 2 days after a bug bite. No fever.\nOBJECTIVE: 8 cm area of erythema and warmth on the right shin, no fluctuance.\nASSESSMENT: Cellulitis of right lower leg.\nPLAN: Cephalexin 500 mg four times daily for 7 days. Mark borders, recheck in 48 hours.",
+   "expect": {
+    "cpt": [
+     [
+      "99213",
+      "99214"
+     ]
+    ],
+    "icd10": [
+     [
+      "L03.115"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "pharyngitis_neg",
+   "title": "Sore throat, strep test negative",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 2003-10-01, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 23F with sore throat for 2 days, mild cough, no fever.\nOBJECTIVE: Mild pharyngeal erythema, no exudate. Rapid strep antigen test in clinic: negative.\nASSESSMENT: Acute viral pharyngitis.\nPLAN: Salt water gargles, ibuprofen as needed.",
+   "expect": {
+    "cpt": [
+     [
+      "99213",
+      "99212"
+     ],
+     [
+      "87880"
+     ]
+    ],
+    "icd10": [
+     [
+      "J02.9"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "dog_bite",
+   "title": "Dog bite to the hand, antibiotic",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1989-12-24, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 37M bitten on the right hand by a neighbor's vaccinated dog 2 hours ago.\nOBJECTIVE: Two 0.5 cm puncture wounds on the dorsum of the right hand, no tendon involvement. Wounds irrigated; not sutured.\nASSESSMENT: Dog bite, puncture wounds of right hand.\nPLAN: Amoxicillin-clavulanate 875 mg twice daily for 5 days. Wound check in 2 days. Tetanus up to date.",
+   "expect": {
+    "cpt": [
+     [
+      "99213",
+      "99214"
+     ]
+    ],
+    "icd10": [
+     [
+      "S61.451A",
+      "S61.051A"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "pediatric_fever_neb_new",
+   "title": "New child patient, croup",
+   "visit": "office visit, new patient",
+   "header": "patient Sample, Test, DOB 2023-02-14, sex F, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 3-year-old girl with barky cough and hoarse voice since last night, low-grade fever.\nOBJECTIVE: T 100.4, barky cough, no stridor at rest, no retractions, SpO2 98%.\nASSESSMENT: Croup (acute laryngotracheitis).\nPLAN: Dexamethasone 0.6 mg/kg oral dose given in clinic. Cool mist, return for stridor at rest.",
+   "expect": {
+    "cpt": [
+     [
+      "99203"
+     ]
+    ],
+    "icd10": [
+     [
+      "J05.0"
+     ]
+    ],
+    "modifiers": {}
+   }
+  },
+  {
+   "id": "ear_wax_plus_otitis_externa",
+   "title": "Ear wax removal plus outer ear infection in the other ear",
+   "visit": "office visit, established patient",
+   "header": "patient Sample, Test, DOB 1958-08-18, sex M, payer Blue Cross Blue Shield of Texas PPO, member ID TEST123, rendering provider Morgan, A, date of service 2026-11-10, place of service 20",
+   "note": "SUBJECTIVE: 68M with left ear pain and drainage for 3 days after swimming, and muffled hearing in the right ear.\nOBJECTIVE: Left ear canal swollen and red with debris, pain with tragal pressure. Right canal occluded by impacted cerumen.\nPROCEDURE: Removal of impacted cerumen from the right ear with curette.\nASSESSMENT: 1. Acute otitis externa, left ear. 2. Impacted cerumen, right ear.\nPLAN: Ciprofloxacin-dexamethasone otic drops to the left ear twice daily for 7 days. Keep ear dry.",
+   "expect": {
+    "cpt": [
+     [
+      "99213"
+     ],
+     [
+      "69210"
+     ]
+    ],
+    "icd10": [
+     [
+      "H60.92",
+      "H60.332",
+      "H60.392"
+     ],
+     [
+      "H61.21"
+     ]
+    ],
+    "modifiers": {
+     "99213": [
+      "25"
+     ]
+    }
+   }
+  }
+ ]
+}

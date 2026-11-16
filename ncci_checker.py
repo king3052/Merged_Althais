@@ -149,11 +149,34 @@ def _bypass(col1: str, col2: str, line_mods: dict, claim_mods: set):
     return None, None
 
 
-def check_claim_ncci(cpt_codes: list, modifiers=None, line_mods=None) -> list:
+def _edits(codes: list, dos=None) -> dict:
+    """{(column 1, column 2): modifier indicator}: CMS's full practitioner table when it's loaded (cms_edits.py), else the
+    hand-picked pairs above."""
+    try:
+        import cms_edits
+        if cms_edits.loaded("ptp"):
+            return cms_edits.ptp_pairs(codes, dos)
+    except Exception as e:
+        print(f"NCCI: CMS table unavailable ({type(e).__name__}), using the built-in pairs", flush=True)
+    _ensure_db()
+    out = {}
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        for a in codes:
+            for b in codes:
+                if a != b:
+                    row = conn.execute("SELECT modifier_indicator FROM ptp_edits WHERE col1=? AND col2=?", (a, b)).fetchone()
+                    if row:
+                        out[(a, b)] = str(row[0]).strip()
+    finally:
+        conn.close()
+    return out
+
+
+def check_claim_ncci(cpt_codes: list, modifiers=None, line_mods=None, dos=None) -> list:
     """Check CPT codes against NCCI edits. Returns list of conflict dicts.
     modifiers: modifiers on the claim (any line). line_mods: {code: [modifiers on that code's line]}, when the lines are known.
     A pair that may be billed with a modifier and has one comes back with bypassed=<modifier> and an informational message."""
-    _ensure_db()
     if not cpt_codes or len(cpt_codes) < 2:
         return []
     codes = list(set(str(c).strip().upper() for c in cpt_codes if c))
@@ -161,18 +184,12 @@ def check_claim_ncci(cpt_codes: list, modifiers=None, line_mods=None) -> list:
     lm = {str(k).strip().upper(): {str(m).strip().upper() for m in (v or []) if m} for k, v in (line_mods or {}).items()}
     conflicts = []
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+        edits = _edits(codes, dos)
         for i, code_a in enumerate(codes):
             for code_b in codes[i + 1:]:
                 for col1, col2 in [(code_a, code_b), (code_b, code_a)]:
-                    row = c.execute(
-                        "SELECT modifier_indicator FROM ptp_edits WHERE col1=? AND col2=?",
-                        (col1, col2)
-                    ).fetchone()
-                    if row:
-                        mi = str(row["modifier_indicator"]).strip()
+                    mi = edits.get((col1, col2))
+                    if mi is not None and mi != "9":
                         modifier_allowed = mi == "1"
                         bypass, where = _bypass(col1, col2, lm, claim_mods) if modifier_allowed else (None, None)
                         if bypass:
@@ -197,14 +214,13 @@ def check_claim_ncci(cpt_codes: list, modifiers=None, line_mods=None) -> list:
                         conflicts.append({"col1": col1, "col2": col2, "modifier_allowed": modifier_allowed,
                                           "bypassed": bypass or "", "message": msg})
                         break
-        conn.close()
     except Exception as e:
         print(f"NCCI check skipped (DB error): {e}")
     return conflicts
 
-def check_claim_ncci_flags(cpt_codes: list, modifiers=None, line_mods=None) -> list:
+def check_claim_ncci_flags(cpt_codes: list, modifiers=None, line_mods=None, dos=None) -> list:
     """Returns plain-English flag strings for the validate-claim response (pairs a modifier already covers are left out)."""
-    return [c["message"] for c in check_claim_ncci(cpt_codes, modifiers, line_mods) if not c.get("bypassed")]
+    return [c["message"] for c in check_claim_ncci(cpt_codes, modifiers, line_mods, dos) if not c.get("bypassed")]
 
 if __name__ == "__main__":
     if "--load" in sys.argv:

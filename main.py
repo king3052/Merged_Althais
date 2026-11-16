@@ -121,6 +121,8 @@ import recovery   # Fix it: corrected claims, appeal letters, tracking each Lost
 app.include_router(recovery.router)
 import payment_sources   # a clinic connects its own Claim.MD account; Althais pulls its payment files (payment_sources.py)
 app.include_router(payment_sources.router)
+import quality_admin
+app.include_router(quality_admin.router)
 import audit   # access log: who viewed or changed patient and billing data (audit.py)
 app.include_router(audit.router)
 app.middleware("http")(audit.middleware)
@@ -1773,18 +1775,33 @@ Visit note:
         m = str(c.get("modifier") or "").strip().upper()
         if m and str(c.get("type", "")).upper().startswith("CPT"):
             mods.setdefault(str(c.get("code", "")).upper(), []).append(m)
-    ncci = check_claim_ncci_flags(cpts, None, mods)
+    import claim_edits, cms_edits
+    _age, _sex, dos = claim_edits.patient_from_header(header + "\n" + (note or "")[:600])
+    ncci = check_claim_ncci_flags(cpts, None, mods, dos)
     if ncci:
         res["flags"] = [f for f in res.get("flags", []) if "ncci" not in f.lower() and "bundl" not in f.lower()] + ncci
         hard = sum(1 for f in ncci if "no modifier" in f.lower())
         res["score"] = max(0, res["score"] - hard * 15)
+    try:        # CMS's unit limits per code per day (MUEs), once the table is loaded (/admin/cms)
+        mue = cms_edits.mue_problems([{"code": c.get("code"), "units": c.get("units")} for c in codes if str(c.get("type", "")).upper().startswith("CPT")])
+    except Exception as e:
+        print(f"MUE check skipped: {type(e).__name__}", flush=True)
+        mue = []
+    if mue:
+        res["flags"] = res.get("flags", []) + mue
+        res["score"] = max(0, res["score"] - 15 * len(mue))
+    sexage = claim_edits.age_sex_problems(codes, header + "\n" + (note or "")[:600])
+    if sexage:   # a diagnosis that can't apply to this patient is denied, or it's the wrong patient or code
+        res["flags"] = res.get("flags", []) + [p["message"] for p in sexage]
+        if any(p["hard"] for p in sexage):
+            res["score"] = min(res["score"], 40)
     gaps = _note_gaps(note)
     if gaps:   # a visit code and diagnoses with no exam, assessment or plan behind them don't survive a records request
         res["missing"] = res.get("missing", []) + ["Note incomplete: no " + ", ".join(g.lower() for g in gaps) + " documented"]
         res["score"] = min(res["score"], 40 - 10 * (len(gaps) - 1))
     return res
 
-def _build_claim(note, transcript, header, visit, codes, last_check):
+def _build_claim(note, transcript, header, visit, codes, last_check, payer_history=None):
     prompt = f"""You are a certified medical coder. Build the claim for this visit so it is paid on first submission, using ONLY what is documented.
 Rules:
 - Pick exactly one E/M (or the procedure codes) the documentation supports. Visit: {visit}. Use MDM (2021 AMA office E/M) or documented time; never higher or lower than supported.
@@ -1802,7 +1819,7 @@ Claim header: {header}
 Current codes: {json.dumps(codes)}
 Last review: {json.dumps(last_check or {})}
 Code-set problems to fix: {json.dumps(icd10.problems(codes) if codes else [])}
-NOTE:
+{("This payer's denial history (avoid repeating these; only code what the note supports):" + chr(10) + chr(10).join("- " + x for x in payer_history) + chr(10)) if payer_history else ""}NOTE:
 <<<
 {note}
 >>>
@@ -1902,7 +1919,9 @@ async def claim_auto(request: Request, user=Depends(require_role("provider")), d
         header = str(data.get("header") or "")[:1000]
         visit = str(data.get("visit") or "office visit, established patient")
         pinned = data.get("codes") or []
-        best = await run_in_threadpool(_claim_auto_work, note, transcript, header, visit, pinned, t0)
+        import billing_activation as _ba
+        _org = _ba.org_of(user)
+        best = await run_in_threadpool(_claim_auto_work, note, transcript, header, visit, pinned, t0, None if _org.startswith("user:") else _org)
         if best["check"]["score"] >= 90:   # only a finished claim is cached; anything else gets a fresh try next time
             _ai_cache_put(_ckey, best)
         return JSONResponse(best)
@@ -1911,16 +1930,72 @@ async def claim_auto(request: Request, user=Depends(require_role("provider")), d
             return _rate_limited_response()
         return JSONResponse({"error": str(e)}, status_code=500)
 
-def _claim_auto_work(note, transcript, header, visit, pinned, t0):
+def _payer_of(header: str) -> str:
+    m = re.search(r"\bpayer\s*:?\s*([^,\n]+)", header or "", re.I)
+    p = (m.group(1).strip() if m else "")
+    return "" if p.lower().startswith("not on file") else p
+
+
+def _money_flags(org, header, codes):
+    """money_checks for the built claim: this clinic's payer memory (repeat denials, missing pairs and add-ons). [] without a clinic."""
+    if not org:
+        return []
+    try:
+        import money_checks
+        cpts = [str(c.get("code")) for c in codes if str(c.get("type", "")).upper().startswith("CPT")]
+        lines = [{"code": str(c.get("code")), "mod": str(c.get("modifier") or "").strip().upper()} for c in codes
+                 if str(c.get("type", "")).upper().startswith("CPT") and str(c.get("modifier") or "").strip()]
+        import claim_edits
+        dos = claim_edits.patient_from_header(header)[2]
+        db = SessionLocal()
+        try:
+            r = money_checks.check(db, org, {"cpt": cpts, "line_mods": lines, "modifiers": [l["mod"] for l in lines],
+                                              "payer": _payer_of(header), "dos": dos.isoformat() if dos else ""})
+        finally:
+            db.close()
+        return r.get("flags") or []
+    except Exception as e:
+        print(f"claim-auto money checks skipped: {type(e).__name__}", flush=True)
+        return []
+
+
+_MONEY_BLOCKS = {"money_payer_pattern", "money_deleted", "money_consult", "money_mod25", "money_no_drug", "money_no_admin", "money_no_neb", "money_qw", "money_payer_change"}
+
+
+def _with_money(check, flags):
+    """The claim check plus the clinic's money flags. Flags that mean a likely denial lower the score, so the builder gets a second try."""
+    if not flags:
+        return check
+    check = dict(check)
+    check["flags"] = list(check.get("flags") or []) + [f["message"] for f in flags if f["severity"] in ("warn", "error")]
+    hits = [f for f in flags if f["code"] in _MONEY_BLOCKS]
+    if hits:
+        check["score"] = max(0, check["score"] - 10 * len(hits))
+    check["money"] = flags
+    return check
+
+
+def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
+    history = []
+    if org:
+        try:
+            import money_checks
+            db = SessionLocal()
+            try:
+                history = money_checks.payer_notes(db, org, _payer_of(header))
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"claim-auto payer history skipped: {type(e).__name__}", flush=True)
     if True:
-        built = _build_claim(note, transcript, header, visit, pinned, None)
+        built = _build_claim(note, transcript, header, visit, pinned, None, history)
         dxs = lambda cs: [c for c in cs if not str(c.get("type", "")).upper().startswith("CPT")]
         if not dxs(built["codes"]):
-            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": ["ICD-10 diagnosis code(s): the last answer had none. Code every diagnosis in the ASSESSMENT."]})
+            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": ["ICD-10 diagnosis code(s): the last answer had none. Code every diagnosis in the ASSESSMENT."]}, history)
             if dxs(again["codes"]):
                 built = again
         if icd10.problems(built["codes"]):   # a diagnosis that isn't billable: one targeted rebuild with the valid options
-            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": [p["code"] + " " + p["issue"] for p in icd10.problems(built["codes"])]})
+            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": [p["code"] + " " + p["issue"] for p in icd10.problems(built["codes"])]}, history)
             ndx = lambda cs: sum(1 for c in cs if not str(c.get("type", "")).upper().startswith("CPT"))
             if any(str(c.get("type", "")).upper() == "CPT" for c in again["codes"]) and len(icd10.problems(again["codes"])) < len(icd10.problems(built["codes"])) and ndx(again["codes"]) >= ndx(built["codes"]) - len(icd10.problems(built["codes"])):
                 again["note_additions"] = built["note_additions"] + [a for a in again["note_additions"] if a["text"] not in {x["text"] for x in built["note_additions"]}]
@@ -1934,17 +2009,18 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0):
             codes.insert(0, {"code": "99203" if "new" in visit.lower() else "99213", "type": "CPT", "description": "Office visit", "modifier": "", "units": 1, "reason": "Office visit for this visit type"})
         codes = _em_floor(codes, note, visit, built.setdefault("rule_notes", []), built["note_additions"])
         full = note + "".join("\n" + a["text"] for a in built["note_additions"])
-        check = _claim_check(header, codes, full)
+        check = _with_money(_claim_check(header, codes, full), _money_flags(org, header, codes))
         best = {"codes": codes, "note_additions": built["note_additions"], "unresolved": built.get("unresolved", []), "rule_notes": built.get("rule_notes", []), "check": check, "passes": 1}
         if check["score"] < 90:
-            again = _build_claim(note, transcript, header, visit, codes, check)
+            again = _build_claim(note, transcript, header, visit, codes, check, history)
             again["codes"] = _em_floor(again["codes"], note, visit, again.setdefault("rule_notes", []), again["note_additions"])
             if any(str(c.get("type", "")).upper() == "CPT" for c in again["codes"]) and not icd10.problems(again["codes"]) and any(not str(c.get("type", "")).upper().startswith("CPT") for c in again["codes"]):
                 adds = built["note_additions"] + [a for a in again["note_additions"] if a["text"] not in {x["text"] for x in built["note_additions"]}]
                 full2 = note + "".join("\n" + a["text"] for a in adds)
-                check2 = _claim_check(header, again["codes"], full2)
+                check2 = _with_money(_claim_check(header, again["codes"], full2), _money_flags(org, header, again["codes"]))
                 if check2["score"] > check["score"]:
                     best = {"codes": again["codes"], "note_additions": adds, "unresolved": again.get("unresolved", []), "rule_notes": again.get("rule_notes", []), "check": check2, "passes": 2}
+        best["payer_history"] = history
         best["ms"] = int((_time.time() - t0) * 1000)
         print(f"claim-auto {best['ms']}ms passes={best['passes']} score={best['check']['score']} codes={[c.get('code') for c in best['codes']]} first_check={check['score']} {check.get('flags', [])[:2]} {check.get('missing', [])[:2]}", flush=True)
         return best

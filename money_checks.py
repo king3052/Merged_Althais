@@ -253,3 +253,37 @@ def check(db, org: str, c: dict) -> dict:
         expected = round(sum(rates[x]["rate"] for x in cpts), 2)
     at_stake = round(sum(f["dollars"] for f in flags if f["severity"] in ("warn", "error")), 2)
     return {"flags": flags, "expected": expected, "at_stake": at_stake, "payer_known": bool(mem), "payer_name": pname if mem else ""}
+
+
+# ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+#  What the coder should know before building a claim for this payer
+# ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+def payer_notes(db, org: str, payer: str, limit: int = 8) -> List[str]:
+    """This clinic's own denial patterns with this payer (and the network's, once 2+ clinics share one), as short lines for the
+    AI coder's prompt: "Aetna denied 99213 with no modifier 3 times (reason 97: ...)". Empty when the payer isn't known."""
+    if not org or not payer:
+        return []
+    out: List[str] = []
+    doc = _load(db, org)
+    pkey = _match_payer(doc.get("payers") or {}, payer)
+    mem = (doc.get("payers") or {}).get(pkey) if pkey else None
+    name = (mem or {}).get("name") or payer
+    for k, n in sorted(((mem or {}).get("denials") or {}).items(), key=lambda kv: -kv[1]):
+        if n < MIN_DENIALS:
+            continue
+        code, carc, mk = (k.split("|") + ["", "", ""])[:3]
+        out.append(f"{name} denied {code} {'with ' + mk.replace('+', ', ') if mk != '-' else 'with no modifier'} {n} times at this clinic "
+                   f"(reason {carc}: {lm.CARC.get(carc, 'see the remark')}).")
+        if len(out) >= limit:
+            return out
+    want = _norm(payer)
+    for key, entry in ((_load(db, NETWORK).get("patterns") or {}).items()):
+        p, code, carc, mk = (key.split("|") + ["", "", "", ""])[:4]
+        if len(entry.get("clinics") or []) < MIN_CLINICS or not (p == want or (len(min(p, want, key=len)) >= 4 and (p.startswith(want) or want.startswith(p)))):
+            continue
+        out.append(f"Across {len(entry['clinics'])} Althais clinics, {entry.get('name') or payer} has denied {code} "
+                   f"{'with ' + mk.replace('+', ', ') if mk != '-' else 'with no modifier'} (reason {carc}: {lm.CARC.get(carc, 'see the remark')}).")
+        if len(out) >= limit:
+            break
+    return out
