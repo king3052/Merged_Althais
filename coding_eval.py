@@ -99,6 +99,7 @@ def summarize(results: List[dict]) -> dict:
             "em_best": round(100 * sum(1 for r in em_cases if r["score"]["em"] in ("best", "right")) / (len(em_cases) or 1)),
             "dx_recall": round(100 * sum(r["score"]["dx_hit"] for r in ok) / (sum(r["score"]["dx_slots"] for r in ok) or 1)),
             "dx_primary": pct("dx_primary"), "modifiers": pct("mods_ok"),
+            "ai_answered": round(100 * sum(1 for r in ok if r.get("source") in ("ai", "ai_fast")) / n),
             "avg_check_score": round(sum(r.get("check_score") or 0 for r in ok) / n),
             "avg_seconds": round(sum(r.get("ms") or 0 for r in ok) / n / 1000, 1)}
 
@@ -112,7 +113,8 @@ def run(cases: List[dict], build: Callable[[dict], dict], workers: int = 3, prog
         try:
             res = build(case)
             r = {"id": case["id"], "title": case["title"], "score": score(case, res.get("codes") or []),
-                 "check_score": (res.get("check") or {}).get("score"), "ms": res.get("ms") or int((time.time() - t0) * 1000)}
+                 "check_score": (res.get("check") or {}).get("score"), "ms": res.get("ms") or int((time.time() - t0) * 1000),
+                 "source": res.get("source") or ""}
         except Exception as e:
             r = {"id": case["id"], "title": case["title"], "error": f"{type(e).__name__}: {str(e)[:200]}"}
         done[0] += 1

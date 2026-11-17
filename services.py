@@ -262,3 +262,44 @@ def visit_with_minor_procedure(codes: List[dict]) -> Tuple[List[dict], List[str]
             notes.append(f"Modifier 25 added to {code}: a separate problem was evaluated the same day as {proc}.")
         out.append(c)
     return out, notes
+
+
+_TO_NEW = {"99211": "99202", "99212": "99202", "99213": "99203", "99214": "99204", "99215": "99205"}
+_TO_EST = {"99202": "99212", "99203": "99213", "99204": "99214", "99205": "99215"}
+
+
+def _problems(codes: List[dict]) -> int:
+    cats = set()
+    for c in codes:
+        if str(c.get("type", "")).upper().startswith(("CPT", "HCPCS")):
+            continue
+        k = str(c.get("code", "")).upper().replace(".", "")[:3]
+        if k and not k.startswith("Z") and k[0] not in "VWXY":
+            cats.add("L0x" if k in ("L02", "L03") else k[0] if k[0] in "ST" else k)
+    return len(cats)
+
+
+def ensure_visit(codes: List[dict], visit: str) -> Tuple[List[dict], List[str]]:
+    """The visit code matches the visit type (new vs established patient), and a visit where a problem was evaluated has one:
+    tests, X-rays, injections and nebulizers don't replace it; only a minor procedure with a single problem does."""
+    new = "new" in (visit or "").lower()
+    out, notes = [], []
+    for c in codes:
+        code = str(c.get("code", "")).upper()
+        m = (_TO_NEW if new else _TO_EST).get(code)
+        if m:
+            notes.append(f"{code} → {m}: this is {'a new' if new else 'an established'} patient visit")
+            c = dict(c, code=m, description="Office/outpatient visit, " + ("new" if new else "established") + " patient")
+        out.append(c)
+    cpts = [str(c.get("code", "")).upper() for c in out if str(c.get("type", "")).upper().startswith(("CPT", "HCPCS"))]
+    if any(_em(c) for c in cpts) or not _problems(out):
+        return out, notes
+    minor = any(c in MINOR for c in cpts)
+    if minor and _problems(out) < 2:
+        return out, notes
+    code = "99203" if new else "99213"
+    out.insert(0, {"code": code, "type": "CPT", "description": "Office/outpatient visit, " + ("new" if new else "established") + " patient",
+                   "modifier": "25" if minor or any(c in WITH_25 for c in cpts) else "", "units": 1,
+                   "reason": "A problem was evaluated and managed at this visit"})
+    notes.append(f"Added {code}: a problem was evaluated at this visit (the tests and treatments don't replace the visit code)")
+    return out, notes

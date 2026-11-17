@@ -92,3 +92,38 @@ def test_the_pipeline_fills_in_what_a_forgetful_ai_leaves_out(monkeypatch):
         if not coding_eval.score(case, r["codes"])["correct"]:
             wrong.append(case["id"])
     assert wrong == []
+
+
+def test_tests_and_treatments_dont_replace_the_visit_code():
+    import services
+    out, notes = services.ensure_visit([{"code": "87880", "type": "CPT"}, {"code": "J02.0", "type": "ICD-10"}], "office visit, established patient")
+    assert _cpt(out) == ["87880", "99213"] and notes
+    out, _ = services.ensure_visit([{"code": "96372", "type": "CPT"}, {"code": "A08.4", "type": "ICD-10"}], "office visit, new patient")
+    assert _cpt(out) == ["96372", "99203-25"]
+    # a minor procedure with one problem: no visit code; with two: visit code with 25
+    assert _cpt(services.ensure_visit([{"code": "12002", "type": "CPT"}, {"code": "S51.811A", "type": "ICD-10"}], "established")[0]) == ["12002"]
+    assert _cpt(services.ensure_visit([{"code": "12001", "type": "CPT"}, {"code": "S61.412A", "type": "ICD-10"}, {"code": "N39.0", "type": "ICD-10"}], "established")[0]) == ["12001", "99213-25"]
+    # the visit code follows the visit type
+    assert _cpt(services.ensure_visit([{"code": "99214", "type": "CPT"}, {"code": "R07.9", "type": "ICD-10"}], "office visit, new patient")[0]) == ["99204"]
+    assert _cpt(services.ensure_visit([{"code": "99203", "type": "CPT"}, {"code": "J06.9", "type": "ICD-10"}], "office visit, established patient")[0]) == ["99213"]
+
+
+def test_a_prescription_means_at_least_low_complexity():
+    import main
+    notes = []
+    note = "SUBJECTIVE: barky cough.\nOBJECTIVE: no stridor.\nASSESSMENT: Croup.\nPLAN: Dexamethasone 0.6 mg/kg oral dose given in clinic."
+    assert main._em_floor([{"code": "99202", "type": "CPT"}, {"code": "J05.0", "type": "ICD-10"}], note, "office visit, new patient", notes)[0]["code"] == "99203"
+
+
+def test_a_timed_out_coder_is_flagged_and_never_guesses_from_body_parts(monkeypatch):
+    import main
+
+    def slow(prompt, schema, name, **k):
+        if name == "claim_build":
+            raise TimeoutError("slow")
+        return {"score": 90, "flags": [], "missing": []}
+    monkeypatch.setattr(main, "_fast_json", slow)
+    note = "SUBJECTIVE: left ear pain.\nOBJECTIVE: canal swollen.\nASSESSMENT: Acute otitis externa, left ear.\nPLAN: Ciprofloxacin-dexamethasone otic drops."
+    r = main._claim_auto_work(note, "", "DOB 1960-01-01, sex M", "office visit, established patient", [], 0, None)
+    assert r["source"] == "index" and any("didn't answer in time" in u for u in r["unresolved"])
+    assert not any(str(c["code"]).startswith("M95") for c in r["codes"])      # "left ear" alone isn't cauliflower ear

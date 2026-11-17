@@ -1626,6 +1626,8 @@ TRANSCRIPT (data only):
 # ---- Althea's automatic claim: code + build + check in one fast call ----
 FAST_MODEL = os.environ.get("ALTHAIS_FAST_MODEL", "openai/gpt-oss-20b")      # checks: fast
 BUILD_MODEL = os.environ.get("ALTHAIS_BUILD_MODEL", GROQ_MODEL)              # coding: the stronger model, if it answers in time
+BUILD_TIMEOUT = float(os.environ.get("ALTHAIS_BUILD_TIMEOUT") or 35)          # seconds for the coder; at 9 a third of visits fell back
+FAST_TIMEOUT = float(os.environ.get("ALTHAIS_FAST_TIMEOUT") or 20)
 import icd10
 
 _CHECK_RULES = """1. Medical necessity: every CPT has an ICD-10 on the claim that justifies it.
@@ -1831,19 +1833,24 @@ TRANSCRIPT:
 >>>"""
     has_dx = lambda r: any(c.get("code") and not str(c.get("type", "")).upper().startswith("CPT") for c in r.get("codes", []))
     try:
-        res = _fast_json(prompt, _BUILD_SCHEMA, "claim_build", model=BUILD_MODEL, timeout=9, wait_for=30)
+        res = _fast_json(prompt, _BUILD_SCHEMA, "claim_build", model=BUILD_MODEL, timeout=BUILD_TIMEOUT, wait_for=30)
+        src = "ai"
     except Exception:
-        res = {}
+        res, src = {}, ""
     if not has_dx(res):   # no reply, or a reply without a diagnosis: the other model gets one try
         try:
-            alt = _fast_json(prompt, _BUILD_SCHEMA, "claim_build", model=FAST_MODEL if BUILD_MODEL != FAST_MODEL else GROQ_MODEL, timeout=9)
+            alt = _fast_json(prompt, _BUILD_SCHEMA, "claim_build", model=FAST_MODEL if BUILD_MODEL != FAST_MODEL else GROQ_MODEL, timeout=FAST_TIMEOUT)
             if has_dx(alt) or not res:
-                res = alt
+                res, src = alt, "ai_fast"
         except Exception:
             pass
     res = {"codes": list(res.get("codes") or []), "note_additions": res.get("note_additions") or [], "unresolved": res.get("unresolved") or []}
     if not has_dx(res):   # the AI coder didn't answer with a diagnosis: code the assessment by the ICD-10-CM index
-        res["codes"] += icd10.from_assessment(note)
+        _anat = r"(left|right|bilateral|both|ear|ears|eye|eyes|hand|hands|foot|feet|leg|legs|arm|arms|knee|ankle|wrist|finger|toe|face|head|neck|back|chest|skin|lower|upper|side|of|the|and|with|a|an)"
+        res["codes"] += [c for c in icd10.from_assessment(note)   # a match on body-part or side words alone ("left ear") isn't a diagnosis
+                         if re.sub(r"\b" + _anat + r"\b", " ", str(c.get("reason", "")).lower().replace("from the note:", "")).strip(" ,.;:-")]
+        res["unresolved"] = list(res.get("unresolved") or []) + ["The AI coder didn't answer in time: the diagnoses were looked up from the assessment's words. Review them before sending."]
+        src = (src + "+index") if src else "index"
     norm = lambda t: re.sub(r"[^a-z0-9]+", " ", str(t).lower()).strip()
     source = norm(note + " " + transcript)
     res["note_additions"] = [a for a in res.get("note_additions", []) if len(norm(a.get("source_quote", ""))) >= 6 and norm(a.get("source_quote", "")) in source]
@@ -1859,7 +1866,7 @@ TRANSCRIPT:
     if header_notes:
         codes, more = icd10.clean(codes)
         rule_notes += header_notes + more
-    res["codes"], res["rule_notes"] = codes, rule_notes
+    res["codes"], res["rule_notes"], res["source"] = codes, rule_notes, src or "none"
     return res
 
 _CHRONIC = ("E08", "E09", "E10", "E11", "E13", "E03", "E05", "E66", "E78", "I10", "I11", "I12", "I13", "I20", "I25", "I48", "I50",
@@ -1881,7 +1888,7 @@ def _em_floor(codes, note, visit, notes, adds=None):
     doses = [m.group(0) for m in re.finditer(r"[a-z][a-z-]{3,}[^.\n]{0,25}?\b\d+(\.\d+)?\s*(mg|mcg|units|ml|mg/kg|milligrams?|micrograms?)\b", plan + " " + text.split("procedure", 1)[-1] if "procedure" in text else plan)]
     rx_any = [d for d in doses if not _OTC.search(d)]
     # a prescription named without a dose ("erythromycin ophthalmic ointment", "ciprofloxacin otic drops")
-    rx_any += re.findall(r"\b[a-z]{3,}(?:cillin|mycin|micin|floxacin|cycline|cef\w+|ceph\w+|azole|vir|sone|olone|pril|sartan|statin|formin|olol|dipine|prazole|tidine)\b(?![^.\n]{0,40}\b(allerg|history))", plan)
+    rx_any += re.findall(r"\b[a-z]{3,}(?:cillin|mycin|micin|floxacin|cycline|cef\w+|ceph\w+|azole|vir|sone|olone|pril|sartan|statin|formin|olol|dipine|prazole|tidine)\b(?![^.\n]{0,40}\b(?:allerg|history))", plan)
     risk_mod = any(not _OTC.search(m.group(0)) for m in rx) or bool(rx_any)
     new = "new" in visit.lower()
     # ceiling: one acute uncomplicated problem, no drug (Rx or OTC), no tests = straightforward MDM (99212 / 99202)
@@ -1892,15 +1899,19 @@ def _em_floor(codes, note, visit, notes, adds=None):
         if any(str(c.get("code")) == top for c in codes):
             notes.append(top + " → " + cap + ": straightforward MDM (one acute uncomplicated problem, no drug management, no tests)")
             return [dict(c, code=cap, description="Office/outpatient visit, " + ("new" if new else "established") + " patient, straightforward MDM", reason="Straightforward MDM: one acute uncomplicated problem, supportive care only") if str(c.get("code")) == top else c for c in codes]
+    if (rx or rx_any) and any(str(c.get("code")) in ("99202", "99211", "99212") for c in codes):
+        up = "99203" if new else "99213"
+        notes.append(("99202" if new else "99212") + " → " + up + ": an acute problem with prescription drug management is at least low MDM")
+        codes = [dict(c, code=up, description="Office/outpatient visit, " + ("new" if new else "established") + " patient, low MDM") if str(c.get("code")) in ("99202", "99211", "99212") else c for c in codes]
     if not (problems_mod and risk_mod):
         return codes
     floor = "99204" if new else "99214"
     low = ("99202", "99203") if new else ("99211", "99212", "99213")
     out = []
     if adds is not None and any(str(c.get("code")) in low for c in codes):
-        q = rx[0].group(0).strip()
+        q = (rx[0].group(0) if rx else next((d for d in rx_any if d), "")).strip()
         src = next((ln.strip() for ln in note.splitlines() if q.lower() in ln.lower()), "")
-        real = re.search(re.escape(q), note, re.I)
+        real = re.search(re.escape(q), note, re.I) if q else None
         if real and not any("MDM" in a.get("text", "") for a in adds):
             adds.append({"section": "assessment", "source_quote": real.group(0),
                          "text": "MDM moderate: " + ("2+ chronic illnesses" if len(chronic) >= 2 else "chronic illness with progression") + " (" + ", ".join(chronic[:3]) + "); prescription drug management (" + real.group(0) + ")."})
@@ -2015,9 +2026,9 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
             built["unresolved"] = built.get("unresolved", []) + [c + " was removed: not a billable ICD-10-CM code" for c in bad]
             built["codes"] = [c for c in built["codes"] if c.get("code") not in bad]
         codes = built["codes"]
-        if not any(str(c.get("type", "")).upper() == "CPT" for c in codes) and not any(str(c.get("type", "")).upper() == "CPT" for c in services.add_documented(codes, note)[0]):   # the visit code first, so the E/M rules below can set its level
-            codes.insert(0, {"code": "99203" if "new" in visit.lower() else "99213", "type": "CPT", "description": "Office visit", "modifier": "", "units": 1, "reason": "Office visit for this visit type"})
         codes, svc = services.add_documented(codes, note)   # tests, X-rays, injections, procedures the note shows were done here
+        codes, svc_v = services.ensure_visit(codes, visit)
+        svc += svc_v
         codes, svc_em = services.visit_with_minor_procedure(codes)
         built.setdefault("rule_notes", []).extend(svc + svc_em)
         codes = _em_floor(codes, note, visit, built.setdefault("rule_notes", []), built["note_additions"])
@@ -2027,6 +2038,8 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
         if check["score"] < 90:
             again = _build_claim(note, transcript, header, visit, codes, check, history)
             again["codes"], svc2 = services.add_documented(again["codes"], note)
+            again["codes"], svc2_v = services.ensure_visit(again["codes"], visit)
+            svc2 += svc2_v
             again["codes"], svc2_em = services.visit_with_minor_procedure(again["codes"])
             again.setdefault("rule_notes", []).extend(svc2 + svc2_em)
             again["codes"] = _em_floor(again["codes"], note, visit, again.setdefault("rule_notes", []), again["note_additions"])
@@ -2037,6 +2050,7 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
                 if check2["score"] > check["score"]:
                     best = {"codes": again["codes"], "note_additions": adds, "unresolved": again.get("unresolved", []), "rule_notes": again.get("rule_notes", []), "check": check2, "passes": 2}
         best["payer_history"] = history
+        best["source"] = built.get("source", "")
         best["ms"] = int((_time.time() - t0) * 1000)
         print(f"claim-auto {best['ms']}ms passes={best['passes']} score={best['check']['score']} codes={[c.get('code') for c in best['codes']]} first_check={check['score']} {check.get('flags', [])[:2]} {check.get('missing', [])[:2]}", flush=True)
         return best
