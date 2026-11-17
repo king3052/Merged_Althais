@@ -1860,7 +1860,8 @@ TRANSCRIPT:
     codes, spec_notes = icd10.specify(codes, note)
     codes, stat_notes = icd10.status(codes, note)
     codes, side_notes = icd10.side_and_foreign_body(codes, note)
-    stat_notes = stat_notes + side_notes
+    codes, bite_notes = icd10.bites(codes, note)
+    stat_notes = stat_notes + side_notes + bite_notes
     spec_notes = sup_notes + spec_notes + stat_notes
     header_notes += spec_notes
     if header_notes:

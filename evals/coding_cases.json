@@ -1,7 +1,7 @@
 {
- "version": 1,
+ "version": 2,
  "label_status": "DRAFT: labeled by Althais from public coding rules. Have a certified coder (CPC) check every label before treating scores as final.",
- "how_to_read": "expect.cpt and expect.icd10 are lists of slots; each slot lists the acceptable codes, best first. E/M slot alternatives are a defensible level, not a free pass. modifiers: code -> modifiers that must be on it.",
+ "how_to_read": "expect.cpt and expect.icd10 are lists of slots; each slot lists the acceptable codes, best first. E/M slot alternatives are a defensible level, not a free pass. modifiers: code -> modifiers that must be on it. optional_cpt: codes that may be billed or left off.",
  "cases": [
   {
    "id": "strep_positive",
@@ -508,7 +508,7 @@
     "icd10": [
      [
       "S60.551A",
-      "S61.451A"
+      "S61.441A"
      ]
     ],
     "modifiers": {}
@@ -676,7 +676,10 @@
       "J05.0"
      ]
     ],
-    "modifiers": {}
+    "modifiers": {},
+    "optional_cpt": [
+     "J8540"
+    ]
    }
   },
   {

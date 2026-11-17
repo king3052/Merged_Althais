@@ -217,6 +217,15 @@ MINOR = SIMPLE_REPAIRS | {"10060", "10061", "10120", "10121", "17110", "17111", 
 WITH_25 = {"96372", "96374", "96375", "94640", "94644"}   # same-day treatments that need 25 on the visit
 
 
+def _needs_25(code: str) -> bool:
+    """A same-day service that payers bundle the visit into unless the visit carries 25: procedures (10000-69999), injections and
+    infusions, nebulizers, vaccine administration, therapy and manipulation."""
+    c = str(code).upper()
+    if c in WITH_25 or c in MINOR or c in {"90460", "90461", "90471", "90472", "90473", "90474"}:
+        return True
+    return c.isdigit() and (10000 <= int(c) <= 69999 or 96360 <= int(c) <= 96549 or 97010 <= int(c) <= 97799 or 98925 <= int(c) <= 98942)
+
+
 def _em(code: str) -> bool:
     return bool(re.fullmatch(r"99(20[2-5]|21[1-5]|28[1-5])", code))
 
@@ -231,7 +240,16 @@ def visit_with_minor_procedure(codes: List[dict]) -> Tuple[List[dict], List[str]
     if not any(c in MINOR for c in cpts):
         given = next((c for c in cpts if c in WITH_25), None)
         if not given:
-            return codes, []
+            if any(_needs_25(c) for c in cpts if not _em(c)):
+                return codes, []
+            out, notes = [], []
+            for c in codes:     # tests, X-rays and an ECG don't need 25 on the visit: an unneeded modifier draws edits
+                mods = str(c.get("modifier") or "").replace(",", " ").split()
+                if _em(str(c.get("code", "")).upper()) and "25" in mods:
+                    c = dict(c, modifier=" ".join(m for m in mods if m != "25"))
+                    notes.append(f"Modifier 25 removed from {c['code']}: nothing billed with it today needs it (tests, X-rays, ECG).")
+                out.append(c)
+            return out, notes
         out, notes = [], []
         for c in codes:     # an injection or nebulizer the same day: payers fold the visit in unless it carries 25
             mods = str(c.get("modifier") or "").replace(",", " ").split()

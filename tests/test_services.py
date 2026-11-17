@@ -127,3 +127,21 @@ def test_a_timed_out_coder_is_flagged_and_never_guesses_from_body_parts(monkeypa
     r = main._claim_auto_work(note, "", "DOB 1960-01-01, sex M", "office visit, established patient", [], 0, None)
     assert r["source"] == "index" and any("didn't answer in time" in u for u in r["unresolved"])
     assert not any(str(c["code"]).startswith("M95") for c in r["codes"])      # "left ear" alone isn't cauliflower ear
+
+
+def test_bites_are_open_bite_codes_and_25_only_when_needed():
+    import icd10
+    import services
+    out, n = icd10.bites([{"code": "S61.431A", "type": "ICD-10"}, {"code": "W54.0XXA", "type": "ICD-10"}], "Bitten on the right hand by a dog.")
+    assert [c["code"] for c in out] == ["S61.451A", "W54.0XXA"] and n
+    assert icd10.bites([{"code": "S61.431A", "type": "ICD-10"}], "Stepped on a nail")[0][0]["code"] == "S61.431A"
+    ecg = [{"code": "99205", "type": "CPT", "modifier": "25"}, {"code": "93000", "type": "CPT"}, {"code": "R07.89", "type": "ICD-10"}]
+    assert _cpt(services.visit_with_minor_procedure(ecg)[0]) == ["93000", "99205"]
+    shot = [{"code": "99213", "type": "CPT", "modifier": "25"}, {"code": "90471", "type": "CPT"}, {"code": "90715", "type": "CPT"}, {"code": "S61.210A", "type": "ICD-10"}]
+    assert _cpt(services.visit_with_minor_procedure(shot)[0]) == ["90471", "90715", "99213-25"]
+
+
+def test_optional_codes_arent_counted_as_extra():
+    import coding_eval
+    case = next(c for c in coding_eval.load_cases()["cases"] if c["id"] == "pediatric_fever_neb_new")
+    assert coding_eval.score(case, [{"code": "99203", "type": "CPT"}, {"code": "J8540", "type": "CPT"}, {"code": "J05.0", "type": "ICD-10"}])["correct"]

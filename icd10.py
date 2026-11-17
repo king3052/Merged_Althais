@@ -388,3 +388,24 @@ def side_and_foreign_body(codes, note):
         else:
             out.append(c)
     return out, notes
+
+
+_WOUND_CATS = ("S01", "S11", "S21", "S31", "S41", "S51", "S61", "S71", "S81", "S91")
+
+
+def bites(codes, note):
+    """ICD-10-CM: a bite is coded as an open bite, not a laceration or puncture. In the open-wound categories the 5th character
+    is the wound type (1-4 laceration/puncture, 5 open bite); swap it when the note says the wound is a bite. Returns (codes, notes)."""
+    if not re.search(r"\b(bite|bites|bitten)\b", str(note or "").lower()):
+        return codes, []
+    out, notes = [], []
+    for c in codes:
+        k = str(c.get("code", "")).upper().replace(".", "")
+        if k[:3] in _WOUND_CATS and len(k) >= 5 and k[4] in "1234":
+            b = k[:4] + "5" + k[5:]
+            if b in _CODES and _CODES[b][0]:
+                out.append(dict(c, code=dotted(b), description=_CODES[b][1], reason="A bite is coded as an open bite: " + _CODES[b][1]))
+                notes.append(f"{c.get('code')} → {dotted(b)}: a bite is coded as an open bite")
+                continue
+        out.append(c)
+    return out, notes

@@ -61,7 +61,7 @@ def score(case: dict, codes: List[dict]) -> dict:
 
     cpt_slots = [[_norm(x) for x in s] for s in exp["cpt"]]
     cpt_hit = [any(x in got_cpt for x in s) for s in cpt_slots]
-    allowed = {x for s in cpt_slots for x in s}
+    allowed = {x for s in cpt_slots for x in s} | {_norm(x) for x in exp.get("optional_cpt") or []}
     cpt_extra = [x for x in got_cpt if x not in allowed]
     em_slot = next((s for s in cpt_slots if any(_is_em(x) for x in s)), None)
     got_em = [x for x in got_cpt if _is_em(x)]
