@@ -1,0 +1,22 @@
+# Push to main -> build -> live on Cloud Run. Used by the Cloud Build trigger "althais-main" (docs/GOOGLE_CLOUD_MIGRATION.md,
+# "Deploys"). The deploy step runs deploy/gcloud-deploy.sh with the image this build made, so a by-hand deploy and a pushed
+# one are configured the same way: Gemini on Vertex, billing jobs on, one instance.
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "deploy/Dockerfile", "-t", "us-central1-docker.pkg.dev/$PROJECT_ID/althais/app:$SHORT_SHA", "."]
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "us-central1-docker.pkg.dev/$PROJECT_ID/althais/app:$SHORT_SHA"]
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - SKIP_BUILD=1
+      - IMAGE=us-central1-docker.pkg.dev/$PROJECT_ID/althais/app:$SHORT_SHA
+    args: ["deploy/gcloud-deploy.sh"]
+images: ["us-central1-docker.pkg.dev/$PROJECT_ID/althais/app:$SHORT_SHA"]
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1200s

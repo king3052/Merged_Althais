@@ -105,7 +105,7 @@ before sending patient data that way.
 2. **Stop Railway's jobs and writes:** Railway > Variables > add `JOBS_DISABLED=1` (it redeploys). Then put Railway in
    maintenance (or scale to zero) so nobody saves anything to Supabase.
 3. Fresh copy: run step 4 again (type `REPLACE` when asked). It must say "All tables match."
-4. Go live on Cloud Run: `PROJECT_ID=althais-prod PROMOTE=1 bash deploy/gcloud-deploy.sh`
+4. Go live on Cloud Run: `PROJECT_ID=althais AI_PROVIDER=vertex PROMOTE=1 bash deploy/gcloud-deploy.sh` (done Nov 17, 2026)
 5. Point the domain: Cloud Run > althais > Manage custom domains > add `app.althais.com` (and `althais.com` if the app
    serves it). Google shows the DNS records; set them in **Cloudflare** (DNS only, grey cloud, until the certificate is
    issued; then orange if you want Cloudflare in front).
@@ -115,6 +115,21 @@ before sending patient data that way.
 
 **Rollback** (any time in the first week): point Cloudflare back to Railway, remove `JOBS_DISABLED` on Railway. Anything
 saved on Cloud SQL after cutover would need copying back, so decide within the first hours if possible.
+
+## Deploys (after the cutover)
+
+Google Cloud is the live site. A push to `main` builds and deploys by itself through the Cloud Build trigger
+`althais-main` (`deploy/cloudbuild-deploy.yaml`): Gemini on Vertex, billing jobs on, one instance. Cloud Build > History
+shows each deploy (about 5 minutes). Setting it up, once:
+
+1. Console > Cloud Build > **Repositories** > region `us-central1` > **Create host connection** > GitHub > authorize the
+   Google Cloud Build GitHub app for `king3052/Merged_Althais` > **Link repository**.
+2. Cloud Shell: `PROJECT_ID=althais bash deploy/gcloud-autodeploy.sh` (also turns on the database's deletion protection
+   and a Sunday 2-3 AM Central maintenance window).
+
+By hand: `PROJECT_ID=althais bash deploy/gcloud-deploy.sh` goes live; add `TEST=1` for a test copy with no traffic and
+billing jobs off. Railway still builds pushes until it's deleted; its jobs are off (`JOBS_DISABLED=1`) and the domain no
+longer points at it.
 
 ## 8. After a quiet week
 
