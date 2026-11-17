@@ -25,8 +25,9 @@ echo "== Trigger: every push to main deploys"
 if gcloud builds triggers describe althais-main --project "$PROJECT_ID" --region "$REGION" >/dev/null 2>&1; then
   echo "Trigger althais-main already exists."
 else
-  CONN="$(gcloud builds connections list --project "$PROJECT_ID" --region "$REGION" --format='value(name)' | head -1)"
-  REPO="$(gcloud builds repositories list --connection="$(basename "$CONN")" --project "$PROJECT_ID" --region "$REGION" --format='value(name)' | head -1)"
+  CONN="$(basename "$(gcloud builds connections list --project "$PROJECT_ID" --region "$REGION" --format='value(name)' | head -1)")"
+  NAME="$(basename "$(gcloud builds repositories list --connection="$CONN" --project "$PROJECT_ID" --region "$REGION" --format='value(name)' | head -1)")"
+  REPO="${NAME:+projects/$PROJECT_ID/locations/$REGION/connections/$CONN/repositories/$NAME}"   # the trigger wants the full path
   [ -n "$REPO" ] || { echo "Connect the GitHub repository first: Cloud Build > Repositories > Connect repository (us-central1)."; exit 1; }
   gcloud builds triggers create github --project "$PROJECT_ID" --region "$REGION" --name althais-main \
     --repository="$REPO" --branch-pattern='^main$' --build-config=deploy/cloudbuild-deploy.yaml \
