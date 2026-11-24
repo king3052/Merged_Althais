@@ -131,12 +131,20 @@ import security   # sessions and idle sign-out, two-step login, password rules a
 app.include_router(security.router)
 app.middleware("http")(security.middleware)
 
+import clinic_setup   # a clinic's appeal windows, contract rates, site names, BAA record and setup checklist
+app.include_router(clinic_setup.router)
+import clinic_data    # /admin: export a clinic's data, and the certificate after deleting it
+app.include_router(clinic_data.router)
+import cpt_notice     # the AMA's CPT notices: accepted once per person before CPT pages (cpt_notice.py)
+app.include_router(cpt_notice.router)
+app.middleware("http")(cpt_notice.middleware)
+
 
 # ── Staff Portal lockdown ─────────────────────────────────────────────────────
 # Invited staff whose clinic only gives them the Staff Portal (users.portal_only, set from their organization
 # membership in staff_onboarding.py) can reach the portal and their own account, nothing else: every other page
 # sends them to /portal and every other API answers 403. Enforced here, on the server, for every request.
-_APP_PAGE_PREFIXES = ("/overview", "/emr", "/revenue", "/staff", "/scribe", "/coding", "/settings", "/manager", "/onboarding", "/lost-money", "/recovery")
+_APP_PAGE_PREFIXES = ("/overview", "/emr", "/revenue", "/staff", "/scribe", "/coding", "/settings", "/manager", "/onboarding", "/lost-money", "/recovery", "/clinic-setup")
 _PORTAL_APIS = ("/api/portal/", "/api/memberships", "/api/invitations/", "/api/me", "/api/change-password")
 
 
@@ -174,6 +182,10 @@ def health():
     except Exception:
         return JSONResponse({"ok": False, "error": "database"}, status_code=503)
 
+
+import ops_alerts   # failures email the team (ALERT_EMAIL) instead of only reaching the logs
+app.include_router(ops_alerts.router)
+app.middleware("http")(ops_alerts.middleware)
 
 import perf   # registered last, so it wraps everything: one memo per request and the Server-Timing header
 app.middleware("http")(perf.middleware)

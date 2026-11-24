@@ -1085,10 +1085,15 @@
         + `This can't be undone.\n\nType the clinic's name to confirm:`);
       if (typed === null) return;
       if (typed.trim() !== key) return toast('The name didn’t match, so nothing was deleted.', 'error');
+      if (confirm(`Download a full copy of ${key}'s data first?\n\nThe BAA promises to return a leaving clinic's data on request. The file contains patient information: send it only over an encrypted channel.`)) {
+        window.location = '/api/admin/clinics/' + encodeURIComponent(key) + '/export';
+        if (!confirm('When the download has finished, press OK to delete the clinic. Cancel keeps it.')) return;
+      }
       const r = await fetch('/api/admin/clinics/' + encodeURIComponent(key), { method: 'DELETE', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: typed.trim() }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) return toast(j.error || 'Could not delete it.', 'error');
       toast(`Deleted ${key}` + (j.deletedAccounts ? ` and ${j.deletedAccounts} account${j.deletedAccounts === 1 ? '' : 's'}` : '')); load();
+      if (j.certificateUrl) window.open(j.certificateUrl, '_blank');
     });
 
     show(location.hash.slice(1));

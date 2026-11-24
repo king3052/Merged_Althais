@@ -170,7 +170,12 @@ def analyse(db, org: str, now: Optional[dt.datetime] = None, by: str = "Althais 
         except Exception:
             continue
     pairs += _sent_claims(db, org, since)
-    a = lm.analyze(pairs, now.date())
+    try:            # the clinic's own appeal windows, contract rates and site names (clinic_setup.py)
+        import clinic_setup
+        terms = clinic_setup.terms(db, org)
+    except Exception:
+        terms = None
+    a = lm.analyze(pairs, now.date(), terms)
     a.kept_files = files
     saved = {"created": 0, "recovered": 0, "denied_again": 0, "recovered_dollars": 0.0}
     if a.remits or a.claims:
@@ -242,6 +247,11 @@ def run_due(now: Optional[dt.datetime] = None) -> int:
             except Exception as e:
                 db.rollback()
                 print(f"[MONITOR] {type(e).__name__}")       # no details: they could include clinic data
+                try:
+                    import ops_alerts
+                    ops_alerts.notify("Hourly payment check failed", org, e)
+                except Exception:
+                    pass
     try:                # payer change alerts across the network (network.py)
         import network
         network.refresh_alerts(now.date())

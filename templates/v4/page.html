@@ -45,5 +45,6 @@
   <script src="/static/js/althea-ui.js?v={{ asset_v }}"></script>
   <script src="/static/js/althea-revenue.js?v={{ asset_v }}"></script>
   <script src="/static/js/althea.js?v={{ asset_v }}"></script>
+  {% if cpt_line %}<div aria-label="CPT notice" style="position:fixed;left:0;right:0;bottom:0;padding:2px 10px;font-size:10px;line-height:14px;color:#6b7785;background:rgba(255,255,255,.85);text-align:center;pointer-events:none;z-index:1">{{ cpt_line }}</div>{% endif %}
 </body>
 </html>

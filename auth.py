@@ -2218,23 +2218,33 @@ async def admin_remove_clinic(org_key: str, request: Request, db: Session = Depe
         if u and u not in members and not (u.organization or "").strip() and not db.scalar(
                 select(OrgMembership.id).where(OrgMembership.user_id == u.id, OrgMembership.org_key != org_key)):
             members.append(u)
+    import clinic_data
+    import json as _json
+    keys = clinic_data.keys_for(db, org_key)      # its name, and the claim store's key (org_<name>) unless another clinic shares it
+    before = clinic_data.counts(db, org_key)
     try:
         ids = [u.id for u in members]
         if ids:
-            for model in (UserActivity, PasswordResetToken, EmailVerificationToken, OrgMembership):
+            from security import UserSession
+            for model in (UserActivity, PasswordResetToken, EmailVerificationToken, OrgMembership, UserSession):
                 db.query(model).filter(model.user_id.in_(ids)).delete(synchronize_session=False)
         db.execute(text("DELETE FROM staff_files WHERE document_id IN (SELECT id FROM staff_documents WHERE org_key = :k)"), {"k": org_key})
         for table in _org_key_tables(db):
-            db.execute(text(f'DELETE FROM "{table}" WHERE org_key = :k'), {"k": org_key})
+            for k in keys:
+                db.execute(text(f'DELETE FROM "{table}" WHERE org_key = :k'), {"k": k})
         for u in members:
             db.delete(u)
         db.commit()
     except Exception:
         db.rollback()
         return JSONResponse({"error": "Could not delete the clinic. Nothing was changed."}, status_code=500)
+    cert = clinic_data.certificate(org_key, before, len(members), dt.datetime.utcnow())
     log_admin_action(db, "clinic_deleted", target=org_key,
-                     detail=f"Deleted {org_key} and {len(members)} account{'' if len(members) == 1 else 's'}: " + (", ".join(u.email for u in members) or "none"))
-    return {"ok": True, "deletedAccounts": len(members)}
+                     detail=f"Deleted {org_key} and {len(members)} account{'' if len(members) == 1 else 's'}: " + (", ".join(u.email for u in members) or "none")
+                     + " CERTIFICATE " + _json.dumps(cert))
+    row = db.scalar(select(AdminAuditLog).where(AdminAuditLog.action == "clinic_deleted", AdminAuditLog.target == org_key).order_by(AdminAuditLog.id.desc()))
+    return {"ok": True, "deletedAccounts": len(members), "certificate": cert,
+            "certificateUrl": f"/admin/deletion-certificate/{row.id}" if row else ""}
 
 
 @router.put("/api/admin/users/{user_id}/email")

@@ -99,8 +99,63 @@ CARC_KIND = {
 NORMAL_REDUCTIONS = {"45", "253", "59", "131", "94", "237", "B10", "1", "2", "3", "23", "100", "102", "104", "144"}
 
 # Days to appeal or correct after the payment file, by payer type. Real limits vary by contract: these are the usual
-# floors, used to rank urgency, and the report says to check the contract.
+# floors, used when the clinic hasn't entered its own (clinic_setup.py), and the report marks them as estimates.
 APPEAL_DAYS = {"medicare": 120, "medicare_advantage": 60, "medicaid": 90, "commercial": 180}
+# Days to file a claim after the visit, by payer type, likewise
+FILING_DAYS = {"medicare": 365, "medicare_advantage": 180, "medicaid": 90, "commercial": 180}
+
+# Provider-level adjustments (835 PLB): money an insurer takes back from, or adds to, a whole payment
+PLB_REASON = {"WO": "overpayment recovery (takeback)", "FB": "forwarding balance (carried from another payment)", "L6": "interest",
+              "72": "authorized return", "J1": "nonreimbursable item", "CS": "adjustment", "50": "late filing reduction",
+              "AP": "accelerated payment withholding", "B2": "rebate", "B3": "recovery allowance", "BD": "bad debt adjustment",
+              "BN": "bonus", "C5": "temporary allowance", "CR": "capitation", "CV": "capital passthrough", "CW": "certified registered nurse anesthetist passthrough",
+              "DM": "direct medical education passthrough", "E3": "withholding", "FC": "fund allocation", "GO": "graduate medical education passthrough",
+              "HM": "hemophilia clotting factor", "IP": "incentive premium", "IR": "IRS withholding", "IS": "interim settlement",
+              "L3": "penalty", "LE": "levy", "LS": "lump sum", "OA": "organ acquisition", "OB": "offset for affiliated providers",
+              "PI": "periodic interim payment", "PL": "payment final", "RA": "retroactive adjustment", "RE": "return on equity",
+              "SL": "student loan repayment", "TL": "third party liability", "WU": "unspecified recovery", "90": "early payment allowance"}
+
+
+def _payer_key(name: str) -> str:
+    return re.sub(r"\s+", " ", (name or "").strip().upper())
+
+
+@dataclass
+class ClinicTerms:
+    """What a clinic has told Althais about its contracts (clinic_setup.py). Empty: everything is estimated from the files.
+
+    appeal_days / filing_days: payer name (as on the payment files, any case) or "type:<medicare|medicare_advantage|medicaid|commercial>"
+    -> days. rates: (payer, code, price modifiers) -> contracted allowed amount per unit. sites: NPI -> site or provider name."""
+    appeal_days: Dict[str, int] = field(default_factory=dict)
+    filing_days: Dict[str, int] = field(default_factory=dict)
+    rates: Dict[Tuple[str, str, Tuple[str, ...]], float] = field(default_factory=dict)
+    sites: Dict[str, str] = field(default_factory=dict)
+
+    def _days(self, table: Dict[str, int], payer: str, ptype: str) -> Optional[int]:
+        t = {_payer_key(k): v for k, v in table.items()}
+        p = _payer_key(payer)
+        if p and p in t:
+            return int(t[p])
+        # a name entered as the start of the payer's name on the files ("AETNA" for "AETNA LIFE INSURANCE"): the longest wins
+        hits = [k for k in t if not k.startswith("TYPE:") and p.startswith(k + " ")]
+        if hits:
+            return int(t[max(hits, key=len)])
+        v = t.get("TYPE:" + (ptype or "").upper())
+        return int(v) if v else None
+
+    def rate(self, payer: str, code: str, mods: Tuple[str, ...]) -> Optional[float]:
+        if not self.rates:
+            return None
+        p = _payer_key(payer)
+        names = self.__dict__.setdefault("_names", {})          # payer on the files -> contract names that apply, longest first
+        if p not in names:
+            known = {r[0] for r in self.rates}
+            names[p] = ([p] if p in known else []) + sorted((k for k in known if p.startswith(k + " ")), key=len, reverse=True)
+        for k in names[p]:
+            v = self.rates.get((k, code, tuple(mods)))
+            if v:
+                return float(v)
+        return None
 
 # Filing indicator (CLP06 / SBR09) to payer type
 FILING = {"MA": "medicare", "MB": "medicare", "16": "medicare_advantage", "MC": "medicaid", "CH": "commercial", "VA": "commercial",
@@ -249,6 +304,22 @@ class Finding:
     carc: str = ""              # the payer's reason code, for denials
     evidence: List[str] = field(default_factory=list)   # payer claim numbers paid at the usual rate (underpayments)
     fix: str = ""               # what a corrected claim would change: "add_modifier:CODE:MOD", "add_line:CODE:CHARGE", "needs_drug", "resend"
+    deadline_set: bool = False  # True: the window is the clinic's own (clinic_setup.py); False: estimated from the payer type
+    provider: str = ""          # rendering provider, for the by-site view
+    site: str = ""              # billing NPI, or the site name the clinic gave it
+
+
+@dataclass
+class ProviderAdj:
+    """One provider-level adjustment (835 PLB): positive takes money back from the payment, negative adds to it."""
+    payer: str
+    date: str
+    check: str
+    code: str
+    ref: str
+    amount: float
+    npi: str = ""
+    source: str = ""
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -322,7 +393,8 @@ def _svc_code(v: str, comp: str) -> Tuple[str, List[str]]:
     return parts[1].strip().upper(), [m.strip().upper() for m in parts[2:6] if m.strip()]
 
 
-def parse_835(x: str, source: str = "") -> List[Remit]:
+def parse_835(x: str, source: str = "", plb: Optional[list] = None) -> List[Remit]:
+    """The claims in one 835 interchange. Provider-level adjustments (PLB) go into `plb` when a list is given."""
     segs, comp = _segments(x)
     remits: List[Remit] = []
     payer = payer_id = date = check = payee = ""
@@ -344,6 +416,16 @@ def parse_835(x: str, source: str = "") -> List[Remit]:
             payee = g(4) if g(3) == "XX" else payee
         elif sid == "REF" and g(1) == "2U" and r is None:
             payer_id = g(2)
+        elif sid == "PLB":
+            if plb is not None:
+                for i in range(3, len(s) - 1, 2):
+                    rc, amt = s[i].strip(), _f(s[i + 1])
+                    if not rc or not amt:
+                        continue
+                    code, _, ref = rc.partition(comp)
+                    plb.append(ProviderAdj(payer=payer, date=date, check=check, code=code.strip().upper(), ref=ref.strip(),
+                                           amount=amt, npi=g(1), source=source))
+            r = line = None
         elif sid == "CLP":
             r = Remit(claim_id=g(1), status=g(2), charge=_f(g(3)), paid=_f(g(4)), patient_resp=_f(g(5)), payer_claim_id=g(7),
                       payer=payer, payer_id=payer_id, payer_type=_payer_type(g(6), payer), date=date, check=check, source=source, payee_npi=payee)
@@ -587,6 +669,7 @@ class Dataset:
     claims: List[Claim] = field(default_factory=list)
     remits: List[Remit] = field(default_factory=list)
     files: List[dict] = field(default_factory=list)     # name, kind, count, error
+    plb: List[ProviderAdj] = field(default_factory=list)  # takebacks and offsets on whole payments (835 PLB)
 
     def add(self, name: str, data: bytes, _depth: int = 0):
         if name.lower().endswith(".zip") or data[:4] == b"PK\x03\x04":
@@ -621,7 +704,7 @@ class Dataset:
                     st = re.search(r"(?:" + re.escape(term) + r"|\n)\s*ST" + re.escape(ix[3] if len(ix) > 3 else "*") + r"(\d{3})", ix[:5000])
                     kind = st.group(1) if st else ""
                     if kind == "835":
-                        r = parse_835(ix, name)
+                        r = parse_835(ix, name, self.plb)
                         self.remits += r
                         found += len(r)
                         kinds.add("835 payments")
@@ -685,6 +768,17 @@ def _denial_carc(adjs: List[Adj]) -> str:
     return max(pick, key=lambda a: a.amount).carc if pick else ""
 
 
+def _patient_key(member_id: str, patient: str) -> str:
+    """Who a visit was for, to match a claim resent under a new number. The name is part of it when known: family members
+    can share a subscriber's member ID."""
+    m = re.sub(r"[^A-Z0-9]", "", (member_id or "").upper())
+    n = re.sub(r"[^A-Z,]", "", (patient or "").upper())
+    n = n if len(n) > 3 else ""
+    if not m and not n:
+        return ""
+    return f"M:{m}|N:{n}"
+
+
 def _days(a: str, b: str) -> Optional[int]:
     try:
         return (dt.date.fromisoformat(b) - dt.date.fromisoformat(a)).days
@@ -693,9 +787,10 @@ def _days(a: str, b: str) -> Optional[int]:
 
 
 class Analysis:
-    def __init__(self, ds: Dataset, today: Optional[dt.date] = None):
+    def __init__(self, ds: Dataset, today: Optional[dt.date] = None, terms: Optional[ClinicTerms] = None):
         self.ds = ds
         self.today = today or dt.date.today()
+        self.terms = terms or ClinicTerms()
         self.findings: List[Finding] = []
         # the latest non-reversed answer for each claim and payer
         latest: Dict[Tuple[str, str], Remit] = {}
@@ -709,6 +804,22 @@ class Analysis:
         self.remits_by_claim: Dict[str, List[Remit]] = defaultdict(list)
         for r in self.remits:
             self.remits_by_claim[r.claim_id].append(r)
+        # the same visit answered under another claim number (a corrected claim, or a new claim number on a resend):
+        # by patient + date of service, and by patient + date + code for lines that were paid
+        self.answered_visits: Dict[Tuple[str, str], set] = defaultdict(set)   # (name, date) -> member IDs seen ("" if none)
+        self.paid_by_visit: Dict[Tuple[str, str, str], List[Remit]] = defaultdict(list)
+        for r in self.remits:
+            pk = _patient_key(r.member_id, r.patient)
+            if not pk:
+                continue
+            nk = _patient_key("", r.patient)
+            mid = re.sub(r"[^A-Z0-9]", "", (r.member_id or "").upper())
+            for d in {r.dos} | {l.dos for l in r.lines}:
+                if d and nk:
+                    self.answered_visits[(nk, d)].add(mid)
+            for l in r.lines:
+                if l.paid > 0 and (l.dos or r.dos):
+                    self.paid_by_visit[(pk, l.dos or r.dos, l.code)].append(r)
         self.claims = {c.claim_id: c for c in ds.claims}
         dates = [d for d in [c.dos for c in ds.claims] + [r.dos for r in self.remits] + [l.dos for r in self.remits for l in r.lines] if d]
         self.start, self.end = (min(dates), max(dates)) if dates else ("", "")
@@ -746,6 +857,9 @@ class Analysis:
     def expected(self, payer: str, l: Line) -> Tuple[float, str]:
         """What this line should bring in (allowed, before patient share), and how we know."""
         code, mods = _price_key(l)
+        contract = self.terms.rate(payer, code, mods)
+        if contract:
+            return round(contract * (l.units or 1), 2), "your contracted rate"
         key = ((payer or "").upper(), code, mods)
         if key not in self._rate_cache:
             seen = [v for _, v in self.rates["payer"].get(key, [])]
@@ -759,6 +873,30 @@ class Analysis:
             return round(hit[0] * (l.units or 1), 2), hit[1]
         ratio = self.collection_ratio()
         return round(l.charge * ratio, 2), f"your charge x your average allowed-to-charge ratio ({ratio:.0%})"
+
+    def window(self, payer: str, ptype: str, kind: str = "appeal") -> Tuple[int, bool]:
+        """(days, set by the clinic?) to appeal or correct after the payment (kind "appeal"), or to file after the visit ("filing")."""
+        table, default = (self.terms.appeal_days, APPEAL_DAYS) if kind == "appeal" else (self.terms.filing_days, FILING_DAYS)
+        v = self.terms._days(table, payer, ptype)
+        if v:
+            return v, True
+        return default.get(ptype or "commercial", 180), False
+
+    def window_text(self, payer: str, ptype: str, kind: str = "appeal") -> str:
+        days, own = self.window(payer, ptype, kind)
+        what = "Appeal window" if kind == "appeal" else "Filing limit"
+        frm = "from the payment" if kind == "appeal" else "from the visit"
+        if own:
+            return f"{what}: {days} days {frm} (your clinic's setting for {payer or 'this payer'})."
+        return (f"{what} estimated at {days} days {frm} for a {(ptype or 'commercial').replace('_', ' ')} payer: "
+                f"confirm it in the contract and set it in Clinic setup.")
+
+    def is_resolved(self, r_or_claim, code: str, dos: str) -> bool:
+        """Paid under another claim number for the same patient, date and code (a corrected claim or a resend)."""
+        pk = _patient_key(getattr(r_or_claim, "member_id", ""), getattr(r_or_claim, "patient", ""))
+        if not pk or not dos:
+            return False
+        return any(o is not r_or_claim and o.claim_id != r_or_claim.claim_id for o in self.paid_by_visit.get((pk, dos, code), []))
 
     def collection_ratio(self) -> float:
         if self._ratio is None:
@@ -816,7 +954,7 @@ class Analysis:
                 continue
             # paid by another payer (e.g. secondary) after this denial? then it isn't lost
             others = [o for o in self.remits_by_claim.get(r.claim_id, []) if o is not r and o.paid > 0]
-            window = APPEAL_DAYS.get(r.payer_type, 180)
+            window, own = self.window(r.payer, r.payer_type)
             base = r.date or r.dos
             deadline = ""
             left = None
@@ -829,6 +967,8 @@ class Analysis:
             for l, carc in items:
                 if others and any(ol.code == l.code and ol.paid > 0 for o in others for ol in o.lines):
                     continue
+                if l.code != "(whole claim)" and self.is_resolved(r, l.code, l.dos or r.dos):
+                    continue            # paid later under a new claim number: fixed, not lost
                 kind = CARC_KIND.get(carc, "review")
                 action, odds = PLAYBOOK[kind]
                 value, how = self.expected(r.payer, l) if l.code != "(whole claim)" else (round(r.charge * self.collection_ratio(), 2), "your average allowed-to-charge ratio")
@@ -838,8 +978,8 @@ class Analysis:
                 if kind == "timely" or lost:
                     self.add(carc=carc, category="lost", title=f"{l.code} denied ({reason})" + (" — past the appeal window" if lost else ""),
                              dollars=value, confidence="high", action="Prevention: " + ("file within the payer's limit; keep clearinghouse acceptance reports" if kind == "timely" else "work denials within days of the payment file"),
-                             why=f"{reason}.{remarks} Worth about ${value:,.2f} ({how}).", claim_id=r.claim_id, payer_claim_id=r.payer_claim_id,
-                             payer=r.payer, dos=l.dos or r.dos, code=l.code, deadline=deadline, days_left=left, counted=False)
+                             why=f"{reason}.{remarks} Worth about ${value:,.2f} ({how}). {self.window_text(r.payer, r.payer_type)}", claim_id=r.claim_id, payer_claim_id=r.payer_claim_id,
+                             payer=r.payer, dos=l.dos or r.dos, code=l.code, deadline=deadline, days_left=left, counted=False, deadline_set=own)
                     continue
                 conf = {"high": "high", "medium": "medium", "low": "low"}[odds]
                 fix = ""
@@ -851,9 +991,9 @@ class Analysis:
                     fix = "correct"
                 self.add(carc=carc, fix=fix, category="denial", title=f"{l.code} denied — {CARC.get(carc, 'reason ' + carc) if carc else 'no reason code'}",
                          dollars=value, confidence=conf, action=action,
-                         why=f"{reason}.{remarks} Expected about ${value:,.2f} ({how}). Appeal window assumed {window} days for a {r.payer_type.replace('_', ' ')} payer: check the contract.",
+                         why=f"{reason}.{remarks} Expected about ${value:,.2f} ({how}). {self.window_text(r.payer, r.payer_type)}",
                          claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code,
-                         deadline=deadline, days_left=left, counted=conf != "low")
+                         deadline=deadline, days_left=left, counted=conf != "low", deadline_set=own)
 
     # ── 2. underpayments, against the payer's own usual rate ──
     def underpayments(self):
@@ -874,6 +1014,27 @@ class Analysis:
                 if any(x.carc == "59" for x in l.adjustments):
                     continue
                 code, mods = _price_key(l)
+                window, own = self.window(r.payer, r.payer_type)
+                contract = self.terms.rate(r.payer, code, mods)
+                if contract:
+                    # the clinic's contract is the yardstick: this catches a payer that underpays every time,
+                    # which comparing with the payer's own usual rate never can
+                    per_unit = a / (l.units or 1)
+                    short = round((contract - per_unit) * (l.units or 1), 2)
+                    if per_unit < contract * 0.99 - 0.25 and short >= 1.0:
+                        extra = f" The payer also took {', '.join(CARC.get(c, c) for c in reasons)}." if reasons else ""
+                        deadline, left = _deadline(r.date or r.dos, window, self.today)
+                        why = (f"Allowed ${a:,.2f} for {l.units:g} unit(s); your contract with {r.payer} says ${contract:,.2f} per unit.{extra} "
+                               + self.window_text(r.payer, r.payer_type))
+                        past = left is not None and left < 0
+                        self.add(category="lost" if past else "underpaid",
+                                 title=f"{l.code} paid below your contracted rate" + (" — past the reconsideration window" if past else ""),
+                                 dollars=short, confidence="high",
+                                 action=("Prevention: review payments against the contract within days of each payment file" if past else
+                                         "Ask the payer to reprocess at the contracted rate; cite the contract's fee schedule"),
+                                 why=why, claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code,
+                                 deadline=deadline, days_left=left, counted=not past, deadline_set=own)
+                    continue
                 k = ((r.payer or "").upper(), code, mods, (l.dos or r.date or "")[:4])
                 vals = by_year.get(k) or []
                 if len(vals) < 3:
@@ -889,17 +1050,16 @@ class Analysis:
                 if per_unit < rate * 0.98 - 0.25 and short >= 1.0:
                     extra = f" The payer also took {', '.join(CARC.get(c, c) for c in reasons)}." if reasons else ""
                     refs = [x for x in self.rate_refs.get(((r.payer or "").upper(), code, mods, round(rate, 2)), []) if not x.startswith((r.payer_claim_id or r.claim_id) + " ")][:3]
-                    window = APPEAL_DAYS.get(r.payer_type, 180)
                     deadline, left = _deadline(r.date or r.dos, window, self.today)
-                    why = (f"Allowed ${a:,.2f} for {l.units:g} unit(s); {r.payer} allowed ${rate:,.2f} per unit on {n_rate} of {len(vals)} other {l.code} lines that year.{extra}"
-                           + f" Reconsideration window assumed {window} days from the payment for a {r.payer_type.replace('_', ' ')} payer: check the contract.")
+                    why = (f"Allowed ${a:,.2f} for {l.units:g} unit(s); {r.payer} allowed ${rate:,.2f} per unit on {n_rate} of {len(vals)} other {l.code} lines that year.{extra} "
+                           + self.window_text(r.payer, r.payer_type))
                     if left is not None and left < 0:
                         self.add(evidence=refs, category="lost", title=f"{l.code} paid below {r.payer}'s usual rate — past the reconsideration window",
                                  dollars=short, confidence="high", action="Prevention: review payments within days of each payment file",
                                  why=why, claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code,
-                                 deadline=deadline, days_left=left, counted=False)
+                                 deadline=deadline, days_left=left, counted=False, deadline_set=own)
                         continue
-                    self.add(evidence=refs, category="underpaid", title=f"{l.code} paid below {r.payer}'s usual rate",
+                    self.add(evidence=refs, category="underpaid", deadline_set=own, title=f"{l.code} paid below {r.payer}'s usual rate",
                              dollars=short, confidence="high" if n_rate >= 3 else "medium",
                              action="Ask the payer to reprocess at the contracted rate (call or reconsideration form); attach a paid example at the usual rate",
                              why=why, claim_id=r.claim_id, payer_claim_id=r.payer_claim_id, payer=r.payer, dos=l.dos or r.dos, code=l.code,
@@ -1046,20 +1206,25 @@ class Analysis:
         for c in self.claims.values():
             if c.claim_id in self.remits_by_claim or not c.dos:
                 continue
+            nk, mid = _patient_key("", c.patient), re.sub(r"[^A-Z0-9]", "", (c.member_id or "").upper())
+            ids = self.answered_visits.get((nk, c.dos)) if nk else None
+            if ids and (not mid or mid in ids or "" in ids):
+                continue            # answered under another claim number (same patient and date; same member ID when both have one)
             age = _days(c.dos, last_remit)
             if age is None or age < 45 or (first_remit and c.dos < (dt.date.fromisoformat(first_remit) - dt.timedelta(days=60)).isoformat()):
                 continue        # too new to chase, or older than the payment files cover
             value = sum(self.expected(c.payer, l)[0] for l in c.lines)
-            limit = 365 if c.payer_type == "medicare" else 90 if c.payer_type == "medicaid" else 180
+            limit, own = self.window(c.payer, c.payer_type, "filing")
             deadline, left = _deadline(c.dos, limit, self.today)
             self.add(fix="resend", category="no_response", title=f"No answer from {c.payer or 'the payer'} after {age} days",
                      dollars=round(value, 2), confidence="medium",
                      action="Check claim status (payer portal or 276); if the payer never got it, resubmit now"
                             + (" — past the usual filing limit: only recoverable with proof it was filed on time (clearinghouse acceptance report)" if (left is not None and left < 0)
                                else f" — the usual {limit}-day filing limit is close" if (left is not None and left < 30) else ""),
-                     why=f"Sent for {c.dos}; no payment or denial in the payment files, which run to {last_remit}. It may be in a file that wasn't uploaded."
-                         f" Filing limit assumed {limit} days from the visit for a {c.payer_type.replace('_', ' ')} payer: check the contract.",
-                     claim_id=c.claim_id, payer=c.payer, dos=c.dos, code=", ".join(l.code for l in c.lines[:4]), deadline=deadline, days_left=left)
+                     why=f"Sent for {c.dos}; no payment or denial in the payment files, which run to {last_remit}. It may be in a file that wasn't uploaded. "
+                         + self.window_text(c.payer, c.payer_type, "filing"),
+                     claim_id=c.claim_id, payer=c.payer, dos=c.dos, code=", ".join(l.code for l in c.lines[:4]), deadline=deadline, days_left=left,
+                     deadline_set=own)
 
     # ── 6. coding risks ──
     def coding_risks(self):
@@ -1159,20 +1324,80 @@ class Analysis:
     def patient_balances(self):
         self.patient_owed = round(sum(r.patient_resp for r in self.remits), 2)
 
+    # ── 9. money insurers took back from whole payments (835 PLB) ──
+    def takebacks(self):
+        seen = set()
+        self.plb_taken = self.plb_added = 0.0
+        for p in self.ds.plb:
+            key = (_payer_key(p.payer), p.check, p.code, p.ref, round(p.amount, 2))
+            if key in seen:         # the same payment file uploaded twice
+                continue
+            seen.add(key)
+            if p.amount < 0:
+                self.plb_added += -p.amount
+                continue
+            self.plb_taken += p.amount
+            what = PLB_REASON.get(p.code, f"adjustment {p.code}")
+            ref = f" Reference: {p.ref}." if p.ref else ""
+            self.add(category="takeback", title=f"{p.payer or 'A payer'} took back ${p.amount:,.2f}: {what}",
+                     dollars=round(p.amount, 2), confidence="low", counted=False,
+                     action=("Match it to the claim it recovers and check the overpayment was real; dispute it if not "
+                             "(insurers' refund requests are often wrong, and many give 30–60 days to dispute)"
+                             if p.code in ("WO", "WU", "72", "J1", "CS", "RA", "TL", "OB")
+                             else "Check what it is with the payer if your team didn't expect it"),
+                     why=f"Taken from payment {p.check or '(no check number)'} on {p.date or 'an unknown date'} (provider-level adjustment {p.code}).{ref}",
+                     payer=p.payer, dos=p.date, code=p.code, payer_claim_id=p.ref[:64], site=self.terms.sites.get(p.npi, p.npi))
+
+    def _sites(self):
+        """Who and where each finding belongs to, for clinics with more than one site or provider."""
+        where: Dict[str, Tuple[str, str]] = {}
+        for r in self.remits:
+            where.setdefault(r.claim_id, (r.provider, r.payee_npi))
+        for c in self.claims.values():
+            prov, npi = where.get(c.claim_id, ("", ""))
+            where[c.claim_id] = (prov, npi or c.provider)
+        for f in self.findings:
+            if f.claim_id and f.claim_id in where:
+                prov, npi = where[f.claim_id]
+                f.provider = f.provider or prov
+                f.site = f.site or self.terms.sites.get(npi, npi)
+
     def run(self) -> "Analysis":
         self.levels = {"counts": {}, "total": 0, "by_provider": {}}
         self.rules = []
         for step in (self.denials, self.underpayments, self.low_prices, self.missed_charges, self.no_response,
-                     self.coding_risks, self.visit_levels, self.payer_rules, self.patient_balances):
+                     self.coding_risks, self.visit_levels, self.payer_rules, self.patient_balances, self.takebacks, self._sites):
             step()
         self.findings.sort(key=lambda f: (-f.dollars, f.category))
         return self
+
+    def by_site(self) -> List[dict]:
+        """Money found and denials, by site (billing NPI or the clinic's name for it) and by provider."""
+        rows: Dict[Tuple[str, str], dict] = {}
+        for f in self.findings:
+            if f.category in ("takeback", "levels", "rate_drop", "low_price") or not (f.site or f.provider):
+                continue
+            for kind, name in (("site", f.site), ("provider", f.provider)):
+                if not name:
+                    continue
+                row = rows.setdefault((kind, name), {"kind": kind, "name": name, "items": 0, "found": 0.0, "denials": 0, "lost": 0.0})
+                row["items"] += 1
+                if f.category == "denial":
+                    row["denials"] += 1
+                if f.counted and f.confidence in ("high", "medium"):
+                    row["found"] += f.dollars
+                if f.category == "lost":
+                    row["lost"] += f.dollars
+        out = sorted(rows.values(), key=lambda r: (r["kind"], -r["found"]))
+        for r in out:
+            r["found"], r["lost"] = round(r["found"], 2), round(r["lost"], 2)
+        return out
 
     # ── totals ──
     def summary(self) -> dict:
         found = sum(f.dollars for f in self.findings if f.counted and f.confidence in ("high", "medium"))
         possible = sum(f.dollars for f in self.findings
-                       if not (f.counted and f.confidence in ("high", "medium")) and f.category not in ("lost", "coding"))
+                       if not (f.counted and f.confidence in ("high", "medium")) and f.category not in ("lost", "coding", "takeback"))
         lost = sum(f.dollars for f in self.findings if f.category == "lost")
         charges = sum(c.charge or sum(l.charge for l in c.lines) for c in self.claims.values()) or sum(r.charge for r in self.remits)
         paid = sum(r.paid for r in self.remits)
@@ -1198,6 +1423,10 @@ class Analysis:
             "denial_rate": round(denied_lines / all_lines, 4) if all_lines else None,
             "categories": {k: {"count": v["count"], "dollars": round(v["dollars"], 2)} for k, v in cats.items()},
             "levels": self.levels, "rules": self.rules, "files": self.ds.files,
+            "takebacks": round(getattr(self, "plb_taken", 0.0), 2), "plb_added": round(getattr(self, "plb_added", 0.0), 2),
+            "paid_after_takebacks": round(paid - getattr(self, "plb_taken", 0.0) + getattr(self, "plb_added", 0.0), 2),
+            "deadlines_estimated": sum(1 for f in self.findings if f.deadline and not f.deadline_set and f.counted),
+            "contract_rates": len(self.terms.rates), "by_site": self.by_site(),
         }
 
     def to_dict(self) -> dict:
@@ -1243,11 +1472,11 @@ def _mode(vals: List[float]) -> float:
     return max(v for v, n in c.items() if n == top)
 
 
-def analyze(files: Iterable[Tuple[str, bytes]], today: Optional[dt.date] = None) -> Analysis:
+def analyze(files: Iterable[Tuple[str, bytes]], today: Optional[dt.date] = None, terms: Optional[ClinicTerms] = None) -> Analysis:
     ds = Dataset()
     for name, data in files:
         ds.add(name, data)
-    return Analysis(ds, today).run()
+    return Analysis(ds, today, terms).run()
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -1263,6 +1492,7 @@ SECTIONS = [
     ("levels", "Visit levels", "How your visit levels compare with urgent care benchmarks. A pattern to review, not a list of errors."),
     ("rate_drop", "Rate changes", "A payer's usual rate for a code went down during the period."),
     ("coding", "Coding fixes that prevent denials", "Problems on claims that cost money when they're denied. Fix the template once."),
+    ("takeback", "Money insurers took back", "Taken out of whole payments (overpayment recoveries and offsets). Check each one is real: insurers' refund requests are often wrong."),
     ("lost", "Money lost for good", "Past the deadline or filed late. Not recoverable: this is what prevention is worth."),
 ]
 
@@ -1343,6 +1573,20 @@ def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_se
             rows.append(f"<tr><td>{e(title)}</td><td class=n>{c['count']:,}</td><td class=n>{_m(c['dollars'])}</td></tr>")
     if rows:
         out.append("<h2>Where the money is</h2><div class=wrap><table><tr><th>What</th><th class=n>Items</th><th class=n>Dollars</th></tr>" + "".join(rows) + "</table></div>")
+    if s.get("deadlines_estimated") and not sample:
+        out.append("<div class=card style='margin-top:10px'>"
+                   f"<b>{s['deadlines_estimated']} deadline(s) below are estimates</b>, from the usual window for each kind of payer. "
+                   "Your contracts may give more or less time. <a href='/clinic-setup' target=_top>Enter each payer's real window in Clinic setup</a> "
+                   "and the next report uses them.</div>")
+    sites = s.get("by_site") or []
+    kinds = Counter(r["kind"] for r in sites)
+    if kinds.get("site", 0) > 1 or kinds.get("provider", 0) > 1:
+        body = "".join(f"<tr><td>{'Site' if r['kind'] == 'site' else 'Provider'}</td><td>{e(r['name'])}</td><td class=n>{r['items']:,}</td>"
+                       f"<td class=n>{r['denials']:,}</td><td class=n>{_m(r['found'])}</td><td class=n>{_m(r['lost'])}</td></tr>"
+                       for r in sites if kinds.get(r["kind"], 0) > 1)
+        out.append("<h2>By site and provider</h2><p class=sub>Where the money is coming from. A site is the billing NPI on the payment files "
+                   "(name your sites in Clinic setup).</p><div class=wrap><table><tr><th></th><th>Name</th><th class=n>Items</th>"
+                   "<th class=n>Denials</th><th class=n>Money found</th><th class=n>Lost for good</th></tr>" + body + "</table></div>")
     out.append("<p class=more><button onclick='dl()'>Download the worklist (CSV)</button> &nbsp; <button onclick='print()'>Print or save as PDF</button></p>")
     for key, title, blurb in SECTIONS:
         items = [f for f in a.findings if f.category == key]
@@ -1360,6 +1604,8 @@ def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_se
             dl = ""
             if dated:
                 left = (f"{f.days_left} days left" if f.days_left >= 0 else "past it") if f.days_left is not None else ""
+                if left and not f.deadline_set:
+                    left += " · estimated"
                 dl = (f"<td style='white-space:nowrap' class={'late' if (f.days_left if f.days_left is not None else 99) < 15 else ''}>{e(f.deadline)}<br><span class=why>{left}</span></td>"
                       if f.deadline else "<td>check</td>")
             claim = e(f.claim_id) + (f"<br><span class=why>payer # {e(f.payer_claim_id)}</span>" if f.payer_claim_id else "")
@@ -1384,15 +1630,22 @@ def render_html(a: Analysis, clinic: str = "", sample: bool = False, rows_per_se
     if len(fl) > 12:
         kinds = Counter(f["kind"] or "unreadable" for f in fl)
         files = "".join(f"<li>{n} file(s): {e(k)}</li>" for k, n in kinds.most_common()) + (("<li>Problems:</li>" + files) if files else "")
-    out.append("<div class=note><b>How this was worked out.</b> Expected amounts come from what each payer has paid this clinic for the same code, "
-               "so no contracts are needed; where a payer has no history for a code, the median of the clinic's other payers is used. "
+    contracts = (f"Where the clinic entered contracted rates ({s['contract_rates']:,} code rates), those are the yardstick; elsewhere, "
+                 if s.get("contract_rates") else "")
+    out.append("<div class=note><b>How this was worked out.</b> " + contracts +
+               "expected amounts come from what each payer has paid this clinic for the same code; where a payer has no history for a code, "
+               "the median of the clinic's other payers is used. "
                "<b>Money found</b> counts high- and medium-confidence items. <b>Possible</b> needs a person to confirm (for visit levels, the note has to support the higher level: "
-               "never recode without it). Appeal windows are typical floors (Medicare 120 days, Medicare Advantage 60, Medicaid 90, commercial 180); check each contract. "
-               "Yearly figures scale this period to 12 months. No patient names are shown, and the files aren't stored."
-               f"<br><br>Files read:<ul>{files}</ul></div>")
-    out.append("<script>const W=" + json.dumps(_worklist(a)).replace("</", "<\\/") + ";"
+               "never recode without it). Deadlines use the clinic's own appeal windows where it has entered them; the rest are typical floors "
+               "(Medicare 120 days, Medicare Advantage 60, Medicaid 90, commercial 180) and are marked as estimates. "
+               "A denial later paid under a new claim number for the same patient, date and code is treated as fixed. "
+               "Yearly figures scale this period to 12 months. No patient names are shown"
+               + (". The payment files are kept encrypted so Althais can keep watching new payments." if saved is not None else ", and the files aren't stored.")
+               + f"<br><br>Files read:<ul>{files}</ul></div>")
+    out.append(f"<p class=more style='margin-top:14px'>{e(_cpt_short())}</p>")
+    out.append("<script>const W=" + json.dumps(_worklist(a)).replace("</", "<\\/") + ";const N=" + json.dumps("# " + _cpt_short()) + ";"
                "function dl(){const h=Object.keys(W[0]||{});const q=v=>'\"'+String(v??'').replace(/\"/g,'\"\"')+'\"';"
-               "const t=[h.join(',')].concat(W.map(r=>h.map(k=>q(r[k])).join(','))).join('\\n');"
+               "const t=[h.join(',')].concat(W.map(r=>h.map(k=>q(r[k])).join(','))).join('\\n')+'\\n\\n'+N+'\\n';"
                "const u=URL.createObjectURL(new Blob([t],{type:'text/csv'}));const x=document.createElement('a');x.href=u;x.download='lost-money-worklist.csv';x.click()}"
                "</script></main></body></html>")
     return "".join(out)
@@ -1419,7 +1672,16 @@ def _worklist(a: Analysis) -> List[dict]:
     return [{k: _cell(v) for k, v in {"section": names.get(f.category, f.category), "item": f.title, "confidence": f.confidence, "dollars": round(f.dollars, 2),
              "counted_in_found": f.counted and f.confidence in ("high", "medium"), "claim_id": f.claim_id, "payer_claim_id": f.payer_claim_id,
              "payer": f.payer, "date_of_service": f.dos, "code": f.code, "deadline": f.deadline, "days_left": f.days_left,
+             "deadline_estimated": bool(f.deadline) and not f.deadline_set, "site": f.site, "provider": f.provider,
              "action": f.action, "why": f.why}.items()} for f in a.findings]
+
+
+def _cpt_short() -> str:
+    try:
+        import cpt_notice
+        return cpt_notice.SHORT
+    except Exception:
+        return "CPT copyright American Medical Association. All rights reserved. CPT is a registered trademark of the American Medical Association."
 
 
 def worklist_csv(a: Analysis) -> str:
@@ -1429,6 +1691,7 @@ def worklist_csv(a: Analysis) -> str:
         w = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
         w.writeheader()
         w.writerows(rows)
+        buf.write(f"\n# {_cpt_short()}\n")
     return buf.getvalue()
 
 
@@ -1631,7 +1894,7 @@ if _HAS_FASTAPI:
 .drop{{border:1px dashed var(--line);border-radius:3px;padding:30px 16px;color:var(--ink2);text-align:center;background:var(--card);cursor:pointer}}
 .drop.on{{border-color:var(--accent);background:var(--accent-soft)}} input[type=text]{{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:3px;height:28px;background:var(--card);color:var(--ink);width:100%;max-width:360px}}
 #list{{color:var(--muted);font-size:13px;margin:10px 0}} #err{{color:var(--bad)}}</style></head><body><main>
-<h1>Lost Money Report</h1><p class=sub>{html.escape(who)}</p>
+<h1>Lost Money Report</h1><p class=sub>{html.escape(who)}{' · <a href="/clinic-setup" target=_top>Clinic setup</a>: your appeal windows, contract rates and sites' if saving else ''}</p>
 {CONNECT_HTML if saving else ""}{"<h2>Or upload files</h2>" if saving else ""}<div class=card><ol style="margin:0 0 0 18px;padding:0;color:var(--muted)">
 <li>Export 90 days (or more) of <b>payment files (835 / ERA)</b> from your clearinghouse or billing system.</li>
 <li>Add the <b>claim files (837)</b> for the same period if you can, or a <b>claims export (CSV)</b> with code, charge, payer, date and payment columns.</li>
@@ -1665,8 +1928,8 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
             out.append((os.path.basename(f.filename or "file"), data))
         return out
 
-    def _respond(pairs, clinic: str, fmt: str, save=None):
-        a = analyze(pairs)
+    def _respond(pairs, clinic: str, fmt: str, save=None, terms=None):
+        a = analyze(pairs, terms=terms)
         if not a.ds.claims and not a.ds.remits:
             errs = "; ".join(f"{f['name']}: {f['error']}" for f in a.ds.files if f["error"]) or "no 835, 837 or CSV data found"
             return JSONResponse({"error": f"Nothing to analyse ({errs})."}, status_code=400)
@@ -1740,7 +2003,15 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
                     pass
             db.commit()
             return out
-        return _respond(pairs, clinic, fmt, keep)
+        terms = None
+        try:                # the clinic's own appeal windows, contract rates and site names (clinic_setup.py)
+            import billing_activation as ba
+            import clinic_setup
+            org = ba.org_of(user)
+            terms = None if org.startswith("user:") else clinic_setup.terms(db, org)
+        except Exception:
+            terms = None
+        return _respond(pairs, clinic, fmt, keep, terms)
 
     @router.get("/admin/lost-money", response_class=HTMLResponse)
     def admin_lost_money_page(request: Request):

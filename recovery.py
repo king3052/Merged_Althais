@@ -23,6 +23,7 @@ are stored encrypted (crypto_box, PHI_ENC_KEY).
 from __future__ import annotations
 
 import datetime as dt
+import html
 import json
 import re
 from typing import List, Optional
@@ -750,7 +751,8 @@ def recovery_page(request: Request, db: Session = Depends(get_db)):
         return HTMLResponse("Billers and admins only.", status_code=403)
     if request.headers.get("sec-fetch-dest") == "document":      # opened on its own: show it inside the app (v4 shell)
         return RedirectResponse("/v4/revenue/recovery", status_code=302)
-    return HTMLResponse(PAGE.replace("/*STYLE*/", lm.STYLE), headers={"Cache-Control": "no-store"})
+    import cpt_notice
+    return HTMLResponse(PAGE.replace("/*STYLE*/", lm.STYLE).replace("/*CPT*/", html.escape(cpt_notice.SHORT)), headers={"Cache-Control": "no-store"})
 
 
 PAGE = r"""<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
@@ -852,7 +854,7 @@ fetch('/api/recovery/monitor',{credentials:'same-origin'}).then(r=>r.ok?r.json()
  (m.lastRun?' · last checked '+new Date(m.lastRun).toLocaleString():'')+(m.newCases?' · '+m.newCases+' new item(s) found':'')+(m.recovered?' · '+m.recovered+' paid':'')});
 fetch('/api/recovery/digest',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(j=>{if(j)$('#dg').checked=j.on});
 async function dg(on){try{await api('/api/recovery/digest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({on})})}catch(e){alert(e.message)}}
-</script></body></html>"""
+</script><p class=more style="margin:18px 16px">/*CPT*/</p></body></html>"""
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════

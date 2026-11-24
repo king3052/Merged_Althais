@@ -129,6 +129,7 @@ def sync(db, org: str, limit: int = PER_SYNC, now: Optional[dt.datetime] = None)
         doc["error"], doc["lastSync"] = _short(e), now.isoformat(timespec="seconds") + "Z"
         _save(db, org, doc)
         out["error"] = doc["error"]
+        _alert("Claim.MD payment pull failed", org, e)
         return out
     rows = sorted(rows, key=lambda r: int(r["eraid"]) if str(r["eraid"]).isdigit() else 0)
     cutoff = (now - dt.timedelta(days=monitor.WINDOW_DAYS)).date()
@@ -144,6 +145,7 @@ def sync(db, org: str, limit: int = PER_SYNC, now: Optional[dt.datetime] = None)
         except Exception as e:
             out["error"] = f"Payment file {r['eraid']}: {_short(e)}"
             broke = True          # this one is tried again next time; the ones before it are kept
+            _alert("Claim.MD payment file download failed", org, e)
             break
         out["read"] += 1
         if monitor.add_file(db, org, f"claimmd-{r['eraid']}.835", text, "clinic_claimmd"):
@@ -190,7 +192,16 @@ def sync_due(now: Optional[dt.datetime] = None) -> int:
             except Exception as e:
                 db.rollback()
                 print(f"[PAYMENT_SOURCE] {type(e).__name__}")      # no details: they could include clinic data
+                _alert("Hourly Claim.MD pull crashed", org, e)
     return n
+
+
+def _alert(kind, org, e):
+    try:
+        import ops_alerts
+        ops_alerts.notify(kind, org, e)
+    except Exception:
+        pass
 
 
 # ── routes ──

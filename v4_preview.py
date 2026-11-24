@@ -111,7 +111,9 @@ def _page(key: str, title: str):
         me["v4_pages"] = pages
         import crypto_box
         bk = crypto_box.browser_key(crypto_box.store_slug(user.organization, user.email))
-        resp = _templates.TemplateResponse(request, "v4/page.html", {"page": key, "title": title, "user_json": json.dumps(me), "browser_key": bk})
+        import cpt_notice
+        resp = _templates.TemplateResponse(request, "v4/page.html", {"page": key, "title": title, "user_json": json.dumps(me), "browser_key": bk,
+                                                                      "cpt_line": "" if dental else cpt_notice.SHORT})
         # the page carries the key to this clinic's data in the browser: never keep it in the browser's cache
         resp.headers["Cache-Control"] = "no-store"
         resp.headers["Pragma"] = "no-cache"
