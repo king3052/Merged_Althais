@@ -133,6 +133,8 @@ app.middleware("http")(security.middleware)
 
 import clinic_setup   # a clinic's appeal windows, contract rates, site names, BAA record and setup checklist
 app.include_router(clinic_setup.router)
+import export_guide   # public help page: how a biller gets the 835 / 837 files (export_guide.py)
+app.include_router(export_guide.router)
 import clinic_data    # /admin: export a clinic's data, and the certificate after deleting it
 app.include_router(clinic_data.router)
 import cpt_notice     # the AMA's CPT notices: accepted once per person before CPT pages (cpt_notice.py)

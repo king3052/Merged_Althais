@@ -14,6 +14,9 @@
 | Data return and deletion | /admin offers a full export (every table as JSON, payment files decrypted) before deleting a clinic. Deletion now also removes the claim store's rows (`org_<name>`) and sessions, and produces a printable **certificate of deletion**. | `clinic_data.py`, `auth.admin_remove_clinic` |
 | Alerts | Failed Claim.MD pulls, failed hourly checks and server errors email `ALERT_EMAIL` (at most once per problem per clinic every 6 hours, no clinic data in the email) and log an ERROR line that Google Cloud alerts on. | `ops_alerts.py`, `deploy/gcloud-alerts.sh` |
 
+| Payment file guide | Public page for the biller: which files (835, 837 or CSV), how far back, where they live, and a request to copy to their clearinghouse, EHR support or billing company. Linked from Lost Money and the checklist. | `/help/payment-files`, `export_guide.py` |
+| Real-world X12 | 835/837 files wrapped at 80 columns, one segment per line, other separators, ISA headers not padded to 106 characters, UTF-16 and BOMs, several payers in one interchange. | `lost_money._delims`, `_segments`, `x12_kind` |
+
 ## Before the first real clinic (in order)
 
 1. **Ship the patch** (`_patches\inbox`, then `ship.ps1`).
@@ -25,7 +28,7 @@
 
 ## Still manual or not covered
 
-- Real payment files from Texas payers haven't been through the parser yet. Expect small fixes after the first clinic.
+- Real payment files from Texas payers haven't been through the parser yet; the common format quirks are handled (see above), but expect small fixes after the first clinic.
 - The Chrome extension shows codes inside the EMR; it doesn't show the long CPT notice (people accept it in the app).
 - Takebacks aren't matched to the exact claim they recover; the reference number from the payer is shown.
 - Database backups (14 days) still hold a deleted clinic until they expire; the certificate says so.

@@ -371,19 +371,55 @@ def _prov_name(last: str, first: str, npi: str) -> str:
     return f"{name} ({npi})" if name and npi else name or npi
 
 
-def _segments(x: str):
-    x = x.strip()
-    if not x.startswith("ISA") or len(x) < 106:
+def _delims(x: str) -> Tuple[str, str, str]:
+    """Element, component and segment separators from the ISA header. Read from ISA16 (after the 16th element separator), not
+    fixed offsets, because some senders don't pad the ISA to 106 characters. Lines wrapped at 80 columns are allowed."""
+    el = x[3]
+    p, n = 3, 1          # x[3] is the first element separator (before ISA01); ISA16 follows the 16th
+    while n < 16:
+        p = x.find(el, p + 1)
+        if p == -1:
+            raise ValueError("not an X12 file (the ISA header is cut short)")
+        n += 1
+    rest = x[p + 1:]
+    flat = rest.replace("\r", "").replace("\n", "")
+    if len(flat) < 2:
         raise ValueError("not an X12 file")
-    el, comp, term = x[3], x[104], x[105]
+    comp = flat[0]
+    term = rest[1] if len(rest) > 1 else ""
     if term in "\r\n":
-        term = "\n"
+        # newline right after ISA16: either newline is the terminator, or the file is wrapped there and the real one follows
+        term = flat[1] if not flat[1].isalnum() and flat[2:4].upper() == "GS" else "\n"
+    return el, comp, term
+
+
+def _segments(x: str):
+    x = (x or "").lstrip("\ufeff").strip().strip("\x00")
+    if not x.startswith("ISA") or len(x) < 100:
+        raise ValueError("not an X12 file")
+    el, comp, term = _delims(x)
+    if term == "\n":
+        body = x.replace("\r\n", "\n").replace("\r", "\n")
+    else:
+        body = x.replace("\r", "").replace("\n", "")        # newlines aren't data here: the file was wrapped (often at 80 columns)
     segs = []
-    for raw in x.replace("\r\n", "\n").split(term):
-        raw = raw.strip("\r\n ")
+    for raw in body.split(term):
+        raw = raw.strip("\r\n \x00")
         if raw:
             segs.append(raw.split(el))
     return segs, comp
+
+
+def x12_kind(ix: str) -> str:
+    """'835', '837', ... from the interchange's first ST segment, or '' when there isn't one."""
+    try:
+        segs, _ = _segments(ix)
+    except (ValueError, IndexError):
+        return ""
+    for sg in segs:
+        if sg[0].strip().upper() == "ST" and len(sg) > 1:
+            return sg[1].strip()[:3]
+    return ""
 
 
 def _svc_code(v: str, comp: str) -> Tuple[str, List[str]]:
@@ -700,9 +736,7 @@ class Dataset:
                 found = 0
                 kinds = set()
                 for ix in interchanges(text):
-                    term = ix[105] if len(ix) > 105 else "~"
-                    st = re.search(r"(?:" + re.escape(term) + r"|\n)\s*ST" + re.escape(ix[3] if len(ix) > 3 else "*") + r"(\d{3})", ix[:5000])
-                    kind = st.group(1) if st else ""
+                    kind = x12_kind(ix)
                     if kind == "835":
                         r = parse_835(ix, name, self.plb)
                         self.remits += r
@@ -729,6 +763,11 @@ class Dataset:
 
 
 def _decode(data: bytes) -> str:
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff") or (len(data) > 8 and data[1:8:2] == b"\x00\x00\x00\x00"):
+        try:                    # some Windows tools save exports as UTF-16
+            return data.decode("utf-16" if data[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-16-le")
+        except UnicodeDecodeError:
+            pass
     for enc in ("utf-8-sig", "latin-1"):
         try:
             return data.decode(enc)
@@ -1896,7 +1935,7 @@ if _HAS_FASTAPI:
 #list{{color:var(--muted);font-size:13px;margin:10px 0}} #err{{color:var(--bad)}}</style></head><body><main>
 <h1>Lost Money Report</h1><p class=sub>{html.escape(who)}{' · <a href="/clinic-setup" target=_top>Clinic setup</a>: your appeal windows, contract rates and sites' if saving else ''}</p>
 {CONNECT_HTML if saving else ""}{"<h2>Or upload files</h2>" if saving else ""}<div class=card><ol style="margin:0 0 0 18px;padding:0;color:var(--muted)">
-<li>Export 90 days (or more) of <b>payment files (835 / ERA)</b> from your clearinghouse or billing system.</li>
+<li>Export 90 days (or more) of <b>payment files (835 / ERA)</b> from your clearinghouse or billing system. <a href="/help/payment-files" target=_blank>How to get them</a></li>
 <li>Add the <b>claim files (837)</b> for the same period if you can, or a <b>claims export (CSV)</b> with code, charge, payer, date and payment columns.</li>
 <li>Drop them here (a zip works). {"With Save on, the files are kept (encrypted) so Althais keeps watching your payments; with it off, they are read once and not kept." if saving else "Nothing is saved: the files are read once to build the report."}</li></ol></div>
 <form id=f style="margin-top:16px"><p><input type=text name=clinic placeholder="Clinic name (optional, shown on the report)"></p>
@@ -2002,6 +2041,12 @@ document.open();document.write(t);document.close()}}catch(x){{E.textContent=x.me
                 except Exception:
                     pass
             db.commit()
+            try:            # shown on the clinic setup checklist (clinic_setup.py); after the commit, so a failure here loses nothing
+                import clinic_setup
+                clinic_setup.report_built(db, org, user.email)
+                db.commit()
+            except Exception:
+                db.rollback()
             return out
         terms = None
         try:                # the clinic's own appeal windows, contract rates and site names (clinic_setup.py)

@@ -214,8 +214,8 @@ def checklist(db, org: str, payers_seen: Optional[list] = None) -> List[dict]:
     d = load(db, org)
     steps = []
 
-    def step(key, title, done, how, required=True):
-        steps.append({"key": key, "title": title, "done": bool(done), "how": how, "required": required})
+    def step(key, title, done, how, required=True, link=None):
+        steps.append({"key": key, "title": title, "done": bool(done), "how": how, "required": required, **({"link": link} if link else {})})
 
     baa = d.get("baa") or {}
     step("baa", "Business associate agreement signed", baa.get("signedAt"),
@@ -234,10 +234,19 @@ def checklist(db, org: str, payers_seen: Optional[list] = None) -> List[dict]:
     step("files", "Payment files coming in", ps.get("connected") or files,
          "Connected to Claim.MD: new payment files arrive every hour." if ps.get("connected") else
          f"{files} file(s) uploaded." if files else
-         "Connect your Claim.MD account on the Lost Money page, or upload 90 days of 835 payment files from your clearinghouse.")
+         "Connect your Claim.MD account on the Lost Money page, or upload 90 days of 835 payment files from your clearinghouse.",
+         link=None if (ps.get("connected") or files) else {"href": "/help/payment-files", "text": "How to get these files"})
     st = monitor.status(db, org)
-    step("report", "First Lost Money Report built", st.get("lastRun"),
-         f"Last built {st.get('lastRun', '')[:10]}." if st.get("lastRun") else "Build it on the Lost Money page once files are in.")
+    mine, auto = d.get("lastReport") or {}, st.get("lastRun") or ""
+    if mine.get("at"):
+        how = f"Last built {_day(mine['at'])} by {mine.get('by') or 'your team'}."
+        if auto and auto[:10] > mine["at"][:10]:
+            how += f" Althais last checked new payments {_day(auto)}."
+    elif auto:
+        how = f"Althais checked your payment files {_day(auto)}. Open the Lost Money page to see the report."
+    else:
+        how = "Build it on the Lost Money page once files are in."
+    step("report", "First Lost Money Report built", mine.get("at") or auto, how)
     payers_seen = payers_seen if payers_seen is not None else []
     appeal = {lm._payer_key(k) if not k.startswith("type:") else k for k in (d.get("appeal") or {})}
     top = [p["name"] for p in payers_seen[:5]]
@@ -256,6 +265,21 @@ def checklist(db, org: str, payers_seen: Optional[list] = None) -> List[dict]:
     except Exception:
         pass
     return steps
+
+
+def _day(iso: str) -> str:
+    try:
+        d = dt.date.fromisoformat((iso or "")[:10])
+    except ValueError:
+        return (iso or "")[:10]
+    return f"{d:%b} {d.day}, {d.year}"
+
+
+def report_built(db, org: str, who: str, now: Optional[dt.datetime] = None) -> None:
+    """Someone on the clinic's team built a Lost Money Report from their own files (shown on the checklist)."""
+    d = load(db, org)
+    d["lastReport"] = {"at": (now or _now()).isoformat(timespec="seconds"), "by": who}
+    save(db, org, d)
 
 
 def _n(n: int, word: str) -> str:
@@ -452,7 +476,7 @@ With rates, Althais flags every line paid under contract, even when the payer un
 const ADMIN=__ADMIN__;let V={};const $=i=>document.getElementById(i);const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function j(u,o){const r=await fetch(u,o);const t=await r.json().catch(()=>({error:'Something went wrong.'}));if(!r.ok)throw new Error(t.error||t.detail||'Something went wrong.');return t}
 function draw(v){V=v;
- $('steps').innerHTML='<tr><th></th><th>Step</th><th>Status</th></tr>'+v.checklist.map(s=>`<tr class=step><td class=${s.done?'ok':'no'}>${s.done?'✓':'○'}</td><td><b>${e(s.title)}</b>${s.required?'':' <span class=chip>recommended</span>'}</td><td>${e(s.how)}</td></tr>`).join('');
+ $('steps').innerHTML='<tr><th></th><th>Step</th><th>Status</th></tr>'+v.checklist.map(s=>`<tr class=step><td class=${s.done?'ok':'no'}>${s.done?'✓':'○'}</td><td><b>${e(s.title)}</b>${s.required?'':' <span class=chip>recommended</span>'}</td><td>${e(s.how)}${s.link?` <a href="${e(s.link.href)}" target=_blank>${e(s.link.text)}</a>`:''}</td></tr>`).join('');
  const b=v.baa||{};$('baa').innerHTML=b.signedAt?`Signed <b>${e(b.signedAt)}</b> by <b>${e(b.signer)}</b> (recorded by ${e(b.recordedBy)}).`:
   (ADMIN?`Not recorded yet. Date signed <input type=date id=baaDate> Signed by <input id=baaSigner placeholder="Name, title"> <button id=baaSave>Record</button> <span class=msg id=baaMsg></span>`:'Not recorded yet. Your clinic admin records it here once signed.');
  if(!b.signedAt&&ADMIN)$('baaSave').onclick=async()=>{try{draw(await j('/api/clinic-setup/baa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signedAt:$('baaDate').value,signer:$('baaSigner').value})}))}catch(x){$('baaMsg').innerHTML='<span class=err>'+e(x.message)+'</span>'}};
