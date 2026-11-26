@@ -119,4 +119,19 @@ def test_checklist_names_an_automatic_check_as_one(monkeypatch):
         cs.report_built(db, "Auto Clinic", "pat@example.com", now=dt.datetime(2026, 11, 20, 9))
         steps = {s["key"]: s for s in cs.checklist(db, "Auto Clinic")}
         assert steps["report"]["how"] == "Last built Nov 20, 2026 by pat@example.com."
+        cs.report_built(db, "Auto Clinic", "pat@example.com", now=dt.datetime(2026, 11, 26, 4))   # 10 PM Nov 25 in Texas
+        assert {s["key"]: s for s in cs.checklist(db, "Auto Clinic")}["report"]["how"].startswith("Last built Nov 25, 2026")
+        db.rollback()
+
+
+def test_checked_appeal_windows_still_name_the_payers_left():
+    import auth
+    with auth.SessionLocal() as db:
+        cs.save(db, "Windows Clinic", {"appeal": {"AETNA": 90}, "deadlinesConfirmedAt": "2026-11-20T15:00:00Z"})
+        seen = [{"name": "AETNA", "type": "commercial", "claims": 9}, {"name": "MEDICARE PART B", "type": "medicare", "claims": 5}]
+        st = {s["key"]: s for s in cs.checklist(db, "Windows Clinic", seen)}["deadlines"]
+        assert st["done"] is True
+        assert st["how"] == "Checked against your contracts Nov 20, 2026. Not set yet for Medicare Part B: the report estimates that payer until you do."
+        cs.save(db, "Windows Clinic", {"appeal": {"AETNA": 90, "MEDICARE PART B": 120}})
+        assert {s["key"]: s for s in cs.checklist(db, "Windows Clinic", seen)}["deadlines"]["how"] == "Set for your main payers."
         db.rollback()

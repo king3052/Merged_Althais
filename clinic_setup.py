@@ -252,8 +252,10 @@ def checklist(db, org: str, payers_seen: Optional[list] = None) -> List[dict]:
     top = [p["name"] for p in payers_seen[:5]]
     covered = [p for p in top if p in appeal or f"type:{next((x['type'] for x in payers_seen if x['name'] == p), '')}" in appeal]
     step("deadlines", "Appeal windows set for your main payers", (top and len(covered) == len(top)) or d.get("deadlinesConfirmedAt"),
-         "Set." if (top and len(covered) == len(top)) else
-         f"Enter the appeal window from each contract for {', '.join(p.title() for p in top if p not in covered) or 'your payers'}. Until then the report estimates them.")
+         "Set for your main payers." if (top and len(covered) == len(top)) else
+         (f"Checked against your contracts {_day(d['deadlinesConfirmedAt'])}. " if d.get("deadlinesConfirmedAt") else "") +
+         f"Not set yet for {', '.join(p.title() for p in top if p not in covered) or 'your payers'}: the report estimates "
+         f"{'that payer' if len([p for p in top if p not in covered]) == 1 else 'those payers'} until you do.")
     step("contracts", "Contracted rates uploaded", d.get("contracts"),
          f"{_n(sum(len(v) for v in (d.get('contracts') or {}).values()), 'rate')} for {_n(len(d.get('contracts') or {}), 'payer')}." if d.get("contracts") else
          "Upload each payer's fee schedule (CSV: code, modifier, rate). It's how underpayments on every claim get caught.", required=False)
@@ -268,10 +270,18 @@ def checklist(db, org: str, payers_seen: Optional[list] = None) -> List[dict]:
 
 
 def _day(iso: str) -> str:
+    """'Nov 25, 2026' for a stored UTC time, as the day it was in the clinic's time zone (CLINIC_TZ, Central by default)."""
+    raw = (iso or "").rstrip("Z")
     try:
-        d = dt.date.fromisoformat((iso or "")[:10])
-    except ValueError:
-        return (iso or "")[:10]
+        if len(raw) > 10:
+            import os
+            from zoneinfo import ZoneInfo
+            t = dt.datetime.fromisoformat(raw).replace(tzinfo=dt.timezone.utc)
+            d = t.astimezone(ZoneInfo(os.environ.get("CLINIC_TZ", "America/Chicago"))).date()
+        else:
+            d = dt.date.fromisoformat(raw)
+    except (ValueError, KeyError):
+        return raw[:10]
     return f"{d:%b} {d.day}, {d.year}"
 
 
