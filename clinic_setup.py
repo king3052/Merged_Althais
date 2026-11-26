@@ -453,6 +453,8 @@ def page(request: Request, db=Depends(get_db)):
         return RedirectResponse("/login?next=/clinic-setup", status_code=303)
     if ROLE_LEVELS.get(u.role or "viewer", 0) < ROLE_LEVELS["biller"]:
         return HTMLResponse("Billers and admins only.", status_code=403)
+    if request.headers.get("sec-fetch-dest") == "document":      # opened on its own: show it inside the app (v4 shell)
+        return RedirectResponse("/v4/revenue/clinic-setup", status_code=302)
     return HTMLResponse(PAGE.replace("__ADMIN__", "true" if (u.role or "") == "admin" else "false"), headers={"Cache-Control": "no-store"})
 
 

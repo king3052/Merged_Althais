@@ -24,4 +24,5 @@
   }
   V.pages.lostmoney = framed('lostmoney', '/lost-money');
   V.pages.recovery = framed('recovery', '/recovery');
+  V.pages.clinicsetup = framed('clinicsetup', '/clinic-setup');
 })();

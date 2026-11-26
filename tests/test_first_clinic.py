@@ -135,3 +135,13 @@ def test_checked_appeal_windows_still_name_the_payers_left():
         cs.save(db, "Windows Clinic", {"appeal": {"AETNA": 90, "MEDICARE PART B": 120}})
         assert {s["key"]: s for s in cs.checklist(db, "Windows Clinic", seen)}["deadlines"]["how"] == "Set for your main payers."
         db.rollback()
+
+
+def test_clinic_setup_is_a_revenue_tab_inside_the_app():
+    c = _client("tab-biller@example.com", org="Tab Clinic")
+    r = c.get("/clinic-setup", headers={"sec-fetch-dest": "document"}, follow_redirects=False)
+    assert r.status_code == 302 and r.headers["location"] == "/v4/revenue/clinic-setup"
+    assert c.get("/clinic-setup", headers={"sec-fetch-dest": "iframe"}).status_code == 200      # the frame inside the tab
+    assert c.get("/v4/revenue/clinic-setup").status_code == 200
+    viewer = _client("tab-viewer@example.com", role="viewer", org="Tab Clinic")
+    assert viewer.get("/v4/revenue/clinic-setup", follow_redirects=False).status_code == 302   # billers and admins only
