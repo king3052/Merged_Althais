@@ -1,0 +1,145 @@
+{
+ "_about": "Retrieval test: each question and the reference entry (rag_corpus.py) that must be in the top 3. null = nothing should come back.",
+ "cases": [
+  {
+   "q": "what does modifier 25 mean",
+   "expect": "mod-25"
+  },
+  {
+   "q": "why would a claim get denied for bundling",
+   "expect": "carc-97"
+  },
+  {
+   "q": "what's CO-97",
+   "expect": "carc-97"
+  },
+  {
+   "q": "how does critical care time billing work",
+   "expect": "em-critical-care"
+  },
+  {
+   "q": "my stitches visit got denied",
+   "expect": "svc-laceration"
+  },
+  {
+   "q": "how do I bill a flu shot",
+   "expect": "svc-vaccines"
+  },
+  {
+   "q": "rapid strep test denied missing CLIA",
+   "expect": "mod-qw"
+  },
+  {
+   "q": "what is CO-16",
+   "expect": "carc-16"
+  },
+  {
+   "q": "duplicate claim denial",
+   "expect": "carc-18"
+  },
+  {
+   "q": "how long do I have to file with Medicaid in Texas",
+   "expect": "file-limits"
+  },
+  {
+   "q": "medicare appeal deadline redetermination",
+   "expect": "appeal-medicare"
+  },
+  {
+   "q": "payer paid less than our contract",
+   "expect": "pay-underpayment"
+  },
+  {
+   "q": "insurance took money back from a later check",
+   "expect": "pay-recoupment"
+  },
+  {
+   "q": "what is an 835",
+   "expect": "claim-835"
+  },
+  {
+   "q": "how do I send a corrected claim",
+   "expect": "claim-corrected"
+  },
+  {
+   "q": "new or established patient 3 years",
+   "expect": "em-new-established"
+  },
+  {
+   "q": "99214 requirements",
+   "expect": "em-mdm"
+  },
+  {
+   "q": "how many minutes for 99214",
+   "expect": "em-time"
+  },
+  {
+   "q": "x-ray read by outside radiologist",
+   "expect": "mod-26-tc"
+  },
+  {
+   "q": "patient has two insurances which is primary",
+   "expect": "carc-22-27"
+  },
+  {
+   "q": "not medically necessary denial",
+   "expect": "carc-50"
+  },
+  {
+   "q": "prior authorization denial",
+   "expect": "carc-197"
+  },
+  {
+   "q": "nurse practitioner billing under doctor",
+   "expect": "rule-incident-to"
+  },
+  {
+   "q": "telehealth modifier",
+   "expect": "mod-telehealth"
+  },
+  {
+   "q": "workers comp injury billing",
+   "expect": "svc-workers-comp"
+  },
+  {
+   "q": "texas prompt pay",
+   "expect": "law-tx-prompt-pay"
+  },
+  {
+   "q": "how many units for a drug injection",
+   "expect": "ncci-mue"
+  },
+  {
+   "q": "ICD-10 7th character A D S",
+   "expect": "dx-specificity"
+  },
+  {
+   "q": "rule out diagnosis coding",
+   "expect": "dx-outpatient"
+  },
+  {
+   "q": "nebulizer treatment twice same visit",
+   "expect": "mod-76-77-91"
+  },
+  {
+   "q": "after hours code urgent care",
+   "expect": "em-after-hours"
+  },
+  {
+   "q": "ABN medicare patient",
+   "expect": "mod-abn"
+  },
+  {
+   "q": "what's the weather today",
+   "expect": null
+  },
+  {
+   "q": "hypertension and kidney disease code",
+   "expect": "dx-combination"
+  },
+  {
+   "q": "how to write an appeal letter",
+   "expect": "appeal-letter"
+  }
+ ]
+}

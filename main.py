@@ -194,6 +194,18 @@ app.middleware("http")(perf.middleware)
 
 
 @app.on_event("startup")
+async def _rag_warm():
+    """Embed the reference entries in the background (rag_embed.py), so the first question doesn't wait. Keyword search
+    works meanwhile, and if embeddings are off or fail."""
+    try:
+        import rag_embed, rag_corpus
+        if rag_embed.enabled():
+            rag_embed.warm(rag_corpus.CORPUS)
+    except Exception as e:
+        print(f"[RAG] warm-up skipped: {type(e).__name__}", flush=True)
+
+
+@app.on_event("startup")
 async def _staff_reminders_job():
     """Onboarding and credential reminders, a few times a day. Each one is sent once (staff_notifications)."""
     import asyncio
@@ -1818,7 +1830,7 @@ Visit note:
         res["score"] = min(res["score"], 40 - 10 * (len(gaps) - 1))
     return res
 
-def _build_claim(note, transcript, header, visit, codes, last_check, payer_history=None):
+def _build_claim(note, transcript, header, visit, codes, last_check, payer_history=None, references=""):
     prompt = f"""You are a certified medical coder. Build the claim for this visit so it is paid on first submission, using ONLY what is documented.
 Rules:
 - Code EVERY billable service the note shows was done in the clinic, each as its own CPT/HCPCS line: point-of-care tests (rapid strep, flu, COVID antigen, urine dipstick, A1c, pregnancy), X-rays (by body part and number of views), ECG, nebulizer treatments and the inhaled drug, injections (administration code plus the drug's J-code with units), vaccines (product plus administration), and procedures (laceration repair by length and site, incision and drainage, foreign body removal, cerumen removal with instruments, wart destruction). A test sent to an outside lab is not billed by the clinic.
@@ -1837,7 +1849,7 @@ Claim header: {header}
 Current codes: {json.dumps(codes)}
 Last review: {json.dumps(last_check or {})}
 Code-set problems to fix: {json.dumps(icd10.problems(codes) if codes else [])}
-{("This payer's denial history (avoid repeating these; only code what the note supports):" + chr(10) + chr(10).join("- " + x for x in payer_history) + chr(10)) if payer_history else ""}NOTE:
+{("This payer's denial history (avoid repeating these; only code what the note supports):" + chr(10) + chr(10).join("- " + x for x in payer_history) + chr(10)) if payer_history else ""}{(references + chr(10)) if references else ""}NOTE:
 <<<
 {note}
 >>>
@@ -2023,15 +2035,22 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
                 db.close()
         except Exception as e:
             print(f"claim-auto payer history skipped: {type(e).__name__}", flush=True)
+    refs = {"block": "", "ids": []}
+    try:
+        import billing_context
+        if billing_context.coding_on():
+            refs = billing_context.for_claim(note, pinned)
+    except Exception as e:
+        print(f"claim-auto references skipped: {type(e).__name__}", flush=True)
     if True:
-        built = _build_claim(note, transcript, header, visit, pinned, None, history)
+        built = _build_claim(note, transcript, header, visit, pinned, None, history, refs["block"])
         dxs = lambda cs: [c for c in cs if not str(c.get("type", "")).upper().startswith("CPT")]
         if not dxs(built["codes"]):
-            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": ["ICD-10 diagnosis code(s): the last answer had none. Code every diagnosis in the ASSESSMENT."]}, history)
+            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": ["ICD-10 diagnosis code(s): the last answer had none. Code every diagnosis in the ASSESSMENT."]}, history, refs["block"])
             if dxs(again["codes"]):
                 built = again
         if icd10.problems(built["codes"]):   # a diagnosis that isn't billable: one targeted rebuild with the valid options
-            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": [p["code"] + " " + p["issue"] for p in icd10.problems(built["codes"])]}, history)
+            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": [p["code"] + " " + p["issue"] for p in icd10.problems(built["codes"])]}, history, refs["block"])
             ndx = lambda cs: sum(1 for c in cs if not str(c.get("type", "")).upper().startswith("CPT"))
             if any(str(c.get("type", "")).upper() == "CPT" for c in again["codes"]) and len(icd10.problems(again["codes"])) < len(icd10.problems(built["codes"])) and ndx(again["codes"]) >= ndx(built["codes"]) - len(icd10.problems(built["codes"])):
                 again["note_additions"] = built["note_additions"] + [a for a in again["note_additions"] if a["text"] not in {x["text"] for x in built["note_additions"]}]
@@ -2051,7 +2070,7 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
         check = _with_money(_claim_check(header, codes, full), _money_flags(org, header, codes))
         best = {"codes": codes, "note_additions": built["note_additions"], "unresolved": built.get("unresolved", []), "rule_notes": built.get("rule_notes", []), "check": check, "passes": 1}
         if check["score"] < 90:
-            again = _build_claim(note, transcript, header, visit, codes, check, history)
+            again = _build_claim(note, transcript, header, visit, codes, check, history, refs["block"])
             again["codes"], svc2 = services.add_documented(again["codes"], note)
             again["codes"], svc2_v = services.ensure_visit(again["codes"], visit)
             svc2 += svc2_v
@@ -2065,9 +2084,10 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
                 if check2["score"] > check["score"]:
                     best = {"codes": again["codes"], "note_additions": adds, "unresolved": again.get("unresolved", []), "rule_notes": again.get("rule_notes", []), "check": check2, "passes": 2}
         best["payer_history"] = history
+        best["references"] = refs["ids"] + (["ncci"] if refs.get("ncci") else [])
         best["source"] = built.get("source", "")
         best["ms"] = int((_time.time() - t0) * 1000)
-        print(f"claim-auto {best['ms']}ms passes={best['passes']} score={best['check']['score']} codes={[c.get('code') for c in best['codes']]} first_check={check['score']} {check.get('flags', [])[:2]} {check.get('missing', [])[:2]}", flush=True)
+        print(f"claim-auto {best['ms']}ms refs={best['references']} passes={best['passes']} score={best['check']['score']} codes={[c.get('code') for c in best['codes']]} first_check={check['score']} {check.get('flags', [])[:2]} {check.get('missing', [])[:2]}", flush=True)
         return best
 
 
@@ -2098,6 +2118,16 @@ def appeal_letter(payload: dict = Body(...), user=Depends(require_biller), db: S
         Billed amount: {data.get('amount', '')}
         Denial reason / status: {data.get('status', '')}
         Practice / billing entity: {data.get('practice', 'Althais Health Systems')}"""
+        refs = {"block": "", "ids": []}
+        try:
+            import billing_context
+            if billing_context.appeals_on():
+                refs = billing_context.for_appeal(str(data.get("status", "")), str(data.get("cpt", "")), str(data.get("icd", "")),
+                                                  str(data.get("payer", "")), __import__("billing_activation").org_of(user), db)
+        except Exception as e:
+            print(f"appeal references skipped: {type(e).__name__}", flush=True)
+        if refs["block"]:
+            prompt += "\n\n" + refs["block"]
         response = client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}]
@@ -2106,7 +2136,7 @@ def appeal_letter(payload: dict = Body(...), user=Depends(require_biller), db: S
         if text.startswith("```"):
             text = text.split("\n", 1)[1]
             text = text.rsplit("```", 1)[0]
-        return JSONResponse({"letter": text.strip()})
+        return JSONResponse({"letter": text.strip(), "references": refs["ids"]})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -2190,7 +2220,8 @@ def althea_public(request: Request, payload: dict):
     # user message and ground the answer in it when something relevant is
     # found. Returns "" for unrelated questions, so this adds nothing to
     # the prompt (and costs nothing extra) when it's not useful.
-    context_block = policy_knowledge.format_context_block(msgs[-1]["content"])
+    hits = policy_knowledge.search(msgs[-1]["content"], k=3)
+    context_block = policy_knowledge.context_block(hits)
     system_messages = [{"role": "system", "content": _PUBLIC_CHAT_SYSTEM}]
     if context_block:
         system_messages.append({"role": "system", "content": context_block})
@@ -2210,7 +2241,7 @@ def althea_public(request: Request, payload: dict):
         return JSONResponse({"error": "Althea is unavailable right now."}, status_code=502)
     # belt and braces: the model occasionally emits em/en dashes despite the prompt
     reply = reply.replace(" \u2014 ", ", ").replace(" \u2013 ", ", ").replace("\u2014", ", ").replace("\u2013", "-")
-    return JSONResponse({"reply": reply[:900]})
+    return JSONResponse({"reply": reply[:900], "sources": policy_knowledge.sources(hits)})
 
 
 # ── Althea dictation: turn a clinician's spoken words into form fields ────────

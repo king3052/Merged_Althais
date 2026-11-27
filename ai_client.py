@@ -129,4 +129,13 @@ def status() -> dict:
     """What the admin console shows: which service handles AI, and whether it's one covered by a BAA."""
     return {"provider": PROVIDER, "project": PROJECT if PROVIDER == "vertex" else "", "location": LOCATION if PROVIDER == "vertex" else "",
             "model": VERTEX_MODEL if PROVIDER == "vertex" else "", "fast_model": VERTEX_FAST_MODEL if PROVIDER == "vertex" else "",
-            "claude_on_vertex": os.environ.get("CLAUDE_ON_VERTEX") == "1"}
+            "claude_on_vertex": os.environ.get("CLAUDE_ON_VERTEX") == "1", "retrieval": _retrieval_status()}
+
+
+def _retrieval_status() -> dict:
+    try:
+        import rag_embed, rag_corpus, billing_context
+        return {"entries": len(rag_corpus.CORPUS), "embeddings": rag_embed.status(), "coding": billing_context.coding_on(),
+                "appeals": billing_context.appeals_on()}
+    except Exception as e:
+        return {"error": type(e).__name__}
