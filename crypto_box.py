@@ -10,6 +10,11 @@ CLEARINGHOUSE_ENC_KEY, TEBRA_ENC_KEY, MFA_ENC_KEY), or SECRET_KEY when it isn't 
 
 Format: "A2:" + base64url(nonce || ciphertext || 16-byte tag). Values written before this (Fernet, AES-128) still open,
 and are re-sealed with AES-256-GCM the next time they're saved, or all at once with `python crypto_box.py reencrypt`.
+
+Envelope encryption (key_store.py): with KMS_KEY set, new values are sealed "A3:" with a random data key per purpose,
+which is stored only wrapped by a Cloud KMS key. "A2:" values keep opening and move to "A3:" when re-saved or with
+`python crypto_box.py reencrypt`. `python crypto_box.py rewrap` after a KMS rotation, `rotate <purpose>` for a new
+data key, `status` to see the keys.
 """
 import base64
 import hashlib
@@ -31,21 +36,42 @@ def _key(purpose: str, env: str) -> bytes:
     return HKDF(algorithm=hashes.SHA256(), length=32, salt=b"althais-aes256gcm-v2", info=("althais|" + purpose).encode()).derive(_secret(env))
 
 
+ENVELOPE = b"A3:"      # "A3:" + data key id + ":" + base64url(nonce || ciphertext || tag): envelope encryption (key_store.py)
+
+
+def envelope_on() -> bool:
+    return bool(os.environ.get("KMS_KEY") or os.environ.get("ENVELOPE_LOCAL") == "1")
+
+
 def seal_bytes(data: bytes, purpose: str, env: str) -> bytes:
     nonce = os.urandom(12)
+    if envelope_on():
+        import key_store
+        kid, dek = key_store.active_key(purpose)      # fails closed: with KMS_KEY set, a KMS outage stops writes, not security
+        aad = f"{purpose}|{kid}".encode()
+        return ENVELOPE + kid.encode() + b":" + base64.urlsafe_b64encode(nonce + AESGCM(dek).encrypt(nonce, data, aad))
     return PREFIX + base64.urlsafe_b64encode(nonce + AESGCM(_key(purpose, env)).encrypt(nonce, data, purpose.encode()))
 
 
 def is_current(token) -> bool:
+    """Sealed in the format new values get now (so re-encryption can skip it)."""
     if isinstance(token, str):
         token = token.encode()
-    return bool(token) and token.startswith(PREFIX)
+    if not token:
+        return False
+    return token.startswith(ENVELOPE) if envelope_on() else token.startswith(PREFIX) or token.startswith(ENVELOPE)
 
 
 def open_bytes(token, purpose: str, env: str, legacy_label: bytes = b"") -> bytes:
     """Decrypt a sealed value. legacy_label: the label the old Fernet key was derived with (b"althais-phi|" ...)."""
     if isinstance(token, str):
         token = token.encode()
+    if token.startswith(ENVELOPE):
+        import key_store
+        kid, _, body = token[len(ENVELOPE):].partition(b":")
+        dek = key_store.key_by_id(kid.decode(), purpose)
+        raw = base64.urlsafe_b64decode(body)
+        return AESGCM(dek).decrypt(raw[:12], raw[12:], f"{purpose}|{kid.decode()}".encode())
     if token.startswith(PREFIX):
         raw = base64.urlsafe_b64decode(token[len(PREFIX):])
         return AESGCM(_key(purpose, env)).decrypt(raw[:12], raw[12:], purpose.encode())
@@ -116,13 +142,59 @@ def reencrypt() -> dict:
                 row.data = json.dumps(doc)
                 n["tebra" if row.category == tebra.CATEGORY else row.category] += 1
         db.commit()
+    n.update(reseal_stores())
     return n
 
 
+# the main stores of patient data: (module, model, column, purpose, env)
+STORES = [
+    ("monitor", "PaymentFile", "sealed", "payfile", "PHI_ENC_KEY"),
+    ("recovery", "RecoveryCase", "sealed", "recovery", "PHI_ENC_KEY"),
+    ("clinic_records", "ClinicRecord", "data", "clinic-record", "PHI_ENC_KEY"),
+    ("records_intake", "IntakeDoc", "sealed", "records-intake", "PHI_ENC_KEY"),
+    ("records_intake", "IntakeDoc", "data", "records-intake-file", "PHI_ENC_KEY"),
+    ("records_intake", "IntakeLink", "sealed", "records-intake", "PHI_ENC_KEY"),
+]
+
+
+def reseal_stores(batch: int = 200) -> dict:
+    """Re-seal every value in STORES that isn't in the current format (moves "A2:" to "A3:" once KMS_KEY is set).
+    Opens and re-seals in memory, a batch at a time; safe to run more than once and to stop halfway."""
+    import importlib
+    from sqlalchemy import select
+    from auth import SessionLocal
+    out = {}
+    for mod, model_name, col, purpose, env in STORES:
+        model = getattr(importlib.import_module(mod), model_name)
+        done = 0
+        with SessionLocal() as db:
+            for row in db.scalars(select(model)).yield_per(batch):
+                v = getattr(row, col)
+                if v and not is_current(v):
+                    setattr(row, col, seal_text(open_text(v, purpose, env), purpose, env))
+                    done += 1
+                    if done % batch == 0:
+                        db.commit()
+            db.commit()
+        out[f"{model.__tablename__}.{col}"] = done
+    return out
+
+
 if __name__ == "__main__":
+    import json as _json
     import sys
-    if sys.argv[1:] == ["reencrypt"]:
+    cmd = sys.argv[1:]
+    if cmd == ["reencrypt"]:
         import main  # noqa: F401  (loads every table)
         print(reencrypt())
+    elif cmd == ["rewrap"]:
+        import key_store
+        print({"rewrapped": key_store.rewrap()})
+    elif len(cmd) == 2 and cmd[0] == "rotate":
+        import key_store
+        print({"purpose": cmd[1], "newKey": key_store.rotate(cmd[1])})
+    elif cmd == ["status"]:
+        import key_store
+        print(_json.dumps(key_store.status(), indent=1))
     else:
-        print("Usage: python crypto_box.py reencrypt")
+        print("Usage: python crypto_box.py reencrypt | rewrap | rotate <purpose> | status")

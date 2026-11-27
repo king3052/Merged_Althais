@@ -1,5 +1,6 @@
 """The dental EMR's API end to end: access by role, encryption at rest, the access log, a claim from chart to payment
 (837D out, 835 in), denials, patient billing, and the links patients open. Synthetic data only."""
+import crypto_box
 import json
 import re
 import uuid
@@ -104,8 +105,8 @@ def test_phi_is_encrypted_at_rest(practice):
     with auth.SessionLocal() as db:
         raw = db.execute(text("select text from dental_notes where mrn = :m order by id desc limit 1"), {"m": mrn}).scalar()
         perio = db.execute(text("select readings from dental_perio_exams where readings is not null limit 1")).scalar()
-    assert raw.startswith("A2:") and "caries" not in raw
-    assert perio.startswith("A2:")
+    assert crypto_box.is_current(raw) and "caries" not in raw
+    assert crypto_box.is_current(perio)
     notes = a.get(f"/api/dental/patients/{mrn}").json()["notes"]
     assert any("caries #19" in n["text"] for n in notes)
 

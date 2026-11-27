@@ -10,6 +10,14 @@ import crypto_box as cb
 import main  # noqa: F401  (loads the modules in their usual order)
 
 
+
+@pytest.fixture(autouse=True)
+def _classic_format(monkeypatch):
+    """These tests are about the "A2:" format; envelope encryption ("A3:") is tested in test_envelope.py."""
+    monkeypatch.delenv("KMS_KEY", raising=False)
+    monkeypatch.delenv("ENVELOPE_LOCAL", raising=False)
+
+
 def _old(label: bytes, env: str, text: bytes) -> bytes:
     return Fernet(base64.urlsafe_b64encode(hashlib.sha256(label + cb._secret(env)).digest())).encrypt(text)
 

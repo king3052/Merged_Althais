@@ -120,6 +120,28 @@ def certificate(org: str, deleted: dict, accounts: int, when: dt.datetime) -> di
                           "and are not restored or used.")}
 
 
+@router.get("/api/admin/encryption")
+def encryption_status(_: bool = Depends(require_admin)):
+    """Whether envelope encryption (Cloud KMS) is on, and the data keys: ids, purposes, KEK versions, never the keys."""
+    import key_store
+    return key_store.status()
+
+
+@router.post("/api/admin/encryption/reseal")
+def encryption_reseal(_: bool = Depends(require_admin)):
+    """Move stored values to the current format: after KMS_KEY is first set, older values move into the envelope.
+    Safe to run more than once."""
+    import crypto_box
+    return {"resealed": crypto_box.reencrypt()}
+
+
+@router.post("/api/admin/encryption/rewrap")
+def encryption_rewrap(_: bool = Depends(require_admin)):
+    """After Cloud KMS rotates the key: re-wrap the data keys with the new version. No data is re-encrypted."""
+    import key_store
+    return {"rewrapped": key_store.rewrap()}
+
+
 @router.get("/api/admin/clinics/{org_key}/deletion-preview")
 def preview(org_key: str, request: Request, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     if org_key.startswith("user:") or not _clinic_exists(db, org_key):

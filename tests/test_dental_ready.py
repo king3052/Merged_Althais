@@ -1,5 +1,6 @@
 """A dental clinic running its billing through Althais: 837D claims, X-rays and narratives sent with them, and dental
 eligibility (maximums, coverage by category, limits)."""
+import crypto_box
 import io
 import json
 import re
@@ -190,7 +191,7 @@ def test_attachments_are_pdf_encrypted_and_locked_once_sent(dental, monkeypatch)
     # stored encrypted, names too
     with auth.SessionLocal() as db:
         rows = ca.rows_for(db, ba.org_of(u), cid)
-        assert all(r.data.startswith(b"A2:") and r.name.startswith("A2:") for r in rows)
+        assert all(crypto_box.is_current(r.data) and crypto_box.is_current(r.name) for r in rows)
         acn, rtype, pdf, _ = ca.bundle(db, ba.org_of(u), cid)
     from pypdf import PdfReader
     assert rtype == "RB" and acn == j["acn"] and len(PdfReader(io.BytesIO(pdf)).pages) == 4
@@ -323,7 +324,7 @@ def test_records_round_trip_encrypted_with_deletions(dental):
     t0 = j["server_time"]
     with auth.SessionLocal() as db:
         row = db.scalar(select(cr.ClinicRecord).where(cr.ClinicRecord.rec_id == "E102-TEST"))
-        assert row.data.startswith("A2:") and "Fractured" not in row.data
+        assert crypto_box.is_current(row.data) and "Fractured" not in row.data
     full = c.get("/api/records").json()["records"]
     assert {x["id"]: x["data"] for x in full}["E102-TEST"]["soap"]["a"] == "Fractured cusp #30"
     # an edit, then a deletion, show up for everyone who asks since t0
@@ -429,7 +430,7 @@ def test_open_dental_live_pull_lands_in_the_dental_chart(monkeypatch):
     with auth.SessionLocal() as db:
         import dental_db as m
         row, doc = od._load(db, auth._org_namespace(db.scalar(select(auth.User).where(auth.User.email == a.email))))
-        assert doc["secret"].startswith("A2:")
+        assert crypto_box.is_current(doc["secret"])
         c = db.scalar(select(m.Coverage).where(m.Coverage.mrn == "OD48", m.Coverage.org_key == row.org_key))
         assert c.member_id == "DDT123456" and c.group == "G-77" and c.payer == "Delta Dental of Texas"
         procs = db.scalars(select(m.Procedure).where(m.Procedure.mrn == "OD48", m.Procedure.org_key == row.org_key)).all()

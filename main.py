@@ -194,6 +194,19 @@ app.middleware("http")(perf.middleware)
 
 
 @app.on_event("startup")
+async def _encryption_keys():
+    """With KMS_KEY set, unwrap (or create) every data key now: a KMS permission problem shows in the logs at startup,
+    not on a clinic's first upload."""
+    try:
+        import key_store
+        n = key_store.ensure_keys()
+        if n:
+            print(f"[keys] envelope encryption on: {n} data keys ready under {key_store.kek_name()}", flush=True)
+    except Exception as e:
+        print(f"[keys] ERROR: envelope encryption keys unavailable: {type(e).__name__}: {str(e)[:200]}", flush=True)
+
+
+@app.on_event("startup")
 async def _rag_warm():
     """Embed the reference entries in the background (rag_embed.py), so the first question doesn't wait. Keyword search
     works meanwhile, and if embeddings are off or fail."""
