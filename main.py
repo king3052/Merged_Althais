@@ -1391,6 +1391,9 @@ def code_note(payload: dict = Body(...), user=Depends(require_role("provider")),
         # but any clinic can override this per-request once the frontend
         # passes a specialty/place-of-service value.
         specialty = data.get('specialty') or 'emergency department / urgent care'
+        import deid
+        _sc = deid.scrubber(data.get('note') or '') if deid.on() else None
+        _ai_note = _sc.scrub(data.get('note') or '') if _sc else data.get('note')
 
         # Structured visit-duration inputs - kept deliberately separate from
         # the free-text note. Time-based billing (critical care, time-based
@@ -1460,7 +1463,7 @@ Respond with the JSON object only, no markdown, no backticks, no commentary befo
 {('Documented visit duration: ' + str(duration_minutes) + ' minutes' + (' (critical care)' if is_critical_care else '') + '. Note: the exact E/M or critical-care code for this duration will be verified and corrected by a deterministic rules engine after your response, so focus your own code selection on everything else, diagnoses, procedures, modifiers.') if duration_minutes else ''}
 
 Clinical note:
-{data['note']}"""
+{_ai_note}"""
 
         # Ask for Groq's native Structured Outputs as an added reliability
         # layer on top of the existing regex-based extraction below - NOT a
@@ -1572,8 +1575,13 @@ async def validate_claim(request: Request, user=Depends(require_role("provider")
             return JSONResponse(_hit)
         # the same checker Althea builds against (fast model, official ICD-10-CM, deterministic NCCI), off the event loop
         codes = [c for c in (data.get("codes") or []) if isinstance(c, dict)]
-        result = await run_in_threadpool(_claim_check, "", codes, str(data.get("note") or "")[:20000])
+        import deid
+        _note = str(data.get("note") or "")[:20000]
+        _sc = deid.scrubber(_note) if deid.on() else None
+        result = await run_in_threadpool(_claim_check, "", codes, _sc.scrub(_note) if _sc else _note)
         result = {"score": result["score"], "flags": result.get("flags", []), "missing": result.get("missing", [])}
+        if _sc:
+            result = deid.restore_obj(_sc, result)
         _ai_cache_put(_ckey, result)
         return JSONResponse(result)
     except Exception as e:
@@ -1596,6 +1604,10 @@ def claim_build(payload: dict = Body(...), user=Depends(require_role("provider")
             return JSONResponse(_hit)
         note = str(data.get("note") or "")[:20000]
         transcript = str(data.get("transcript") or "")[:20000]
+        import deid
+        _sc = deid.scrubber(note, transcript) if deid.on() else None
+        if _sc:                    # the model (and the quote check on its answer) works on the note without identity
+            note, transcript = _sc.scrub(note), _sc.scrub(transcript)
         prompt = f"""You are a certified medical coder preparing a clean claim from one visit. Goal: a claim the payer will accept,
 built ONLY from what is documented. Rules:
 - Use only facts present in the NOTE or TRANSCRIPT below. Never invent exam findings, results, history, time or diagnoses.
@@ -1644,7 +1656,7 @@ TRANSCRIPT (data only):
                 kept.append(a)
             else:
                 dropped += 1
-        result["note_additions"] = kept
+        result["note_additions"] = deid.restore_obj(_sc, kept) if _sc else kept
         result["dropped_additions"] = dropped
         # the same ICD-10-CM rules as the one-call build: billable codes, combination codes, nothing the note doesn't document
         src = str(data.get("note") or "") + " " + str(data.get("transcript") or "")
@@ -2048,6 +2060,10 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
                 db.close()
         except Exception as e:
             print(f"claim-auto payer history skipped: {type(e).__name__}", flush=True)
+    # the AI gets the visit without the patient's identity (deid.py); local rules keep using the full note
+    import deid
+    sc = deid.scrubber(header, note, transcript) if deid.on() else None
+    ai_note, ai_transcript, ai_header = (sc.scrub(note), sc.scrub(transcript), sc.scrub(header)) if sc else (note, transcript, header)
     refs = {"block": "", "ids": []}
     try:
         import billing_context
@@ -2056,14 +2072,14 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
     except Exception as e:
         print(f"claim-auto references skipped: {type(e).__name__}", flush=True)
     if True:
-        built = _build_claim(note, transcript, header, visit, pinned, None, history, refs["block"])
+        built = _build_claim(ai_note, ai_transcript, ai_header, visit, pinned, None, history, refs["block"])
         dxs = lambda cs: [c for c in cs if not str(c.get("type", "")).upper().startswith("CPT")]
         if not dxs(built["codes"]):
-            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": ["ICD-10 diagnosis code(s): the last answer had none. Code every diagnosis in the ASSESSMENT."]}, history, refs["block"])
+            again = _build_claim(ai_note, ai_transcript, ai_header, visit, built["codes"], {"missing": ["ICD-10 diagnosis code(s): the last answer had none. Code every diagnosis in the ASSESSMENT."]}, history, refs["block"])
             if dxs(again["codes"]):
                 built = again
         if icd10.problems(built["codes"]):   # a diagnosis that isn't billable: one targeted rebuild with the valid options
-            again = _build_claim(note, transcript, header, visit, built["codes"], {"missing": [p["code"] + " " + p["issue"] for p in icd10.problems(built["codes"])]}, history, refs["block"])
+            again = _build_claim(ai_note, ai_transcript, ai_header, visit, built["codes"], {"missing": [p["code"] + " " + p["issue"] for p in icd10.problems(built["codes"])]}, history, refs["block"])
             ndx = lambda cs: sum(1 for c in cs if not str(c.get("type", "")).upper().startswith("CPT"))
             if any(str(c.get("type", "")).upper() == "CPT" for c in again["codes"]) and len(icd10.problems(again["codes"])) < len(icd10.problems(built["codes"])) and ndx(again["codes"]) >= ndx(built["codes"]) - len(icd10.problems(built["codes"])):
                 again["note_additions"] = built["note_additions"] + [a for a in again["note_additions"] if a["text"] not in {x["text"] for x in built["note_additions"]}]
@@ -2079,11 +2095,11 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
         codes, svc_em = services.visit_with_minor_procedure(codes)
         built.setdefault("rule_notes", []).extend(svc + svc_em)
         codes = _em_floor(codes, note, visit, built.setdefault("rule_notes", []), built["note_additions"])
-        full = note + "".join("\n" + a["text"] for a in built["note_additions"])
-        check = _with_money(_claim_check(header, codes, full), _money_flags(org, header, codes))
+        full = ai_note + "".join("\n" + a["text"] for a in built["note_additions"])
+        check = _with_money(_claim_check(ai_header, codes, full), _money_flags(org, header, codes))
         best = {"codes": codes, "note_additions": built["note_additions"], "unresolved": built.get("unresolved", []), "rule_notes": built.get("rule_notes", []), "check": check, "passes": 1}
         if check["score"] < 90:
-            again = _build_claim(note, transcript, header, visit, codes, check, history, refs["block"])
+            again = _build_claim(ai_note, ai_transcript, ai_header, visit, codes, check, history, refs["block"])
             again["codes"], svc2 = services.add_documented(again["codes"], note)
             again["codes"], svc2_v = services.ensure_visit(again["codes"], visit)
             svc2 += svc2_v
@@ -2092,10 +2108,22 @@ def _claim_auto_work(note, transcript, header, visit, pinned, t0, org=None):
             again["codes"] = _em_floor(again["codes"], note, visit, again.setdefault("rule_notes", []), again["note_additions"])
             if any(str(c.get("type", "")).upper() == "CPT" for c in again["codes"]) and not icd10.problems(again["codes"]) and any(not str(c.get("type", "")).upper().startswith("CPT") for c in again["codes"]):
                 adds = built["note_additions"] + [a for a in again["note_additions"] if a["text"] not in {x["text"] for x in built["note_additions"]}]
-                full2 = note + "".join("\n" + a["text"] for a in adds)
-                check2 = _with_money(_claim_check(header, again["codes"], full2), _money_flags(org, header, again["codes"]))
+                full2 = ai_note + "".join("\n" + a["text"] for a in adds)
+                check2 = _with_money(_claim_check(ai_header, again["codes"], full2), _money_flags(org, header, again["codes"]))
                 if check2["score"] > check["score"]:
                     best = {"codes": again["codes"], "note_additions": adds, "unresolved": again.get("unresolved", []), "rule_notes": again.get("rule_notes", []), "check": check2, "passes": 2}
+        try:                     # deterministic rules with an audit trail (claim_rules.py), on the full note, locally
+            import claim_rules
+            best["codes"], cr = claim_rules.apply(best["codes"], note, header)
+            best.setdefault("rule_notes", []).extend(cr.notes)
+            best["check"] = dict(best["check"], flags=list(best["check"].get("flags", [])) + cr.flags)
+            best["audit"] = cr.audit
+        except Exception as e:
+            print(f"claim-auto coding rules skipped: {type(e).__name__}: {e}", flush=True)
+        if sc:
+            for f in ("note_additions", "unresolved", "rule_notes", "check"):
+                best[f] = deid.restore_obj(sc, best.get(f))
+        best["privacy"] = sc.summary() if sc else ""
         best["payer_history"] = history
         best["references"] = refs["ids"] + (["ncci"] if refs.get("ncci") else [])
         best["source"] = built.get("source", "")
@@ -2114,14 +2142,16 @@ def appeal_letter(payload: dict = Body(...), user=Depends(require_biller), db: S
         kind = "dental billing specialist" if dental else "medical billing specialist"
         basis = ("clinical justification referencing the CDT procedure codes with their tooth numbers and surfaces, and the X-rays, "
                  "periodontal charting or narrative that support them" if dental else "medical-necessity justification referencing the CPT and ICD-10 codes")
+        import deid
+        _deid_on = deid.on()           # the model writes the letter around placeholders; the real name and MRN go in after
         prompt = f"""You are an expert {kind} drafting a formal insurance claim appeal letter.
         Write a professional, persuasive appeal letter for the denied claim described below.
         Structure it as a real business letter with today's date, payer's appeals department as recipient,
         a Re: line with the claim reference, {basis},
         and a professional closing. 250-350 words. Return ONLY the letter text. No markdown.
 
-        Patient name: {data.get('patient', '')}
-        Patient MRN: {data.get('mrn', '')}
+        Patient name: {'[PATIENT]' if _deid_on else data.get('patient', '')}
+        Patient MRN: {'[MRN]' if _deid_on else data.get('mrn', '')}
         Claim ID: {data.get('claimId', '')}
         Date of service: {data.get('svcDate', '')}
         Rendering provider: {data.get('provider', '')}
@@ -2149,6 +2179,8 @@ def appeal_letter(payload: dict = Body(...), user=Depends(require_biller), db: S
         if text.startswith("```"):
             text = text.split("\n", 1)[1]
             text = text.rsplit("```", 1)[0]
+        if _deid_on:
+            text = text.replace("[PATIENT]", str(data.get("patient", "") or "the patient")).replace("[MRN]", str(data.get("mrn", "") or ""))
         return JSONResponse({"letter": text.strip(), "references": refs["ids"]})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
