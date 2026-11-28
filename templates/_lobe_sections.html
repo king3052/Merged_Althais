@@ -1,0 +1,389 @@
+{# Landing page body below the story section, laid out like getlobe.com: intro, connected-platform story, product screens,
+   the visit journey, products by setting, connections, security, pilot voices and the closing call to action.
+   Styles live in static/althais-lobe.css (.lr-*, .li-*, .lp-*, .lj-*, .lblog-*, .pv-*). Screenshots use sample patients. #}
+{% macro ic(name, size=16) -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="{{ 1.8 if size > 14 else 2 }}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == "up-right" %}<path d="M7 17 17 7M7 7h10v10"/>
+{%- elif name == "down" %}<path d="M12 5v14M19 12l-7 7-7-7"/>
+{%- elif name == "right" %}<path d="M5 12h14M12 5l7 7-7 7"/>
+{%- elif name == "check" %}<path d="M20 6 9 17l-5-5"/>
+{%- elif name == "expand" %}<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+{%- elif name == "chev" %}<path d="m9 18 6-6-6-6"/>
+{%- elif name == "left" %}<path d="m15 18-6-6 6-6"/>
+{%- elif name == "x" %}<path d="M18 6 6 18M6 6l12 12"/>
+{%- elif name == "shield" %}<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>
+{%- elif name == "mic" %}<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+{%- elif name == "chat" %}<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>
+{%- elif name == "code" %}<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/>
+{%- elif name == "claim" %}<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/>
+{%- elif name == "team" %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14a6.5 6.5 0 0 1 3.5 6"/>
+{%- endif %}</svg>
+{%- endmacro %}
+{# a screenshot inside a drawn device. Laptop and display: a MacBook-style screen with a desktop wallpaper, the menu bar,
+   a Chrome window with its own Althais tab and address, and a dock. Phone: a plain phone frame. #}
+{% macro device(src, alt, label, kind="laptop", pos="top") -%}
+{%- if kind == "phone" -%}
+<span class="pv-stage pv-stage--phone"><span class="pv-device"><span class="pv-camera"></span><span class="pv-screen"><img src="{{ src }}" alt="{{ alt }}" loading="lazy" style="object-position: {{ pos }}" data-shot="{{ label }}"></span></span></span>
+{%- else -%}
+{%- set slug = label | lower | replace("· ", "") | replace("& ", "") | replace("'", "") | replace(" ", "-") -%}
+<span class="pv-stage pv-stage--mac"><span class="mb mb--{{ kind }}"><span class="mb-lid"><span class="mb-cam"></span><span class="mb-screen">
+  <span class="mb-menubar" aria-hidden="true"><svg class="mb-apple" viewBox="0 0 16 19" fill="currentColor"><path d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8C3.7 4.8 2.2 5.7 1.4 7.1c-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 2.9 2.4 1.2-.1 1.6-.8 3-.8s1.8.8 3 .7c1.3 0 2-1.1 2.8-2.3.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.4-.9-2.4-3.9zM10.9 3.1c.6-.8 1.1-1.8 1-2.9-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2.1-.5 2.7-1.3z"/></svg><b>Chrome</b><span>File</span><span>Edit</span><span>View</span><span>History</span><span>Bookmarks</span><span>Profiles</span><span>Tab</span><span>Window</span><span>Help</span><i></i>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r=".8" fill="currentColor"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="6" rx="3"/><rect x="3" y="13" width="18" height="6" rx="3"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/><circle cx="16" cy="16" r="1.6" fill="currentColor"/></svg>
+    <span>Wed Oct 14</span><span>4:15 PM</span></span>
+  <span class="mb-window">
+    <span class="mb-tabs" aria-hidden="true"><span class="mb-dots"><i></i><i></i><i></i></span><span class="mb-tab"><svg viewBox="0 0 80 80" fill="none"><path d="M5,74 L40,16 L75,74" stroke="currentColor" stroke-width="11"/><line x1="21" y1="49" x2="59" y2="49" stroke="currentColor" stroke-width="11"/></svg><span>Althais · {{ label }}</span><em>×</em></span><span class="mb-plus">+</span></span>
+    <span class="mb-bar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><svg class="mb-dim" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>
+      <span class="mb-omni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>app.althais.com/{{ slug }}</span><svg class="mb-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/></svg></span>
+      <span class="mb-avatar"></span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></span>
+    <span class="mb-page"><img src="{{ src }}" alt="{{ alt }}" loading="lazy" style="object-position: {{ pos }}" data-shot="{{ label }}"></span>
+  </span>
+  <span class="mb-dock" aria-hidden="true"><i class="mb-app mb-app--finder"></i><i class="mb-app mb-app--web"></i><i class="mb-app mb-app--mail"></i><i class="mb-app mb-app--chat"></i><i class="mb-app mb-app--cal"><b>OCT</b>14</i><i class="mb-app mb-app--notes"></i><i class="mb-app mb-app--photos"></i><i class="mb-sep"></i><i class="mb-app mb-app--trash"></i></span>
+</span></span>{% if kind == "display" %}<span class="mb-chin"></span><span class="mb-stand"></span>{% else %}<span class="mb-base"></span>{% endif %}</span></span>
+{%- endif -%}
+{%- endmacro %}
+
+{% set PRODUCTS = {
+  "scribe": ("AI Scribe", "/platform/ai-scribe", "Record the visit or type it. Get a SOAP note you can review and sign.", "mic", "/static/media/landing/tool-scribe.jpg"),
+  "coding": ("Medical Coding", "/platform/medical-coding", "ICD-10 and CPT suggestions, each with a confidence score and the reason behind it.", "code", "/static/media/landing/tool-coding.jpg"),
+  "claims": ("Claims & Insurance", "/platform/claims-insurance", "Check claims against CMS NCCI edits, send them once approved, and track every one.", "claim", "/static/media/landing/tool-claims.jpg"),
+  "althea": ("Althea Assistant", "/platform/althea", "Ask about the visit on screen, by voice or chat, without leaving the chart.", "chat", ""),
+  "team": ("Team & Onboarding", "/platform/team-onboarding", "Invite staff, train them, and set who can see what.", "team", "/static/media/landing/serve-hospitals.jpg"),
+} %}
+{% set SETTINGS = [
+  ("Physician practices", "Notes and codes, done by sign-off.", "Notes written while you talk, codes suggested before you sign.", ["scribe", "coding", "claims"]),
+  ("Emergency & hospital care", "High-acuity visits, coded with reasons.", "High-acuity visits coded with the reasons behind each code.", ["coding", "claims", "team"]),
+  ("Small & direct care clinics", "A billing team, without the hire.", "A billing team's work, without hiring a billing team.", ["scribe", "claims", "althea"]),
+  ("Revenue cycle teams", "Clean claims out, fewer denials back.", "Clean claims out the door, and fewer denials coming back.", ["claims", "coding", "team"]),
+  ("The whole platform", "Explore all five products.", "Everything Althais does, from the visit to the payment.", ["scribe", "coding", "claims", "althea", "team"]),
+] %}
+{% set TABS = [
+  ("AI Scribe", "/static/media/landing/app-scribe.jpg", "The Althais encounter screen: a SOAP progress note written from the visit, beside the patient chart",
+   "A finished note. Before the patient leaves.", "Althais listens to the visit, spoken or typed, and turns it into a structured SOAP note you edit and sign. Nothing is filed until you sign.", "/platform/ai-scribe", "Explore AI Scribe"),
+  ("Smart Coding", "/static/media/landing/app-coding.jpg", "The Althais coding panel: a 95% claim check, the CPT and ICD-10 codes, and the note lines each code rests on",
+   "Codes with the reasons behind them.", "Althais reads the note and suggests ICD-10 and CPT codes, each with a confidence score and the documentation behind it. Accept, reject or add your own.", "/platform/medical-coding", "Explore Medical Coding"),
+  ("Clean Claims", "/static/media/products/claims-queue.jpg", "The Althais claims queue: claims by status with payer, charges and edits",
+   "Checked before it's filed.", "Every claim is checked against CMS NCCI edits while the note is still open, sent only after your team approves it, then tracked to payment.", "/platform/claims-insurance", "Explore Claims & Insurance"),
+  ("Ask Althea", "/static/media/products/althea-chart.jpg", "A patient chart in Althais with the Althea assistant ready to answer questions about it",
+   "An assistant that knows the chart.", "Ask Althea about the visit on screen by voice or chat: what changed, what's missing, how to code it. It answers from what's in front of you.", "/platform/althea", "Explore Althea"),
+] %}
+{% set CHAPTERS = [
+  ("The visit", "The provider stays with the patient.", "Record the conversation or bring in a transcript. Nobody types during the visit, and nothing is filed until the provider signs.", ["scribe"], "/static/media/products/scribe-capture.jpg", "The visit transcript in Althais, line by line with timestamps", "AI Scribe · Transcript"),
+  ("The note", "A SOAP note, ready to sign.", "AI Scribe drafts the note with the chief complaint, assessment and plan already organized. The provider edits anything and signs it.", ["scribe", "althea"], "/static/media/products/scribe-note.jpg", "A SOAP progress note drafted by Althais beside the patient chart", "AI Scribe · Progress note"),
+  ("The codes", "Codes with their reasons.", "Medical Coding suggests ICD-10 and CPT codes, each with a confidence score and the note lines behind it. Accept, reject or add your own.", ["coding"], "/static/media/products/coding-suggest.jpg", "Suggested codes with a claim check score, estimated charge and payer", "Medical Coding · Suggestions"),
+  ("The claim", "Checked before it's filed.", "Every claim is checked against CMS NCCI edits while the note is still open, and goes out only after your team approves it.", ["claims"], "/static/media/products/scribe-sign.jpg", "Sign and approve: the note, codes and claim check on one screen", "Claims · Sign and approve"),
+  ("The payment", "Tracked until it's paid.", "Follow each claim from submission to payment. Denials are flagged, with an appeal letter already drafted.", ["claims", "team"], "/static/media/products/claims-overview.jpg", "The revenue overview: claims by stage, collections and denials", "Claims · Overview"),
+] %}
+{% set MORE_SHOTS = [
+  ("Claim check", "/static/media/products/claims-check.jpg", "A claim detail with a 95% claim check and the codes picked for the visit"),
+  ("Note sources", "/static/media/products/scribe-sources.jpg", "Each line of the note with the quote from the visit it came from"),
+  ("Payer rules", "/static/media/products/coding-payer.jpg", "Payer rules in Althais: requirements by payer and code"),
+  ("Patient list", "/static/media/products/althea-patients.jpg", "The patient list with insurance and visit details"),
+  ("Today's schedule", "/static/media/products/team-schedule.jpg", "The day's schedule across providers"),
+  ("Access & credentials", "/static/media/products/team-access.jpg", "A staff profile with credentials, training and access"),
+] %}
+
+<div class="lbx">
+
+<!-- INTRO -->
+<section class="lr-hero lr-intro lr-wrap" aria-labelledby="intro-title">
+  <div class="lr-hero-copy">
+    <p class="lr-eyebrow"><span class="lr-dot"></span>AI built for the visit, the code and the claim</p>
+    <h2 id="intro-title">Every visit deserves<br>a claim that gets paid.</h2>
+    <p class="lr-lead">One platform for your practice. Althais listens to the visit, writes the note, suggests the codes, checks them against CMS edits, and tracks the claim until it's paid.</p>
+    <div class="lr-actions">
+      <a class="lr-button" href="/demo">Request demo {{ ic("up-right") }}</a>
+      <a class="lr-text-link" href="#platform">Explore the platform {{ ic("down") }}</a>
+    </div>
+    <div class="lr-hero-note"><span class="lr-note-mark">{{ ic("check", 12) }}</span> Your documentation. Your team signs off.</div>
+  </div>
+  <figure class="lp-hero-product">
+    <div class="lp-atmosphere" aria-hidden="true"><span class="lp-soft-light"></span><span class="lp-warm-light"></span></div>
+    <a href="#inside-althais" aria-label="See the Althais screens">{{ device("/static/media/products/claims-overview.jpg", "The Althais revenue overview on a laptop: claims by stage, collections and denials", "Revenue overview") }}</a>
+    <figcaption><span>Every claim, at a glance</span><span>Sample clinic</span></figcaption>
+  </figure>
+</section>
+
+<!-- CONNECTED PLATFORM -->
+<section class="li-story lr-wrap" aria-labelledby="intelligence-title">
+  <div class="li-story-copy">
+    <p class="lr-eyebrow">ONE VISIT. CONNECTED PRODUCTS.</p>
+    <h2 id="intelligence-title">Althais is the connected AI platform for the revenue cycle.</h2>
+    <p>One record of the visit, with products for every step. Althais connects the note, the codes, the claim check and the follow-up, so nothing is typed twice and nothing gets lost between teams.</p>
+    <a class="lr-text-link" href="/how-it-works">Explore how it works {{ ic("up-right") }}</a>
+  </div>
+  <div class="li-story-points">
+    <div><span>01 / ONE RECORD OF THE VISIT</span><p>The note, the codes and the claim all come from the same encounter.</p></div>
+    <div><span>02 / REASONS THAT CARRY FORWARD</span><p>Every code keeps the note lines behind it, so reviewers see why.</p></div>
+    <div><span>03 / YOUR SYSTEMS, CONNECTED</span><p>Bring claims in from athenahealth, DrChrono, Tebra or any CSV export.</p></div>
+  </div>
+</section>
+
+<!-- PRODUCT SCREENS -->
+<section id="platform" class="lr-section lr-wrap" aria-labelledby="platform-title">
+  <div class="lr-section-heading">
+    <div><p class="lr-eyebrow">MEET ALTHAIS</p><h2 id="platform-title">See the visit.<br>See the claim it becomes.</h2></div>
+    <p>Take a closer look at the screens providers and billers use. This is Althais, from the conversation in the exam room to a claim ready to send.</p>
+  </div>
+  <div id="inside-althais">
+    <div class="lp-view-tabs" role="tablist" aria-label="Explore the Althais interface">
+      {% for t in TABS %}<button id="lp-tab-{{ loop.index0 }}" type="button" role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}" aria-controls="lp-panel-{{ loop.index0 }}" tabindex="{{ 0 if loop.first else -1 }}">{{ t[0] }}</button>{% endfor %}
+    </div>
+    {% for name, src, alt, h, p, href, go in TABS %}
+    <div id="lp-panel-{{ loop.index0 }}" class="lp-view" role="tabpanel" aria-labelledby="lp-tab-{{ loop.index0 }}" tabindex="0"{% if not loop.first %} hidden{% endif %}>
+      <div class="lp-product-frame">
+        <button type="button" class="lp-screen-button" aria-haspopup="dialog" aria-label="Enlarge {{ name }} screenshot"><span class="lp-main-mockup">{{ device(src, alt, name) }}</span><span class="lp-enlarge">{{ ic("expand", 14) }} View full screen</span></button>
+      </div>
+      <div class="lp-view-caption">
+        <div><h3>{{ h }}</h3><p>{{ p }}</p></div>
+        <a class="lr-text-link" href="{{ href }}">{{ go }} {{ ic("up-right") }}</a>
+      </div>
+    </div>
+    {% endfor %}
+    <p class="lp-source-note">Althais screens with sample patients. No real patient data is shown.</p>
+
+    <section class="lp-personal-discovery" aria-labelledby="personal-discovery-title">
+      <div>
+        <p class="lr-eyebrow">A CONVERSATION, WITH CONTEXT</p>
+        <h3 id="personal-discovery-title">Ask about the visit<br>on screen.</h3>
+        <p>A question about a code can become an answer from the chart. Althea reads what's in front of you and replies by voice or chat, so nobody has to go looking.</p>
+        <a class="lr-text-link" href="/platform/althea">Meet Althea Assistant {{ ic("up-right") }}</a>
+      </div>
+      <button type="button" class="lp-phone-button" aria-haspopup="dialog" aria-label="Enlarge Althea screenshot">{{ device("/static/media/products/althea-ask-panel.jpg", "Althea answering “How do I code a note?” in the Althais assistant panel", "Ask Althea", "phone") }}</button>
+    </section>
+
+    <section class="lp-team-gallery" aria-labelledby="team-gallery-title">
+      <div class="lp-gallery-heading"><p class="lr-eyebrow">ROOM FOR YOUR TEAM TO DO THEIR BEST WORK</p><h3 id="team-gallery-title">Thoughtful tools.<br>A clearer picture.</h3></div>
+      <div class="lp-editorial-gallery">
+        <article class="lp-editorial-feature lp-editorial-feature--website">
+          <div class="lp-editorial-copy">
+            <p class="lr-eyebrow">DENIALS &amp; APPEALS</p>
+            <h3>Catch the denial. Draft the appeal.</h3>
+            <p>Denied claims come back flagged with the reason, the codes involved and an appeal letter already drafted, so your team spends its time on the fix.</p>
+            <a class="lr-text-link" href="/platform/claims-insurance">Explore Claims &amp; Insurance {{ ic("up-right") }}</a>
+          </div>
+          <button class="lp-editorial-screen" type="button" aria-haspopup="dialog" aria-label="Enlarge Denials screenshot">{{ device("/static/media/products/claims-denials.jpg", "The denials screen: denied claims with reasons and drafted appeals", "Denials & appeals") }}<span class="lp-enlarge">{{ ic("expand", 14) }} View full screen</span></button>
+        </article>
+        <article class="lp-editorial-feature lp-editorial-feature--analytics">
+          <div class="lp-editorial-copy">
+            <p class="lr-eyebrow">TEAM &amp; ONBOARDING</p>
+            <h3>Everyone set up, trained and covered.</h3>
+            <p>Invite staff, track credentials and training, and decide who can see notes, codes or billing. Every change lands in the access log.</p>
+            <a class="lr-text-link" href="/platform/team-onboarding">Explore Team &amp; Onboarding {{ ic("up-right") }}</a>
+          </div>
+          <button class="lp-editorial-screen" type="button" aria-haspopup="dialog" aria-label="Enlarge Team screenshot">{{ device("/static/media/products/team-staff.jpg", "The staff list in Althais with roles, onboarding and access", "Team & staff", "display") }}<span class="lp-enlarge">{{ ic("expand", 14) }} View full screen</span></button>
+        </article>
+      </div>
+      <div class="lp-more-screens"><span>Take a closer look</span>
+        {% for label, src, alt in MORE_SHOTS %}<button type="button" aria-haspopup="dialog" data-shot-src="{{ src }}" data-shot-alt="{{ alt }}" data-shot-label="{{ label }}">{{ label }} {{ ic("up-right", 12) }}</button>{% endfor %}
+      </div>
+      <p class="lp-source-note">Captured in an Althais demo clinic. Patients and figures are sample data.</p>
+    </section>
+  </div>
+</section>
+
+<dialog class="lp-screen-dialog" aria-label="Full-size Althais screenshots">
+  <div class="lp-dialog-toolbar">
+    <span role="status" aria-live="polite" class="lp-dialog-status"></span>
+    <div class="lp-dialog-actions">
+      <button type="button" data-go="-1" aria-label="Previous screenshot">{{ ic("left") }}</button>
+      <button type="button" data-go="1" aria-label="Next screenshot">{{ ic("chev") }}</button>
+      <button type="button" data-close autofocus aria-label="Close full-size screenshot">{{ ic("x") }}</button>
+    </div>
+  </div>
+  <img alt="" class="lp-dialog-img">
+</dialog>
+
+<!-- JOURNEY -->
+<section id="althais-journey" class="lr-workflow lj-section" aria-labelledby="journey-title">
+  <div class="lr-wrap">
+    <div class="lj-heading">
+      <div><p class="lr-eyebrow">ONE VISIT. MANY MOMENTS.</p><h2 id="journey-title">From the first word<br>to the final payment.</h2></div>
+      <p class="lr-lead">Every visit takes its own path. Explore how each part of Althais supports the people along the way.</p>
+    </div>
+    <ol class="lj-timeline" aria-label="Explore the journey of a visit">
+      {% for c in CHAPTERS %}<li><button type="button" aria-pressed="{{ 'true' if loop.first else 'false' }}" aria-controls="journey-chapter" data-ch="{{ loop.index0 }}"><span class="lj-number" aria-hidden="true">{{ '%02d' % loop.index }}</span><span>{{ c[0] }}</span></button></li>{% endfor %}
+    </ol>
+    <div id="journey-chapter">
+      {% for name, h, story, prods, src, alt, cap in CHAPTERS %}
+      <div class="lj-chapter" data-ch="{{ loop.index0 }}"{% if not loop.first %} hidden{% endif %}>
+        <div class="lj-copy">
+          <p class="lj-chapter-label">CHAPTER {{ '%02d' % loop.index }} / {{ name | upper }}</p>
+          <h3>{{ h }}</h3>
+          <p class="lj-story">{{ story }}</p>
+          <p class="lj-products-label">Althais along the way</p>
+          <ul class="lj-products">{% for k in prods %}<li><a href="{{ PRODUCTS[k][1] }}">{{ PRODUCTS[k][0] }} {{ ic("up-right", 12) }}</a></li>{% endfor %}</ul>
+        </div>
+        <figure class="lj-preview">
+          <button type="button" class="lj-image lj-image-button" aria-label="Zoom into {{ name }} image" aria-pressed="false" data-zoomed="false">{{ device(src, alt, cap) }}<span class="lj-zoom-hint">Take a closer look</span></button>
+          <figcaption>{{ cap }} · Sample patient</figcaption>
+        </figure>
+      </div>
+      {% endfor %}
+    </div>
+    <a class="lr-text-link lj-platform-link" href="/walkthrough">Follow one visit, start to finish {{ ic("up-right") }}</a>
+  </div>
+</section>
+
+<!-- PRODUCTS BY SETTING -->
+<section class="lr-section lr-wrap" aria-labelledby="offering-title">
+  <div class="lr-section-heading">
+    <div><p class="lr-eyebrow">MORE THAN THE NOTE</p><h2 id="offering-title">Built around your<br>whole practice.</h2></div>
+    <a class="lr-text-link" href="/solutions">See who Althais is built for {{ ic("up-right") }}</a>
+  </div>
+  <div class="lr-category-browser">
+    <div class="lr-offering-filters" role="group" aria-label="Find Althais tools for your setting">
+      {% for name, sub, line, keys in SETTINGS %}<button type="button" aria-pressed="{{ 'true' if loop.first else 'false' }}" aria-controls="lr-offerings" data-line="{{ line }}" data-keys="{{ keys | join(' ') }}"><span>{{ name }}<small>{{ sub }}</small></span>{{ ic("chev") }}</button>{% endfor %}
+    </div>
+    <div class="lr-category-content">
+      <p class="lr-filter-count" role="status" aria-live="polite" aria-atomic="true">{{ SETTINGS[0][2] }} {{ SETTINGS[0][3] | length }} products.</p>
+      <div id="lr-offerings" class="lr-offerings">
+        {% for k, p in PRODUCTS.items() %}
+        <a class="lr-offering" href="{{ p[1] }}" data-key="{{ k }}"{% if k not in SETTINGS[0][3] %} hidden{% endif %}>
+          <span class="lr-offering-media" aria-hidden="true">
+            {% if p[4] %}<img src="{{ p[4] }}" alt="" loading="lazy">
+            {% else %}<span class="sms-preview"><span class="sms-preview-label">A quick question. A straight answer.</span><span class="sms-bubble sms-bubble--family">What changed since the last visit?</span><span class="sms-bubble sms-bubble--lobe">A1c is up from 7.4% to 8.1%, and glipizide was added.</span><span class="sms-bubble sms-bubble--family">Thanks. Code it.</span><span class="sms-preview-note">Sample Althea conversation</span></span>{% endif %}
+          </span>
+          <div class="lr-offering-copy"><span class="lr-offering-icon">{{ ic(p[3], 18) }}</span><h3>{{ p[0] }}</h3><p>{{ p[2] }}</p><span class="lr-offering-more">Explore product {{ ic("up-right", 12) }}</span></div>
+        </a>
+        {% endfor %}
+      </div>
+      <p class="lr-preview-note">Product photos and sample interfaces. Setup varies by practice.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONNECTIONS -->
+<section class="lr-wrap lr-integrations" aria-labelledby="integrations-title">
+  <p class="lr-eyebrow">FITS INTO THE WAY YOU WORK</p>
+  <h2 id="integrations-title">Connected to your EMR.<br>Your existing tools.</h2>
+  <p>Bring claims in from your EMR or any CSV or Excel export, check them in Althais, and send them through Claim.MD. The browser extension puts the same checks on top of the EMR you already use.</p>
+  <div class="lr-integration-list"><span>athenahealth</span><span>DrChrono</span><span>Tebra</span><span>CSV &amp; Excel</span><span>Claim.MD</span></div>
+  <a class="lr-text-link" href="/how-it-works">See how it fits together {{ ic("up-right") }}</a>
+</section>
+
+<!-- SECURITY -->
+<section class="lr-section lr-wrap lr-trust" aria-labelledby="trust-title">
+  <div>
+    {{ ic("shield", 22) }}
+    <p class="lr-eyebrow">THOUGHTFULLY BUILT. CLEARLY CONTROLLED.</p>
+    <h2 id="trust-title">AI that supports<br>your people.</h2>
+  </div>
+  <div>
+    <p class="lr-lead">Your team signs every note and approves every claim. Althais suggests the codes and checks the claim, while your people stay responsible for the care and the billing.</p>
+    <ul>
+      <li>{{ ic("check", 14) }} Patient documents and connections encrypted with AES-256-GCM</li>
+      <li>{{ ic("check", 14) }} A HIPAA access log of who opened or changed patient and billing data</li>
+      <li>{{ ic("check", 14) }} Two-step sign-in, roles and team-level access</li>
+    </ul>
+    <a class="lr-text-link" href="/security">Our approach to security {{ ic("up-right") }}</a>
+  </div>
+</section>
+
+<!-- PILOT VOICES (their words only) -->
+<section class="lr-section lr-wrap" aria-labelledby="voices-title" id="voices">
+  <div class="lr-section-heading">
+    <div><p class="lr-eyebrow">FROM OUR PILOTS. IN THEIR WORDS.</p><h2 id="voices-title">Clinicians are already<br>seeing the difference.</h2></div>
+    <p class="lr-lead">Revenue cycle leaders and physicians tried Althais on their own documentation. Here's what they told us.</p>
+  </div>
+  <div class="lblog-grid">
+    <a class="lblog-card" href="/case-studies">
+      <figure class="lblog-source-cover"><span>Pilot · Odessa, TX</span><strong>MCH</strong><span>Revenue cycle</span></figure>
+      <div><p class="lblog-meta">Pilot · Bryan Cox, Director, Revenue Cycle</p>
+        <h3>“NCCI real-time checking is something I’ve been asking vendors to build for years.”</h3>
+        <p>“Most practices don’t find out about bundling conflicts until after the rejection.”</p>
+        <span class="lblog-read">Read case studies {{ ic("up-right", 12) }}</span></div>
+    </a>
+    <a class="lblog-card" href="/case-studies">
+      <figure class="lblog-source-cover lblog-source-cover--logo"><img src="/static/logos/tarin-health.png" alt="Tarin Health"></figure>
+      <div><p class="lblog-meta">Pilot · Dr. James Tarin, Tarin Health DPC, Pecos, TX</p>
+        <h3>“The coding engine caught a bundling error I would have missed.”</h3>
+        <p>“The kind that comes back as a denial two weeks later when you’ve already moved on.”</p>
+        <span class="lblog-read">Read case studies {{ ic("up-right", 12) }}</span></div>
+    </a>
+    <a class="lblog-card" href="/case-studies">
+      <figure class="lblog-source-cover lblog-source-cover--logo"><img src="/static/logos/hamilton-healthbox.png" alt="Hamilton Health Box"></figure>
+      <div><p class="lblog-meta">Pilot · Dr. Ashish Gupta, MD MBA, Deputy CMO</p>
+        <h3>“Small clinics running lean can’t afford a billing department.”</h3>
+        <p>“Althais is built for exactly that setting, and the Althea voice layer is something I haven’t seen anywhere else.”</p>
+        <span class="lblog-read">Read case studies {{ ic("up-right", 12) }}</span></div>
+    </a>
+  </div>
+  <a class="lr-text-link lblog-more" href="/resources">Visit Althais resources {{ ic("up-right") }}</a>
+</section>
+
+<!-- CLOSING CALL TO ACTION -->
+<section class="lr-cta lr-wrap" aria-labelledby="cta-title">
+  <div>
+    <p class="lr-eyebrow">LET’S GET THE CLAIM RIGHT THE FIRST TIME</p>
+    <h2 id="cta-title">Less time on paperwork.<br>More time with patients.</h2>
+    <p>See Althais on visits like yours, with your specialty and your payers.</p>
+    <a class="lr-button" href="/demo">Request demo {{ ic("up-right") }}</a>
+  </div>
+  <img src="/static/media/landing/serve-practices.jpg" alt="A doctor talking with a young patient and her mother" loading="lazy">
+</section>
+
+</div>
+
+<script>
+  // Lobe-style sections: product screen tabs, the full-screen viewer, the journey chapters, and products by setting
+  (function () {
+    var root = document.querySelector('.lbx'); if (!root) return;
+    var $$ = function (s, el) { return [].slice.call((el || root).querySelectorAll(s)); };
+
+    // product screen tabs (arrow keys move between tabs)
+    var tabs = $$('.lp-view-tabs [role=tab]');
+    function showTab(n, focus) {
+      tabs.forEach(function (t, k) { var on = k === n; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; document.getElementById(t.getAttribute('aria-controls')).hidden = !on; });
+      if (focus) tabs[n].focus();
+    }
+    tabs.forEach(function (t, k) {
+      t.addEventListener('click', function () { showTab(k); });
+      t.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); showTab((k + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length, true); }
+      });
+    });
+
+    // full-screen viewer: every screenshot in the section, in page order; arrows step through them
+    var dlg = root.querySelector('.lp-screen-dialog'), dImg = dlg.querySelector('.lp-dialog-img'), dStatus = dlg.querySelector('.lp-dialog-status');
+    var shots = [], cur = 0;
+    $$('#platform img[data-shot]').forEach(function (img) { shots.push({ src: img.getAttribute('src'), alt: img.alt, label: img.dataset.shot, el: img.closest('button') }); });
+    $$('.lp-more-screens button').forEach(function (b) { shots.push({ src: b.dataset.shotSrc, alt: b.dataset.shotAlt, label: b.dataset.shotLabel, el: b }); });
+    function view(n) {
+      cur = (n + shots.length) % shots.length; var s = shots[cur];
+      dImg.src = s.src; dImg.alt = s.alt; dStatus.textContent = (cur + 1) + ' / ' + shots.length + ' · ' + s.label + ' · Sample data';
+    }
+    shots.forEach(function (s, k) {
+      if (s.el && !s.el.dataset.bound) { s.el.dataset.bound = '1'; s.el.addEventListener('click', function () { view(k); dlg.showModal(); }); }
+    });
+    dlg.addEventListener('click', function (e) {
+      var go = e.target.closest('[data-go]'); if (go) return view(cur + +go.dataset.go);
+      if (e.target.closest('[data-close]') || e.target === dlg) dlg.close();
+    });
+    dlg.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') view(cur + 1); if (e.key === 'ArrowLeft') view(cur - 1); });
+
+    // journey chapters; clicking the picture zooms in and out
+    var steps = $$('.lj-timeline button'), chapters = $$('.lj-chapter');
+    steps.forEach(function (b) {
+      b.addEventListener('click', function () {
+        steps.forEach(function (o) { o.setAttribute('aria-pressed', o === b); });
+        chapters.forEach(function (c) { c.hidden = c.dataset.ch !== b.dataset.ch; });
+      });
+    });
+    $$('.lj-image-button').forEach(function (b) {
+      b.addEventListener('click', function () { var z = b.dataset.zoomed !== 'true'; b.dataset.zoomed = z; b.setAttribute('aria-pressed', z); });
+    });
+
+    // products by setting
+    var filters = $$('.lr-offering-filters button'), cards = $$('.lr-offering'), count = root.querySelector('.lr-filter-count');
+    filters.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var keys = b.dataset.keys.split(' ');
+        filters.forEach(function (o) { o.setAttribute('aria-pressed', o === b); });
+        cards.forEach(function (c) { c.hidden = keys.indexOf(c.dataset.key) < 0; });
+        count.textContent = b.dataset.line + ' ' + keys.length + ' products.';
+      });
+    });
+  })();
+</script>
